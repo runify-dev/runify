@@ -1,9 +1,22 @@
 <template>
-    <el-drawer v-model="drawer" direction="rtl" append-to-body>
+    <el-drawer header-class="run-drawer-header" v-model="drawer" direction="rtl" append-to-body>
         <template #header>
             <h4 class="font-medium">{{ name }}</h4>
         </template>
         <template #default>
+            <h5 v-if="$slots.content" class="relative
+                before:block 
+                before:absolute before:translate-x-[-50%] 
+                before:translate-y-[-50%] 
+                before:top-1/2
+                before:left-[2px]
+                before:w-[2px] before:h-[80%] before:bg-[var(--el-color-primary)] pl-3
+                font-medium">
+                基本设置</h5>
+
+            <slot name="content">
+            </slot>
+
             <h5 class="relative
                 before:block 
                 before:absolute before:translate-x-[-50%] 
@@ -22,6 +35,7 @@
                 </div>
 
             </div>
+
         </template>
         <template #footer>
             <div style="flex: auto">
@@ -39,14 +53,12 @@ import AppIcon from '@/components/icons/AppIcon.vue';
 import Clipboard from 'vue-clipboard3'
 import { ElMessage } from 'element-plus';
 const props = defineProps<{
-    updateFormData: (formData: any) => void
+    validate: () => Promise<boolean>
 }>()
 const drawer = ref<boolean>(false)
 const form_data = ref<any>({});
 const fieldList = ref<Array<Field>>([])
 const name = ref<string>('');
-
-
 const copy = (text: string) => {
     const { toClipboard } = Clipboard()
     toClipboard(text).then(() => {
@@ -56,8 +68,10 @@ const copy = (text: string) => {
     })
 }
 const confirm = () => {
-    props.updateFormData(form_data)
-    close()
+    props.validate().then(() => {
+        close()
+    })
+
 }
 const close = () => {
     drawer.value = false
@@ -72,4 +86,8 @@ const open = (model: BaseNodeModel) => {
 }
 defineExpose({ open, close })
 </script>
-<style lang="scss" scoped></style>
+<style lang="scss">
+.run-drawer-header {
+    margin-bottom: 0;
+}
+</style>

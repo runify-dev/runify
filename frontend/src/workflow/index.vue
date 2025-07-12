@@ -1,10 +1,11 @@
 <template>
-    <div style="width: 100%;height: 100%;" id="container"></div>
+    <div style="width: 100%;height: 100%;" id="run-workflow-container"></div>
     <TeleportContainer :flow-id="flowId" />
 </template>
 <script setup lang="ts">
 import LogicFlow from '@logicflow/core'
 import '@logicflow/core/dist/index.css';
+import RunEdge from './common/edge'
 import { onMounted, ref } from "vue";
 const nodes: any = import.meta.glob('./nodes/**/index.ts', { eager: true })
 import { getTeleport } from '@/workflow/common/teleport'
@@ -47,14 +48,15 @@ const init = (container: HTMLElement) => {
             strokeWidth: 1
         }
     })
-    lf.value.batchRegister([...Object.keys(nodes).map((key) => nodes[key].default)])
+    lf.value.batchRegister([...Object.keys(nodes).map((key) => nodes[key].default), RunEdge])
+    lf.value.setDefaultEdgeType('run-edge')
 
 }
 const render = (data?: LogicFlow.GraphConfigData) => {
     lf.value.render(data ? data : {})
 }
 onMounted(() => {
-    init(document.querySelector('#container'))
+    init(document.querySelector('#run-workflow-container'))
 })
 defineExpose({ init, render })
 </script>

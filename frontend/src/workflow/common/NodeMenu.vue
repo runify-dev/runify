@@ -1,7 +1,10 @@
 <template>
-    <MenuContent v-if="visible" :append-node="(node) => appendNode(node, anchorDataValue)" :workflow-type="workflowType"
-        :close="close">
-    </MenuContent>
+    <el-collapse-transition>
+        <MenuContent v-if="visible" :append-node="(node) => appendNode(node, anchorDataValue)"
+            :workflow-type="workflowType" :close="close">
+        </MenuContent>
+    </el-collapse-transition>
+
 </template>
 <script setup lang="ts">
 import { ref } from "vue"

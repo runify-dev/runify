@@ -1,6 +1,6 @@
 import LogicFlow from '@logicflow/core'
 import '@logicflow/core/dist/index.css';
-
+import RunEdge from './common/edge'
 const nodes: any = import.meta.glob('./nodes/**/index.ts', { eager: true })
 export class Workflow {
     lf
@@ -38,6 +38,7 @@ export class Workflow {
             }
         })
         this.lf.batchRegister([...Object.keys(nodes).map((key) => nodes[key].default)])
+
 
     }
 

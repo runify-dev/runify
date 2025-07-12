@@ -19,3 +19,7 @@ export const toTree = (nodeList: Array<Tree>) => {
     }
     return nodeList.filter(item => !item.parentId)
 }
+
+export const generateAnchor = (id: string, direction: 'left' | 'right' | 'top' | 'bottom', branch: 'main' | string, status: 'success' | 'fail',) => {
+    return `${id}_${direction}_${branch}_${status}`
+}

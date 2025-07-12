@@ -1,6 +1,6 @@
 <template>
     <div ref="contentRef"
-        class="z-10 shadow-lg outline  outline-black/5  dark:shadow-none dark:-outline-offset-1 dark:outline-white/10 rounded-md h-[500px] w-[400px] translate-x-[50%] translate-y-[-50%] left-[80px] absolute bg-white p-2">
+        class="z-10 shadow-lg outline overflow-hidden outline-black/5  dark:shadow-none dark:-outline-offset-1 dark:outline-white/10 rounded-md h-[500px] w-[400px] translate-x-[50%] translate-y-[-50%] left-[80px] absolute bg-white p-2">
         <div class=" w-full h-full" v-for="key in Object.keys(menu)" :key="key">
             <h5 class="relative
                 before:block 
