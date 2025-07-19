@@ -24,3 +24,6 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+.md-editor-footer {
+  height: auto !important;
+}

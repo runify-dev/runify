@@ -1,7 +1,6 @@
 package com.run.common.util;
 
 import com.run.dao.common.entity.BaseEntity;
-import com.run.dao.entity.Node;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
@@ -16,7 +15,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.FieldUtils;
 
 import java.lang.reflect.Field;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -83,12 +85,6 @@ public class SqlGenUtil {
         return insert.toString();
     }
 
-    public static void main(String[] args) {
-        Node node = new Node();
-        node.setName("name");
-        Update user = generateUpdateSql(new Table("user"), node);
-        System.out.println(user);
-    }
 
     public static List<UpdateSet> getUpdateSetList(Map<String, Object> params) {
         return params.keySet().stream().map(key ->

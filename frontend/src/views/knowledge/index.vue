@@ -1,7 +1,8 @@
 <template>
   <AppSubLayout>
     <template #aside>
-      <TreeAside v-bind:current-node="currentNode" @update:current-node="clickChange" :data="data">
+      <TreeAside :currentId="resourceId" :create="create" resource="knowledge" @update:current-node="clickChange"
+        @node-click="nodeClick" :data="data" :insertAfter="insertAfter">
       </TreeAside>
     </template>
     <template #main>
@@ -11,34 +12,55 @@
 </template>
 <script setup lang="ts">
 import AppSubLayout from "@/layout/AppSubLayout.vue";
-import { onMounted, ref, watch } from "vue";
+import { computed, onMounted, ref } from "vue";
 import 'md-editor-v3/lib/style.css';
-import TreeAside from "@/views/knowledge/tree/index.vue"
+import TreeAside from "@/components/tree/index.vue"
 import NodeApi from "@/api/node"
 import { toTree } from "@/utils/common"
 import { type Tree, type CurrentNode } from '@/api/type/node';
 
 import { useRouter, useRoute } from 'vue-router';
+import type { Type } from '@/api/type/common';
+const create = (type: Type, id?: string) => {
+  return NodeApi.create('knowledge', (id ? id : 'root'), { type: type })
+}
+const nodeClick = (node: any) => {
+  if (node.type == 'folder') {
+    router.push({
+      path: `/knowledge/folder/${node.parentId ? node.parentId : 'root'}/resource/${node.id}`
+    })
+  } else {
+    router.push({
+      path: `/knowledge/folder/${node.parentId ? node.parentId : 'root'}/resource/${node.id}/details`
+    })
+  }
+
+}
 
 const router = useRouter()
 const route = useRoute()
-const {
-  params: { id } // id为datasetID
-} = route as any
+const insertAfter = (node: any) => {
+  data.value.push(node)
+}
+const folderId = computed(() => {
+  const {
+    params: { folderId }
+  } = route as any
+  return folderId
+})
+const resourceId = computed(() => {
+  const {
+    params: { id }
+  } = route as any
+  return id
+})
+
 const currentNode = ref<CurrentNode>({
   type: "all",
   node: "all"
 });
 
 
-if (['all', 'share', 'star'].includes(id)) {
-  currentNode.value = {
-    type: id,
-    node: id
-  }
-} else if (['knowledgeList', 'knowledgeDetails'].includes(route.name as string)) {
-  currentNode.value = { 'node': { 'id': id }, 'type': 'tree' }
-}
 
 const data = ref<Array<Tree>>([]);
 
@@ -55,14 +77,10 @@ const clickChange = (node: CurrentNode) => {
   }
 }
 
-watch(route, () => {
-  if (['knowledgeDetails'].includes(route.name as string)) {
-    currentNode.value = { 'node': { 'id': id }, 'type': 'tree' }
-  }
-})
+
 
 onMounted(() => {
-  NodeApi.list({ 'source': 'knowledge' }).then(ok => {
+  NodeApi.listTree('knowledge', undefined).then(ok => {
     data.value = toTree(ok.data)
   })
 

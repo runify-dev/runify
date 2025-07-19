@@ -4,7 +4,11 @@ interface MarkdownNode {
     createTime: string,
     updateTime: string
 }
+interface KnowledgeEdit {
+    name?: string,
+    content?: string
+}
 export type {
-    MarkdownNode
-
+    MarkdownNode,
+    KnowledgeEdit
 }

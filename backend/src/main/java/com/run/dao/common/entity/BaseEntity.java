@@ -1,7 +1,6 @@
 package com.run.dao.common.entity;
 
 import com.run.dao.common.annotations.Column;
-import com.run.dao.entity.Node;
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.templates.TupleMapper;
 
@@ -32,10 +31,6 @@ public interface BaseEntity<T> {
             }
         }
         return result;
-    }
-
-    default TupleMapper<Node> getTupleMapper() {
-        return TupleMapper.mapper(n -> this.toMap());
     }
 
     T mapTo(Row row);

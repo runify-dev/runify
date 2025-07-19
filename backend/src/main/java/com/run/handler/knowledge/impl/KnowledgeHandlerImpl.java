@@ -2,17 +2,13 @@ package com.run.handler.knowledge.impl;
 
 import com.google.inject.Inject;
 import com.run.common.result.Result;
-import com.run.common.util.ValidatorUtil;
-import com.run.common.validator.Group;
-import com.run.dao.entity.MarkdownNode;
-import com.run.dao.entity.Node;
-import com.run.dao.mapper.MarkdownNodeMapper;
-import com.run.dao.mapper.NodeMapper;
+import com.run.dao.entity.Knowledge;
+import com.run.dao.mapper.KnowledgeMapper;
 import com.run.handler.knowledge.IKnowledgeHandler;
-import io.vertx.core.Future;
+import com.run.handler.knowledge.pojo.EditKnowledge;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.lang3.StringUtils;
 
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
@@ -23,45 +19,25 @@ import java.util.UUID;
  */
 public class KnowledgeHandlerImpl implements IKnowledgeHandler {
     @Inject
-    protected MarkdownNodeMapper markdownNodeMapper;
-    @Inject
-    protected NodeMapper nodeMapper;
+    protected KnowledgeMapper knowledgeMapper;
+
 
     @Override
     public void edit(RoutingContext context) {
-        String node_id = context.pathParam("node_id");
-        MarkdownNode markdownNode = context.body().asPojo(MarkdownNode.class);
-        markdownNode.setId(UUID.fromString(node_id));
-        ValidatorUtil.validate(markdownNode, Group.Edit.class);
-        markdownNodeMapper.update(markdownNode).
-                compose(ok -> {
-                    Node node = new Node();
-                    node.setId(markdownNode.getId());
-                    node.setExcerpt(markdownNode.getContent().substring(0, Math.min(markdownNode.getContent().length(), 128)));
-                    return nodeMapper.update(node);
-                }).
+        String resourceId = context.pathParam("resourceId");
+        EditKnowledge editKnowledge = context.body().asPojo(EditKnowledge.class);
+        Knowledge knowledge = new Knowledge();
+        knowledge.setId(UUID.fromString(resourceId));
+        knowledge.setContent(editKnowledge.getContent());
+        if (StringUtils.isNotEmpty(editKnowledge.getContent())) {
+            knowledge.setExcerpt(editKnowledge.getContent().substring(0, Math.min(editKnowledge.getContent().length(), 64)));
+        }
+        knowledge.setName(editKnowledge.getName());
+        knowledgeMapper.update(knowledge).
                 onSuccess(ok -> {
-                    context.end(Result.success(markdownNode).toBuffer());
+                    context.end(Result.success(knowledge).toBuffer());
                 }).onFailure(context::fail);
     }
 
-    @Override
-    public void get(RoutingContext context) {
-        String node_id = context.pathParam("node_id");
-        markdownNodeMapper.getById(node_id)
-                .compose(markdownNode -> {
-                    if (markdownNode == null) {
-                        MarkdownNode mdNode = new MarkdownNode();
-                        mdNode.setId(UUID.fromString(node_id));
-                        mdNode.setContent("");
-                        mdNode.setUpdateTime(LocalDateTime.now());
-                        mdNode.setCreateTime(LocalDateTime.now());
-                        return markdownNodeMapper.save(mdNode)
-                                .compose(ok -> Future.succeededFuture(mdNode));
-                    }
-                    return Future.succeededFuture(markdownNode);
-                }).onSuccess(markdownNode -> {
-                    context.end(Result.success(markdownNode).toBuffer());
-                }).onFailure(context::fail);
-    }
+
 }

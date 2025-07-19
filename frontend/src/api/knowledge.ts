@@ -4,21 +4,18 @@ import type {
     MarkdownNode
 } from '@/api/type/knowledge'
 import type { Ref } from 'vue'
-import { type Node, type EditNodePojo } from '@/api/type/node'
-/**
- * 根据nodeid 查询Markdown文档
- * @param node_id  节点id
- * @param loading 
- * @returns 
- */
-const oneMarkdown: (
-    node_id: String,
+import { type KnowledgeEdit } from '@/api/type/knowledge'
+
+const edit: (
+    folderId: string,
+    resourceId: string,
+    knowledge: KnowledgeEdit,
     loading?: Ref<boolean>
-) => Promise<Result<MarkdownNode>> = (node_id, loading) => {
-    return get(`/knowledge/markdown/${node_id}`, undefined, loading)
+) => Promise<Result<MarkdownNode>> = (folderId, resourceId, knowledge, loading) => {
+    return put(`/knowledge/folder/${folderId}/resource/${resourceId}`, knowledge, loading)
 }
 
 
 export default {
-    oneMarkdown
+    edit
 }

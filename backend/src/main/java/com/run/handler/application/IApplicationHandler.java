@@ -1,16 +1,14 @@
-package com.run.handler.knowledge;
+package com.run.handler.application;
 
 import io.vertx.ext.web.RoutingContext;
 
 /**
  * {@code @Author:张少虎}
- * {@code @Date: 2025/4/14  22:40}
+ * {@code @Date: 2025/7/13  22:51}
  * {@code @Version 1.0}
  * {@code @注释: }
  */
-public interface IKnowledgeHandler {
-
-
+public interface IApplicationHandler {
     /**
      * 修改
      *
@@ -18,5 +16,10 @@ public interface IKnowledgeHandler {
      */
     void edit(RoutingContext context);
 
-
+    /**
+     * 查询一个
+     *
+     * @param context 上下文
+     */
+    void get(RoutingContext context);
 }

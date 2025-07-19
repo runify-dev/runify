@@ -16,8 +16,8 @@ import java.util.List;
  */
 public class MapperModule extends AbstractModule {
     private List<Class<? extends BaseMapper<? extends BaseEntity<? extends BaseEntity<?>>>>> mapperList =
-            List.of(ModelMapper.class, NodeMapper.class, NodeRelationMapper.class, UserMapper.class
-                    , MarkdownNodeMapper.class, FileMapper.class);
+            List.of(ModelMapper.class, UserMapper.class
+                    ,   FileMapper.class, KnowledgeMapper.class);
 
     @Override
     protected void configure() {

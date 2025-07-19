@@ -18,9 +18,11 @@ import io.vertx.launcher.application.VertxApplication;
  * {@code @注释: }
  */
 public class RunApplication extends AbstractVerticle {
+    static Injector injector;
+
     @Override
     public void start() {
-        Injector injector = Guice.createInjector(
+        injector = Guice.createInjector(
                 new AppModule(vertx),
                 new PropertiesModule("/opt/run/conf/run.properties")
         );

@@ -1,11 +1,15 @@
 package com.run.common.util;
 
+import io.vertx.sqlclient.RowSet;
+
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * {@code @Author:张少虎}
@@ -89,6 +93,19 @@ public class CommonUtils {
         String end_str = message.substring(message_len - pre_len < max_post_len ? post_len : max_post_len);
         String content = "***************";
         return pre_str + content + end_str;
+    }
+
+    /**
+     * 将RowSet<T> 转换为List<T>
+     *
+     * @param rowSet 需要转换的rowSet
+     * @param <T>    列表中的数据类型
+     * @return 转换后的List<T>
+     */
+    public static <T> List<T> toList(RowSet<T> rowSet) {
+        List<T> result = new ArrayList<>();
+        rowSet.forEach(result::add);
+        return result;
     }
 
 }

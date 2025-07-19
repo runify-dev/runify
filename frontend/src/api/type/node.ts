@@ -1,3 +1,5 @@
+import type { Type } from './common'
+
 interface Node {
     /**
      * 节点名称
@@ -40,32 +42,18 @@ interface Tree extends Node {
     children?: Tree[];
 }
 
+
 interface CreateNodePojo {
-    /**
-    * 父节点名称
-    */
-    parentId: string
+
     /**
      * 节点名称
      */
-    name: string
+    name?: string
 
     /**
      * 节点类型
      */
-    type: "folder" | "file" | "knowledge" | "application"
-    /**
-     * 节点子类型
-     */
-    subtype: string,
-    /**
-     * 节点所属
-     */
-    source: "knowledge" | "application"
-    /**
-     * 节点元数据
-     */
-    meta: any
+    type: Type
 
 }
 interface QueryNodePojo {

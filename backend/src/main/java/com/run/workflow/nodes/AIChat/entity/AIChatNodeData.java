@@ -24,6 +24,10 @@ public class AIChatNodeData {
      * 用户提示词
      */
     private String user;
+    /**
+     * 上下文次数
+     */
+    private Integer contextNumber;
 
 
 }

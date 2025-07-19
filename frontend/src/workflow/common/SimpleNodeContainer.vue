@@ -49,9 +49,7 @@ import NodeContentContainer from "@/workflow/common/NodeContentContainer.vue"
 const nodeMenuRef = ref<InstanceType<typeof NodeMenu>>();
 const getModel = inject('getModel') as () => BaseNodeModel
 const model = getModel()
-const props = defineProps<{
-    open: () => Promise<string>,
-    close: () => Promise<string>,
+defineProps<{
     validate: () => Promise<boolean>,
 }>();
 const appendNode = (node: any, anchorData: any) => {
@@ -62,7 +60,6 @@ const appendNode = (node: any, anchorData: any) => {
         y: anchorData.y,
 
     })
-
     model.graphModel.addEdge({
         type: 'run-edge',
         sourceNodeId: model.id,
@@ -74,10 +71,7 @@ const appendNode = (node: any, anchorData: any) => {
 }
 const nodeContentContainerRef = ref<InstanceType<typeof NodeContentContainer>>()
 const openContent = () => {
-    props.open().then(() => {
-        console.log(nodeContentContainerRef)
-        nodeContentContainerRef.value?.open(model)
-    })
+    nodeContentContainerRef.value?.open(model)
 }
 onMounted(() => {
     model.openNodeMenu = (anchorData: any) => {
