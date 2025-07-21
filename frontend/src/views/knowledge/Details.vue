@@ -1,16 +1,14 @@
 <template>
-    <div class="preview-contaner p-10 pt-5">
+    <div class="preview-contaner p-10 pt-5 h-full">
         <div
             class="w-full flex items-center gap-x-4 rounded-xl bg-white p-4 mb-5 shadow-lg outline outline-black/5 dark:bg-slate-800 dark:shadow-none dark:-outline-offset-1 dark:outline-white/10">
             <span>{{ knowledge.name }}</span>
             <div class="flex-auto"></div>
             <el-button type="primary" text bg @click="goEdit">编辑 </el-button>
         </div>
-        <div class="preview" style="height: 100%;overflow: auto;">
-            <MdPreview style="height: auto;padding: 16px;box-sizing: border-box ;
+        <MdPreview style="height: calc(100% - 70px); box-sizing: border-box ;overflow: auto;
         box-sizing: border-box;" :modelValue="knowledge.content" previewTheme="default">
-            </MdPreview>
-        </div>
+        </MdPreview>
     </div>
 </template>
 <script setup lang="ts">

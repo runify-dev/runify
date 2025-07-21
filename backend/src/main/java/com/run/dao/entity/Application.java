@@ -1,7 +1,10 @@
 package com.run.dao.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.run.common.constants.DatabaseType;
 import com.run.dao.common.annotations.Column;
 import com.run.dao.common.annotations.Table;
+import com.run.dao.common.convert.BaseConvert;
 import com.run.dao.common.entity.BaseEntity;
 import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.Row;
@@ -11,6 +14,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -94,7 +98,26 @@ public class Application implements BaseEntity<Application> {
 
 
     @Override
-    public Application mapTo(Row row) {
-        return new Application(row);
+    @JsonIgnore
+    public Map<DatabaseType, BaseConvert<Application>> getConvertMap() {
+        return Map.of(DatabaseType.SQLITE, new Sqlite(),
+                DatabaseType.POSTGRESQL, new Pgsql());
     }
+
+
+    class Pgsql implements BaseConvert<Application> {
+        @Override
+        public Application mapTo(Row row) {
+            return new Application(row);
+        }
+    }
+
+    class Sqlite implements BaseConvert<Application> {
+
+        @Override
+        public Application mapTo(Row row) {
+            return new Application(row);
+        }
+    }
+
 }

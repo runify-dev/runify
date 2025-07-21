@@ -48,7 +48,6 @@ const get = () => {
     console.log('ss')
     NodeApi.resourceInfo('knowledge', folderId.value, resourceId.value).then(ok => {
         knowledge.value = ok.data
-        console.log(ok.data)
     })
 }
 onMounted(() => {

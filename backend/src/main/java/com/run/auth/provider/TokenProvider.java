@@ -1,7 +1,9 @@
 package com.run.auth.provider;
 
 import com.auth0.jwt.interfaces.Claim;
+import com.run.common.constants.DatabaseType;
 import com.run.common.util.JWTUtil;
+import com.run.dao.common.mapper.BaseMapper;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.User;
@@ -10,13 +12,11 @@ import io.vertx.ext.auth.authentication.Credentials;
 import io.vertx.ext.auth.authentication.TokenCredentials;
 import io.vertx.ext.auth.impl.UserImpl;
 import io.vertx.sqlclient.Pool;
+import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.StringValue;
 import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
 import net.sf.jsqlparser.schema.Column;
-import net.sf.jsqlparser.schema.Table;
-import net.sf.jsqlparser.statement.select.PlainSelect;
 
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -28,8 +28,19 @@ import java.util.Map;
 public class TokenProvider implements AuthenticationProvider {
     private Pool pool;
 
-    public TokenProvider(Pool pool) {
+    private DatabaseType dbType;
+    private BaseMapper<com.run.dao.entity.User> userMapper;
+
+    private BaseMapper<com.run.dao.entity.User> getUserMapper() {
+        if (userMapper == null) {
+            this.userMapper = new BaseMapper<>(pool, dbType, com.run.dao.entity.User.class);
+        }
+        return this.userMapper;
+    }
+
+    public TokenProvider(Pool pool, DatabaseType dbType) {
         this.pool = pool;
+        this.dbType = dbType;
     }
 
     @Override
@@ -38,17 +49,12 @@ public class TokenProvider implements AuthenticationProvider {
         String token = tokenCredentials.getToken();
         Map<String, Claim> data = JWTUtil.decodeToken(token);
         String userId = data.get("id").asString();
-        PlainSelect plainSelect = new PlainSelect(List.of(
-                new Column("*")),
-                new Table("public", "user")
-        );
-        String selectUser = plainSelect
-                .withWhere(new EqualsTo().withLeftExpression(new Column("id"))
-                        .withRightExpression(new StringValue(userId)))
-                .toString();
-        return this.pool.query(selectUser)
-                .mapping(com.run.dao.entity.User::new)
-                .execute()
+
+
+        Expression where = new EqualsTo().withLeftExpression(new Column("id"))
+                .withRightExpression(new StringValue(userId));
+
+        return getUserMapper().search(where, Map.of())
                 .compose(rows -> {
                     int size = rows.size();
                     if (size == 1) {

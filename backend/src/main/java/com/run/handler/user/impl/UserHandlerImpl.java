@@ -65,20 +65,16 @@ public class UserHandlerImpl implements IUserHandler {
             ValidatorUtil.validate(loginPojo);
             String username = loginPojo.getUsername();
             String password = loginPojo.getPassword();
-            PlainSelect plainSelect = new PlainSelect(List.of(
-                    new Column("*")),
-                    new Table("public", "user")
-            );
+
+
             AndExpression where = new AndExpression()
                     .withLeftExpression(new EqualsTo().withLeftExpression(new Column("username"))
                             .withRightExpression(new StringValue(username)))
                     .withRightExpression(new EqualsTo().withLeftExpression(new Column("password"))
                             .withRightExpression(new StringValue(CommonUtils.getSHA256(password))));
-            String selectUser = plainSelect
-                    .withWhere(where)
-                    .toString();
-            pool.query(selectUser).mapping(User::new)
-                    .execute()
+
+
+            userMapper.search(where, Map.of())
                     .onSuccess(rows -> {
                         if (rows.size() > 0) {
                             User user = rows.iterator().next();

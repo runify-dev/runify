@@ -1,8 +1,11 @@
 package com.run.dao.entity;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.run.common.constants.DatabaseType;
 import com.run.dao.common.annotations.Column;
 import com.run.dao.common.annotations.Table;
+import com.run.dao.common.convert.BaseConvert;
 import com.run.dao.common.entity.BaseEntity;
 import io.vertx.sqlclient.Row;
 import lombok.AllArgsConstructor;
@@ -52,8 +55,14 @@ public class Model implements BaseEntity<Model> {
     @Column(name = "meta")
     private Map<String, Object> meta;
 
-    @Override
+
     public Model mapTo(Row row) {
+        return null;
+    }
+
+    @Override
+    @JsonIgnore
+    public Map<DatabaseType, BaseConvert<Model>> getConvertMap() {
         return null;
     }
 }

@@ -1,6 +1,7 @@
 package com.run.auth;
 
 import com.run.auth.provider.TokenProvider;
+import com.run.common.constants.DatabaseType;
 import io.vertx.core.Future;
 import io.vertx.ext.auth.User;
 import io.vertx.ext.auth.authentication.TokenCredentials;
@@ -16,8 +17,8 @@ import io.vertx.sqlclient.Pool;
  */
 public class TokenBasicAuthHandler extends HTTPAuthorizationHandler<TokenProvider> {
 
-    public  TokenBasicAuthHandler(Pool pool) {
-        super(new TokenProvider(pool), Type.BEARER, null);
+    public TokenBasicAuthHandler(Pool pool, DatabaseType databaseType) {
+        super(new TokenProvider(pool, databaseType), Type.BEARER, null);
     }
 
     public TokenBasicAuthHandler(TokenProvider authProvider) {

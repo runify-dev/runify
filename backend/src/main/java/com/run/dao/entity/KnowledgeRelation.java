@@ -1,7 +1,10 @@
 package com.run.dao.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.run.common.constants.DatabaseType;
 import com.run.dao.common.annotations.Column;
 import com.run.dao.common.annotations.Table;
+import com.run.dao.common.convert.BaseConvert;
 import com.run.dao.common.entity.BaseEntity;
 import com.run.dao.common.entity.WallNodeRelation;
 import io.vertx.core.json.JsonObject;
@@ -46,14 +49,6 @@ public class KnowledgeRelation implements BaseEntity<KnowledgeRelation> {
     @Column(name = "depth")
     private Integer depth;
 
-
-    @Override
-    public KnowledgeRelation mapTo(Row row) {
-        return new KnowledgeRelation(row.getUUID("id"),
-                row.getUUID("ancestor_id"),
-                row.getUUID("descendant_id"),
-                row.getInteger("depth"));
-    }
 
     public static WallNodeRelation<KnowledgeRelation, Knowledge> getWallNodeRelation() {
         return new WallNodeRelation<>() {
@@ -107,6 +102,36 @@ public class KnowledgeRelation implements BaseEntity<KnowledgeRelation> {
                 return Map.of("md", "新建知识库", "folder", "新建文件夹");
             }
         };
+    }
+
+    @Override
+    @JsonIgnore
+    public Map<DatabaseType, BaseConvert<KnowledgeRelation>> getConvertMap() {
+        return Map.of(DatabaseType.SQLITE, new Sqlite(),
+                DatabaseType.POSTGRESQL, new Pgsql());
+    }
+
+
+    class Pgsql implements BaseConvert<KnowledgeRelation> {
+        @Override
+        public KnowledgeRelation mapTo(Row row) {
+            return new KnowledgeRelation(row.getUUID("id"),
+                    row.getUUID("ancestor_id"),
+                    row.getUUID("descendant_id"),
+                    row.getInteger("depth"));
+        }
+    }
+
+    class Sqlite implements BaseConvert<KnowledgeRelation> {
+
+
+        @Override
+        public KnowledgeRelation mapTo(Row row) {
+            return new KnowledgeRelation(row.getUUID("id"),
+                    row.getUUID("ancestor_id"),
+                    row.getUUID("descendant_id"),
+                    row.getInteger("depth"));
+        }
     }
 
 }

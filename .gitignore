@@ -25,4 +25,7 @@ frontend/frontend.iml
 *.njsproj
 *.sln
 *.sw?
-backend/target/*
+backend/target
+frontend/target
+target
+oss

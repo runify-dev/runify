@@ -6,18 +6,15 @@
          http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
 
     <changeSet id="create_user" author="huhu">
-        <sqlFile path="migrations/changelog/1.0.0/create_user.sql"/>
+        <sqlFile path="migrations/sqlite/changelog/1.0.0/create_user.sql"/>
     </changeSet>
     <changeSet id="create_node" author="huhu">
-        <sqlFile path="migrations/changelog/1.0.0/create_node.sql"/>
+        <sqlFile path="migrations/sqlite/changelog/1.0.0/create_knowledge.sql"/>
     </changeSet>
     <changeSet id="create_node_relation" author="huhu">
-        <sqlFile path="migrations/changelog/1.0.0/create_node_relation.sql"/>
-    </changeSet>
-    <changeSet id="create_markdown_node" author="huhu">
-        <sqlFile path="migrations/changelog/1.0.0/create_markdown_node.sql"/>
+        <sqlFile path="migrations/sqlite/changelog/1.0.0/create_knowledge_relation.sql"/>
     </changeSet>
     <changeSet id="create_file" author="huhu">
-        <sqlFile path="migrations/changelog/1.0.0/create_file.sql"/>
+        <sqlFile path="migrations/sqlite/changelog/1.0.0/create_file.sql"/>
     </changeSet>
 </databaseChangeLog>

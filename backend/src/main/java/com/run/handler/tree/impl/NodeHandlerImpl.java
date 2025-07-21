@@ -1,6 +1,8 @@
 package com.run.handler.tree.impl;
 
 import com.google.inject.Inject;
+import com.google.inject.name.Named;
+import com.run.common.constants.DatabaseType;
 import com.run.common.result.Result;
 import com.run.common.util.TreeUtil;
 import com.run.dao.common.entity.FullNodeRelation;
@@ -29,12 +31,14 @@ import java.util.UUID;
 public class NodeHandlerImpl implements INodeHandler {
     @Inject
     protected Pool pool;
-
+    @Inject
+    @Named("runify.server.datasource.db_type")
+    private DatabaseType dbType;
 
     Map<String, FullNodeRelation<?, ?>> sourceMap = Map.of(
             "knowledge", new FullNodeRelation<>(KnowledgeRelation.getWallNodeRelation(),
-                    () -> new BaseMapper<>(pool, KnowledgeRelation.class),
-                    () -> new BaseMapper<>(pool, Knowledge.class)));
+                    () -> new BaseMapper<>(pool, dbType, KnowledgeRelation.class),
+                    () -> new BaseMapper<>(pool, dbType, Knowledge.class)));
 
     public Expression getWhere(String resource, QueryNodePojo queryNodePojo) {
         return TreeUtil.getWhere(queryNodePojo, sourceMap.get(resource).getNodeRelationMapper().getTable());
@@ -71,7 +75,7 @@ public class NodeHandlerImpl implements INodeHandler {
     public void list(RoutingContext context, QueryNodePojo queryNodePojo, String resource) {
         BaseMapper<?> nodeMapper = sourceMap.get(resource).getNodeMapper();
         Expression where = TreeUtil.getWhere(queryNodePojo, sourceMap.get(resource).getNodeRelationMapper().getTable());
-        nodeMapper.list(where, Map.of())
+        nodeMapper.list(where, Map.of("s", ""))
                 .onSuccess(ok -> context.end(Result.success(ok).toBuffer()))
                 .onFailure(e -> context.end(Result.error(e.toString()).toBuffer()));
     }

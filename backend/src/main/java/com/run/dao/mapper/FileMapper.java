@@ -1,16 +1,23 @@
 package com.run.dao.mapper;
 
+import com.run.common.constants.DatabaseType;
 import com.run.common.util.CommonUtils;
+import com.run.dao.common.entity.BaseReadStream;
 import com.run.dao.common.mapper.BaseMapper;
 import com.run.dao.entity.FileEntity;
 import io.vertx.core.Future;
+import io.vertx.core.Handler;
+import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.file.AsyncFile;
+import io.vertx.core.file.OpenOptions;
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowSet;
 import io.vertx.sqlclient.SqlResult;
 import io.vertx.sqlclient.templates.SqlTemplate;
 import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
 import net.sf.jsqlparser.schema.Column;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
@@ -51,6 +58,130 @@ public class FileMapper extends BaseMapper<FileEntity> {
         return downloadFile(loId, 0L, 1024 * 1024L, size, function);
     }
 
+    class PgsqlReadStream implements BaseReadStream {
+        private Long loId;
+        private Long offset;
+        private Long length;
+        private Long size;
+
+        private boolean isClose;
+        private Handler<Buffer> handler;
+        private Handler<Throwable> exceptionHandler;
+        private Handler<Void> endHandler;
+
+        public PgsqlReadStream(Long loId, Long offset, Long length, Long size) {
+            this.loId = loId;
+            this.offset = offset;
+            this.length = length;
+            this.size = size;
+            this.isClose = false;
+        }
+
+        @Override
+        public Future<Void> read() {
+            if (this.handler != null) {
+                if (isClose) {
+                    return Future.succeededFuture();
+                }
+                getLargeObject(loId, offset, offset + length > size ? size - offset : length)
+                        .onComplete(ok -> {
+                            if (isClose) {
+                                return;
+                            }
+                            handler.handle(ok.result().iterator().next().getBuffer("data"));
+                            this.offset = offset + length;
+                            if (this.offset < size) {
+                                read();
+                            } else {
+                                endHandler.handle(null);
+                            }
+                        }).onFailure((throwable) -> {
+                            exceptionHandler.handle(throwable);
+                        });
+            }
+            return Future.succeededFuture();
+        }
+
+        @Override
+        public Future<Void> close() {
+            this.isClose = true;
+            return Future.succeededFuture();
+        }
+
+        @Override
+        public BaseReadStream exceptionHandler(@org.jetbrains.annotations.Nullable Handler<Throwable> var1) {
+            this.exceptionHandler = var1;
+            return this;
+        }
+
+        @Override
+
+        public BaseReadStream handler(@org.jetbrains.annotations.Nullable Handler<Buffer> var1) {
+            this.handler = var1;
+            return this;
+        }
+
+        @Override
+        public BaseReadStream endHandler(@Nullable Handler<Void> var1) {
+            this.endHandler = var1;
+            return this;
+        }
+    }
+
+    class FileReadStream implements BaseReadStream {
+        String path;
+        Vertx vertx;
+        private Handler<Buffer> handler;
+        private Handler<Throwable> exceptionHandler;
+        private Handler<Void> endHandler;
+        private AsyncFile asyncFile;
+
+        public FileReadStream(Vertx vertx, String path) {
+            this.path = path;
+            this.vertx = vertx;
+        }
+
+        @Override
+        public Future<Void> read() {
+            return vertx.fileSystem().open(path, new OpenOptions().setRead(true))
+                    .compose(h -> {
+                        if (this.asyncFile == null) {
+                            this.asyncFile = h;
+                        }
+                        h.handler(this.handler);
+                        h.endHandler(this.endHandler);
+                        h.exceptionHandler(this.exceptionHandler);
+
+                        return Future.succeededFuture();
+                    });
+        }
+
+        @Override
+        public Future<Void> close() {
+            this.asyncFile.close();
+            return Future.succeededFuture();
+        }
+
+        @Override
+        public BaseReadStream exceptionHandler(@org.jetbrains.annotations.Nullable Handler<Throwable> var1) {
+            this.exceptionHandler = var1;
+            return this;
+        }
+
+        @Override
+
+        public BaseReadStream handler(@org.jetbrains.annotations.Nullable Handler<Buffer> var1) {
+            this.handler = var1;
+            return this;
+        }
+
+        @Override
+        public BaseReadStream endHandler(@Nullable Handler<Void> var1) {
+            this.endHandler = var1;
+            return this;
+        }
+    }
+
     /**
      * 下载文件
      *
@@ -71,6 +202,17 @@ public class FileMapper extends BaseMapper<FileEntity> {
                     return Future.succeededFuture();
                 }));
     }
+
+    public BaseReadStream downloadFile(Vertx vertx, FileEntity fileEntity) {
+        if (dbType == DatabaseType.POSTGRESQL) {
+            return new PgsqlReadStream(fileEntity.getLoId(), 0L, 1024 * 64L, fileEntity.getSize());
+        } else {
+            return new FileReadStream(vertx, fileEntity.getPath());
+        }
+
+
+    }
+
 
     /**
      * 插入

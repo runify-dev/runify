@@ -78,8 +78,11 @@ const myTagPlugin = (md: markdownit) => {
     md.renderer.rules.image = (tokens, idx, options, env, slf) => {
         tokens.forEach(token => {
             const fileId = token.attrGet('src')
-            const src = `/api/file/${fileId}`
-            token.attrSet('src', src)
+            if (!fileId?.startsWith('/api/file')) {
+                const src = `/api/file/${fileId}`
+                token.attrSet('src', src)
+            }
+
         });
         return imageRender(tokens, idx, options, env, slf)
     }

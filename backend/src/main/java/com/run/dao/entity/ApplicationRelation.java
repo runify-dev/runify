@@ -1,7 +1,10 @@
 package com.run.dao.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.run.common.constants.DatabaseType;
 import com.run.dao.common.annotations.Column;
 import com.run.dao.common.annotations.Table;
+import com.run.dao.common.convert.BaseConvert;
 import com.run.dao.common.entity.BaseEntity;
 import com.run.dao.common.entity.WallNodeRelation;
 import io.vertx.core.json.JsonObject;
@@ -46,15 +49,6 @@ public class ApplicationRelation implements BaseEntity<ApplicationRelation> {
     @Column(name = "depth")
     private Integer depth;
 
-
-    @Override
-    public ApplicationRelation mapTo(Row row) {
-        return new ApplicationRelation(row.getUUID("id"),
-                row.getUUID("ancestor_id"),
-                row.getUUID("descendant_id"),
-                row.getInteger("depth"));
-
-    }
 
     public static WallNodeRelation<ApplicationRelation, Application> getWallNodeRelation() {
         return new WallNodeRelation<>() {
@@ -109,5 +103,26 @@ public class ApplicationRelation implements BaseEntity<ApplicationRelation> {
             }
         };
     }
+
+
+    @Override
+    @JsonIgnore
+    public Map<DatabaseType, BaseConvert<ApplicationRelation>> getConvertMap() {
+        return Map.of(DatabaseType.SQLITE, new Pgsql(),
+                DatabaseType.POSTGRESQL, new Pgsql());
+    }
+
+
+    class Pgsql implements BaseConvert<ApplicationRelation> {
+        @Override
+        public ApplicationRelation mapTo(Row row) {
+            return new ApplicationRelation(row.getUUID("id"),
+                    row.getUUID("ancestor_id"),
+                    row.getUUID("descendant_id"),
+                    row.getInteger("depth"));
+
+        }
+    }
+
 
 }

@@ -6,10 +6,14 @@ import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * {@code @Author:张少虎}
@@ -108,4 +112,8 @@ public class CommonUtils {
         return result;
     }
 
+    public static Path getOssPath() {
+        return Paths.get("oss" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("/yyyy/MM/dd/HH/")) + UUID.randomUUID()).toAbsolutePath();
+
+    }
 }

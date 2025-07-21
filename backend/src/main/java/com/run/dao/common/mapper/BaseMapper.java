@@ -1,9 +1,11 @@
 package com.run.dao.common.mapper;
 
-import ch.qos.logback.core.net.server.Client;
 import com.google.inject.Inject;
+import com.google.inject.name.Named;
+import com.run.common.constants.DatabaseType;
 import com.run.common.result.Page;
 import com.run.common.util.SqlGenUtil;
+import com.run.dao.common.convert.BaseConvert;
 import com.run.dao.common.entity.BaseEntity;
 import io.vertx.core.Future;
 import io.vertx.sqlclient.*;
@@ -25,6 +27,7 @@ import net.sf.jsqlparser.statement.select.Select;
 import net.sf.jsqlparser.statement.select.SelectItem;
 import net.sf.jsqlparser.statement.update.Update;
 import net.sf.jsqlparser.util.SelectUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,21 +53,41 @@ public class BaseMapper<T extends BaseEntity<T>> {
     protected final Table table;
     @Inject
     protected Pool client;
+
+    @Inject
+    @Named("runify.server.datasource.db_type")
+    protected DatabaseType dbType;
+    private BaseConvert convert;
     private final String saveTemplate;
     private final Field primaryField;
 
     Logger log = LoggerFactory.getLogger(this.getClass());
 
+    protected BaseConvert<T> getConvert() {
+        if (convert == null) {
+            return this.entity.getConvert(dbType);
+        }
+        return convert;
+    }
+
     public Table getTable() {
         return table;
     }
+
+    public Table generateTable(com.run.dao.common.annotations.Table t) {
+        if (dbType == DatabaseType.POSTGRESQL) {
+            return new Table(t.catalogName(), t.schemaName(), t.name());
+        }
+        return new Table(t.catalogName(), t.name());
+    }
+
 
     @SneakyThrows
     public BaseMapper() {
         Class<T> entityClass = currentEntity();
         this.entity = entityClass.getConstructor().newInstance();
         com.run.dao.common.annotations.Table t = entityClass.getAnnotation(com.run.dao.common.annotations.Table.class);
-        this.table = new Table(t.catalogName(), t.schemaName(), t.name());
+        this.table = generateTable(t);
         this.saveTemplate = SqlGenUtil.generateInsertSql(table, entityClass);
         List<Field> fields = Arrays.stream(FieldUtils
                         .getFieldsWithAnnotation(entityClass, com.run.dao.common.annotations.Column.class))
@@ -74,12 +97,14 @@ public class BaseMapper<T extends BaseEntity<T>> {
         }
         this.primaryField = fields.get(0);
     }
+
     @SneakyThrows
-    public BaseMapper(Pool client, Class<T> entityClass) {
+    public BaseMapper(Pool client, DatabaseType dbType, Class<T> entityClass) {
         this.client = client;
+        this.dbType = dbType;
         this.entity = entityClass.getConstructor().newInstance();
         com.run.dao.common.annotations.Table t = entityClass.getAnnotation(com.run.dao.common.annotations.Table.class);
-        this.table = new Table(t.catalogName(), t.schemaName(), t.name());
+        this.table = generateTable(t);
         this.saveTemplate = SqlGenUtil.generateInsertSql(table, entityClass);
         List<Field> fields = Arrays.stream(FieldUtils
                         .getFieldsWithAnnotation(entityClass, com.run.dao.common.annotations.Column.class))
@@ -104,7 +129,7 @@ public class BaseMapper<T extends BaseEntity<T>> {
     public SqlTemplate<T, SqlResult<Void>> generateInsertSqlTemplate() {
         return SqlTemplate
                 .forUpdate(client, saveTemplate)
-                .mapFrom(TupleMapper.mapper(T::toMap));
+                .mapFrom(TupleMapper.mapper(this.getConvert()::toMap));
     }
 
 
@@ -115,7 +140,7 @@ public class BaseMapper<T extends BaseEntity<T>> {
      * @return 异步响应
      */
     public Future<SqlResult<Void>> save(T t) {
-        log.info("sql:{}\n{}", saveTemplate, t.toMap());
+        log.info("sql:{}\n{}", saveTemplate, this.getConvert().toMap(t));
         return generateInsertSqlTemplate().execute(t);
     }
 
@@ -140,7 +165,7 @@ public class BaseMapper<T extends BaseEntity<T>> {
         String template = select.getPlainSelect().toString();
         log.info("sql:{}\n{}", template, params);
         return SqlTemplate.forQuery(client, select.getPlainSelect().toString())
-                .mapTo(entity::mapTo)
+                .mapTo(this.getConvert()::mapTo)
                 .execute(params);
 
     }
@@ -306,7 +331,7 @@ public class BaseMapper<T extends BaseEntity<T>> {
             return Future.failedFuture("不存在的数据修改");
         }
         return SqlTemplate.forUpdate(client, update.toString())
-                .mapFrom(TupleMapper.mapper(T::toMap))
+                .mapFrom(TupleMapper.mapper(this.getConvert()::toMap))
                 .execute(t);
     }
 
@@ -362,7 +387,7 @@ public class BaseMapper<T extends BaseEntity<T>> {
         PlainSelect plainSelect = select.getPlainSelect();
         plainSelect.withWhere(where);
         return SqlTemplate.forQuery(client, select.toString())
-                .mapTo(entity::mapTo)
+                .mapTo(this.getConvert()::mapTo)
                 .execute(params);
     }
 
@@ -413,7 +438,7 @@ public class BaseMapper<T extends BaseEntity<T>> {
         select.getPlainSelect().withWhere(where);
         select.setLimit(new Limit().withOffset(new LongValue(((currentPage - 1) * pageSize))).withRowCount(new LongValue(pageSize)));
         return SqlTemplate.forQuery(client, select.toString())
-                .mapTo(entity::mapTo)
+                .mapTo(this.getConvert()::mapTo)
                 .execute(Map.of());
 
     }
