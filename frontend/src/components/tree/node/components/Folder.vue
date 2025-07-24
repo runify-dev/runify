@@ -35,13 +35,12 @@ import { set } from "lodash"
 import AppIcon from '@/components/icons/AppIcon.vue';
 import NodeApi from "@/api/node"
 import type { ResourceType, Type } from '@/api/type/common';
-import { useRouter } from 'vue-router';
-const router = useRouter()
 const props = defineProps<{
   data: TreeNodeData,
   node: Node,
   resource: ResourceType,
   create: (type: Type, id?: string) => Promise<any>,
+  nodeClick: (node: any, isCreate?: boolean) => void
 }>()
 
 const remove = () => {
@@ -58,14 +57,10 @@ const reName = () => {
 const createResource = (type: 'folder' | 'md') => {
   props.create(type, props.data.id).then(ok => {
     props.node.insertAfter({ data: { ...ok.data, operate: 'rename' } }, props.node)
-    if (type == 'folder') {
-      router.push({ name: "knowledgeListResource", params: { folderId: props.data.id, id: ok.data.id } })
-    } else {
-      router.push({ name: "knowledgeEdit", params: { folderId: props.data.id, id: ok.data.id } })
-    }
-
+    props.nodeClick(ok.data, true)
   })
 }
+
 const enter = () => {
   if (nodeName.value) {
     NodeApi.rename(props.resource, props.data.parentId ? props.data.parentId : 'root', props.data.id, nodeName.value).then(() => {

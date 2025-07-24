@@ -1,7 +1,8 @@
 <template>
     <AppSubLayout>
         <template #aside>
-            <TreeAside v-bind:current-node="currentNode" @update:current-node="clickChange" :data="data">
+            <TreeAside ref="treeAsideRef" :currentId="resourceId" :create="create" resource="application"
+                :nodeClick="nodeClick" :data="data" :insertAfter="insertAfter">
             </TreeAside>
         </template>
         <template #main>
@@ -11,59 +12,58 @@
 </template>
 <script setup lang="ts">
 import AppSubLayout from "@/layout/AppSubLayout.vue";
-
-import { onMounted, ref, watch } from "vue";
+import { computed, onMounted, ref } from "vue";
 import 'md-editor-v3/lib/style.css';
-import TreeAside from "@/views/application/tree/index.vue"
+import TreeAside from "@/components/tree/index.vue"
 import NodeApi from "@/api/node"
 import { toTree } from "@/utils/common"
 import { type Tree } from '@/api/type/node';
-import { type CurrentNode } from '@/api/type/node';
 import { useRouter, useRoute } from 'vue-router';
+import type { Type } from '@/api/type/common';
+const treeAsideRef = ref<typeof TreeAside>()
+const create = (type: Type, id?: string) => {
+    return NodeApi.create('application', (id ? id : 'root'), { type: type }).then(ok => {
+        if (!id) {
+            data.value.push({ ...ok.data, operate: 'rename' })
+            nodeClick(ok.data, true)
+        }
+        return ok
+    })
+}
+
+const nodeClick = (node: any, isCreate?: boolean) => {
+    console.log('ss')
+    if (node.type == 'folder') {
+        router.push({
+            path: `/application/folder/${node.parentId ? node.parentId : 'root'}/resource/${node.id}`
+        })
+    } else {
+        router.push({
+            path: `/application/folder/${node.parentId ? node.parentId : 'root'}/resource/${node.id}/${isCreate ? 'edit' : 'details'}`
+        })
+    }
+
+}
 
 const router = useRouter()
 const route = useRoute()
-const {
-    params: { id } // id为datasetID
-} = route as any
-const currentNode = ref<CurrentNode>({
-    type: "all",
-    node: "all"
-});
+const insertAfter = (node: any) => {
+    data.value.push(node)
+}
+const resourceId = computed(() => {
+    const {
+        params: { id }
+    } = route as any
+    return id
+})
 
 const data = ref<Array<Tree>>([]);
-if (['all', 'share', 'star'].includes(id)) {
-    currentNode.value = {
-        type: id,
-        node: id
-    }
-} else if (['applicationList', 'applicationOverview'].includes(route.name as string)) {
-    currentNode.value = { 'node': { 'id': id }, 'type': 'tree' }
-}
-const clickChange = (node: CurrentNode) => {
-    currentNode.value = node;
-    if (currentNode.value.type == 'tree' && (currentNode.value.node as Tree).type == 'file') {
-        router.push({ name: 'applicationOverview', params: { id: currentNode.value.node.id, type: currentNode.value.node.subtype } })
-    } else {
-        let id: string = currentNode.value.type;
-        if (currentNode.value.type == 'tree') {
-            id = (currentNode.value.node as Tree).id
-        }
-        router.push({ name: 'applicationList', params: { id: id } })
-    }
-}
-
-watch(route, () => {
-
-    if (['applicationOverview'].includes(route.name as string)) {
-        currentNode.value = { 'node': { 'id': id }, 'type': 'tree' }
-    }
-})
 
 onMounted(() => {
-    NodeApi.list({ source: 'application' }).then(ok => {
+    NodeApi.listTree('application', undefined).then(ok => {
         data.value = toTree(ok.data)
     })
+
 })
 </script>
-<style lang="scss"></style>
+<style lang="scss" scoped></style>

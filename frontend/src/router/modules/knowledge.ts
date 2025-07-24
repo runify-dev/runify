@@ -3,7 +3,7 @@ const noteRouter = {
   name: "knowledge",
   meta: { title: "知识库", icon: 'app-document', 'activeMenu': 'knowledge' },
   component: () => import("@/views/knowledge/index.vue"),
-  redirect: '/knowledge/folder/',
+  redirect: '/knowledge/folder/root/resource/root',
   children: [
     {
       path: 'star',
@@ -20,12 +20,6 @@ const noteRouter = {
     {
       path: 'folder/:folderId/resource/:id',
       name: 'knowledgeListResource',
-      meta: { title: 'common.fileUpload.document', activeMenu: 'knowledge' },
-      component: () => import("@/views/knowledge/List.vue"),
-    },
-    {
-      path: 'folder',
-      name: 'knowledgeList',
       meta: { title: 'common.fileUpload.document', activeMenu: 'knowledge' },
       component: () => import("@/views/knowledge/List.vue"),
     },

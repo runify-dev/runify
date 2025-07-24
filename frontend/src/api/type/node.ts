@@ -37,6 +37,7 @@ interface Node {
      * 修改时间
      */
     updateTime: string
+    [key: string]: any;
 }
 interface Tree extends Node {
     children?: Tree[];

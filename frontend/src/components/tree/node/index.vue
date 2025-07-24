@@ -1,5 +1,7 @@
 <template>
-    <component :is="commands[data.type]" :data="data" :node="node" :resource="resource" :create="create"></component>
+    <component :is="commands[data.type]" :data="data" :node="node" :resource="resource" :create="create"
+        :nodeClick="nodeClick">
+    </component>
 </template>
 <script setup lang="ts">
 import { type TreeNodeData, type TreeNode } from "element-plus"
@@ -20,6 +22,7 @@ defineProps<{
     node: TreeNode,
     resource: ResourceType,
     create: (type: Type, id?: string) => Promise<any>,
+    nodeClick: (node: any, isCreate?: boolean) => void
 }>()
 </script>
 <style lang="scss"></style>

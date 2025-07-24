@@ -15,11 +15,10 @@
             </div>
         </div>
         <el-divider />
-        <div class="group knowledge-menu flex items-center" :class="(!star && !share && !currentId) ? 'is_current' : ''"
-            @click="  router.push({
-                path: `/${resource}/folder/`
-            })">
-            <div>全部知识库</div>
+        <div class="group knowledge-menu flex items-center" :class="currentId == 'root' ? 'is_current' : ''" @click="router.push({
+            path: `/${resource}/folder/root/resource/root`
+        })">
+            <div>全部{{ resourceNameRecord[resource] }}</div>
             <div class="flex-auto"></div>
             <div class="group-hover:block hidden">
                 <div class="grid place-items-center">
@@ -29,8 +28,8 @@
                         </el-icon>
                         <template #dropdown>
                             <el-dropdown-menu>
-                                <el-dropdown-item command="a" @click="createResource('md')">创建</el-dropdown-item>
-                                <el-dropdown-item command="a" @click="createResource('folder')">创建目录</el-dropdown-item>
+                                <el-dropdown-item command="a" @click="create('md')">创建</el-dropdown-item>
+                                <el-dropdown-item command="a" @click="create('folder')">创建目录</el-dropdown-item>
                             </el-dropdown-menu>
                         </template>
                     </el-dropdown>
@@ -38,11 +37,13 @@
             </div>
         </div>
         <div style="overflow-y: auto; height:calc(100vh - 140px)">
-            <el-tree ref="treeRef" :highlight-current="true" @node-click="(node: any) => emit('node-click', node)"
+            <el-tree ref="treeRef" :highlight-current="true" @node-click="(node: any) => nodeClick(node)"
                 :current-node-key="currentId" :default-expanded-keys="currentId ? [currentId] : []" :data="data"
                 node-key="id" :props="propsConf">
                 <template v-slot="node">
-                    <NodeVue :data="node.data" :node="node.node" :resource="resource" :create="create"></NodeVue>
+                    <NodeVue :data="node.data" :node="node.node" :resource="resource" :create="create"
+                        :nodeClick="nodeClick">
+                    </NodeVue>
                 </template>
             </el-tree>
         </div>
@@ -56,11 +57,12 @@ import { ref } from "vue"
 import { ElTree } from 'element-plus'
 import AppIcon from '@/components/icons/AppIcon.vue';
 import type { ResourceType, Type } from '@/api/type/common';
+import { resourceNameRecord } from './data';
 const router = useRouter()
 const treeRef = ref<InstanceType<typeof ElTree>>()
-const props = withDefaults(defineProps<{
+withDefaults(defineProps<{
     create: (type: Type, id?: string) => Promise<any>,
-    insertAfter: (node: any) => void
+    nodeClick: (node: any, isCreate?: boolean) => void
     currentId?: string,
     star?: boolean,
     share?: boolean,
@@ -79,20 +81,6 @@ const props = withDefaults(defineProps<{
         meta: 'meta'
     }
 });
-
-const createResource = (type: 'folder' | 'md') => {
-    props.create(type, undefined).then(ok => {
-        props.insertAfter({ ...ok.data, operate: 'rename' })
-        if (type == 'folder') {
-            router.push({ name: "knowledgeListResource", params: { folderId: 'root', id: ok.data.id } })
-        } else {
-            router.push({ name: "knowledgeEdit", params: { folderId: 'root', id: ok.data.id } })
-        }
-
-    })
-}
-
-const emit = defineEmits(['node-click'])
 
 </script>
 <style lang="scss" scoped>

@@ -2,6 +2,7 @@ package com.run.dao.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.run.common.constants.DatabaseType;
+import com.run.common.util.JacksonUtils;
 import com.run.dao.common.annotations.Column;
 import com.run.dao.common.annotations.Table;
 import com.run.dao.common.convert.BaseConvert;
@@ -113,10 +114,20 @@ public class Application implements BaseEntity<Application> {
     }
 
     class Sqlite implements BaseConvert<Application> {
-
         @Override
         public Application mapTo(Row row) {
-            return new Application(row);
+            Application application = new Application();
+            application.id = row.getUUID("id");
+            application.name = row.getString("name");
+            application.desc = row.getString("desc");
+            application.workflow = JacksonUtils.fromJson(row.getString("workflow"), JsonObject.class);
+            application.setting = JacksonUtils.fromJson(row.getString("setting"), JsonObject.class);
+            application.star = row.getInteger("star") != 0;
+            application.share = row.getInteger("share") != 0;
+            application.type = row.getString("type");
+            application.createTime = row.getLocalDateTime("create_time");
+            application.updateTime = row.getLocalDateTime("update_time");
+            return application;
         }
     }
 
