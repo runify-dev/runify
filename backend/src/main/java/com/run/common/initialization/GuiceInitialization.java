@@ -18,7 +18,7 @@ public class GuiceInitialization implements Initialization {
      * 例如 UserRoute 需要依赖RouteModule 那么UserRoute就在下面
      */
     private final List<List<Class<? extends Module>>> models = List.of(
-            List.of(LiquibaseModule.class, RouteModule.class, SqlPoolModule.class, OpenAPIModule.class),
+            List.of(MigrationModule.class, RouteModule.class, SqlPoolModule.class, OpenAPIModule.class),
             List.of(MapperModule.class),
             List.of(TokenAuthHandlerModule.class),
             List.of(HandlerModule.class)

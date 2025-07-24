@@ -3,11 +3,12 @@ package com.run.models.impl.openai;
 import com.run.models.*;
 import com.run.models.impl.openai.credential.LLMCredential;
 import com.run.models.impl.openai.model.LLM;
-import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Objects;
 
 /**
@@ -28,7 +29,7 @@ public class OpenaiProvider implements IProvider {
                 .append(qwenMax, false).build();
         try {
             String file = Objects.requireNonNull(this.getClass().getResource("icon/openai.svg")).getFile();
-            String icon = FileUtils.readFileToString(new File(file), StandardCharsets.UTF_8);
+            String icon = Files.readString(Paths.get(file), StandardCharsets.UTF_8);
             provideInfo = new ProvideInfo(ModelType.LLM.name(), "openai_provider", icon);
         } catch (IOException e) {
             throw new RuntimeException(e);

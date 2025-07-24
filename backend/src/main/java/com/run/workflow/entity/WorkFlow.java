@@ -1,12 +1,13 @@
 package com.run.workflow.entity;
 
 
+import com.run.common.keyvalue.DefaultKeyValue;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-import org.apache.commons.collections4.keyvalue.DefaultKeyValue;
+
 
 import java.util.ArrayList;
 import java.util.List;

@@ -14,22 +14,22 @@
     <packaging>pom</packaging>
     <properties>
         <version>1.0.0</version>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
+        <maven.compiler.source>24</maven.compiler.source>
+        <maven.compiler.target>24</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <vertx.version>5.0.1</vertx.version>
         <mysql.connector.version>8.0.33</mysql.connector.version>
         <pf4j.version>3.10.0</pf4j.version>
         <jackson.version>2.18.3</jackson.version>
-        <jackson.datatype.version>2.14.2</jackson.datatype.version>
+        <jackson.datatype.version>2.19.2</jackson.datatype.version>
         <logback.version>1.5.17</logback.version>
         <jsqlparser.version>5.1</jsqlparser.version>
-        <lombok.version>1.18.26</lombok.version>
+        <lombok.version>1.18.38</lombok.version>
         <guice.version>7.0.0</guice.version>
         <node.version>v20.11.0</node.version>
         <npm.version>10.2.4</npm.version>
-        <sqlite.version>3.50.2.0</sqlite.version>
-        <liquibase.core.version>4.31.1</liquibase.core.version>
+        <sqlite.version>3.50.3.0</sqlite.version>
+        <liquibase.core.version>4.33.0</liquibase.core.version>
         <hibernate.validator.version>9.0.0.CR1</hibernate.validator.version>
         <validation.api.version>2.0.1.Final</validation.api.version>
         <jakarta.el.version>4.0.2</jakarta.el.version>
@@ -67,11 +67,6 @@
                 <groupId>ch.qos.logback</groupId>
                 <artifactId>logback-classic</artifactId>
                 <version>${logback.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.datatype</groupId>
-                <artifactId>jackson-datatype-jsr310</artifactId>
-                <version>${jackson.datatype.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
@@ -149,12 +144,6 @@
                 <groupId>com.ongres.scram</groupId>
                 <artifactId>scram-client</artifactId>
                 <version>${scram.client.version}</version>
-            </dependency>
-            <!-- https://mvnrepository.com/artifact/org.liquibase/liquibase-core -->
-            <dependency>
-                <groupId>org.liquibase</groupId>
-                <artifactId>liquibase-core</artifactId>
-                <version>${liquibase.core.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.hibernate.validator</groupId>

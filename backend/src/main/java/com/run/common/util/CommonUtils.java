@@ -113,7 +113,7 @@ public class CommonUtils {
     }
 
     public static Path getOssPath() {
-        return Paths.get("oss" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("/yyyy/MM/dd/HH/")) + UUID.randomUUID()).toAbsolutePath();
+        return Paths.get("data/oss" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("/yyyy/MM/dd/HH/")) + UUID.randomUUID()).toAbsolutePath();
 
     }
 }

@@ -1,6 +1,7 @@
 package com.run.workflow.nodes.AIChat;
 
 
+import com.run.common.keyvalue.DefaultKeyValue;
 import com.run.common.openai.request.message.Message;
 import com.run.common.openai.request.message.SystemMessage;
 import com.run.common.openai.response.ChatCompletion;
@@ -19,7 +20,6 @@ import com.run.workflow.nodes.AIChat.entity.AIChatNodeData;
 import io.vertx.core.json.JsonObject;
 import jakarta.validation.Validator;
 import okhttp3.Call;
-import org.apache.commons.collections4.KeyValue;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
@@ -89,7 +89,7 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
                 @Override
                 public void onFinish(@NotNull Call call) {
                     node.status = NodeStatus.SUCCESS;
-                    workFlowManage.nextInvoke(node, () -> workFlowManage.getNextList(node.node.getId()).stream().map(KeyValue::getValue).toList());
+                    workFlowManage.nextInvoke(node, () -> workFlowManage.getNextList(node.node.getId()).stream().map(DefaultKeyValue::getValue).toList());
                 }
 
                 @Override

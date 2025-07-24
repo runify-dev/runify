@@ -13,7 +13,6 @@ import io.vertx.pgclient.PgBuilder;
 import io.vertx.pgclient.PgConnectOptions;
 import io.vertx.sqlclient.Pool;
 import io.vertx.sqlclient.PoolOptions;
-import org.apache.commons.lang3.StringUtils;
 
 /**
  * {@code @Author:张少虎}

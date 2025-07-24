@@ -1,5 +1,6 @@
 package com.run.workflow.nodes.start;
 
+import com.run.common.keyvalue.DefaultKeyValue;
 import com.run.common.openai.request.message.Message;
 import com.run.workflow.INode;
 import com.run.workflow.NodeStatus;
@@ -10,7 +11,6 @@ import com.run.workflow.entity.NodeResult;
 import com.run.workflow.nodes.start.entity.StartNodeData;
 import io.vertx.core.json.JsonObject;
 import jakarta.validation.Validator;
-import org.apache.commons.collections4.KeyValue;
 
 import java.util.List;
 import java.util.function.BiFunction;
@@ -47,7 +47,7 @@ public class StartNode extends INode<StartNode, StartNodeData> {
             node.write();
             workFlowManage.writeContext(node, "messages", node.params.messages);
             node.end(NodeStatus.SUCCESS);
-            return () -> workFlowManage.getNextList(node.node.getId()).stream().map(KeyValue::getValue).toList();
+            return () -> workFlowManage.getNextList(node.node.getId()).stream().map(DefaultKeyValue::getValue).toList();
 
         }
     }
