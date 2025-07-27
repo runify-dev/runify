@@ -1,25 +1,26 @@
 <template>
     <LoginLayout v-loading="loading">
         <LoginContainer>
-            <h2 class="mb-24">普通登录</h2>
             <el-form class="login-form" :rules="rules" :model="loginForm" ref="loginFormRef" @keyup.enter="login">
-                <div class="mb-24">
-                    <el-form-item prop="username">
-                        <el-input size="large" class="input-item" v-model="loginForm.username" placeholder="请输入用户名">
-                        </el-input>
+                <div class="mb-12">
+                    <el-form-item prop="username" label-position="top">
+                      <label class="block text-sm mb-2 text-white font-medium">用户名</label>
+                      <el-input  size="large" class="input-item" v-model="loginForm.username" placeholder="请输入用户名">
+                      </el-input>
                     </el-form-item>
                 </div>
-                <div class="mb-24">
+                <div class="mb-12">
                     <el-form-item prop="password">
+                        <label class="block text-sm mb-2 text-white font-medium">密码</label>
                         <el-input type="password" size="large" class="input-item" v-model="loginForm.password"
                             placeholder="请输入密码" show-password>
                         </el-input>
                     </el-form-item>
                 </div>
             </el-form>
-
-            <el-button size="large" type="primary" class="w-full" @click="login">登陆
-            </el-button>
+            <el-button size="large" type="primary" @click="login"
+                       class="w-full py-4 bg-gradient-to-r from-cyan-400 to-cyan-500 text-black font-semibold rounded-xl cursor-pointer transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-cyan-400/40 active:translate-y-0"
+            >登录</el-button>
         </LoginContainer>
     </LoginLayout>
 </template>
@@ -67,37 +68,5 @@ const login = () => {
 }
 </script>
 <style lang="scss" scope>
-.login-gradient-divider {
-    position: relative;
-    text-align: center;
-    color: var(--el-color-info);
 
-    ::before {
-        content: '';
-        width: 25%;
-        height: 1px;
-        background: linear-gradient(90deg, rgba(222, 224, 227, 0) 0%, #dee0e3 100%);
-        position: absolute;
-        left: 16px;
-        top: 50%;
-    }
-
-    ::after {
-        content: '';
-        width: 25%;
-        height: 1px;
-        background: linear-gradient(90deg, #dee0e3 0%, rgba(222, 224, 227, 0) 100%);
-        position: absolute;
-        right: 16px;
-        top: 50%;
-    }
-}
-
-.login-button-circle {
-    padding: 20px !important;
-    margin: 0 4px;
-    width: 32px;
-    height: 32px;
-    text-align: center;
-}
 </style>
