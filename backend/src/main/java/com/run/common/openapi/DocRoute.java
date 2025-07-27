@@ -4,13 +4,15 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.google.inject.Inject;
-import com.google.inject.name.Named;
+
 import com.run.common.route.IRoute;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.FileSystemAccess;
 import io.vertx.ext.web.handler.impl.StaticHandlerImpl;
+
+import javax.inject.Inject;
+import javax.inject.Named;
 
 /**
  * {@code @Author:张少虎}
@@ -19,11 +21,16 @@ import io.vertx.ext.web.handler.impl.StaticHandlerImpl;
  * {@code @注释: }
  */
 public class DocRoute implements IRoute {
-    @Inject
-    @Named("docRoute")
+
     protected Router docRoute;
-    @Inject
+
     protected OpenAPI openAPI;
+
+    @Inject
+    public DocRoute(@Named("docRoute") Router docRoute, OpenAPI openAPI) {
+        this.docRoute = docRoute;
+        this.openAPI = openAPI;
+    }
 
     @Override
     public void initRoute() {
@@ -40,7 +47,6 @@ public class DocRoute implements IRoute {
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
             }
-
         });
     }
 

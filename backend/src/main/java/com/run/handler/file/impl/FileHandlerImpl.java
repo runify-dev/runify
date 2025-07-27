@@ -1,7 +1,6 @@
 package com.run.handler.file.impl;
 
-import com.google.inject.Inject;
-import com.google.inject.name.Named;
+
 import com.run.common.constants.DatabaseType;
 import com.run.common.result.Result;
 import com.run.common.util.CommonUtils;
@@ -9,7 +8,6 @@ import com.run.dao.common.entity.BaseReadStream;
 import com.run.dao.entity.FileEntity;
 import com.run.dao.mapper.FileMapper;
 import com.run.handler.file.IFileHandler;
-import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.MimeMapping;
@@ -17,6 +15,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.RoutingContext;
 
+import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -33,22 +32,19 @@ import java.util.UUID;
  * {@code @注释: }
  */
 public class FileHandlerImpl implements IFileHandler {
-    @Inject
-    private FileMapper fileMapper;
-    @Inject
-    @Named("runify.server.datasource.db_type")
-    private DatabaseType dbType;
-    @Inject
-    private Vertx vertx;
+    private final FileMapper fileMapper;
 
+    private final DatabaseType dbType;
 
-    private void uploadSqlite() {
+    private final Vertx vertx;
 
+    @Inject
+    public FileHandlerImpl(FileMapper fileMapper, DatabaseType dbType, Vertx vertx) {
+        this.fileMapper = fileMapper;
+        this.dbType = dbType;
+        this.vertx = vertx;
     }
 
-    private void uploadPgsql() {
-
-    }
 
     @Override
     public void upload(RoutingContext context) {

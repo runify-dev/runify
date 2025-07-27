@@ -60,9 +60,10 @@ const edit: (
     return put(`/node/${nodeId}`, editNodePojo, undefined, loading)
 }
 
-const ResourceTypeNameMap = {
+export const ResourceTypeNameMap = {
     'knowledge': '全部知识库',
-    'application': '全部应用'
+    'application': '全部应用',
+    'model': "全部模型"
 }
 /**
  * 获取资源下 文件夹 info信息

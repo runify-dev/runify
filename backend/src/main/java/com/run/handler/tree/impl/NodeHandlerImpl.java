@@ -1,7 +1,6 @@
 package com.run.handler.tree.impl;
 
-import com.google.inject.Inject;
-import com.google.inject.name.Named;
+
 import com.run.common.constants.DatabaseType;
 import com.run.common.result.Result;
 import com.run.common.util.TreeUtil;
@@ -21,6 +20,8 @@ import io.vertx.sqlclient.Pool;
 import net.sf.jsqlparser.expression.Expression;
 import org.apache.commons.lang3.StringUtils;
 
+
+import javax.inject.Inject;
 import java.util.Map;
 import java.util.UUID;
 
@@ -31,11 +32,16 @@ import java.util.UUID;
  * {@code @注释: }
  */
 public class NodeHandlerImpl implements INodeHandler {
-    @Inject
-    protected Pool pool;
-    @Inject
-    @Named("runify.server.datasource.db_type")
+
+    private Pool pool;
+
     private DatabaseType dbType;
+
+    @Inject
+    public NodeHandlerImpl(Pool pool, DatabaseType dbType) {
+        this.pool = pool;
+        this.dbType = dbType;
+    }
 
     Map<String, FullNodeRelation<?, ?>> sourceMap = Map.of(
             "knowledge", new FullNodeRelation<>(KnowledgeRelation.getWallNodeRelation(),

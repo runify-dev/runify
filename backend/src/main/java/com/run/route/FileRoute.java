@@ -1,10 +1,10 @@
 package com.run.route;
 
-import com.google.inject.Inject;
-import com.google.inject.name.Named;
+
 import com.run.common.openapi.CommonOpenAPI;
 import com.run.common.route.IRoute;
 import com.run.handler.file.IFileHandler;
+import com.run.handler.file.impl.FileHandlerImpl;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.PathItem;
@@ -15,7 +15,10 @@ import io.swagger.v3.oas.models.responses.ApiResponse;
 import io.swagger.v3.oas.models.responses.ApiResponses;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
+import io.vertx.sqlclient.Pool;
 
+import javax.inject.Inject;
+import javax.inject.Named;
 import java.util.List;
 
 /**
@@ -25,13 +28,19 @@ import java.util.List;
  * {@code @注释: }
  */
 public class FileRoute implements IRoute {
-    @Inject
-    @Named("apiRoute")
+
     protected Router apiRoute;
-    @Inject
+
     protected OpenAPI openAPI;
-    @Inject
+
     protected IFileHandler iFileHandler;
+
+    @Inject
+    public FileRoute(@Named("apiRoute") Router apiRoute, OpenAPI openAPI, FileHandlerImpl fileHandler) {
+        this.apiRoute = apiRoute;
+        this.openAPI = openAPI;
+        this.iFileHandler = fileHandler;
+    }
 
     @Override
     public void initRoute() {

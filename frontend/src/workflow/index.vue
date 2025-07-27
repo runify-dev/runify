@@ -56,7 +56,11 @@ const render = (data?: LogicFlow.GraphConfigData) => {
     lf.value.render(data ? data : {})
 }
 onMounted(() => {
-    init(document.querySelector('#run-workflow-container'))
+    const container = document.querySelector('#run-workflow-container')
+    if (container) {
+        init(container as HTMLElement)
+    }
+
 })
 defineExpose({ init, render })
 </script>

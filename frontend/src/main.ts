@@ -28,14 +28,14 @@ import 'highlight.js/styles/atom-one-dark.css';
 import * as prettier from 'prettier';
 
 import parserMarkdown from 'prettier/plugins/markdown';
-const parseAttributes = (str) => {
+const parseAttributes = (str: string) => {
     if (!str) {
         return undefined
     }
     return str.split(/\s+/).map(pair => {
         const [key, value] = pair.split('=');
         return [key, value.replace(/^"|"$/g, '')];
-    });
+    })
 };
 
 // 示例：创建 <my-tag> 自定义标签
@@ -53,7 +53,11 @@ const myTagPlugin = (md: markdownit) => {
             if (match) {
                 const token = state.push('my_tag', 'my_tag', 1);
                 token.content = ""
-                token.attrs = parseAttributes(match[1]); // 解析属性
+                const attrs = parseAttributes(match[1])
+                if (attrs) {
+                    token.attrs = attrs as Array<[string, string]>;
+                }
+
                 state.line = startLine + 1;
                 return true;
             }
@@ -137,7 +141,6 @@ config({
 });
 const app = createApp(App);
 app.use(router);
-app.use(Menus);
 app.use(createPinia())
 app.use(directives);
 app.use(ElementPlus);

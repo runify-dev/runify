@@ -1,12 +1,10 @@
 package com.run;
 
-import com.google.inject.Guice;
-import com.google.inject.Injector;
-import com.google.inject.Key;
-import com.google.inject.name.Names;
-import com.run.common.initialization.Initialization;
-import com.run.guice.AppModule;
-import com.run.guice.PropertiesModule;
+
+import com.run.dagger.component.AppComponent;
+import com.run.dagger.component.DaggerAppComponent;
+import com.run.dagger.module.AppModule;
+import com.run.dagger.module.ConfigModule;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.ext.web.Router;
 import io.vertx.launcher.application.VertxApplication;
@@ -18,20 +16,22 @@ import io.vertx.launcher.application.VertxApplication;
  * {@code @注释: }
  */
 public class RunApplication extends AbstractVerticle {
-    static Injector injector;
+    static AppComponent appComponent;
 
     @Override
     public void start() {
-        injector = Guice.createInjector(
-                new AppModule(vertx),
-                new PropertiesModule("/opt/run/conf/run.properties")
-        );
-        injector = Initialization.init(injector);
-        Router mainRoute = injector.getInstance(Key.get(Router.class, Names.named("mainRoute")));
+        long l = System.currentTimeMillis();
+        appComponent = DaggerAppComponent.builder()
+                .configModule(new ConfigModule("/opt/run/conf/runify.yaml"))
+                .appModule(new AppModule(vertx))
+                .build();
+        appComponent.getRouterInitialization();
+        Router router = appComponent.mainRoute();
         vertx
                 .createHttpServer()
-                .requestHandler(mainRoute)
+                .requestHandler(router)
                 .listen(8080);
+        System.out.println(System.currentTimeMillis()-l);
     }
 
 

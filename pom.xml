@@ -8,8 +8,8 @@
     <artifactId>run</artifactId>
     <version>1.0.0</version>
     <modules>
-        <module>backend</module>
         <module>frontend</module>
+        <module>backend</module>
     </modules>
     <packaging>pom</packaging>
     <properties>
@@ -25,7 +25,6 @@
         <logback.version>1.5.17</logback.version>
         <jsqlparser.version>5.1</jsqlparser.version>
         <lombok.version>1.18.38</lombok.version>
-        <guice.version>7.0.0</guice.version>
         <node.version>v20.11.0</node.version>
         <npm.version>10.2.4</npm.version>
         <sqlite.version>3.50.3.0</sqlite.version>
@@ -36,8 +35,9 @@
         <scram.client.version>3.1</scram.client.version>
         <okhttp.version>4.12.0</okhttp.version>
         <freemarker.version>2.3.34</freemarker.version>
-        <swagger.models.version>2.2.30</swagger.models.version>
+        <swagger.models.version>2.2.34</swagger.models.version>
         <postgresql.version>42.7.5</postgresql.version>
+        <frontend-maven-plugin.version>1.15.1</frontend-maven-plugin.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -87,11 +87,6 @@
                 <groupId>io.vertx</groupId>
                 <artifactId>vertx-launcher-application</artifactId>
                 <version>${vertx.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.google.inject</groupId>
-                <artifactId>guice</artifactId>
-                <version>${guice.version}</version>
             </dependency>
 
             <dependency>

@@ -1,11 +1,11 @@
 package com.run.route;
 
-import com.google.inject.Inject;
-import com.google.inject.name.Named;
+
 import com.run.auth.TokenBasicAuthHandler;
 import com.run.common.openapi.CommonOpenAPI;
 import com.run.common.route.IRoute;
 import com.run.handler.knowledge.IKnowledgeHandler;
+import com.run.handler.knowledge.impl.KnowledgeHandlerImpl;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.PathItem;
@@ -18,6 +18,8 @@ import io.swagger.v3.oas.models.parameters.RequestBody;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 
+import javax.inject.Inject;
+import javax.inject.Named;
 import java.util.List;
 
 /**
@@ -27,16 +29,23 @@ import java.util.List;
  * {@code @注释: }
  */
 public class KnowledgeRoute implements IRoute {
-    @Inject
-    @Named("apiRoute")
     protected Router apiRoute;
-    @Inject
+
     protected TokenBasicAuthHandler tokenBasicAuthHandler;
-    @Inject
+
     private IKnowledgeHandler iKnowledgeHandler;
-    @Inject
+
     protected OpenAPI openAPI;
 
+    @Inject
+    public KnowledgeRoute(@Named("apiRoute") Router apiRoute, OpenAPI openAPI,
+                          TokenBasicAuthHandler tokenBasicAuthHandler,
+                          KnowledgeHandlerImpl knowledgeHandler) {
+        this.apiRoute = apiRoute;
+        this.openAPI = openAPI;
+        this.iKnowledgeHandler = knowledgeHandler;
+        this.tokenBasicAuthHandler = tokenBasicAuthHandler;
+    }
 
     @Override
     public void initRoute() {

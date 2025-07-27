@@ -1,12 +1,16 @@
 package com.run.route;
 
-import com.google.inject.Inject;
-import com.google.inject.name.Named;
+
 import com.run.auth.TokenBasicAuthHandler;
 import com.run.common.route.IRoute;
 import com.run.handler.tree.INodeHandler;
+import com.run.handler.tree.impl.NodeHandlerImpl;
+import io.swagger.v3.oas.models.OpenAPI;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
+
+import javax.inject.Inject;
+import javax.inject.Named;
 
 /**
  * {@code @Author:张少虎}
@@ -15,14 +19,21 @@ import io.vertx.ext.web.handler.BodyHandler;
  * {@code @注释: }
  */
 public class NodeRoute implements IRoute {
-    @Inject
-    @Named("apiRoute")
     protected Router apiRoute;
-    @Inject
+
     protected TokenBasicAuthHandler tokenBasicAuthHandler;
-    @Inject
+
     protected INodeHandler iNodeHandler;
 
+    @Inject
+    public NodeRoute(@Named("apiRoute") Router apiRoute,
+                     OpenAPI openAPI,
+                     TokenBasicAuthHandler tokenBasicAuthHandler,
+                     NodeHandlerImpl nodeHandler) {
+        this.apiRoute = apiRoute;
+        this.tokenBasicAuthHandler = tokenBasicAuthHandler;
+        this.iNodeHandler = nodeHandler;
+    }
 
     @Override
     public void initRoute() {

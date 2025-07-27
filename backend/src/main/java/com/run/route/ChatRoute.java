@@ -1,8 +1,7 @@
 package com.run.route;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.inject.Inject;
-import com.google.inject.name.Named;
+
 import com.run.common.openai.request.message.UserMessage;
 import com.run.common.route.IRoute;
 import com.run.workflow.WorkFlowManage;
@@ -14,6 +13,8 @@ import io.vertx.sqlclient.Pool;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 
+import javax.inject.Inject;
+import javax.inject.Named;
 import java.util.List;
 import java.util.Map;
 
@@ -24,11 +25,16 @@ import java.util.Map;
  * {@code @注释: }
  */
 public class ChatRoute implements IRoute {
-    @Inject
-    @Named("apiRoute")
+
     protected Router apiRoute;
-    @Inject
+
     protected Pool pool;
+
+    @Inject
+    public ChatRoute(@Named("apiRoute") Router apiRoute, Pool pool) {
+        this.apiRoute = apiRoute;
+        this.pool = pool;
+    }
 
     @SneakyThrows
     private void chat() {

@@ -1,6 +1,6 @@
 package com.run.handler.knowledge.impl;
 
-import com.google.inject.Inject;
+
 import com.run.common.result.Result;
 import com.run.dao.entity.Knowledge;
 import com.run.dao.mapper.KnowledgeMapper;
@@ -9,6 +9,7 @@ import com.run.handler.knowledge.pojo.EditKnowledge;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
 
+import javax.inject.Inject;
 import java.util.UUID;
 
 /**
@@ -18,9 +19,12 @@ import java.util.UUID;
  * {@code @注释: }
  */
 public class KnowledgeHandlerImpl implements IKnowledgeHandler {
-    @Inject
-    protected KnowledgeMapper knowledgeMapper;
+    private final KnowledgeMapper knowledgeMapper;
 
+    @Inject
+    public KnowledgeHandlerImpl(KnowledgeMapper knowledgeMapper) {
+        this.knowledgeMapper = knowledgeMapper;
+    }
 
     @Override
     public void edit(RoutingContext context) {

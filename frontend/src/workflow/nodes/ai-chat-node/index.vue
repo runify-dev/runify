@@ -27,7 +27,7 @@
 
 </template>
 <script setup lang="ts">
-import MdInput from '@/components/md/MdInput.vue';
+import MdInput from '@/components/md/MDInput.vue';
 import SimpleNodeContainer from '@/workflow/common/SimpleNodeContainer.vue';
 import type { BaseNodeModel } from '@logicflow/core';
 import type { FormInstance } from 'element-plus'

@@ -1,7 +1,7 @@
 import { BezierEdge, BezierEdgeModel, h } from '@logicflow/core'
 import { createApp, h as vh } from 'vue'
-import { isActive, connect, disconnect } from './teleport'
-import { anchorIconMap, iconMap } from './data'
+import { isActive, disconnect } from './teleport'
+import { iconMap } from './data'
 function isMouseInElement(element: any, e: any) {
     const rect = element.getBoundingClientRect()
     return (
@@ -17,7 +17,7 @@ class RunBezierEdge extends BezierEdge {
     isMounted
     customLineApp?: any
     root?: any
-    handleMouseUp?: any
+    handleMouseUp: any
     constructor() {
         super()
         this.isMounted = false

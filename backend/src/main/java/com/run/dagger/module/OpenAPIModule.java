@@ -1,12 +1,15 @@
-package com.run.guice;
+package com.run.dagger.module;
 
-import com.google.inject.AbstractModule;
-import com.google.inject.Key;
+
+import dagger.Module;
+import dagger.Provides;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+
+import javax.inject.Singleton;
 
 /**
  * {@code @Author:张少虎}
@@ -14,9 +17,11 @@ import io.swagger.v3.oas.models.security.SecurityScheme;
  * {@code @Version 1.0}
  * {@code @注释: }
  */
-public class OpenAPIModule extends AbstractModule {
-    @Override
-    protected void configure() {
+@Module
+public class OpenAPIModule {
+    @Provides
+    @Singleton
+    public OpenAPI openAPI() {
         OpenAPI openAPI = new OpenAPI();
         openAPI.openapi("3.0.3");
         openAPI.info(new Info()
@@ -31,6 +36,7 @@ public class OpenAPIModule extends AbstractModule {
                         .type(SecurityScheme.Type.HTTP)
                         .scheme("bearer")
         ).addSecuritySchemes("AnonymousAuth", new SecurityScheme()));
-        bind(Key.get(OpenAPI.class)).toInstance(openAPI);
+        return openAPI;
     }
+
 }

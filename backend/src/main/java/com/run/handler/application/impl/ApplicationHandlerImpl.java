@@ -1,9 +1,11 @@
 package com.run.handler.application.impl;
 
-import com.google.inject.Inject;
+
 import com.run.dao.mapper.ApplicationMapper;
 import com.run.handler.application.IApplicationHandler;
 import io.vertx.ext.web.RoutingContext;
+
+import javax.inject.Inject;
 
 /**
  * {@code @Author:张少虎}
@@ -12,9 +14,13 @@ import io.vertx.ext.web.RoutingContext;
  * {@code @注释: }
  */
 public class ApplicationHandlerImpl implements IApplicationHandler {
-    @Inject
+
     protected ApplicationMapper applicationMapper;
 
+    @Inject
+    public ApplicationHandlerImpl(ApplicationMapper applicationMapper) {
+        this.applicationMapper = applicationMapper;
+    }
 
     @Override
     public void edit(RoutingContext context) {

@@ -1,7 +1,11 @@
 package com.run.dao.mapper;
 
+import com.run.common.config.AppConfig;
 import com.run.dao.common.mapper.BaseMapper;
 import com.run.dao.entity.Application;
+import io.vertx.sqlclient.Pool;
+
+import javax.inject.Inject;
 
 /**
  * {@code @Author:张少虎}
@@ -10,4 +14,8 @@ import com.run.dao.entity.Application;
  * {@code @注释: }
  */
 public class ApplicationMapper extends BaseMapper<Application> {
+    @Inject
+    public ApplicationMapper(Pool client, AppConfig appConfig) {
+        super(client, appConfig);
+    }
 }

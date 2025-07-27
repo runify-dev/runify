@@ -16,4 +16,9 @@ public interface IRoute {
      * 初始化openApi
      */
     void initOpenApi();
+
+    default void init() {
+        initRoute();
+        initOpenApi();
+    }
 }

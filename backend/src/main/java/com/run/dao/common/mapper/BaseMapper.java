@@ -1,7 +1,7 @@
 package com.run.dao.common.mapper;
 
-import com.google.inject.Inject;
-import com.google.inject.name.Named;
+
+import com.run.common.config.AppConfig;
 import com.run.common.constants.DatabaseType;
 import com.run.common.result.Page;
 import com.run.common.util.SqlGenUtil;
@@ -31,6 +31,7 @@ import org.apache.commons.lang3.reflect.FieldUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.inject.Inject;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
@@ -50,11 +51,9 @@ public class BaseMapper<T extends BaseEntity<T>> {
     protected final T entity;
 
     protected final Table table;
-    @Inject
+
     protected Pool client;
 
-    @Inject
-    @Named("runify.server.datasource.db_type")
     protected DatabaseType dbType;
     private BaseConvert convert;
     private final String saveTemplate;
@@ -80,6 +79,24 @@ public class BaseMapper<T extends BaseEntity<T>> {
         return new Table(t.catalogName(), t.name());
     }
 
+    @SneakyThrows
+    @Inject
+    public BaseMapper(Pool client, AppConfig appConfig) {
+        this.client = client;
+        this.dbType = appConfig.getDatabase().getType();
+        Class<T> entityClass = currentEntity();
+        this.entity = entityClass.getConstructor().newInstance();
+        com.run.dao.common.annotations.Table t = entityClass.getAnnotation(com.run.dao.common.annotations.Table.class);
+        this.table = generateTable(t);
+        this.saveTemplate = SqlGenUtil.generateInsertSql(table, entityClass);
+        List<Field> fields = Arrays.stream(FieldUtils
+                        .getFieldsWithAnnotation(entityClass, com.run.dao.common.annotations.Column.class))
+                .filter(field -> field.getAnnotation(com.run.dao.common.annotations.Column.class).primaryKey()).toList();
+        if (fields.size() != 1) {
+            throw new RuntimeException("主键只能有一个");
+        }
+        this.primaryField = fields.get(0);
+    }
 
     @SneakyThrows
     public BaseMapper() {

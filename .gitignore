@@ -26,7 +26,9 @@ frontend/frontend.iml
 *.sln
 *.sw?
 backend/target
+backend/src/main/resources/ui
 frontend/target
+frontend/node
 target
 oss
 data

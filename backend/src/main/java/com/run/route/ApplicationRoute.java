@@ -1,10 +1,12 @@
 package com.run.route;
 
-import com.google.inject.Inject;
-import com.google.inject.name.Named;
+
 import com.run.common.route.IRoute;
 import io.vertx.ext.web.Router;
 import io.vertx.sqlclient.Pool;
+
+import javax.inject.Inject;
+import javax.inject.Named;
 
 /**
  * {@code @Author:张少虎}
@@ -13,12 +15,16 @@ import io.vertx.sqlclient.Pool;
  * {@code @注释: }
  */
 public class ApplicationRoute implements IRoute {
-    @Inject
-    @Named("apiRoute")
-    protected Router apiRoute;
-    @Inject
-    protected Pool pool;
 
+    private final Router apiRoute;
+
+    private final Pool pool;
+
+    @Inject
+    public ApplicationRoute(@Named("apiRoute") Router apiRoute, Pool pool) {
+        this.apiRoute = apiRoute;
+        this.pool = pool;
+    }
 
     @Override
     public void initRoute() {

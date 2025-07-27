@@ -1,11 +1,11 @@
 package com.run.route;
 
-import com.google.inject.Inject;
-import com.google.inject.name.Named;
+
 import com.run.auth.TokenBasicAuthHandler;
 import com.run.common.openapi.CommonOpenAPI;
 import com.run.common.route.IRoute;
 import com.run.handler.user.IUserHandler;
+import com.run.handler.user.impl.UserHandlerImpl;
 import com.run.handler.user.pojo.LoginPojo;
 import com.run.handler.user.pojo.UserPojo;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -15,6 +15,9 @@ import io.swagger.v3.oas.models.media.StringSchema;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 
+import javax.inject.Inject;
+import javax.inject.Named;
+
 /**
  * {@code @Author:张少虎}
  * {@code @Date: 2025/3/13  23:50}
@@ -22,16 +25,23 @@ import io.vertx.ext.web.handler.BodyHandler;
  * {@code @注释: }
  */
 public class UserRoute implements IRoute {
-    @Inject
-    @Named("apiRoute")
-    protected Router apiRoute;
-    @Inject
-    protected OpenAPI openAPI;
-    @Inject
-    protected TokenBasicAuthHandler tokenBasicAuthHandler;
-    @Inject
-    protected IUserHandler iUserHandler;
 
+
+    private final Router apiRoute;
+
+    private final OpenAPI openAPI;
+
+    private final TokenBasicAuthHandler tokenBasicAuthHandler;
+
+    private final IUserHandler iUserHandler;
+
+    @Inject
+    public UserRoute(@Named("apiRoute") Router apiRoute, OpenAPI openAPI, TokenBasicAuthHandler tokenBasicAuthHandler, UserHandlerImpl iUserHandler) {
+        this.apiRoute = apiRoute;
+        this.openAPI = openAPI;
+        this.tokenBasicAuthHandler = tokenBasicAuthHandler;
+        this.iUserHandler = iUserHandler;
+    }
 
     @Override
     public void initRoute() {

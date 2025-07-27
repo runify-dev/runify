@@ -1,6 +1,6 @@
 package com.run.handler.user.impl;
 
-import com.google.inject.Inject;
+
 import com.run.common.result.Result;
 import com.run.common.util.CommonUtils;
 import com.run.common.util.JWTUtil;
@@ -24,6 +24,7 @@ import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import org.apache.commons.beanutils.BeanUtils;
 
+import javax.inject.Inject;
 import java.util.List;
 import java.util.Map;
 
@@ -35,10 +36,16 @@ import java.util.Map;
  */
 public class UserHandlerImpl implements IUserHandler {
 
-    @Inject
+
     protected Pool pool;
-    @Inject
+
     protected UserMapper userMapper;
+
+    @Inject
+    public UserHandlerImpl(Pool pool, UserMapper userMapper) {
+        this.pool = pool;
+        this.userMapper = userMapper;
+    }
 
     @Override
     public Handler<RoutingContext> createUser() {

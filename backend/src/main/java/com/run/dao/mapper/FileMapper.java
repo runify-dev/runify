@@ -1,5 +1,6 @@
 package com.run.dao.mapper;
 
+import com.run.common.config.AppConfig;
 import com.run.common.constants.DatabaseType;
 import com.run.common.util.CommonUtils;
 import com.run.dao.common.entity.BaseReadStream;
@@ -11,6 +12,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.AsyncFile;
 import io.vertx.core.file.OpenOptions;
+import io.vertx.sqlclient.Pool;
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowSet;
 import io.vertx.sqlclient.SqlResult;
@@ -19,6 +21,7 @@ import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
 import net.sf.jsqlparser.schema.Column;
 import org.jetbrains.annotations.Nullable;
 
+import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -34,6 +37,10 @@ import java.util.function.Function;
  * {@code @注释: }
  */
 public class FileMapper extends BaseMapper<FileEntity> {
+    @Inject
+    public FileMapper(Pool client, AppConfig appConfig) {
+        super(client, appConfig);
+    }
     /**
      * 获取大对象
      *
