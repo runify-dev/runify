@@ -2,7 +2,7 @@
   <div class="login-form-container w-full">
     <!-- Logo 和标题 -->
     <div class="logo-bg w-16 h-16 md:w-[70px] md:h-[70px] mx-auto mb-6"></div>
-    <h2 class="text-2xl md:text-[28px] font-semibold tracking-wide mb-8 text-center">欢迎登录 Runify</h2>
+    <h2 class="text-2xl md:text-[28px] font-semibold tracking-wide mb-12 text-center">欢迎登录 Runify</h2>
 
     <!-- 表单内容插槽 -->
     <slot></slot>
