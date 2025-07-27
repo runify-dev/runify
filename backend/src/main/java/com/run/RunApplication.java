@@ -20,9 +20,8 @@ public class RunApplication extends AbstractVerticle {
 
     @Override
     public void start() {
-        long l = System.currentTimeMillis();
         appComponent = DaggerAppComponent.builder()
-                .configModule(new ConfigModule("/opt/run/conf/runify.yaml"))
+                .configModule(new ConfigModule("/opt/runify/conf/runify.yaml"))
                 .appModule(new AppModule(vertx))
                 .build();
         appComponent.getRouterInitialization();
@@ -31,7 +30,6 @@ public class RunApplication extends AbstractVerticle {
                 .createHttpServer()
                 .requestHandler(router)
                 .listen(8080);
-        System.out.println(System.currentTimeMillis()-l);
     }
 
 
