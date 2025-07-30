@@ -39,6 +39,10 @@ const routeList = computed(() => {
 })
 </script>
 <style scoped>
+.after {
+    width: 200px;
+}
+
 /* Remove this container when use*/
 .component-title {
     width: 100%;

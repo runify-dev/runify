@@ -6,7 +6,7 @@ import { inject, onUnmounted } from 'vue'
 import { onMounted, ref } from 'vue';
 import Workflow from '@/workflow/index.vue';
 // 注入父组件提供的方法
-const { addButton, removeButton } = inject('buttonActions')
+const { addButton, removeButton } = inject('buttonActions') as any
 const workflowRef = ref<InstanceType<typeof Workflow>>()
 
 const save = () => {
@@ -20,6 +20,7 @@ addButton({
 })
 
 onMounted(() => {
+
     workflowRef.value?.render({
         nodes:
             Array.from({ length: 1 }).map(item => ({

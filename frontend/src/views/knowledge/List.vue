@@ -24,11 +24,6 @@
                     </div>
                     <el-skeleton v-else :rows="4" />
                 </template>
-                <template #tag>
-                    <el-tag class="blue-tag" style="height: 22px">
-                        {{ node.subtype }}
-                    </el-tag>
-                </template>
             </CardBox>
         </el-col>
     </el-row>

@@ -1,10 +1,13 @@
 <template>
     <TopHeaderVue root-route-name="applicationDetails">
         <template #before>
-            {{ application?.name }}
+            <span class="ml-3 whitespace-nowrap">
+                {{ application?.name }}
+            </span>
+
         </template>
         <template #after>
-            <div class=" mr-3">
+            <div class="mr-3 flex justify-end">
                 <template v-for="(button, index) in injectedButtons" :key="index">
                     <el-button @click="button.handler" :type="button.type" size="small"> {{ button.text }}</el-button>
                 </template>

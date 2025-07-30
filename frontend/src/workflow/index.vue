@@ -60,7 +60,6 @@ onMounted(() => {
     if (container) {
         init(container as HTMLElement)
     }
-
 })
 defineExpose({ init, render })
 </script>
