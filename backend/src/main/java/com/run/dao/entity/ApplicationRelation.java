@@ -109,7 +109,8 @@ public class ApplicationRelation implements BaseEntity<ApplicationRelation> {
     @JsonIgnore
     public Map<DatabaseType, BaseConvert<ApplicationRelation>> getConvertMap() {
         return Map.of(DatabaseType.SQLITE, new Pgsql(),
-                DatabaseType.POSTGRESQL, new Pgsql());
+                DatabaseType.POSTGRESQL, new Pgsql(),
+                DatabaseType.H2, new Pgsql());
     }
 
 

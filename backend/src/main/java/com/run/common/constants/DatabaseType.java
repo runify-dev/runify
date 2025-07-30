@@ -8,5 +8,6 @@ package com.run.common.constants;
  */
 public enum DatabaseType {
     SQLITE,
-    POSTGRESQL
+    POSTGRESQL,
+    H2
 }

@@ -1,15 +1,23 @@
 <template>
-
     <Workflow ref="workflowRef"></Workflow>
-
-
 </template>
 <script setup lang="ts">
-
+import { inject, onUnmounted } from 'vue'
 import { onMounted, ref } from 'vue';
 import Workflow from '@/workflow/index.vue';
-
+// 注入父组件提供的方法
+const { addButton, removeButton } = inject('buttonActions')
 const workflowRef = ref<InstanceType<typeof Workflow>>()
+
+const save = () => {
+    console.log('save')
+}
+// 组件挂载时添加按钮
+addButton({
+    text: '保存',
+    type: 'primary',
+    handler: save
+})
 
 onMounted(() => {
     workflowRef.value?.render({
@@ -39,5 +47,9 @@ onMounted(() => {
     })
 
 })
+// 组件卸载时移除按钮
+onUnmounted(() => {
+    removeButton('保存')
+})
 </script>
-<style lang="scss" scoped></style>
+<style lang="scss"></style>

@@ -108,7 +108,8 @@ public class KnowledgeRelation implements BaseEntity<KnowledgeRelation> {
     @JsonIgnore
     public Map<DatabaseType, BaseConvert<KnowledgeRelation>> getConvertMap() {
         return Map.of(DatabaseType.SQLITE, new Sqlite(),
-                DatabaseType.POSTGRESQL, new Pgsql());
+                DatabaseType.POSTGRESQL, new Pgsql(),
+                DatabaseType.H2, new Pgsql());
     }
 
 

@@ -32,7 +32,6 @@ const create = (type: Type, id?: string) => {
 }
 
 const nodeClick = (node: any, isCreate?: boolean) => {
-    console.log('ss')
     if (node.type == 'folder') {
         router.push({
             path: `/application/folder/${node.parentId ? node.parentId : 'root'}/resource/${node.id}`

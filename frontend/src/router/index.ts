@@ -12,22 +12,21 @@ const router = createRouter({
   routes: routes
 })
 
-export const getChildRouteListByPathAndName = (path: any, name?: RouteRecordName | any) => {
-  return getChildRouteList(routes, path, name)
+export const getChildRouteListByPathAndName = (name?: RouteRecordName | any) => {
+  return getChildRouteList(routes, name)
 }
 
 export const getChildRouteList: (
   routeList: Array<RouteRecordRaw>,
-  path: string,
-  name?: RouteRecordName | null | undefined
-) => Array<RouteRecordRaw> = (routeList, path, name) => {
+  name: RouteRecordName | null | undefined
+) => Array<RouteRecordRaw> = (routeList, name) => {
   for (let index = 0; index < routeList.length; index++) {
     const route = routeList[index]
-    if (name === route.name && path === route.path) {
+    if (name === route.name) {
       return route.children || []
     }
     if (route.children && route.children.length > 0) {
-      const result = getChildRouteList(route.children, path, name)
+      const result = getChildRouteList(route.children, name)
       if (result && result?.length > 0) {
         return result
       }

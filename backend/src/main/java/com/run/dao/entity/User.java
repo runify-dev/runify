@@ -45,7 +45,6 @@ public class User implements BaseEntity<User> {
     @Column(name = "username")
     @NotBlank(message = "用户名不能为空", groups = Group.Create.class)
     private String username;
-
     @Column(name = "icon")
     private String icon;
     @Column(name = "password")
@@ -74,7 +73,8 @@ public class User implements BaseEntity<User> {
     @JsonIgnore
     public Map<DatabaseType, BaseConvert<User>> getConvertMap() {
         return Map.of(DatabaseType.SQLITE, new Sqlite(),
-                DatabaseType.POSTGRESQL, new Pgsql());
+                DatabaseType.POSTGRESQL, new Pgsql(),
+                DatabaseType.H2, new Pgsql());
     }
 
 
@@ -92,5 +92,4 @@ public class User implements BaseEntity<User> {
             return new User(row);
         }
     }
-
 }

@@ -38,8 +38,8 @@
         </div>
         <div style="overflow-y: auto; height:calc(100vh - 140px)">
             <el-tree ref="treeRef" :highlight-current="true" @node-click="(node: any) => nodeClick(node)"
-                :current-node-key="currentId" :default-expanded-keys="currentId ? [currentId] : []" :data="data"
-                node-key="id" :props="propsConf">
+                :current-node-key="['root'].includes(currentId ? currentId : '') ? undefined : currentId"
+                :default-expanded-keys="currentId ? [currentId] : []" :data="data" node-key="id" :props="propsConf">
                 <template v-slot="node">
                     <NodeVue :data="node.data" :node="node.node" :resource="resource" :create="create"
                         :nodeClick="nodeClick">

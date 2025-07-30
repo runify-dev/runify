@@ -25,7 +25,7 @@ import useStore from '@/stores';
 import type { User } from '@/api/type/user';
 const { user } = useStore()
 const menuList = computed(() => {
-    return getChildRouteListByPathAndName('/', 'home')
+    return getChildRouteListByPathAndName('home')
 })
 const userPojo = ref<User>();
 

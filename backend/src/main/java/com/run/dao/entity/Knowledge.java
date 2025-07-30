@@ -111,7 +111,8 @@ public class Knowledge implements BaseEntity<Knowledge> {
     @JsonIgnore
     public Map<DatabaseType, BaseConvert<Knowledge>> getConvertMap() {
         return Map.of(DatabaseType.SQLITE, new Sqlite(),
-                DatabaseType.POSTGRESQL, new Pgsql());
+                DatabaseType.POSTGRESQL, new Pgsql(),
+                DatabaseType.H2, new Pgsql());
     }
 
 

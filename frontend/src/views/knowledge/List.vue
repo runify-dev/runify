@@ -16,7 +16,7 @@
     <el-row :gutter="10" class="pr-8 pl-8">
         <el-col v-for="node in nodeList" :key="node.id" :xs="24" :sm="12" :md="8" :lg="6" :xl="6" class="pt-4">
             <CardBox :title="node.name"
-                @click="router.push({ name: 'knowledgeDetails', params: { id: node.id, type: node.subtype } })">
+                @click="router.push({ name: 'knowledgeDetails', params: { folderId: node.parentId ? node.parentId : 'root', id: node.id } })">
                 <template #description>
                     <div v-if="node.excerpt">
                         <MdPreview :modelValue="node.excerpt">

@@ -90,7 +90,8 @@ public class FileEntity implements BaseEntity<FileEntity> {
     @JsonIgnore
     public Map<DatabaseType, BaseConvert<FileEntity>> getConvertMap() {
         return Map.of(DatabaseType.SQLITE, new Sqlite(),
-                DatabaseType.POSTGRESQL, new Pgsql());
+                DatabaseType.POSTGRESQL, new Pgsql(),
+                DatabaseType.H2, new Pgsql());
     }
 
 
