@@ -24,7 +24,7 @@
     "element-plus": "^2.9.8",
     "highlight.js": "^11.11.1",
     "katex": "^0.16.21",
-    "md-editor-v3": "^5.3.2",
+    "md-editor-v3": "^5.8.3",
     "mermaid": "^11.4.1",
     "mitt": "^3.0.1",
     "nanoid": "^5.1.2",

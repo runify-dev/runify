@@ -24,8 +24,9 @@ const props = withDefaults(
 );
 const isDorp = ref<boolean>(false);
 const clientX = ref<number>();
+
 const elAsideWidth = computed(() => {
-  if (!clientX.value) return 180;
+  if (!clientX.value) return window.innerWidth < 640 ? 0 : 180;
   const asideWidth = clientX.value - props.left;
   if (asideWidth < 100) {
     return 0;
@@ -96,7 +97,6 @@ onUnmounted(() => {
 </script>
 <style lang="scss" scoped>
 .main-contaner {
-
   height: 100%;
 }
 </style>
