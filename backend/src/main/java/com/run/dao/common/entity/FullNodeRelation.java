@@ -197,15 +197,14 @@ public class FullNodeRelation<T extends BaseEntity<T>, N extends BaseEntity<N>> 
      * @return 结果
      */
     public Future<SqlResult<Void>> delete(String id, Pool pool) {
-        return pool.withTransaction(c -> this.getNodeMapper()
+        return  this.getNodeMapper()
                 .deleteById(id)
                 .compose(ok ->
                         this.getNodeRelationMapper()
                                 .delete(new EqualsTo()
                                         .withLeftExpression(new Column("descendant_id"))
                                         .withRightExpression(new Column("#{descendant_id}")), Map.of("descendant_id", id))
-                )
-        );
+                );
     }
 
 }
