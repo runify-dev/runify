@@ -1,3 +1,5 @@
+import edge from './edge'
+
 const startNode = {
     type: 'start-node',
     text: "",
@@ -36,7 +38,10 @@ const aiChatNode = {
         ]
     }
 }
-
+export const baseWorkflow = {
+    nodes: [startNode],
+    edges: []
+}
 export type WorkflowType = 'APPLICATION'
 
 class NodeMeta {

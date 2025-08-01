@@ -4,15 +4,6 @@
             <span class="ml-3 whitespace-nowrap">
                 {{ application?.name }}
             </span>
-
-        </template>
-        <template #after>
-            <div class="mr-3 flex justify-end">
-                <template v-for="(button, index) in injectedButtons" :key="index">
-                    <el-button @click="button.handler" :type="button.type" size="small"> {{ button.text }}</el-button>
-                </template>
-            </div>
-
         </template>
     </TopHeaderVue>
     <router-view></router-view>
@@ -21,8 +12,10 @@
 import TopHeaderVue from "@/layout/top-header/index.vue"
 import NodeApi from "@/api/node"
 import { useRoute } from 'vue-router';
-import { computed, watch, onMounted, ref, provide } from 'vue';
+import { computed, watch, ref, provide, onBeforeMount } from 'vue';
+
 const application = ref<any>();
+const applicationPrimision = ref<Promise<any>>()
 const route = useRoute()
 
 const folderId = computed(() => {
@@ -38,36 +31,28 @@ const resourceId = computed(() => {
     return id
 })
 const get = () => {
-
-    NodeApi.resourceInfo('application', folderId.value, resourceId.value).then(ok => {
+    return NodeApi.resourceInfo('application', folderId.value, resourceId.value).then(ok => {
         application.value = ok.data
+        return ok.data
     })
 }
-// 存储子组件注入的按钮
-const injectedButtons = ref<Array<any>>([])
-// 提供方法让子组件可以添加按钮
-const addButton = (buttonConfig: any) => {
-    injectedButtons.value.push(buttonConfig)
-}
 
-// 提供方法让子组件可以移除按钮
-const removeButton = (buttonText: string) => {
-    injectedButtons.value = injectedButtons.value.filter(
-        btn => btn.text !== buttonText
-    )
-}
 
+const getApplication = () => {
+    if (application.value == null) {
+        return applicationPrimision.value
+    }
+    return Promise.resolve(application.value)
+
+}
 // 向子组件提供这些方法
-provide('buttonActions', {
-    addButton,
-    removeButton
-})
+provide('getApplication', getApplication)
 
 watch(resourceId, () => {
     get()
 })
-onMounted(() => {
-    get()
+onBeforeMount(() => {
+    applicationPrimision.value = get()
 })
 </script>
 <style scoped>

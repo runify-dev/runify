@@ -1,8 +1,14 @@
 package com.run.route;
 
 
+import com.run.auth.TokenBasicAuthHandler;
 import com.run.common.route.IRoute;
+import com.run.handler.application.IApplicationHandler;
+import com.run.handler.application.impl.ApplicationHandlerImpl;
+import com.run.handler.knowledge.IKnowledgeHandler;
+import com.run.handler.knowledge.impl.KnowledgeHandlerImpl;
 import io.vertx.ext.web.Router;
+import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.sqlclient.Pool;
 
 import javax.inject.Inject;
@@ -20,15 +26,24 @@ public class ApplicationRoute implements IRoute {
 
     private final Pool pool;
 
+    protected TokenBasicAuthHandler tokenBasicAuthHandler;
+
+    private IApplicationHandler applicationHandler;
+
     @Inject
-    public ApplicationRoute(@Named("apiRoute") Router apiRoute, Pool pool) {
+    public ApplicationRoute(@Named("apiRoute") Router apiRoute, Pool pool, TokenBasicAuthHandler tokenBasicAuthHandler, ApplicationHandlerImpl applicationHandler) {
         this.apiRoute = apiRoute;
         this.pool = pool;
+        this.tokenBasicAuthHandler = tokenBasicAuthHandler;
+        this.applicationHandler = applicationHandler;
     }
 
     @Override
     public void initRoute() {
-
+        apiRoute.put("/application/folder/:folderId/resource/:resourceId")
+                .handler(BodyHandler.create())
+                .handler(tokenBasicAuthHandler)
+                .handler(applicationHandler::edit);
     }
 
     @Override

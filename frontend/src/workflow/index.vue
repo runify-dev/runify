@@ -51,6 +51,7 @@ const init = (container: HTMLElement) => {
     lf.value.batchRegister([...Object.keys(nodes).map((key) => nodes[key].default), RunEdge])
     lf.value.setDefaultEdgeType('run-edge')
 
+
 }
 const render = (data?: LogicFlow.GraphConfigData) => {
     lf.value.render(data ? data : {})
@@ -61,6 +62,9 @@ onMounted(() => {
         init(container as HTMLElement)
     }
 })
-defineExpose({ init, render })
+const getGraphData = () => {
+    return lf.value.getGraphData()
+}
+defineExpose({ init, render, getGraphData })
 </script>
 <style lang="scss"></style>

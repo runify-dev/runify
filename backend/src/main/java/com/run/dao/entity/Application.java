@@ -116,6 +116,13 @@ public class Application implements BaseEntity<Application> {
 
     class Sqlite implements BaseConvert<Application> {
         @Override
+        public Map<String, Object> toMap(Application application) {
+            Map<String, Object> map = BaseConvert.super.toMap(application);
+            map.put("workflow",JacksonUtils.toJson(application.workflow));
+            return map;
+        }
+
+        @Override
         public Application mapTo(Row row) {
             Application application = new Application();
             application.id = row.getUUID("id");

@@ -39,10 +39,6 @@ const routeList = computed(() => {
 })
 </script>
 <style scoped>
-.after {
-    width: 200px;
-}
-
 /* Remove this container when use*/
 .component-title {
     width: 100%;
@@ -93,21 +89,15 @@ const routeList = computed(() => {
 
 .tab_label {
     width: var(--label-width, 100px);
-
     height: 28px;
-
     position: relative;
     z-index: 999;
-
     display: flex;
     align-items: center;
     justify-content: center;
-
     border: 0;
-
     font-size: 0.75rem;
     opacity: 0.6;
-
     cursor: pointer;
 }
 </style>
