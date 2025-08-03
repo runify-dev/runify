@@ -16,7 +16,7 @@ import io.vertx.launcher.application.VertxApplication;
  * {@code @注释: }
  */
 public class RunApplication extends AbstractVerticle {
-    static AppComponent appComponent;
+    public static AppComponent appComponent;
 
     @Override
     public void start() {

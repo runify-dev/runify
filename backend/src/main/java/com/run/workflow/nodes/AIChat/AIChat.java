@@ -1,11 +1,15 @@
 package com.run.workflow.nodes.AIChat;
 
 
+import com.fasterxml.jackson.annotation.JsonUnwrapped;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.run.common.keyvalue.DefaultKeyValue;
 import com.run.common.openai.request.message.Message;
 import com.run.common.openai.request.message.SystemMessage;
 import com.run.common.openai.response.ChatCompletion;
 import com.run.common.openai.response.chunk.ChatCompletionChunk;
+import com.run.common.util.JacksonUtils;
+import com.run.common.util.RSAUtil;
 import com.run.dao.entity.Model;
 import com.run.models.IProvider;
 import com.run.models.ModelProvideConstants;
@@ -18,6 +22,7 @@ import com.run.workflow.entity.Node;
 import com.run.workflow.entity.NodeResult;
 import com.run.workflow.nodes.AIChat.entity.AIChatNodeData;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.json.impl.JsonUtil;
 import jakarta.validation.Validator;
 import okhttp3.Call;
 import org.apache.commons.lang3.StringUtils;
@@ -71,10 +76,12 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
                 String user = workFlowManage.generatePrompt(node.params.getUser());
                 userMessage.setContent(user);
             }
-            Model model = new Model("1", "测试模型", "描述", "openai_provider", "LLM", "deepseek-r1", Map.of("baseUrl", "https://qianfan.baidubce.com/v2/chat/completions"
-                    , "apiKey", "xx"), List.of(), Map.of());
+            Model model = new Model();
             IProvider provider = ModelProvideConstants.valueOf(model.getProvider()).getProvider();
-            LLM llm = provider.getModel(model.getModelType(), model.getModelName(), model.getCredential(), Map.of(), LLM.class);
+            String decrypt = RSAUtil.decrypt(model.getCredential());
+            Map<String, Object> map = JacksonUtils.fromJson(decrypt, new TypeReference<Map<String, Object>>() {
+            });
+            LLM llm = provider.getModel(model.getModelType(), model.getModelName(), map, Map.of(), LLM.class);
             llm.invoke(messages, true, new Callback<>() {
                 @Override
                 public void onResponse(@NotNull Call call, @NotNull ChatCompletion chatCompletion) {

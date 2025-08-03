@@ -2,6 +2,7 @@ package com.run.dagger.component;
 
 import com.run.common.initialization.AppInitialization;
 import com.run.dagger.module.*;
+import com.run.dao.mapper.ModelMapper;
 import dagger.Component;
 import io.vertx.ext.web.Router;
 
@@ -21,4 +22,6 @@ public interface AppComponent {
     Router mainRoute();
 
     AppInitialization getRouterInitialization();
+
+    ModelMapper modelMapper();
 }

@@ -1,9 +1,16 @@
 package com.run.common.initialization;
 
+import com.run.RunApplication;
 import com.run.common.openapi.DocRoute;
+import com.run.common.util.RSAUtil;
+import com.run.dao.entity.SystemSetting;
+import com.run.dao.mapper.SystemSettingMapper;
 import com.run.route.*;
+import io.vertx.core.json.JsonObject;
 
 import javax.inject.Inject;
+import java.security.KeyPair;
+import java.security.PrivateKey;
 
 /**
  * {@code @Author:张少虎}
@@ -22,7 +29,8 @@ public class AppInitialization {
                              ApplicationRoute applicationRoute,
                              DocRoute docRoute,
                              UIInitialization uiInitialization,
-                             MigrationInitialization migrationInitialization) {
+                             MigrationInitialization migrationInitialization,
+                             SystemSettingMapper systemSettingMapper) {
         userRoute.init();
         nodeRoute.init();
         knowledgeRoute.init();
@@ -32,5 +40,25 @@ public class AppInitialization {
         docRoute.init();
         migrationInitialization.init();
         uiInitialization.init();
+        systemSettingMapper.getById("RSA").onSuccess(systemSetting -> {
+            if (systemSetting == null) {
+                KeyPair keyPair = RSAUtil.generateKeyPair();
+                String privateKey = RSAUtil.getPrivateKey(keyPair);
+                String publicKey = RSAUtil.getPublicKey(keyPair);
+                SystemSetting instance = new SystemSetting();
+                instance.setType("RSA");
+                instance.setMeta(JsonObject.of("private", privateKey, "public", publicKey));
+                systemSettingMapper.save(instance).onSuccess(ok -> {
+                    RSAUtil.setKeyPair(keyPair);
+                });
+            } else {
+                JsonObject meta = systemSetting.getMeta();
+                String privateKey = meta.getString("private");
+                String publicKey = meta.getString("public");
+                KeyPair keyPair = new KeyPair(RSAUtil.loadPublicKey(publicKey), RSAUtil.loadPrivateKey(privateKey));
+                RSAUtil.setKeyPair(keyPair);
+            }
+        });
+
     }
 }

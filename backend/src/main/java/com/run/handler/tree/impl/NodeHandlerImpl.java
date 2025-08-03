@@ -6,10 +6,7 @@ import com.run.common.result.Result;
 import com.run.common.util.TreeUtil;
 import com.run.dao.common.entity.FullNodeRelation;
 import com.run.dao.common.mapper.BaseMapper;
-import com.run.dao.entity.Application;
-import com.run.dao.entity.ApplicationRelation;
-import com.run.dao.entity.Knowledge;
-import com.run.dao.entity.KnowledgeRelation;
+import com.run.dao.entity.*;
 import com.run.handler.tree.INodeHandler;
 import com.run.handler.tree.pojo.CreateSimpleNodePojo;
 import com.run.handler.tree.pojo.QueryNodePojo;
@@ -49,7 +46,10 @@ public class NodeHandlerImpl implements INodeHandler {
                     () -> new BaseMapper<>(pool, dbType, Knowledge.class)),
             "application", new FullNodeRelation<>(ApplicationRelation.getWallNodeRelation(),
                     () -> new BaseMapper<>(pool, dbType, ApplicationRelation.class),
-                    () -> new BaseMapper<>(pool, dbType, Application.class)));
+                    () -> new BaseMapper<>(pool, dbType, Application.class)),
+            "model", new FullNodeRelation<>(ModelRelation.getWallNodeRelation(),
+                    () -> new BaseMapper<>(pool, dbType, ModelRelation.class),
+                    () -> new BaseMapper<>(pool, dbType, Model.class)));
 
     public Expression getWhere(String resource, QueryNodePojo queryNodePojo) {
         return TreeUtil.getWhere(queryNodePojo, sourceMap.get(resource).getNodeRelationMapper().getTable());

@@ -73,3 +73,36 @@ CREATE TABLE "application" (
                                "update_time" TIMESTAMP,
                                PRIMARY KEY ("id")
 );
+
+CREATE TABLE "model" (
+  "id" TEXT(32) NOT NULL,
+  "parent_id" TEXT(32),
+  "type" TEXT(10),
+  "name" TEXT(256),
+  "desc" TEXT(256),
+  "provider" TEXT(128),
+  "model_type" TEXT(256),
+  "model_name" TEXT(256),
+  "credential" TEXT,
+  "model_params_form" TEXT,
+  "meta" TEXT,
+  "star" integer(2),
+  "share" integer(2),
+  "create_time" TIMESTAMP,
+  "update_time" TIMESTAMP,
+  PRIMARY KEY ("id")
+);
+
+CREATE TABLE "model_relation" (
+                                        "id" text(32) NOT NULL,
+                                        "ancestor_id" text(32),
+                                        "descendant_id" text(32),
+                                        "depth" integer(10),
+                                        PRIMARY KEY ("id")
+);
+
+CREATE TABLE "system_setting" (
+  "type" TEXT NOT NULL,
+  "meta" TEXT,
+  PRIMARY KEY ("type")
+);
