@@ -5,6 +5,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * {@code @Author:张少虎}
  * {@code @Date: 2025/3/25  23:14}
@@ -36,5 +39,26 @@ public class ModelInfo {
      * 模型class
      */
     private Class<? extends BaseModel> modelClass;
+
+    public ModelInfo(String name, String desc, ModelType modelType, BaseModelCredential credential, Class<? extends BaseModel> modelClass) {
+        this.name = name;
+        this.desc = desc;
+        this.modelType = modelType;
+        this.credential = credential;
+        this.modelClass = modelClass;
+        this.isDefault = Boolean.FALSE;
+    }
+
+    private Boolean isDefault;
+
+    public Map<String, Object> toMap() {
+        Map<String, Object> result = new HashMap<>();
+        result.put("name", name);
+        result.put("desc", desc);
+        result.put("modelType", modelType);
+        result.put("credential", credential.toFormList(Map.of()));
+        result.put("isDefault", isDefault);
+        return result;
+    }
 
 }

@@ -4,6 +4,7 @@ import org.apache.commons.lang3.reflect.FieldUtils;
 
 import java.lang.reflect.Field;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -33,7 +34,9 @@ public class BaseForm {
     private Map<String, Object> toMap(Field field, Map<String, Object> keywords) {
         try {
             BaseField baseField = (BaseField) FieldUtils.readField(field, this, true);
-            return baseField.toMap(keywords);
+            HashMap<String, Object> result = new HashMap<>(baseField.toMap(keywords));
+            result.put("field", field.getName());
+            return result;
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
         }

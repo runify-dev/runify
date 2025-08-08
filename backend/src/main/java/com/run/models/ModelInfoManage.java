@@ -23,10 +23,6 @@ public class ModelInfoManage {
      * 管理的模型
      */
     private List<ModelInfo> modelList;
-    /**
-     * 未收录的模型 使用defaultModelList进行获取模型
-     */
-    private List<ModelInfo> defaultModelList;
 
     private Map<ModelType, Map<String, ModelInfo>> modelDict;
 
@@ -35,20 +31,17 @@ public class ModelInfoManage {
 
     public static class Builder {
         private List<ModelInfo> modelList;
-        private List<ModelInfo> defaultModelList;
 
-        public Builder append(ModelInfo modelInfo, boolean isDefault) {
+        public Builder append(ModelInfo modelInfo, Boolean isDefault) {
             this.modelList.add(modelInfo);
-            if (isDefault) {
-                this.defaultModelList.add(modelInfo);
-            }
+            modelInfo.setIsDefault(isDefault);
             return this;
         }
 
         public Builder append(List<ModelInfo> modelInfoList, boolean isDefault) {
             this.modelList.addAll(modelInfoList);
-            if (isDefault) {
-                this.defaultModelList.addAll(modelInfoList);
+            for (ModelInfo modelInfo : modelInfoList) {
+                modelInfo.setIsDefault(isDefault);
             }
             return this;
         }
@@ -56,16 +49,16 @@ public class ModelInfoManage {
         public ModelInfoManage build() {
             Map<ModelType, Map<String, ModelInfo>> modelDict = this.modelList.stream()
                     .collect(Collectors.groupingBy(ModelInfo::getModelType, Collectors.groupingBy(ModelInfo::getName, Collectors.reducing(null, (pre, next) -> next))));
-            Map<ModelType, ModelInfo> defaultModelDict = this.defaultModelList.stream()
+            Map<ModelType, ModelInfo> defaultModelDict = this.modelList.stream()
+                    .filter(ModelInfo::getIsDefault)
                     .collect(Collectors.groupingBy(ModelInfo::getModelType, Collectors.reducing(null, (pre, next) -> next)));
-            return new ModelInfoManage(this.modelList, this.defaultModelList, modelDict, defaultModelDict);
+            return new ModelInfoManage(this.modelList, modelDict, defaultModelDict);
         }
     }
 
     public static Builder builder() {
         Builder builder = new Builder();
         builder.modelList = new ArrayList<>();
-        builder.defaultModelList = new ArrayList<>();
         return builder;
     }
 

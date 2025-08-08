@@ -77,9 +77,9 @@ public class BaseField {
                 "label", this.label.toMap(Map.of()),
                 "required", this.required,
                 "defaultValue", this.defaultValue,
-                "displayConstraint", this.displayConstraint,
-                "attrs", this.attrs,
-                "props", this.props);
+                "displayConstraint", this.displayConstraint == null ? Map.of() : this.displayConstraint,
+                "attrs", this.attrs == null ? Map.of() : this.attrs,
+                "props", this.props == null ? Map.of() : this.props);
 
     }
 

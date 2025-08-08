@@ -19,13 +19,13 @@ public class PasswordInputField extends BaseField {
                               Map<String, List<Object>> displayConstraint,
                               Map<String, Object> attrs,
                               Map<String, Object> props) {
-        super("PasswordInputField", label, required, defaultValue, displayConstraint, attrs, props);
+        super("PasswordInput", label, required, defaultValue, displayConstraint, attrs, props);
     }
 
     public PasswordInputField(BaseLabel label,
                               Boolean required,
                               Object defaultValue) {
-        super("PasswordInputField", label, required, defaultValue, null, null, null);
+        super("PasswordInput", label, required, defaultValue, null, null, null);
     }
 
     @Override

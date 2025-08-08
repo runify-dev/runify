@@ -32,9 +32,9 @@ public class FullNodeRelation<T extends BaseEntity<T>, N extends BaseEntity<N>> 
     BaseMapper<T> nodeRelationMapper;
     BaseMapper<N> nodeMapper;
     WallNodeRelation<T, N> wallNodeRelation;
-    Supplier<BaseMapper<T>> newNodeRelationMapper;
+    Supplier<? extends BaseMapper<T>> newNodeRelationMapper;
 
-    Supplier<BaseMapper<N>> newNodeMapper;
+    Supplier<? extends BaseMapper<N>> newNodeMapper;
 
     public BaseMapper<T> getNodeRelationMapper() {
         if (this.nodeRelationMapper == null) {
@@ -50,7 +50,7 @@ public class FullNodeRelation<T extends BaseEntity<T>, N extends BaseEntity<N>> 
         return this.nodeMapper;
     }
 
-    public FullNodeRelation(WallNodeRelation<T, N> wallNodeRelation, Supplier<BaseMapper<T>> newNodeRelationMapper, Supplier<BaseMapper<N>> newNodeMapper) {
+    public FullNodeRelation(WallNodeRelation<T, N> wallNodeRelation, Supplier<? extends BaseMapper<T>> newNodeRelationMapper, Supplier<? extends BaseMapper<N>> newNodeMapper) {
         this.wallNodeRelation = wallNodeRelation;
         this.newNodeRelationMapper = newNodeRelationMapper;
         this.newNodeMapper = newNodeMapper;
@@ -197,7 +197,7 @@ public class FullNodeRelation<T extends BaseEntity<T>, N extends BaseEntity<N>> 
      * @return 结果
      */
     public Future<SqlResult<Void>> delete(String id, Pool pool) {
-        return  this.getNodeMapper()
+        return this.getNodeMapper()
                 .deleteById(id)
                 .compose(ok ->
                         this.getNodeRelationMapper()

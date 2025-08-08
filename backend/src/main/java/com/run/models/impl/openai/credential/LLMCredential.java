@@ -1,6 +1,7 @@
 package com.run.models.impl.openai.credential;
 
 import com.run.common.forms.BaseForm;
+import com.run.common.forms.field.PasswordInputField;
 import com.run.common.forms.field.TextInputField;
 import com.run.common.forms.label.TextLabel;
 import com.run.common.util.CommonUtils;
@@ -21,7 +22,7 @@ public class LLMCredential extends BaseForm implements BaseModelCredential {
 
     private final TextInputField baseUrl = new TextInputField(new TextLabel("baseUrl"), true, "");
 
-    private final TextInputField apiKey = new TextInputField(new TextLabel("apiKey"), true, "");
+    private final PasswordInputField apiKey = new PasswordInputField(new TextLabel("apiKey"), true, "");
 
 
     @Override

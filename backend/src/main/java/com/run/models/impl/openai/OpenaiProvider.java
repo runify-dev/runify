@@ -30,7 +30,7 @@ public class OpenaiProvider implements IProvider {
         try {
             String file = Objects.requireNonNull(this.getClass().getResource("icon/openai.svg")).getFile();
             String icon = Files.readString(Paths.get(file), StandardCharsets.UTF_8);
-            provideInfo = new ProvideInfo(ModelType.LLM.name(), "openai_provider", icon);
+            provideInfo = new ProvideInfo("openai_provider", "OpenAI", icon);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

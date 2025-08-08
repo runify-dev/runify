@@ -38,8 +38,8 @@ public class BaseLabel {
         return Map.of(
                 "input_type", this.inputType,
                 "value", this.value,
-                "attrs", this.attrs,
-                "props", this.props);
+                "attrs", this.attrs == null ? Map.of() : this.attrs,
+                "props", this.props == null ? Map.of() : this.props);
 
     }
 }

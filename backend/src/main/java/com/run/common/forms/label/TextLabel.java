@@ -12,10 +12,10 @@ import java.util.Map;
  */
 public class TextLabel extends BaseLabel {
     public TextLabel(String value, Map<String, Object> attrs, Map<String, Object> props) {
-        super("Text", value, attrs, props);
+        super("TextLabel", value, attrs, props);
     }
 
     public TextLabel(String value) {
-        super("Text", value, null, null);
+        super("TextLabel", value, null, null);
     }
 }

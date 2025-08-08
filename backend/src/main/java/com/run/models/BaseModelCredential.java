@@ -1,5 +1,6 @@
 package com.run.models;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -27,4 +28,7 @@ public interface BaseModelCredential {
      * @return 加密后数据
      */
     Map<String, Object> encryption(Map<String, Object> credential);
+
+
+    List<Map<String, Object>> toFormList(Map<String, Object> keywords);
 }

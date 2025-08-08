@@ -7,6 +7,7 @@ import com.run.common.util.TreeUtil;
 import com.run.dao.common.entity.FullNodeRelation;
 import com.run.dao.common.mapper.BaseMapper;
 import com.run.dao.entity.*;
+import com.run.dao.mapper.ModelMapper;
 import com.run.handler.tree.INodeHandler;
 import com.run.handler.tree.pojo.CreateSimpleNodePojo;
 import com.run.handler.tree.pojo.QueryNodePojo;
@@ -49,7 +50,7 @@ public class NodeHandlerImpl implements INodeHandler {
                     () -> new BaseMapper<>(pool, dbType, Application.class)),
             "model", new FullNodeRelation<>(ModelRelation.getWallNodeRelation(),
                     () -> new BaseMapper<>(pool, dbType, ModelRelation.class),
-                    () -> new BaseMapper<>(pool, dbType, Model.class)));
+                    () -> new ModelMapper(pool, dbType)));
 
     public Expression getWhere(String resource, QueryNodePojo queryNodePojo) {
         return TreeUtil.getWhere(queryNodePojo, sourceMap.get(resource).getNodeRelationMapper().getTable());
@@ -86,7 +87,7 @@ public class NodeHandlerImpl implements INodeHandler {
     public void list(RoutingContext context, QueryNodePojo queryNodePojo, String resource) {
         BaseMapper<?> nodeMapper = sourceMap.get(resource).getNodeMapper();
         Expression where = TreeUtil.getWhere(queryNodePojo, sourceMap.get(resource).getNodeRelationMapper().getTable());
-        nodeMapper.list(where, Map.of("s", ""))
+        nodeMapper.list(where, Map.of())
                 .onSuccess(ok -> context.end(Result.success(ok).toBuffer()))
                 .onFailure(e -> context.end(Result.error(e.toString()).toBuffer()));
     }

@@ -27,3 +27,20 @@ body {
 .md-editor-footer {
   height: auto !important;
 }
+
+
+.el-drawer {
+  .el-drawer__header {
+    padding: 16px 24px;
+    margin: 0;
+    border-bottom: 1px solid var(--el-border-color);
+    color: var(--app-text-color);
+  }
+  .el-drawer__body {
+    padding: 16px 24px;
+  }
+  .el-drawer__footer {
+    border-top: 1px solid var(--el-border-color);
+    padding: 16px 24px;
+  }
+}

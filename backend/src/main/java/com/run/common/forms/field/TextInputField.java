@@ -19,13 +19,13 @@ public class TextInputField extends BaseField {
                           Map<String, List<Object>> displayConstraint,
                           Map<String, Object> attrs,
                           Map<String, Object> props) {
-        super("TextInputField", label, required, defaultValue, displayConstraint, attrs, props);
+        super("TextInput", label, required, defaultValue, displayConstraint, attrs, props);
     }
 
     public TextInputField(BaseLabel label,
                           Boolean required,
                           Object defaultValue) {
-        super("TextInputField", label, required, defaultValue, null, null, null);
+        super("TextInput", label, required, defaultValue, null, null, null);
     }
 
     public TextInputField(BaseLabel label,
@@ -33,7 +33,7 @@ public class TextInputField extends BaseField {
                           Object defaultValue,
                           Integer maxlength,
                           Integer minlength) {
-        super("TextInputField", label, required, defaultValue, null, Map.of("maxlength", maxlength,
+        super("TextInput", label, required, defaultValue, null, Map.of("maxlength", maxlength,
                 "minlength", minlength), null);
     }
 
