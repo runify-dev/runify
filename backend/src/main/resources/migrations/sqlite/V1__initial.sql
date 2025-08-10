@@ -84,7 +84,7 @@ CREATE TABLE "model" (
   "model_type" TEXT(256),
   "model_name" TEXT(256),
   "credential" TEXT,
-  "model_params_form" TEXT,
+  "model_parameter_form" TEXT,
   "meta" TEXT,
   "star" integer(2),
   "share" integer(2),

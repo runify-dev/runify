@@ -3,8 +3,10 @@ package com.run.dao.entity;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.run.common.constants.DatabaseType;
 import com.run.common.util.JacksonUtils;
+import com.run.common.util.RSAUtil;
 import com.run.dao.common.annotations.Column;
 import com.run.dao.common.annotations.Table;
 import com.run.dao.common.convert.BaseConvert;
@@ -18,6 +20,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -64,8 +67,8 @@ public class Model implements BaseEntity<Model> {
     @Column(name = "credential")
     private String credential;
 
-    @Column(name = "model_params_form")
-    private JsonArray modelParamsForm;
+    @Column(name = "model_parameter_form")
+    private JsonArray modelParameterForm;
 
     @Column(name = "meta")
     private JsonObject meta;
@@ -116,7 +119,7 @@ public class Model implements BaseEntity<Model> {
             model.modelType = row.getString("model_type");
             model.modelName = row.getString("model_name");
             model.credential = row.getString("credential");
-            model.modelParamsForm = row.getJsonArray("model_params_form");
+            model.modelParameterForm = row.getJsonArray("model_parameter_form");
             model.meta = row.getJsonObject("meta");
             model.star = row.getBoolean("star");
             model.share = row.getBoolean("share");
@@ -131,7 +134,7 @@ public class Model implements BaseEntity<Model> {
         public Map<String, Object> toMap(Model model) {
             Map<String, Object> map = BaseConvert.super.toMap(model);
             map.put("meta", JacksonUtils.toJson(model.meta));
-            map.put("model_params_form", JacksonUtils.toJson(model.modelParamsForm));
+            map.put("model_params_form", JacksonUtils.toJson(model.modelParameterForm.stream().toList()));
             return map;
         }
 
@@ -147,7 +150,12 @@ public class Model implements BaseEntity<Model> {
             model.modelType = row.getString("model_type");
             model.modelName = row.getString("model_name");
             model.credential = row.getString("credential");
-            model.modelParamsForm = JacksonUtils.fromJson(row.getString("model_params_form"), JsonArray.class);
+            try {
+                model.modelParameterForm = new JsonArray(row.getString("model_parameter_form"));
+
+            } catch (Exception e) {
+                model.modelParameterForm = new JsonArray();
+            }
             model.meta = JacksonUtils.fromJson(row.getString("meta"), JsonObject.class);
             model.star = row.getInteger("star") != 0;
             model.share = row.getInteger("share") != 0;
@@ -157,4 +165,18 @@ public class Model implements BaseEntity<Model> {
         }
     }
 
+    public String encrypt(JsonObject credential) {
+        return RSAUtil.encrypt(JacksonUtils.toJson(credential.getMap()));
+    }
+
+    public JsonObject decrypt() {
+        try {
+            String decrypt = RSAUtil.decrypt(this.credential);
+            HashMap<String, Object> credential = JacksonUtils.fromJson(decrypt, new TypeReference<HashMap<String, Object>>() {
+            });
+            return new JsonObject(credential);
+        } catch (Exception e) {
+            return new JsonObject();
+        }
+    }
 }

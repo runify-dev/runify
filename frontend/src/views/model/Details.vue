@@ -5,11 +5,12 @@
     >
       <span>{{ name }} </span>
       <div class="flex-auto"></div>
-      <el-button type="primary" text bg>{{ $t('common.save') }} </el-button>
+      <el-button type="primary" text bg @click="goEdit">{{ $t('common.edit') }} </el-button>
     </div>
   </header>
 
   <DynamicsForm
+    :disabled="true"
     class="pr-10 pl-10 pb-10"
     :model="modelForm"
     v-model="dynamicsFormValue"
@@ -73,8 +74,8 @@
     </template>
     <template #after>
       <el-table
-        :data="baseModelForm.modelparams"
-        v-if="baseModelForm.modelparams?.length > 0"
+        :data="baseModelForm.modelParameterForm"
+        v-if="baseModelForm.modelParameterForm?.length > 0"
         class="mb-16"
       >
         <el-table-column
@@ -119,12 +120,12 @@
           <template #default="{ row, $index }">
             <span class="flex items-center content-center justify-center">
               <el-tooltip effect="dark" :content="$t('common.modify')" placement="top">
-                <el-button type="primary" text @click.stop="openAddModelParams(row, $index)">
+                <el-button type="primary" text @click.stop="openAddmodelParameterForm(row, $index)">
                   <el-icon><EditPen /></el-icon>
                 </el-button>
               </el-tooltip>
               <el-tooltip effect="dark" :content="$t('common.delete')" placement="top">
-                <el-button type="primary" text @click="deleteModelParams($index)">
+                <el-button type="primary" text @click="deletemodelParameterForm($index)">
                   <el-icon>
                     <Delete />
                   </el-icon>
@@ -134,8 +135,10 @@
           </template>
         </el-table-column>
       </el-table>
-      <el-button type="primary" link @click="openAddModelParams"> 添加模型参数 </el-button>
-      <ModelParams :addParams="addParamsModelParams" ref="modelParamsRef"></ModelParams>
+      <modelParameterForm
+        :addParams="addParamsmodelParameterForm"
+        ref="modelParameterFormRef"
+      ></modelParameterForm>
     </template>
   </DynamicsForm>
 </template>
@@ -146,10 +149,11 @@ import NodeAPI from '@/api/node'
 import { computed, onMounted, ref, watch, inject } from 'vue'
 import RadioCard from '@/components/radio-card/index.vue'
 import { groupBy } from '@/utils/common'
-import ModelParams from '@/views/model/components/ModelParams.vue'
+import ModelParameterForm from '@/views/model/components/ModelParameterForm.vue'
 import { input_type_list } from '@/components/dynamics-form/constructor/data'
 import { ElMessage } from 'element-plus'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+const router = useRouter()
 const route = useRoute()
 const folderId = computed(() => {
   const {
@@ -171,40 +175,47 @@ const modelTypeList = ref<Array<any>>([])
 const defaultModelDict = ref<any>({})
 const dynamicsFormRef = ref<InstanceType<typeof DynamicsForm>>()
 const dynamicsFormValue = ref<any>({})
-const modelParamsRef = ref<InstanceType<typeof ModelParams>>()
+const modelParameterFormRef = ref<InstanceType<typeof ModelParameterForm>>()
 const name = computed(() => {
   if (getNode && getNode()) {
     return getNode().name
   }
   return ''
 })
-const addParamsModelParams = (data: any, index?: number) => {
-  const fin = baseModelForm.value.modelparams.find(
+const addParamsmodelParameterForm = (data: any, index?: number) => {
+  const fin = baseModelForm.value.modelParameterForm.find(
     (item: any, i: number) => item.field == data.field && i !== index
   )
   if (fin) {
     ElMessage.error('字段:' + data.field + '已存在')
     return false
   }
+
   if (index !== undefined) {
-    baseModelForm.value.modelparams.splice(index, 1, data)
+    baseModelForm.value.modelParameterForm.splice(index, 1, data)
   } else {
-    baseModelForm.value.modelparams.push(data)
+    baseModelForm.value.modelParameterForm.push(data)
   }
   return true
 }
-const openAddModelParams = (data?: any, index?: number) => {
-  modelParamsRef.value?.open(data, index)
+const openAddmodelParameterForm = (data?: any, index?: number) => {
+  modelParameterFormRef.value?.open(data, index)
 }
-const deleteModelParams = (index: number) => {
-  baseModelForm.value.modelparams.splice(index, 1)
+const deletemodelParameterForm = (index: number) => {
+  baseModelForm.value.modelParameterForm.splice(index, 1)
+}
+const edit = () => {
+  ModelAPI.edit(folderId.value, resourceId.value, {
+    ...baseModelForm.value,
+    credential: dynamicsFormValue.value
+  })
 }
 const baseModelForm = ref<any>({
   name: '',
   provider: 'openai_provider',
   modelType: '',
   modelName: '',
-  modelparams: []
+  modelParameterForm: []
 })
 
 const modelForm = computed(() => {
@@ -226,7 +237,7 @@ const credentialForm = computed(() => {
 })
 
 watch(credentialForm, () => {
-  dynamicsFormRef.value?.render(credentialForm.value)
+  dynamicsFormRef.value?.render(credentialForm.value, dynamicsFormValue.value)
 })
 
 watch(
@@ -237,7 +248,6 @@ watch(
         modelList.value = ok.data
         const _modelDict = groupBy(ok.data, 'modelType')
         for (const key in _modelDict) {
-          console.log(key)
           const v = _modelDict[key]
           _modelDict[key] = groupBy(v, 'name')
         }
@@ -258,14 +268,24 @@ watch(
   },
   { immediate: true }
 )
+const goEdit = () => {
+  router.push({ name: 'modelEdit', params: { folderId: folderId.value, id: resourceId.value } })
+}
 
+watch(resourceId, () => {
+  get()
+})
+const get = () => {
+  NodeAPI.resourceInfo('model', folderId.value, resourceId.value).then((ok) => {
+    baseModelForm.value = ok.data
+    dynamicsFormValue.value = ok.data.credential
+  })
+}
 onMounted(() => {
   ModelAPI.getProvider().then((ok) => {
     providerList.value = ok.data
   })
-  NodeAPI.resourceInfo('model', folderId.value, resourceId.value).then((ok) => {
-    console.log(ok, 'ss')
-  })
+  get()
 })
 </script>
 <style lang="scss" scoped></style>

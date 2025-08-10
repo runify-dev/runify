@@ -4,18 +4,25 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.run.RunApplication;
 import com.run.common.config.AppConfig;
 import com.run.common.constants.DatabaseType;
+import com.run.common.util.CommonUtils;
 import com.run.common.util.JacksonUtils;
 import com.run.common.util.RSAUtil;
+import com.run.dao.common.convert.BaseConvert;
 import com.run.dao.common.mapper.BaseMapper;
 import com.run.dao.entity.Model;
+import com.run.models.ModelInfo;
+import com.run.models.ModelProvideConstants;
 import io.vertx.core.Future;
+import io.vertx.core.json.JsonObject;
 import io.vertx.core.json.impl.JsonUtil;
 import io.vertx.sqlclient.Pool;
 import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.apache.commons.beanutils.BeanMap;
 import org.apache.commons.beanutils.BeanUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import javax.inject.Inject;
 import java.lang.reflect.InvocationTargetException;
@@ -48,28 +55,24 @@ public class ModelMapper extends BaseMapper<Model> {
         super(client, appConfig);
     }
 
-    @Override
-    public Future<Model> getById(String id) {
-        return super.getById(id).compose(model -> {
-            String credential = model.getCredential();
-            Map<String, Object> stringObjectMap = new HashMap<>();
-            try {
-                stringObjectMap = JacksonUtils.fromJson(RSAUtil.decrypt(credential), new TypeReference<Map<String, Object>>() {
-
-                });
-            } catch (Exception _) {
-
+    public Future<Map<String, Object>> getResourceById(String id) {
+        return getById(id).compose(model -> {
+            if (model == null) {
+                return null;
             }
-
-            ModelDetail modelDetail = new ModelDetail();
-            modelDetail.setCredentialData(stringObjectMap);
-            try {
-                BeanUtils.copyProperties(modelDetail, model);
-            } catch (IllegalAccessException | InvocationTargetException e) {
-                throw new RuntimeException(e);
+            Map<String, Object> result = JacksonUtils.convert(model, new TypeReference<HashMap<String, Object>>() {
+            });
+            result.put("modelParameterForm", model.getModelParameterForm());
+            Map<String, Object> credential = model.decrypt().getMap();
+            if (StringUtils.isNoneEmpty(model.getProvider())) {
+                ModelInfo modelInfo = ModelProvideConstants.valueOf(model.getProvider()).getProvider().getModelInfo(model.getModelType(),
+                        model.getModelName());
+                Map<String, Object> encryption = modelInfo.getCredential().encryption(credential);
+                result.put("credential", encryption);
+            } else {
+                result.put("credential", Map.of());
             }
-            modelDetail.setCredential(null);
-            return Future.succeededFuture(modelDetail);
+            return Future.succeededFuture(result);
         });
     }
 }

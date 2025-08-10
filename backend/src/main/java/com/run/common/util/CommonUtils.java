@@ -1,6 +1,10 @@
 package com.run.common.util;
 
+import io.netty.util.internal.StringUtil;
 import io.vertx.sqlclient.RowSet;
+import lombok.SneakyThrows;
+import org.apache.commons.beanutils.BeanUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
 import java.nio.ByteBuffer;
@@ -41,6 +45,11 @@ public class CommonUtils {
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @SneakyThrows
+    public static void copyProperties(Object source, Object target) {
+        BeanUtils.copyProperties(target, source);
     }
 
     public static String getSHA256(File file, Integer capacity) {
@@ -88,15 +97,39 @@ public class CommonUtils {
      * @return 加密后的字符串
      */
     public static String encryption(String message) {
-        int max_pre_len = 8;
-        int max_post_len = 4;
-        int message_len = message.length();
-        int pre_len = message_len / 5 * 2;
-        int post_len = message_len / 5;
-        String pre_str = message.substring(0, pre_len > max_pre_len ? max_pre_len : pre_len <= 0 ? 1 : pre_len);
-        String end_str = message.substring(message_len - pre_len < max_post_len ? post_len : max_post_len);
+        if (StringUtils.isEmpty(message)) {
+            return "***************";
+        }
+        int maxPreLen = 8;
+        int maxPostLen = 4;
+        int messageLen = message.length();
+
+        int preLen = (int) (messageLen / 5.0 * 2);
+        int postLen = (int) (messageLen / 5.0 * 1);
+
+        // 计算前缀长度
+        int actualPreLen = preLen;
+        if (preLen > maxPreLen) {
+            actualPreLen = maxPreLen;
+        } else if (preLen <= 0) {
+            actualPreLen = 1;
+        }
+
+        // 计算后缀长度
+        int actualPostLen = (preLen < maxPostLen) ? postLen : maxPostLen;
+        if (actualPostLen < 0) {
+            actualPostLen = 0;
+        }
+
+        // 获取前缀字符串
+        String preStr = message.substring(0, Math.min(actualPreLen, messageLen));
+
+        // 获取后缀字符串
+        int postStart = messageLen - Math.min(actualPostLen, messageLen);
+        String endStr = message.substring(postStart);
+
         String content = "***************";
-        return pre_str + content + end_str;
+        return preStr + content + endStr;
     }
 
     /**
@@ -114,6 +147,5 @@ public class CommonUtils {
 
     public static Path getOssPath() {
         return Paths.get("data/oss" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("/yyyy/MM/dd/HH/")) + UUID.randomUUID()).toAbsolutePath();
-
     }
 }

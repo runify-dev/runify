@@ -8,6 +8,7 @@ import com.run.handler.model.IModelHandler;
 import com.run.handler.model.impl.ModelHandlerImpl;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.vertx.ext.web.Router;
+import io.vertx.ext.web.handler.BodyHandler;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -48,6 +49,10 @@ public class ModelRoute implements IRoute {
         apiRoute.get("/model/:provider/type")
                 .handler(tokenBasicAuthHandler)
                 .handler(modelHandler::listModelType);
+        apiRoute.put("/model/folder/:folderId/resource/:resourceId")
+                .handler(BodyHandler.create())
+                .handler(tokenBasicAuthHandler)
+                .handler(modelHandler::edit);
     }
 
     @Override

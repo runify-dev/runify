@@ -12,10 +12,7 @@ import io.vertx.sqlclient.*;
 import io.vertx.sqlclient.templates.SqlTemplate;
 import io.vertx.sqlclient.templates.TupleMapper;
 import lombok.SneakyThrows;
-import net.sf.jsqlparser.expression.Alias;
-import net.sf.jsqlparser.expression.Expression;
-import net.sf.jsqlparser.expression.Function;
-import net.sf.jsqlparser.expression.LongValue;
+import net.sf.jsqlparser.expression.*;
 import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import net.sf.jsqlparser.schema.Column;
@@ -233,9 +230,9 @@ public class BaseMapper<T extends BaseEntity<T>> {
         PlainSelect plainSelect = select.getPlainSelect();
         String name = this.primaryField.getAnnotation(com.run.dao.common.annotations.Column.class).name();
         EqualsTo equalsTo = new EqualsTo().withLeftExpression(new Column(name))
-                .withRightExpression(new Column("#{%s}".formatted(name)));
+                .withRightExpression(new StringValue(id));
         plainSelect.withWhere(equalsTo);
-        return one(equalsTo, Map.of(name, id));
+        return one(equalsTo);
     }
 
     /**

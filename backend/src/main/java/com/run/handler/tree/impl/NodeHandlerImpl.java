@@ -41,16 +41,20 @@ public class NodeHandlerImpl implements INodeHandler {
         this.dbType = dbType;
     }
 
-    Map<String, FullNodeRelation<?, ?>> sourceMap = Map.of(
+    Map<String, FullNodeRelation<?, ?, ?>> sourceMap = Map.of(
             "knowledge", new FullNodeRelation<>(KnowledgeRelation.getWallNodeRelation(),
                     () -> new BaseMapper<>(pool, dbType, KnowledgeRelation.class),
-                    () -> new BaseMapper<>(pool, dbType, Knowledge.class)),
+                    () -> new BaseMapper<>(pool, dbType, Knowledge.class),
+                    BaseMapper::getById),
             "application", new FullNodeRelation<>(ApplicationRelation.getWallNodeRelation(),
                     () -> new BaseMapper<>(pool, dbType, ApplicationRelation.class),
-                    () -> new BaseMapper<>(pool, dbType, Application.class)),
+                    () -> new BaseMapper<>(pool, dbType, Application.class),
+                    BaseMapper::getById),
             "model", new FullNodeRelation<>(ModelRelation.getWallNodeRelation(),
                     () -> new BaseMapper<>(pool, dbType, ModelRelation.class),
-                    () -> new ModelMapper(pool, dbType)));
+                    () -> new ModelMapper(pool, dbType),
+                    ModelMapper::getResourceById)
+    );
 
     public Expression getWhere(String resource, QueryNodePojo queryNodePojo) {
         return TreeUtil.getWhere(queryNodePojo, sourceMap.get(resource).getNodeRelationMapper().getTable());
@@ -137,7 +141,7 @@ public class NodeHandlerImpl implements INodeHandler {
         UUID folderId = TreeUtil.getParentUuId(context.pathParam("folderId"));
         String resourceId = context.pathParam("resourceId");
         String resource = context.pathParam("resource");
-        this.sourceMap.get(resource).getNodeMapper().getById(resourceId)
+        this.sourceMap.get(resource).detail(resourceId)
                 .onSuccess(ok -> context.end(Result.success(ok).toBuffer()))
                 .onFailure(context::fail);
     }
@@ -148,7 +152,7 @@ public class NodeHandlerImpl implements INodeHandler {
         UUID folderId = TreeUtil.getParentUuId(context.pathParam("folderId"));
         CreateSimpleNodePojo createSimpleResourcePojo = context.body().asPojo(CreateSimpleNodePojo.class);
         String name = createSimpleResourcePojo.getName();
-        FullNodeRelation<?, ?> fullNodeRelation = this.sourceMap.get(resource);
+        FullNodeRelation<?, ?, ?> fullNodeRelation = this.sourceMap.get(resource);
         Future<?> future;
         if (StringUtils.isEmpty(name)) {
             future = fullNodeRelation.create(folderId, createSimpleResourcePojo.getType());

@@ -6,6 +6,7 @@ import io.vertx.core.Future;
 import io.vertx.sqlclient.Pool;
 import io.vertx.sqlclient.RowSet;
 import io.vertx.sqlclient.SqlResult;
+import lombok.Getter;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.StringValue;
 import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
@@ -20,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
 /**
@@ -28,13 +30,16 @@ import java.util.function.Supplier;
  * {@code @Version 1.0}
  * {@code @注释: }
  */
-public class FullNodeRelation<T extends BaseEntity<T>, N extends BaseEntity<N>> {
+public class FullNodeRelation<T extends BaseEntity<T>, N extends BaseEntity<N>, NodeMapper extends BaseMapper<N>> {
     BaseMapper<T> nodeRelationMapper;
     BaseMapper<N> nodeMapper;
     WallNodeRelation<T, N> wallNodeRelation;
     Supplier<? extends BaseMapper<T>> newNodeRelationMapper;
 
     Supplier<? extends BaseMapper<N>> newNodeMapper;
+
+    @Getter
+    BiFunction<NodeMapper, String, ? extends Future<?>> getResource;
 
     public BaseMapper<T> getNodeRelationMapper() {
         if (this.nodeRelationMapper == null) {
@@ -50,10 +55,14 @@ public class FullNodeRelation<T extends BaseEntity<T>, N extends BaseEntity<N>> 
         return this.nodeMapper;
     }
 
-    public FullNodeRelation(WallNodeRelation<T, N> wallNodeRelation, Supplier<? extends BaseMapper<T>> newNodeRelationMapper, Supplier<? extends BaseMapper<N>> newNodeMapper) {
+    public FullNodeRelation(WallNodeRelation<T, N> wallNodeRelation,
+                            Supplier<? extends BaseMapper<T>> newNodeRelationMapper,
+                            Supplier<NodeMapper> newNodeMapper,
+                            BiFunction<NodeMapper, String, Future<?>> getResource) {
         this.wallNodeRelation = wallNodeRelation;
         this.newNodeRelationMapper = newNodeRelationMapper;
         this.newNodeMapper = newNodeMapper;
+        this.getResource = getResource;
     }
 
     public WallNodeRelation<T, N> getWallNodeRelation() {
@@ -178,9 +187,9 @@ public class FullNodeRelation<T extends BaseEntity<T>, N extends BaseEntity<N>> 
     public Future<SqlResult<Void>> _rename(UUID id, String name) {
         Update update = new Update();
         update.setTable(this.getNodeMapper().getTable());
-        update.setUpdateSets(List.of(new UpdateSet(new Column("name"), new Column("#{name}"))));
-        update.withWhere(new EqualsTo(new Column("id"), new Column("#{id}")));
-        return nodeMapper.update(update, Map.of("id", id, "name", name));
+        update.setUpdateSets(List.of(new UpdateSet(new Column("name"), new StringValue(name))));
+        update.withWhere(new EqualsTo(new Column("id"), new StringValue(id.toString())));
+        return nodeMapper.update(update, Map.of());
     }
 
     public Future<SqlResult<Void>> rename(UUID folderId, UUID id, String name) {
@@ -188,6 +197,9 @@ public class FullNodeRelation<T extends BaseEntity<T>, N extends BaseEntity<N>> 
                 .compose(ok -> _rename(id, name));
     }
 
+    public Future<?> detail(String id) {
+        return this.getResource.apply((NodeMapper) this.getNodeMapper(), id);
+    }
 
     /**
      * 删除节点

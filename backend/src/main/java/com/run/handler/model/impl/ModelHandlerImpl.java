@@ -1,19 +1,27 @@
 package com.run.handler.model.impl;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.run.common.result.Result;
+import com.run.common.util.CommonUtils;
+import com.run.common.util.JacksonUtils;
+import com.run.common.util.RSAUtil;
 import com.run.dao.mapper.ModelMapper;
 import com.run.handler.model.IModelHandler;
+import com.run.handler.model.pojo.ModelEditPojo;
+import com.run.models.IProvider;
 import com.run.models.ModelInfo;
 import com.run.models.ModelProvideConstants;
-import com.run.models.ModelType;
 import com.run.models.ProvideInfo;
+import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
+import lombok.SneakyThrows;
+import org.apache.commons.beanutils.BeanUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import javax.inject.Inject;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 
 /**
  * {@code @Author:张少虎}
@@ -23,10 +31,12 @@ import java.util.Map;
  */
 public class ModelHandlerImpl implements IModelHandler {
     protected ModelMapper modelMapper;
+    private final Vertx vertx;
 
     @Inject
-    public ModelHandlerImpl(ModelMapper modelMapper) {
+    public ModelHandlerImpl(ModelMapper modelMapper, Vertx vertx) {
         this.modelMapper = modelMapper;
+        this.vertx = vertx;
     }
 
     @Override
@@ -59,8 +69,40 @@ public class ModelHandlerImpl implements IModelHandler {
         context.end(Result.success(list).toBuffer());
     }
 
+    @SneakyThrows
     @Override
     public void edit(RoutingContext context) {
         String resourceId = context.pathParam("resourceId");
+        modelMapper.getById(resourceId)
+                .compose(model -> {
+                    return vertx.executeBlocking(() -> {
+                        ModelEditPojo body = context.body().asPojo(ModelEditPojo.class);
+                        JsonObject oldCredential = model.decrypt();
+
+                        ModelInfo modelInfo = ModelProvideConstants.valueOf(Objects.requireNonNullElse(body.getProvider(), model.getProvider())).getProvider()
+                                .getModelInfo(Objects.requireNonNullElse(body.getModelType(), model.getModelType()),
+                                        Objects.requireNonNullElse(body.getModelName(), model.getModelName()));
+                        Map<String, Object> encryption = modelInfo.getCredential().encryption(oldCredential.getMap());
+                        boolean eq = body.getCredential().getMap().equals(encryption);
+                        if (eq) {
+                            body.setCredential(model.decrypt());
+                        }
+                        String credential = model.getCredential();
+                        CommonUtils.copyProperties(body, model);
+                        if (!eq) {
+                            model.setCredential(model.encrypt(body.getCredential()));
+                        } else {
+                            model.setCredential(credential);
+                        }
+                        IProvider provider = ModelProvideConstants.valueOf(model.getProvider()).getProvider();
+                        provider.validate(model.getModelType(), model.getModelName(), body.getCredential().getMap(), Map.of());
+
+                        return model;
+                    });
+                }).compose(modelMapper::update)
+                .onSuccess(ok -> {
+                    context.end(Result.success(true).toBuffer());
+                })
+                .onFailure(context::fail);
     }
 }
