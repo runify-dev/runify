@@ -31,7 +31,7 @@ const edit: (
   model: any,
   loading?: Ref<boolean>
 ) => Promise<Result<any>> = (folderId, resourceId, model, loading) => {
-  return put(`/model/folder/${folderId}/resource/${resourceId}`, model, loading)
+  return put(`/model/folder/${folderId}/resource/${resourceId}`, model, {}, loading)
 }
 export default {
   getProvider,

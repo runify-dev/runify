@@ -93,6 +93,7 @@ public class Application implements BaseEntity<Application> {
         this.star = row.getBoolean("star");
         this.share = row.getBoolean("share");
         this.type = row.getString("type");
+        this.parentId=row.getUUID("parent_id");
         this.createTime = row.getLocalDateTime("create_time");
         this.updateTime = row.getLocalDateTime("update_time");
     }
@@ -127,6 +128,7 @@ public class Application implements BaseEntity<Application> {
             Application application = new Application();
             application.id = row.getUUID("id");
             application.name = row.getString("name");
+            application.parentId=row.getUUID("parent_id");
             application.desc = row.getString("desc");
             application.workflow = JacksonUtils.fromJson(row.getString("workflow"), JsonObject.class);
             application.setting = JacksonUtils.fromJson(row.getString("setting"), JsonObject.class);

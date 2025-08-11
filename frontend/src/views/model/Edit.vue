@@ -8,12 +8,15 @@
       </el-icon>
       <span>{{ name }} </span>
       <div class="flex-auto"></div>
-      <el-button type="primary" text bg @click="edit">{{ $t('common.save') }} </el-button>
+      <el-button type="primary" :loading="loading" text bg @click="edit"
+        >{{ $t('common.save') }}
+      </el-button>
     </div>
   </header>
 
   <DynamicsForm
     class="pr-10 pl-10 pb-10"
+    v-loading="loading"
     :model="modelForm"
     v-model="dynamicsFormValue"
     ref="dynamicsFormRef"
@@ -61,6 +64,9 @@
           {{ $t('model.form.modelName.label') }}
         </template>
         <el-select
+          filterable
+          allow-create
+          default-first-option
           v-model="baseModelForm.modelName"
           :placeholder="$t('model.form.modelName.placeholder')"
           style="width: 100%"
@@ -156,6 +162,7 @@ import ModelParameterForm from '@/views/model/components/ModelParameterForm.vue'
 import { input_type_list } from '@/components/dynamics-form/constructor/data'
 import { ElMessage } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
+const loading = ref<boolean>(false)
 const router = useRouter()
 const route = useRoute()
 const folderId = computed(() => {
@@ -207,10 +214,18 @@ const openAddmodelParameterForm = (data?: any, index?: number) => {
 const deletemodelParameterForm = (index: number) => {
   baseModelForm.value.modelParameterForm.splice(index, 1)
 }
+
 const edit = () => {
-  ModelAPI.edit(folderId.value, resourceId.value, {
-    ...baseModelForm.value,
-    credential: dynamicsFormValue.value
+  ModelAPI.edit(
+    folderId.value,
+    resourceId.value,
+    {
+      ...baseModelForm.value,
+      credential: dynamicsFormValue.value
+    },
+    loading
+  ).then(() => {
+    ElMessage.success('模型保存成功')
   })
 }
 const baseModelForm = ref<any>({

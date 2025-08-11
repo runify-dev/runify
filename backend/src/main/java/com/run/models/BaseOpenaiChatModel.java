@@ -204,6 +204,7 @@ public abstract class BaseOpenaiChatModel implements ChatModel {
             if (!response.isSuccessful()) {
                 throw new RuntimeException("模型参数错误" + response.body());
             }
+            response.close();
         } catch (IOException e) {
             throw new RuntimeException("模型参数错误" + e);
         }

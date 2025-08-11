@@ -60,7 +60,7 @@ public class ModelRelation implements BaseEntity<ModelRelation> {
 
             @Override
             public Model build(UUID id, UUID parentId, String type, String name) {
-                return new Model(id, parentId, type, name, "", "", "", "", "", new JsonArray(), new JsonObject(), false, false, LocalDateTime.now(), LocalDateTime.now());
+                return new Model(id, parentId, type, name, "", "openai_provider", "LLM", "", "", new JsonArray(), new JsonObject(), false, false, LocalDateTime.now(), LocalDateTime.now());
             }
 
             @Override

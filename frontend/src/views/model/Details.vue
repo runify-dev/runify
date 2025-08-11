@@ -204,12 +204,6 @@ const openAddmodelParameterForm = (data?: any, index?: number) => {
 const deletemodelParameterForm = (index: number) => {
   baseModelForm.value.modelParameterForm.splice(index, 1)
 }
-const edit = () => {
-  ModelAPI.edit(folderId.value, resourceId.value, {
-    ...baseModelForm.value,
-    credential: dynamicsFormValue.value
-  })
-}
 const baseModelForm = ref<any>({
   name: '',
   provider: 'openai_provider',
