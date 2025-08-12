@@ -52,6 +52,7 @@ import { oneDark } from '@codemirror/theme-one-dark'
 import { Codemirror } from 'vue-codemirror'
 import { linter } from '@codemirror/lint'
 import { computed, ref } from 'vue'
+import { t } from '@/locales'
 const props = withDefaults(defineProps<{ modelValue?: any }>(), { modelValue: () => {} })
 const emit = defineEmits(['update:modelValue'])
 
