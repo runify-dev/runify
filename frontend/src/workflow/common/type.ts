@@ -1,5 +1,10 @@
 interface Field {
-    label: string,
-    value: string
+  label: string,
+  value: string
 }
-export { type Field }
+interface LifeCycle {
+  onMounted?: () => void
+  onBeforeMount?: () => void
+  onBeforeUnmount?: () => void
+}
+export { type Field, type LifeCycle }

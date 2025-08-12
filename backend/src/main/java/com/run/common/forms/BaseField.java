@@ -76,10 +76,11 @@ public class BaseField {
                 "input_type", this.inputType,
                 "label", this.label.toMap(Map.of()),
                 "required", this.required,
-                "defaultValue", this.defaultValue,
-                "displayConstraint", this.displayConstraint == null ? Map.of() : this.displayConstraint,
+                "default_value", this.defaultValue,
+                "display_constraint", this.displayConstraint == null ? Map.of() : this.displayConstraint,
                 "attrs", this.attrs == null ? Map.of() : this.attrs,
-                "props", this.props == null ? Map.of() : this.props);
+                "props_info", this.props == null ? Map.of() : this.props,
+                "show_default_value", true);
 
     }
 
