@@ -5,7 +5,7 @@
     </template>
     <template #default>
       <NodeContent :validate="validate" :life-cycle="lifeCycle">
-        <template #content>
+        <template v-if="$slots.content" #content>
           <slot name="content"> </slot>
         </template>
       </NodeContent>
@@ -21,14 +21,13 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import type { BaseNodeModel } from '@logicflow/core'
-import type { Field, LifeCycle } from '@/workflow/common/type'
+import type { LifeCycle } from '@/workflow/common/type'
 import NodeContent from '@/workflow/common/NodeContent.vue'
 const props = defineProps<{
   validate: () => Promise<boolean>
   lifeCycle?: LifeCycle
 }>()
 const drawer = ref<boolean>(false)
-const fieldList = ref<Array<Field>>([])
 const name = ref<string>('')
 
 const confirm = () => {
@@ -42,7 +41,6 @@ const close = () => {
 
 const open = (model: BaseNodeModel) => {
   name.value = model.properties.name
-  fieldList.value = model.properties.field_list
   drawer.value = true
   return Promise.resolve('ok')
 }

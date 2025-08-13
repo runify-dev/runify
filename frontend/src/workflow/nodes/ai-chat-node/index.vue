@@ -16,7 +16,7 @@
         label="模型"
         prop="modelId"
       >
-        <el-select v-model="form.modelId" placeholder="Select" style="width: 240px">
+        <el-select v-model="form.modelId" placeholder="Select" style="width: 100%">
           <el-option v-for="item in modelList" :key="item.id" :label="item.name" :value="item.id" />
         </el-select>
       </el-form-item>
@@ -51,7 +51,7 @@ import SimpleNodeContainer from '@/workflow/common/SimpleNodeContainer.vue'
 import type { BaseNodeModel } from '@logicflow/core'
 import type { FormInstance } from 'element-plus'
 import NodeAPI from '@/api/node'
-import { inject, onMounted, ref } from 'vue'
+import { inject, onMounted, ref, watch } from 'vue'
 const getModel = inject('getModel') as () => BaseNodeModel
 const model = getModel()
 const form = ref({
@@ -60,6 +60,13 @@ const form = ref({
   system: '',
   contextNumber: 0
 })
+watch(
+  form,
+  () => {
+    model.properties.nodeData = form.value
+  },
+  { deep: true }
+)
 const modelList = ref<Array<any>>()
 const formRef = ref<FormInstance>()
 const validate = () => {
@@ -75,7 +82,13 @@ const nodeContentLifeCycle = {
     })
   }
 }
-onMounted(() => {})
+onMounted(() => {
+  if (model.properties.nodeData) {
+    form.value = model.properties.nodeData
+  } else {
+    model.properties.nodeData = form.value
+  }
+})
 </script>
 <style lang="scss" scoped>
 :deep(.el-form-item__content) {

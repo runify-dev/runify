@@ -26,18 +26,39 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import type { BaseNodeModel } from '@logicflow/core'
+import { ref, onMounted, inject, provide } from 'vue'
 import type { Field, LifeCycle } from '@/workflow/common/type'
 import AppIcon from '@/components/icons/AppIcon.vue'
 import Clipboard from 'vue-clipboard3'
 import { ElMessage } from 'element-plus'
+const getModel = inject('getModel') as any
+const model = getModel()
+provide('getOptions', () => {
+  const getUpNode = (id: string, result: Array<any>) => {
+    const upNodes = model.graphModel.getNodeIncomingNode(id)
+    upNodes.forEach((node: any) => {
+      result.push(node)
+      getUpNode(node.id, result)
+    })
+    return result
+  }
+  const upNodes = getUpNode(model.id, [])
+  return upNodes
+    .map((node) => {
+      return node.properties.field_list.map((item: any) => ({
+        label: `@${node.properties.name}.${item.label}`,
+        value: `{{ ${node.properties.name}.${item.value} }}`
+      }))
+    })
+    .reduce((x: Array<any>, y: Array<any>) => [...x, ...y], [])
+})
+
 const props = defineProps<{
   validate: () => Promise<boolean>
   lifeCycle?: LifeCycle
 }>()
-const drawer = ref<boolean>(false)
 const fieldList = ref<Array<Field>>([])
+fieldList.value = model.properties.field_list
 const name = ref<string>('')
 const copy = (text: string) => {
   const { toClipboard } = Clipboard()
@@ -50,22 +71,11 @@ const copy = (text: string) => {
     })
 }
 
-const close = () => {
-  drawer.value = false
-}
-
-const open = (model: BaseNodeModel) => {
-  name.value = model.properties.name
-  fieldList.value = model.properties.field_list
-  drawer.value = true
-  return Promise.resolve('ok')
-}
 onMounted(() => {
   if (props.lifeCycle?.onMounted) {
     props.lifeCycle?.onMounted()
   }
 })
-defineExpose({ open, close })
 </script>
 <style lang="scss">
 .run-drawer-header {

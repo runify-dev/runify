@@ -71,6 +71,7 @@ const appendNode = (node: any, anchorData: any) => {
     x: anchorData.x + node.properties.width / 2 + 200,
     y: anchorData.y
   })
+
   model.graphModel.addEdge({
     type: 'run-edge',
     sourceNodeId: model.id,
