@@ -1,10 +1,10 @@
 <template>
     <div
-        class=" absolute z-10 right-0 items-center space-x-0 bg-transparent border border-gray-300 rounded-full p-px inline-flex">
-        <button @click="save" class="px-3 py-1 text-xs text-gray-600 hover:bg-gray-200/30 rounded-full">
+        class=" absolute z-10 right-6 top-14 items-center space-x-0 bg-white border border-gray-300 rounded-full p-px inline-flex">
+        <button @click="save" class="px-3 py-1 text-sm text-gray-600 hover:bg-gray-200/30 rounded-full">
             保存
         </button>
-        <button class="px-3 py-1 text-xs text-gray-600 hover:bg-gray-200/30 rounded-full">
+        <button class="px-3 py-1 text-sm text-gray-600 hover:bg-gray-200/30 rounded-full">
             调试
         </button>
     </div>

@@ -34,7 +34,7 @@ defineOptions({ name: 'LoginLayout' })
 </script>
 <style lang="scss" scope>
 .gradient-bg {
-  background: linear-gradient(135deg, #1d2b64, #f8cdda);
+  background: linear-gradient(135deg, rgb(29 43 100 / 79%), rgb(248, 205, 218));
   //另一种背景变色#f8cdda  #feedf3
 }
 

@@ -11,7 +11,7 @@
                 <div>{{ folder?.name }}</div>
             </div>
         </el-col>
-        <el-col :span="8"><el-button class="float-right">新建应用</el-button></el-col>
+        <el-col :span="8"><el-button class="float-right" >新建应用</el-button></el-col>
     </el-row>
     <el-row :gutter="10" class="pr-8 pl-8">
         <el-col v-for="node in nodeList" :key="node.id" :xs="24" :sm="12" :md="8" :lg="6" :xl="6" class="pt-4">

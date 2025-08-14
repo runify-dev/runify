@@ -1,5 +1,5 @@
 <template>
-    <div class="flex w-full items-center justify-between" style="background-color: #dadadb;">
+    <div class="flex w-full items-center justify-between" style="background: linear-gradient(135deg, rgb(29 43 100 / 79%), rgb(248, 205, 218)); height: 40px;">
         <div class="before">
             <slot name="before"></slot>
         </div>
@@ -8,7 +8,8 @@
                 <input type="radio" name="tab" :id="`tab${index}`" :checked="r.name === route.name"
                     v-on:click="go(route)" class="tab"
                     :style="{ left: `calc(var(--label - width, 100px) * ${index} + 2px)}` }" />
-                <label class="tab_label" :for="`tab${index}`">{{ route.meta?.title }}</label>
+              <label :for="`tab${index}`" :class="['tab_label',r.name === route.name ? 'tab_label_black' : 'text-white' ]">
+                  {{ route.meta?.title }}</label>
             </template>
             <div class="indicator" :style="indicatorStyle"></div>
         </div>
@@ -96,8 +97,11 @@ const routeList = computed(() => {
     align-items: center;
     justify-content: center;
     border: 0;
-    font-size: 0.75rem;
-    opacity: 0.6;
+    color: white;
+    font-size: 0.85rem;
     cursor: pointer;
+}
+.tab_label_black{
+  color: black;
 }
 </style>

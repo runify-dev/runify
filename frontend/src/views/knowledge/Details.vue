@@ -1,9 +1,10 @@
 <template>
-  <header class="sticky z-60 top-0 left-0 right-0 pr-10 pl-10 bg-white">
+  <header class="sticky z-60 top-0 left-0 right-0 bg-white">
     <div
-      class="w-full flex items-center gap-x-4 rounded-xl p-4 mb-5 shadow-lg outline outline-black/5 dark:bg-slate-800 dark:shadow-none dark:-outline-offset-1 dark:outline-white/10"
+      class="w-full h-10 flex items-center gap-x-4 p-4 mb-5 shadow-lg outline outline-black/5 dark:bg-slate-800 dark:shadow-none dark:-outline-offset-1 dark:outline-white/10"
+      style="background: linear-gradient(135deg, rgb(29 43 100 / 79%), rgb(248, 205, 218));"
     >
-      <span>{{ knowledge.name }}</span>
+      <span class="text-white">{{ knowledge.name }}</span>
       <div class="flex-auto"></div>
       <el-button type="primary" text bg @click="goEdit">编辑 </el-button>
     </div>

@@ -106,6 +106,7 @@ onUnmounted(() => {
 <style lang="scss" scoped>
 .main-contaner {
   height: 100%;
+  background: #f1f3f547;
   overflow-y: auto;
   position: relative;
 }

@@ -1,12 +1,12 @@
 <template>
-  <header class="sticky top-0 left-0 z-50 bg-white right-0 pr-10 pl-10">
+  <header class="sticky top-0 left-0 z-50 bg-white right-0">
     <div
       class="w-full flex items-center gap-x-4 rounded-xl p-4 mb-5 shadow-lg outline outline-black/5 dark:bg-slate-800 dark:shadow-none dark:-outline-offset-1 dark:outline-white/10"
     >
       <el-icon class="hover:cursor-pointer" @click="goDetails">
-        <ArrowLeft />
+        <ArrowLeft class="text-white"/>
       </el-icon>
-      <span>{{ name }} </span>
+      <span class="text-white">{{ name }} </span>
       <div class="flex-auto"></div>
       <el-button type="primary" :loading="loading" text bg @click="edit"
         >{{ $t('common.save') }}
