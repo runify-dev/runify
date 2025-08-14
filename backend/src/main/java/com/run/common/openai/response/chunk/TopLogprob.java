@@ -5,7 +5,9 @@ import io.vertx.core.json.JsonObject;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * {@code @Author:张少虎}
@@ -39,5 +41,14 @@ public class TopLogprob extends JsonObject {
     @Override
     public JsonObject put(String key, Object value) {
         return super.put(key, value);
+    }
+
+    public Map<String, Object> toMap() {
+        HashMap<String, Object> result = new HashMap<>();
+        result.put("token", token);
+        result.put("bytes", bytes);
+        result.put("logprob", logprob);
+        result.putAll(getMap());
+        return result;
     }
 }

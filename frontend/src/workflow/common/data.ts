@@ -1,6 +1,7 @@
 import edge from './edge'
 
 const startNode = {
+  id: "start-node",
   type: 'start-node',
   text: "",
   x: 0,

@@ -6,7 +6,9 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * {@code @Author:张少虎}
@@ -48,5 +50,16 @@ public class ChoiceDelta extends JsonObject {
     @Override
     public JsonObject put(String key, Object value) {
         return super.put(key, value);
+    }
+
+    public Map<String, Object> toMap() {
+        HashMap<String, Object> result = new HashMap<>();
+        result.put("content", this.content);
+        result.put("function_call", function_call.toMap());
+        result.put("refusal", this.refusal);
+        result.put("role", this.role);
+        result.put("tool_calls", this.tool_calls.stream().map(ChoiceDeltaToolCall::toMap).toList());
+        result.putAll(getMap());
+        return result;
     }
 }

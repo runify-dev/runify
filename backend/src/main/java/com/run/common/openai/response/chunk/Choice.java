@@ -7,6 +7,9 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * {@code @Author:张少虎}
  * {@code @Date: 2025/3/17  21:31}
@@ -43,5 +46,15 @@ public class Choice extends JsonObject {
     @Override
     public JsonObject put(String key, Object value) {
         return super.put(key, value);
+    }
+
+    public Map<String, Object> toMap() {
+        HashMap<String, Object> result = new HashMap<>();
+        result.put("delta", delta.toMap());
+        result.put("finish_reason", this.finish_reason);
+        result.put("index", index);
+        result.put("logprobs", logprobs.toMap());
+        result.putAll(getMap());
+        return result;
     }
 }

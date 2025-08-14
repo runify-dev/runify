@@ -14,10 +14,7 @@ import com.run.common.openai.response.ChatCompletion;
 import com.run.common.openai.response.ChatCompletionMessage;
 import com.run.common.openai.response.ChatCompletionMessageToolCall;
 import com.run.common.openai.response.CompletionUsage;
-import com.run.common.openai.response.chunk.ChatCompletionChunk;
-import com.run.common.openai.response.chunk.Choice;
-import com.run.common.openai.response.chunk.ChoiceDeltaToolCall;
-import com.run.common.openai.response.chunk.ChoiceDeltaToolCallFunction;
+import com.run.common.openai.response.chunk.*;
 import com.run.models.callback.Callback;
 import io.vertx.core.json.JsonObject;
 import lombok.SneakyThrows;
@@ -111,6 +108,10 @@ public abstract class BaseOpenaiChatModel implements ChatModel {
 
         private void onStreamResponse(@NotNull Call call, @NotNull ChatCompletionChunk chunk) {
             for (Choice choice : chunk.getChoices()) {
+                ChoiceDelta delta = choice.getDelta();
+                if (StringUtils.isNotEmpty(delta.getContent())) {
+                    this.content.append(delta.getContent());
+                }
                 List<ChoiceDeltaToolCall> tool_calls = choice.getDelta().getTool_calls();
                 if (CollectionUtils.isNotEmpty(tool_calls)) {
                     for (ChoiceDeltaToolCall tool_call : tool_calls) {
@@ -139,7 +140,10 @@ public abstract class BaseOpenaiChatModel implements ChatModel {
                 }
 
             }
-            this.completionUsage = chunk.getUsage();
+            CompletionUsage usage = chunk.getUsage();
+            if (usage != null) {
+                this.completionUsage = chunk.getUsage();
+            }
             this.callback.onStream(call, chunk);
 
         }
@@ -231,5 +235,10 @@ public abstract class BaseOpenaiChatModel implements ChatModel {
     @Override
     public List<ChatCompletionMessageToolCall> getChoiceDeltaToolCall() {
         return baseOpenaiCallBack.toolCalls;
+    }
+
+    @Override
+    public String getContent() {
+        return baseOpenaiCallBack.content.toString();
     }
 }

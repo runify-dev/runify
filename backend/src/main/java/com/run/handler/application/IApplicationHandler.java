@@ -22,4 +22,11 @@ public interface IApplicationHandler {
      * @param context 上下文
      */
     void get(RoutingContext context);
+
+    /**
+     * 对话
+     *
+     * @param context 上下文
+     */
+    void chat(RoutingContext context);
 }

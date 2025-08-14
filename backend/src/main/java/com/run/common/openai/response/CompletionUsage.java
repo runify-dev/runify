@@ -7,6 +7,9 @@ import io.vertx.core.json.JsonObject;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * {@code @Author:张少虎}
  * {@code @Date: 2025/3/17  21:28}
@@ -41,5 +44,16 @@ public class CompletionUsage extends JsonObject {
     @Override
     public JsonObject put(String key, Object value) {
         return super.put(key, value);
+    }
+
+    public Map<String, Object> toMap() {
+        HashMap<String, Object> result = new HashMap<>();
+        result.put("completion_tokens", completion_tokens);
+        result.put("prompt_tokens", prompt_tokens);
+        result.put("total_tokens", total_tokens);
+        result.put("completion_tokens_details", completion_tokens_details.toMap());
+        result.put("prompt_tokens_details", prompt_tokens_details.toMap());
+        result.putAll(getMap());
+        return result;
     }
 }

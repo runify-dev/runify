@@ -6,6 +6,7 @@ import io.vertx.core.json.JsonObject;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -32,4 +33,11 @@ public class ChoiceLogprobs extends JsonObject {
         return super.put(key, value);
     }
 
+    public HashMap<String, Object> toMap() {
+        HashMap<String, Object> result = new HashMap<>();
+        result.put("content", content.stream().map(ChatCompletionTokenLogprob::toMap).toList());
+        result.put("refusal", refusal.stream().map(ChatCompletionTokenLogprob::toMap).toList());
+        result.putAll(getMap());
+        return result;
+    }
 }

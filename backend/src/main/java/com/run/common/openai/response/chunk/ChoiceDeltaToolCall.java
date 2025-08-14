@@ -5,6 +5,9 @@ import io.vertx.core.json.JsonObject;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * {@code @Author:张少虎}
  * {@code @Date: 2025/3/17  21:30}
@@ -32,5 +35,15 @@ public class ChoiceDeltaToolCall extends JsonObject {
     @Override
     public JsonObject put(String key, Object value) {
         return super.put(key, value);
+    }
+
+    public Map<String, Object> toMap() {
+        HashMap<String, Object> result = new HashMap<>();
+        result.put("index", index);
+        result.put("id", id);
+        result.put("function", function.toMap());
+        result.put("type", type);
+        return result;
+
     }
 }

@@ -1,8 +1,8 @@
 package com.run.workflow.nodes.AIChat;
 
 
-import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.run.RunApplication;
 import com.run.common.keyvalue.DefaultKeyValue;
 import com.run.common.openai.request.message.Message;
 import com.run.common.openai.request.message.SystemMessage;
@@ -10,7 +10,7 @@ import com.run.common.openai.response.ChatCompletion;
 import com.run.common.openai.response.chunk.ChatCompletionChunk;
 import com.run.common.util.JacksonUtils;
 import com.run.common.util.RSAUtil;
-import com.run.dao.entity.Model;
+import com.run.dao.mapper.ModelMapper;
 import com.run.models.IProvider;
 import com.run.models.ModelProvideConstants;
 import com.run.models.callback.Callback;
@@ -22,7 +22,6 @@ import com.run.workflow.entity.Node;
 import com.run.workflow.entity.NodeResult;
 import com.run.workflow.nodes.AIChat.entity.AIChatNodeData;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.json.impl.JsonUtil;
 import jakarta.validation.Validator;
 import okhttp3.Call;
 import org.apache.commons.lang3.StringUtils;
@@ -76,47 +75,48 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
                 String user = workFlowManage.generatePrompt(node.params.getUser());
                 userMessage.setContent(user);
             }
-            Model model = new Model();
-            IProvider provider = ModelProvideConstants.valueOf(model.getProvider()).getProvider();
-            String decrypt = RSAUtil.decrypt(model.getCredential());
-            Map<String, Object> map = JacksonUtils.fromJson(decrypt, new TypeReference<Map<String, Object>>() {
+            ModelMapper modelMapper = RunApplication.appComponent.modelMapper();
+            modelMapper.getById(node.params.getModelId()).onSuccess(model -> {
+                IProvider provider = ModelProvideConstants.valueOf(model.getProvider()).getProvider();
+                String decrypt = RSAUtil.decrypt(model.getCredential());
+                Map<String, Object> map = JacksonUtils.fromJson(decrypt, new TypeReference<Map<String, Object>>() {
+                });
+                LLM llm = provider.getModel(model.getModelType(), model.getModelName(), map, Map.of(), LLM.class);
+                llm.invoke(messages, true, new Callback<>() {
+                    @Override
+                    public void onResponse(@NotNull Call call, @NotNull ChatCompletion chatCompletion) {
+                        workFlowManage.write(node, chatCompletion.toChunk());
+                    }
+
+                    @Override
+                    public void onStream(@NotNull Call call, @NotNull ChatCompletionChunk chatCompletion) {
+                        workFlowManage.write(node, chatCompletion);
+                    }
+
+                    @Override
+                    public void onFinish(@NotNull Call call) {
+                        node.status = NodeStatus.SUCCESS;
+                        workFlowManage.writeContext(node, "content", llm.getContent());
+                        workFlowManage.nextInvoke(node, () -> workFlowManage.getNextList(node.node.getId()).stream().map(DefaultKeyValue::getValue).toList());
+                    }
+
+                    @Override
+                    public void onFailure(@NotNull Call call, @NotNull IOException e) {
+
+                    }
+                }, new JsonObject());
             });
-            LLM llm = provider.getModel(model.getModelType(), model.getModelName(), map, Map.of(), LLM.class);
-            llm.invoke(messages, true, new Callback<>() {
-                @Override
-                public void onResponse(@NotNull Call call, @NotNull ChatCompletion chatCompletion) {
-                    workFlowManage.write(chatCompletion.toChunk());
-                }
-
-                @Override
-                public void onStream(@NotNull Call call, @NotNull ChatCompletionChunk chatCompletion) {
-                    workFlowManage.write(chatCompletion);
-                }
-
-                @Override
-                public void onFinish(@NotNull Call call) {
-                    node.status = NodeStatus.SUCCESS;
-                    workFlowManage.nextInvoke(node, () -> workFlowManage.getNextList(node.node.getId()).stream().map(DefaultKeyValue::getValue).toList());
-                }
-
-                @Override
-                public void onFailure(@NotNull Call call, @NotNull IOException e) {
-
-                }
-            }, new JsonObject());
             return null;
         }
     }
 
     @Override
     public AIChatNodeData getNodeData(JsonObject params) {
-        String modelId = params.getString("modelId");
-        String system = params.getString("system");
-        String user = params.getString("user");
+        JsonObject jsonObject = node.getProperties().getJsonObject("nodeData");
         AIChatNodeData aiChatNodeData = new AIChatNodeData();
-        aiChatNodeData.setModelId(modelId);
-        aiChatNodeData.setUser(user);
-        aiChatNodeData.setSystem(system);
+        aiChatNodeData.setModelId(jsonObject.getString("modelId"));
+        aiChatNodeData.setUser(jsonObject.getString("user"));
+        aiChatNodeData.setSystem(jsonObject.getString("system"));
         return aiChatNodeData;
     }
 

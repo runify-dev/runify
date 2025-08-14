@@ -8,6 +8,7 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
+import lombok.Getter;
 
 import java.util.List;
 import java.util.Set;
@@ -22,6 +23,7 @@ public abstract class INode<T extends INode, NodeData> {
     /**
      * 节点数据
      */
+    @Getter
     protected Node node;
     /**
      * 执行当前节点所需要的参数
@@ -34,17 +36,21 @@ public abstract class INode<T extends INode, NodeData> {
     /**
      * 节点状态
      */
+    @Getter
     protected NodeStatus status;
     /**
      * 节点上下文
      */
+    @Getter
     protected JsonObject context;
     /**
      * 运行时id
      * 用于区分节点被运行多次的唯一标识
      */
+    @Getter
     private String real_node_id;
 
+    @Getter
     private List<String> upNodeIdList;
 
     public INode(Node node, JsonObject params, List<String> upNodeIdList, String salt) {
@@ -101,7 +107,4 @@ public abstract class INode<T extends INode, NodeData> {
         this.status = status;
     }
 
-    public List<String> getUpNodeIdList() {
-        return this.upNodeIdList;
-    }
 }

@@ -1,5 +1,6 @@
 package com.run.workflow;
 
+import com.run.common.function.Write;
 import com.run.common.keyvalue.DefaultKeyValue;
 import com.run.common.openai.request.message.Message;
 import com.run.common.openai.response.chunk.ChatCompletionChunk;
@@ -12,8 +13,8 @@ import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
 import lombok.SneakyThrows;
 
-
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
@@ -34,29 +35,29 @@ public class WorkFlowManage {
     /**
      * 工作流对象,存储了工作流相关信息
      */
-    private WorkFlow workFlow;
+    private final WorkFlow workFlow;
 
     /**
      * 本来可以将messages放在params 但是这个参数很重要
      */
-    private List<Message> messages;
+    private final List<Message> messages;
     /**
      * 用户收集参数
      */
-    private JsonObject params;
+    private final Map<String, Object> params;
 
     /**
      * 用于存储上下文
      */
-    private JsonObject context;
+    private final Map<String, Map<String, Object>> context;
     /**
      * 获取开始执行节点,正常情况下开始节点都是Start,但是在存在中断节点需要召回时,就是中断节点
      */
-    private Supplier<Node> getStartNode;
+    private final Supplier<Node> getStartNode;
     /**
      * 校验器,用于校验对象值是否正确
      */
-    private Validator validator;
+    private final Validator validator;
     /**
      * 核心线程4个,
      * 最大线程16个,
@@ -74,13 +75,13 @@ public class WorkFlowManage {
     /**
      * 工作流写出
      */
-    private BiConsumer<ChatCompletionChunk, Boolean> write;
+    private Write<INode<?, ?>, ChatCompletionChunk, Boolean> write;
     /**
      * 已运行的节点信息
      */
     private List<INode<?, ?>> nodes;
 
-    public WorkFlowManage(WorkFlow workFlow, List<Message> messages, JsonObject params, JsonObject context, BiConsumer<ChatCompletionChunk, Boolean> write) {
+    public WorkFlowManage(WorkFlow workFlow, List<Message> messages, Map<String, Object> params, Map<String, Map<String, Object>> context, Write<INode<?, ?>, ChatCompletionChunk, Boolean> write) {
         this.workFlow = workFlow;
         this.getStartNode = () -> workFlow.getNode("start-node");
         this.nodeNewInstance = NodeManage.of();
@@ -112,7 +113,7 @@ public class WorkFlowManage {
     public void nextInvoke(INode<?, ?> upINode, Supplier<List<Node>> getNextNode) {
         List<Node> nodes = getNextNode.get();
         if (nodes.size() == 1) {
-            threadPool.execute(() -> invoke(nodes.get(0), upINode));
+            threadPool.execute(() -> invoke(nodes.getFirst(), upINode));
         } else if (nodes.size() > 1) {
             for (Node node : nodes) {
                 threadPool.execute(() -> invoke(node, upINode));
@@ -122,7 +123,7 @@ public class WorkFlowManage {
             List<NodeStatus> running = List.of(NodeStatus.RUNNING, NodeStatus.BEFORE_RUNNING);
             boolean b = this.nodes.stream().anyMatch(iNode -> running.contains(iNode.status));
             if (!b) {
-                this.write.accept(null, true);
+                this.write.write(null, null, true);
             }
         }
 
@@ -141,7 +142,7 @@ public class WorkFlowManage {
             upNodeIdList = new ArrayList<>(upINode.getUpNodeIdList());
             upNodeIdList.add(upINode.node.getId());
         }
-        NewNodeParamsInstance instance = NewNodeParamsInstance.of(node, new JsonObject(params.getMap()), upNodeIdList, this.validator);
+        NewNodeParamsInstance instance = NewNodeParamsInstance.of(node, new JsonObject(params), upNodeIdList, this.validator);
         INode<?, ?> iNode = this.nodeNewInstance.apply(instance);
         // 添加方便管理
         this.nodes.add(iNode);
@@ -161,12 +162,8 @@ public class WorkFlowManage {
      * @param value 需要写入数据的值
      */
     public void writeContext(INode<?, ?> iNode, String key, Object value) {
-        JsonObject jsonObject = this.context.getJsonObject(iNode.node.getId());
-        if (jsonObject == null) {
-            jsonObject = new JsonObject();
-            this.context.put(iNode.node.getId(), jsonObject);
-        }
-        jsonObject.put(key, value);
+        Map<String, Object> m = this.context.computeIfAbsent(iNode.node.getId(), k -> new HashMap<>());
+        m.put(key, value);
     }
 
     /**
@@ -174,8 +171,8 @@ public class WorkFlowManage {
      *
      * @param chatCompletionChunk 需要输出的chunk
      */
-    public void write(ChatCompletionChunk chatCompletionChunk) {
-        this.write.accept(chatCompletionChunk, false);
+    public void write(INode<?, ?> node, ChatCompletionChunk chatCompletionChunk) {
+        this.write.write(node, chatCompletionChunk, false);
     }
 
     /**
@@ -185,13 +182,18 @@ public class WorkFlowManage {
      * @return 上下文数据
      */
     public Object getContextVariable(List<String> contextRef) {
-        JsonObject context = this.context;
+        Map<String, ?> context = this.context;
         for (int i = 0; i < contextRef.size(); i++) {
             String key = contextRef.get(i);
             if (i == contextRef.size() - 1) {
-                return context.getMap().get(key);
+                return context.get(key);
             } else {
-                context = context.getJsonObject(key);
+                Object o = context.get(key);
+                if (o instanceof Map<?, ?>) {
+                    context = (Map<String, ?>) o;
+                } else {
+                    return o;
+                }
             }
         }
         return null;

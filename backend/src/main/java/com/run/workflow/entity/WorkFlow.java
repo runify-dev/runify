@@ -75,14 +75,13 @@ public class WorkFlow {
         List<NodeField> globalFieldList = new ArrayList<>();
         for (Node node : this.nodes) {
             JsonObject properties = node.getProperties();
-            JsonObject config = properties.getJsonObject("config", new io.vertx.core.json.JsonObject());
-            JsonArray jsonArray = config.getJsonArray("fields", new io.vertx.core.json.JsonArray());
-            JsonArray globalFields = config.getJsonArray("globalFields", new io.vertx.core.json.JsonArray());
+            JsonArray jsonArray = properties.getJsonArray("field_list", new io.vertx.core.json.JsonArray());
+            JsonArray globalFields = properties.getJsonArray("globalFields", new io.vertx.core.json.JsonArray());
             for (int i = 0; i < jsonArray.size(); i++) {
                 JsonObject jsonObject = jsonArray.getJsonObject(i);
                 String label = jsonObject.getString("label");
                 String value = jsonObject.getString("value");
-                nodeFields.add(new NodeField(node.getId(), node.getString("nodeName"), label, value));
+                nodeFields.add(new NodeField(node.getId(), properties.getString("name"), label, value));
             }
             for (int i = 0; i < globalFields.size(); i++) {
                 JsonObject jsonObject = globalFields.getJsonObject(i);

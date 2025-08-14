@@ -46,6 +46,7 @@ public class StartNode extends INode<StartNode, StartNodeData> {
         public Supplier<List<Node>> apply(WorkFlowManage workFlowManage, StartNode node) {
             node.write();
             workFlowManage.writeContext(node, "messages", node.params.messages);
+            workFlowManage.writeContext(node, "question", node.params.messages.getLast().getContent());
             node.end(NodeStatus.SUCCESS);
             return () -> workFlowManage.getNextList(node.node.getId()).stream().map(DefaultKeyValue::getValue).toList();
 

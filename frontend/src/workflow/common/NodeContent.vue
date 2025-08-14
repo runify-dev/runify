@@ -47,7 +47,7 @@ provide('getOptions', () => {
     .map((node) => {
       return node.properties.field_list.map((item: any) => ({
         label: `@${node.properties.name}.${item.label}`,
-        value: `{{ ${node.properties.name}.${item.value} }}`
+        value: '$' + `{ ${node.properties.name}.${item.label} }`
       }))
     })
     .reduce((x: Array<any>, y: Array<any>) => [...x, ...y], [])

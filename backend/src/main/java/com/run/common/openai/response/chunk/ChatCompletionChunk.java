@@ -7,7 +7,9 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * {@code @Author:张少虎}
@@ -80,6 +82,29 @@ public class ChatCompletionChunk extends JsonObject {
         return chatCompletionChunk;
     }
 
+    public Map<String, Object> toOpenAIMap() {
+        HashMap<String, Object> result = new HashMap<>();
+        result.put("id", this.id);
+        result.put("choices", choices.stream().map(Choice::toMap).toList());
+        result.put("created", created);
+        result.put("model", model);
+        result.put("object", object);
+        result.put("service_tier", service_tier);
+        result.put("system_fingerprint", system_fingerprint);
+        result.put("usage", usage.toMap());
+        result.putAll(getMap());
+        return result;
+    }
+
+    public List<Map<String, Object>> toAppMap() {
+        return this.getChoices().stream().map(item -> {
+            Map<String, Object> result = new HashMap<>();
+            ChoiceDelta delta = item.getDelta();
+            result.put("content", delta.getContent());
+            result.putAll(delta.getMap());
+            return result;
+        }).toList();
+    }
 
 
 }

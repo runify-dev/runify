@@ -51,5 +51,11 @@ public interface ChatModel extends BaseModel {
      */
     List<ChatCompletionMessageToolCall> getChoiceDeltaToolCall();
 
+    /**
+     * 模型响应正文
+     *
+     * @return 正文
+     */
+    String getContent();
 
 }

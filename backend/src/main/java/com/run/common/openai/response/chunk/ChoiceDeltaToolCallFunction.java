@@ -1,9 +1,13 @@
 package com.run.common.openai.response.chunk;
 
 import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.run.common.result.Result;
 import io.vertx.core.json.JsonObject;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * {@code @Author:张少虎}
@@ -13,7 +17,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public  class ChoiceDeltaToolCallFunction extends JsonObject {
+public class ChoiceDeltaToolCallFunction extends JsonObject {
     /**
      * 调用函数的参数，由JSON中的模型生成
      * 格式。请注意，该模型并不总是生成有效的JSON，并且可能
@@ -30,5 +34,13 @@ public  class ChoiceDeltaToolCallFunction extends JsonObject {
     @Override
     public JsonObject put(String key, Object value) {
         return super.put(key, value);
+    }
+
+    public Map<String, Object> toMap() {
+        HashMap<String, Object> result = new HashMap<>();
+        result.put("arguments", arguments);
+        result.put("name", name);
+        result.putAll(getMap());
+        return result;
     }
 }
