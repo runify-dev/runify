@@ -1,5 +1,6 @@
 package com.run.workflow;
 
+import com.github.f4b6a3.uuid.UuidCreator;
 import com.run.common.util.CommonUtils;
 import com.run.workflow.entity.Node;
 import com.run.workflow.entity.NodeResult;
@@ -9,9 +10,11 @@ import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
 import lombok.Getter;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * {@code @Author:张少虎}
@@ -50,14 +53,48 @@ public abstract class INode<T extends INode, NodeData> {
     @Getter
     private String real_node_id;
 
+    private String displayId;
+
+    private INode<?, ?> upNode;
     @Getter
     private List<String> upNodeIdList;
 
-    public INode(Node node, JsonObject params, List<String> upNodeIdList, String salt) {
+    public Boolean getNodeDisplaySingle(Node node) {
+        JsonObject jsonObject = node.getProperties().getJsonObject("nodeData", new JsonObject());
+        Boolean single = jsonObject.getBoolean("displaySingle");
+        return single != null && single;
+    }
+
+    public String getDisplayId() {
+        if (StringUtils.isEmpty(displayId)) {
+            Boolean single = getNodeDisplaySingle(node);
+            if (single != null && single) {
+                UUID timeOrdered = UuidCreator.getTimeOrderedEpoch();
+                this.displayId = timeOrdered.toString();
+            } else {
+                if (upNode == null) {
+                    UUID timeOrdered = UuidCreator.getTimeOrderedEpoch();
+                    this.displayId = timeOrdered.toString();
+                } else {
+                    Boolean upNodeSingle = getNodeDisplaySingle(upNode.node);
+                    if (upNodeSingle) {
+                        UUID timeOrdered = UuidCreator.getTimeOrderedEpoch();
+                        this.displayId = timeOrdered.toString();
+                    } else {
+                        this.displayId = upNode.getDisplayId();
+                    }
+                }
+            }
+        }
+        return displayId;
+    }
+
+    public INode(Node node, JsonObject params, List<String> upNodeIdList, String salt, INode<?, ?> upNode) {
         this.node = node;
         this.params = getNodeData(params);
         ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
         this.validator = factory.getValidator();
+        this.upNode = upNode;
         this.upNodeIdList = upNodeIdList;
         this.real_node_id = CommonUtils.getSHA256(String.join("", upNodeIdList) + salt);
         this.context = new JsonObject();
@@ -69,7 +106,8 @@ public abstract class INode<T extends INode, NodeData> {
                  List<String> upNodeIdList,
                  String salt,
                  JsonObject context,
-                 Validator validator) {
+                 Validator validator
+            , INode<?, ?> upNode) {
         this.node = node;
         this.params = getNodeData(params);
         this.validator = validator;
@@ -77,6 +115,7 @@ public abstract class INode<T extends INode, NodeData> {
         this.context = context;
         this.status = NodeStatus.BEFORE_RUNNING;
         this.upNodeIdList = upNodeIdList;
+        this.upNode = upNode;
     }
 
     public abstract NodeData getNodeData(JsonObject params);

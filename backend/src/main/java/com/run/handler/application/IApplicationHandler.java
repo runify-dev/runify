@@ -29,4 +29,5 @@ public interface IApplicationHandler {
      * @param context 上下文
      */
     void chat(RoutingContext context);
+
 }

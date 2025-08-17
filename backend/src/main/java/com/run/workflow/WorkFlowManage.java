@@ -11,6 +11,7 @@ import io.vertx.core.json.JsonObject;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
+import lombok.Getter;
 import lombok.SneakyThrows;
 
 import java.util.ArrayList;
@@ -75,10 +76,11 @@ public class WorkFlowManage {
     /**
      * 工作流写出
      */
-    private Write<INode<?, ?>, ChatCompletionChunk, Boolean> write;
+    private final Write<INode<?, ?>, ChatCompletionChunk, Boolean> write;
     /**
      * 已运行的节点信息
      */
+    @Getter
     private List<INode<?, ?>> nodes;
 
     public WorkFlowManage(WorkFlow workFlow, List<Message> messages, Map<String, Object> params, Map<String, Map<String, Object>> context, Write<INode<?, ?>, ChatCompletionChunk, Boolean> write) {
@@ -142,7 +144,7 @@ public class WorkFlowManage {
             upNodeIdList = new ArrayList<>(upINode.getUpNodeIdList());
             upNodeIdList.add(upINode.node.getId());
         }
-        NewNodeParamsInstance instance = NewNodeParamsInstance.of(node, new JsonObject(params), upNodeIdList, this.validator);
+        NewNodeParamsInstance instance = NewNodeParamsInstance.of(node, new JsonObject(params), upNodeIdList, this.validator, upINode);
         INode<?, ?> iNode = this.nodeNewInstance.apply(instance);
         // 添加方便管理
         this.nodes.add(iNode);

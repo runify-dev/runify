@@ -32,12 +32,12 @@ public class StartNode extends INode<StartNode, StartNodeData> {
      */
     public final static List<WorkflowType> supportWorkflow = List.of(WorkflowType.CHAT_WORKFLOW);
 
-    public StartNode(Node node, JsonObject params, List<String> upNodeIdList, String salt) {
-        super(node, params, upNodeIdList, salt);
+    public StartNode(Node node, JsonObject params, List<String> upNodeIdList, String salt, INode<?, ?> upNode) {
+        super(node, params, upNodeIdList, salt, upNode);
     }
 
-    public StartNode(Node node, JsonObject params, List<String> upNodeIdList, String salt, JsonObject context, Validator validator) {
-        super(node, params, upNodeIdList, salt, context, validator);
+    public StartNode(Node node, JsonObject params, List<String> upNodeIdList, String salt, JsonObject context, Validator validator, INode<?, ?> upNode) {
+        super(node, params, upNodeIdList, salt, context, validator, upNode);
     }
 
     public static class Handle implements BiFunction<WorkFlowManage, StartNode, Supplier<List<Node>>> {

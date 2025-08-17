@@ -1,26 +1,33 @@
 package com.run.handler.application.impl;
 
 
+import com.run.common.constants.ConversationUserType;
 import com.run.common.openai.request.message.UserMessage;
-import com.run.common.openai.response.chunk.ChoiceDelta;
 import com.run.common.result.Result;
 import com.run.common.util.JacksonUtils;
 import com.run.dao.entity.Application;
-import com.run.dao.entity.Knowledge;
+import com.run.dao.entity.Conversation;
+import com.run.dao.entity.User;
 import com.run.dao.mapper.ApplicationMapper;
+import com.run.dao.mapper.ConversationMapper;
 import com.run.handler.application.IApplicationHandler;
 import com.run.handler.application.pojo.ChatPojo;
 import com.run.handler.application.pojo.EditApplicationPojo;
+import com.run.workflow.INode;
 import com.run.workflow.WorkFlowManage;
 import com.run.workflow.entity.WorkFlow;
+import io.vertx.core.CompositeFuture;
+import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.inject.Inject;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -32,10 +39,12 @@ import java.util.UUID;
 public class ApplicationHandlerImpl implements IApplicationHandler {
 
     protected ApplicationMapper applicationMapper;
+    private final ConversationMapper conversationMapper;
 
     @Inject
-    public ApplicationHandlerImpl(ApplicationMapper applicationMapper) {
+    public ApplicationHandlerImpl(ApplicationMapper applicationMapper, ConversationMapper conversationMapper) {
         this.applicationMapper = applicationMapper;
+        this.conversationMapper = conversationMapper;
     }
 
     @Override
@@ -59,38 +68,66 @@ public class ApplicationHandlerImpl implements IApplicationHandler {
 
     @Override
     public void chat(RoutingContext context) {
-        String resourceId = context.pathParam("resourceId");
-        applicationMapper.getById(resourceId).onSuccess(ok -> {
-            ChatPojo pojo = context.body().asPojo(ChatPojo.class);
-            JsonObject workflow = ok.getWorkflow();
-            context.response().setChunked(true);
-            context.response().putHeader("Content-Type", "text/event-stream;charset=utf-8");
-            context.response().putHeader("Cache-Control", "no-cache");
-            context.response().putHeader("Character-Encoding", "utf-8");
-            context.response().write(Buffer.buffer("", "utf-8"));
-            WorkFlowManage workFlowManage = new WorkFlowManage(WorkFlow.of(workflow),
-                    List.of(new UserMessage(pojo.getQuestion())),
-                    new HashMap<>(),
-                    new HashMap<>(), (node, chunk, isEnd) -> {
-                if (isEnd) {
-                    context.response().end();
-                    return;
-                }
-                List<HashMap<String, Object>> list = chunk.toAppMap().stream().map(m -> {
-                    HashMap<String, Object> result = new HashMap<>(m);
-                    result.put("status", node.getStatus());
-                    result.put("real_node_id", node.getReal_node_id());
-                    result.put("node_id", node.getNode().getId());
-                    result.put("node_name", node.getNode().getProperties().getString("name"));
-                    return result;
-                }).toList();
-                for (HashMap<String, Object> result : list) {
-                    context.response().write(Buffer.buffer("data: " + JacksonUtils.toJson(result) + "\n\n", "utf-8"));
-                }
+        String applicationId = context.pathParam("applicationId");
+        ChatPojo pojo = context.body().asPojo(ChatPojo.class);
+        Future<Conversation> conversationFuture = conversationMapper
+                .getById(pojo.getConversationId().toString())
+                .compose(conversation -> {
+                    if (conversation == null) {
+                        Conversation conversationNew = new Conversation(UUID.randomUUID(),
+                                UUID.fromString(applicationId),
+                                StringUtils.substring(pojo.getQuestion(), 0, 128),
+                                new JsonObject(), ((User) context.user().get("user")).getId(),
+                                ConversationUserType.ANONYMOUS_USER,
+                                0, 0, 0, 0,
+                                false, LocalDateTime.now(), LocalDateTime.now());
+                        return conversationMapper.save(conversationNew)
+                                .compose(_ -> Future.succeededFuture(conversationNew));
+                    }
+                    return Future.succeededFuture(conversation);
+                });
+        Future<Application> applicationFuture = applicationMapper.getById(applicationId);
+        Future.all(conversationFuture, applicationFuture)
+                .onSuccess(ok -> extracted(context, ok, pojo))
+                .onFailure(context::fail);
 
-            });
-            workFlowManage.invoke();
+    }
+
+    private void extracted(RoutingContext context, CompositeFuture ok, ChatPojo pojo) {
+        Conversation conversation = ok.resultAt(0);
+        Application application = ok.resultAt(1);
+        JsonObject workflow = application.getWorkflow();
+        context.response().setChunked(true);
+        context.response().putHeader("Content-Type", "text/event-stream;charset=utf-8");
+        context.response().putHeader("Cache-Control", "no-cache");
+        context.response().putHeader("Character-Encoding", "utf-8");
+        context.response().write(Buffer.buffer("", "utf-8"));
+        String conversationRecordId = UUID.randomUUID().toString();
+        WorkFlowManage workFlowManage = new WorkFlowManage(WorkFlow.of(workflow),
+                List.of(new UserMessage(pojo.getQuestion())),
+                new HashMap<>(Map.of("conversationId", conversation.getId(),
+                        "applicationId", application.getId(),
+                        "conversationRecordId", conversationRecordId)),
+                new HashMap<>(), (node, chunk, isEnd) -> {
+            if (isEnd) {
+                context.response().end();
+                return;
+            }
+            List<HashMap<String, Object>> list = chunk.toAppMap().stream().map(m -> {
+                HashMap<String, Object> result = new HashMap<>(m);
+                result.put("status", node.getStatus());
+                result.put("real_node_id", node.getReal_node_id());
+                result.put("node_id", node.getNode().getId());
+                result.put("display_id", node.getDisplayId());
+                result.put("node_name", node.getNode().getProperties().getString("name"));
+                result.put("conversationRecordId", conversationRecordId);
+                return result;
+            }).toList();
+            for (HashMap<String, Object> result : list) {
+                context.response().write(Buffer.buffer("data: " + JacksonUtils.toJson(result) + "\n\n", "utf-8"));
+            }
+
         });
-
+        workFlowManage.invoke();
     }
 }

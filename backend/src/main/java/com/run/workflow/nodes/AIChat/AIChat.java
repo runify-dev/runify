@@ -46,12 +46,12 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
      */
     public final static String type = "ai-chat-node";
 
-    public AIChat(Node node, JsonObject params, List<String> upNodeIdList, String salt) {
-        super(node, params, upNodeIdList, salt);
+    public AIChat(Node node, JsonObject params, List<String> upNodeIdList, String salt, INode<?, ?> upNode) {
+        super(node, params, upNodeIdList, salt, upNode);
     }
 
-    public AIChat(Node node, JsonObject params, List<String> upNodeIdList, String salt, JsonObject context, Validator validator) {
-        super(node, params, upNodeIdList, salt, context, validator);
+    public AIChat(Node node, JsonObject params, List<String> upNodeIdList, String salt, JsonObject context, Validator validator,INode<?, ?> upNode) {
+        super(node, params, upNodeIdList, salt, context, validator,upNode);
     }
 
     public static class Handle implements BiFunction<WorkFlowManage, AIChat, Supplier<List<Node>>> {

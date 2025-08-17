@@ -55,13 +55,14 @@ public class NodeManage implements Function<NewNodeParamsInstance, INode<?, ?>> 
          */
         Class<? extends INode> aClass = this.nodeInstanceMap.get(newNodeParamsInstance.getNode().getType());
         try {
-            Constructor<? extends INode> constructor = aClass.getConstructor(new Class[]{Node.class, JsonObject.class, List.class, String.class, JsonObject.class, Validator.class});
+            Constructor<? extends INode> constructor = aClass.getConstructor(new Class[]{Node.class, JsonObject.class, List.class, String.class, JsonObject.class, Validator.class, INode.class});
             INode<?, ?> iNode = constructor.newInstance(newNodeParamsInstance.getNode(),
                     newNodeParamsInstance.getParams(),
                     newNodeParamsInstance.getUpNodeIdList(),
                     newNodeParamsInstance.getSalt(),
                     newNodeParamsInstance.getContext(),
-                    newNodeParamsInstance.getValidator());
+                    newNodeParamsInstance.getValidator(),
+                    newNodeParamsInstance.getUpNode());
             return iNode;
         } catch (Exception e) {
             throw new RuntimeException(e.getMessage());

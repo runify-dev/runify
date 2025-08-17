@@ -2,6 +2,8 @@ package com.run.handler.application.pojo;
 
 import lombok.*;
 
+import java.util.UUID;
+
 /**
  * {@code @Author:张少虎}
  * {@code @Date: 2025/8/14  00:21}
@@ -14,4 +16,6 @@ import lombok.*;
 @Setter
 public class ChatPojo {
     private String question;
+
+    private UUID conversationId;
 }
