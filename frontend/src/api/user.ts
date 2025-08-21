@@ -17,4 +17,10 @@ const profile: (
 ) => Promise<Result<User>> = (loading) => {
     return get(`/user`, undefined, loading)
 }
-export default { login, profile }
+
+const logout: (
+    loading?: Ref<boolean>
+) => Promise<Result<User>> = (loading) => {
+    return get(`/logout`, undefined, loading)
+}
+export default { login, profile, logout }

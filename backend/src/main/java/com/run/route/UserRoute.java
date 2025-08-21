@@ -52,6 +52,9 @@ public class UserRoute implements IRoute {
         apiRoute.post("/login")
                 .handler(BodyHandler.create())
                 .handler(iUserHandler.login());
+
+        apiRoute.get("/logout")
+                .handler(iUserHandler.logout());
     }
 
     @Override

@@ -112,4 +112,11 @@ public class UserHandlerImpl implements IUserHandler {
         };
 
     }
+
+    @Override
+    public Handler<RoutingContext> logout() {
+        return context -> {
+            context.end(Result.success("已成功退出登录").toBuffer());
+        };
+    }
 }

@@ -31,4 +31,11 @@ public interface IUserHandler {
      * @return 获取用户信息
      */
     Handler<RoutingContext> profile();
+
+    /**
+     * 登出
+     *
+     * @return 登出处理器
+     */
+    Handler<RoutingContext> logout();
 }

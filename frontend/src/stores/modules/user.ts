@@ -41,6 +41,11 @@ const useUserStore = defineStore("user", {
                 return this.profile()
             })
         },
+        logout() {
+            this.user = undefined
+            this.token = undefined
+            localStorage.removeItem('token')
+        }
 
     }
 })
