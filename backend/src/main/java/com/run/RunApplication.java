@@ -21,7 +21,6 @@ public class RunApplication extends AbstractVerticle {
     @Override
     public void start() {
         appComponent = DaggerAppComponent.builder()
-                .configModule(new ConfigModule("/opt/runify/conf/runify.yaml"))
                 .appModule(new AppModule(vertx))
                 .build();
         appComponent.getRouterInitialization();

@@ -1,15 +1,20 @@
 package com.run.dagger.module;
 
 import com.run.common.config.AppConfig;
+import com.run.common.config.DataBase;
 import com.run.common.constants.DatabaseType;
 import dagger.Module;
 import dagger.Provides;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.yaml.snakeyaml.Yaml;
 
 import javax.inject.Singleton;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * {@code @Author:张少虎}
@@ -21,12 +26,68 @@ import java.nio.file.Paths;
 public class ConfigModule {
     private AppConfig appConfig;
 
-    public ConfigModule(String configurationFilePath) {
-        Yaml yaml = new Yaml();
-        try (InputStream in = Files.newInputStream(Paths.get(configurationFilePath))) {
-            this.appConfig = yaml.loadAs(in, AppConfig.class);
-        } catch (Exception e) {
-            e.printStackTrace();
+    interface InitConfig {
+        boolean support();
+
+        AppConfig get();
+    }
+
+    static class YamlInitConfig implements InitConfig {
+        private final String configurationFilePath = "/opt/runify/conf/runify.yaml";
+
+        @Override
+        public boolean support() {
+            String runifyConfig = System.getenv("RUNIFY_CONFIG");
+            return (Strings.CS.equals("YAML", runifyConfig) || StringUtils.isEmpty(runifyConfig)) && Files.exists(Paths.get(configurationFilePath));
+        }
+
+        @Override
+        public AppConfig get() {
+            Yaml yaml = new Yaml();
+            try (InputStream in = Files.newInputStream(Paths.get(configurationFilePath))) {
+                return yaml.loadAs(in, AppConfig.class);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return AppConfig.getDefault();
+        }
+    }
+
+    static class EnvInitConfig implements InitConfig {
+
+        @Override
+        public boolean support() {
+            String config = System.getenv("RUNIFY_CONFIG");
+            return Strings.CS.equals("ENV", config);
+        }
+
+        @Override
+        public AppConfig get() {
+            DataBase dataBase = new DataBase();
+            String systemDataPath = System.getenv("RUNIFY_SYSTEM_DATA_PATH");
+            String databaseType = System.getenv("RUNIFY_DATABASE_TYPE");
+            com.run.common.config.System system = new com.run.common.config.System();
+            system.setDataPath(Optional.of(systemDataPath).orElse("data"));
+            dataBase.setType(Optional.of(databaseType).map(DatabaseType::valueOf).orElse(DatabaseType.SQLITE));
+            dataBase.setHost(Optional.of(System.getenv("RUNIFY_DATABASE_HOST")).orElse("127.0.0.1"));
+            dataBase.setPort(Optional.of(System.getenv("RUNIFY_DATABASE_PORT")).map(Integer::valueOf).orElse(5432));
+            dataBase.setUsername(Optional.of(System.getenv("RUNIFY_DATABASE_USERNAME")).orElse("postgres"));
+            dataBase.setPassword(Optional.of(System.getenv("RUNIFY_DATABASE_PASSWORD")).orElse("postgres"));
+            dataBase.setDatabase(Optional.of(System.getenv("RUNIFY_DATABASE_DATABASE")).orElse("runify"));
+            AppConfig result = new AppConfig();
+            result.setDatabase(dataBase);
+            result.setSystem(system);
+            return result;
+        }
+    }
+
+    public ConfigModule() {
+        List<InitConfig> initConfigs = List.of(new YamlInitConfig(), new EnvInitConfig());
+        for (InitConfig initConfig : initConfigs) {
+            if (initConfig.support()) {
+                this.appConfig = initConfig.get();
+                return;
+            }
         }
     }
 
