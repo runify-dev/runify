@@ -5,8 +5,21 @@
     <button @click="save" class="px-3 py-1 text-sm text-gray-600 hover:bg-gray-200/30 rounded-full">
       保存
     </button>
-    <button class="px-3 py-1 text-sm text-gray-600 hover:bg-gray-200/30 rounded-full">调试</button>
+    <button
+      @click="() => (debug = true)"
+      class="px-3 py-1 text-sm text-gray-600 hover:bg-gray-200/30 rounded-full"
+    >
+      调试
+    </button>
   </div>
+  <el-collapse-transition>
+    <DebugConversation
+      v-if="debug"
+      @close="debug = false"
+      :forder-id="folderId"
+      :application="application"
+    ></DebugConversation>
+  </el-collapse-transition>
 
   <Workflow ref="workflowRef"></Workflow>
 </template>
@@ -17,11 +30,13 @@ import ApplicationAPI from '@/api/application'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { baseWorkflow } from '@/workflow/common/data'
-
+import DebugConversation from './DebugConversation.vue'
+const debug = ref<boolean>(false)
 const route = useRoute()
 // 注入父组件提供的方法
 const getApplication = inject('getApplication') as any
 const workflowRef = ref<InstanceType<typeof Workflow>>()
+const application = ref<any>()
 const folderId = computed(() => {
   const {
     params: { folderId }
@@ -36,15 +51,16 @@ const resourceId = computed(() => {
 })
 const save = () => {
   ApplicationAPI.edit(folderId.value, resourceId.value, workflowRef.value?.getGraphData()).then(
-    (ok) => {
+    () => {
       ElMessage.success('保存成功')
     }
   )
 }
 
 onMounted(() => {
-  getApplication().then((application: any) => {
-    workflowRef.value?.render(application.workflow.nodes ? application.workflow : baseWorkflow)
+  getApplication().then((app: any) => {
+    application.value = app
+    workflowRef.value?.render(app.workflow.nodes ? app.workflow : baseWorkflow)
   })
 })
 </script>

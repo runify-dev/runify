@@ -1,6 +1,6 @@
 <template>
   <div
-    class="flex w-full items-center justify-between sticky top-0 left-0 z-99999 right-0"
+    class="flex w-full items-center justify-between sticky top-0 left-0 z-2000 right-0"
     style="
       background: linear-gradient(135deg, rgb(29 43 100 / 79%), rgb(248, 205, 218));
       height: 40px;

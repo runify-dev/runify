@@ -16,6 +16,7 @@ import com.run.common.openai.response.ChatCompletionMessageToolCall;
 import com.run.common.openai.response.CompletionUsage;
 import com.run.common.openai.response.chunk.*;
 import com.run.models.callback.Callback;
+import com.run.workflow.entity.Chunk;
 import io.vertx.core.json.JsonObject;
 import lombok.SneakyThrows;
 import okhttp3.Call;
@@ -215,7 +216,9 @@ public abstract class BaseOpenaiChatModel implements ChatModel {
     }
 
     @Override
-    public void invoke(List<Message> messages, boolean stream, Callback<ChatCompletion, ChatCompletionChunk> callback, JsonObject other) {
+    public void invoke(List<Message> messages, boolean stream,
+                       Callback<ChatCompletion, ChatCompletionChunk> callback,
+                       JsonObject other) {
         List<ChatCompletionToolParam> tools = getTools(other);
         String tool_choice = other.getString("tool_choice");
         baseOpenaiCallBack = new BaseOpenaiCallBack(stream, callback);

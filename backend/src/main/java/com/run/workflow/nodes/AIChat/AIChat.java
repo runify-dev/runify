@@ -15,6 +15,7 @@ import com.run.models.IProvider;
 import com.run.models.ModelProvideConstants;
 import com.run.models.callback.Callback;
 import com.run.models.impl.openai.model.LLM;
+import com.run.workflow.Answer;
 import com.run.workflow.INode;
 import com.run.workflow.NodeStatus;
 import com.run.workflow.WorkFlowManage;
@@ -33,6 +34,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 /**
  * {@code @Author:张少虎}
@@ -46,12 +48,22 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
      */
     public final static String type = "ai-chat-node";
 
+    @Override
+    public List<Answer> getAnswerList(WorkFlowManage wm) {
+        Answer answer = new Answer(this.getReal_node_id(), this.getNode().getId(), this.getDisplayId(),
+                wm.getParams().get("conversationRecordId").toString(),
+                wm.getParams().get("conversationId").toString());
+        answer.put("content", this.context.getString("content"));
+        answer.put("reasoning_content", this.context.getString("reasoning_content"));
+        return List.of(answer);
+    }
+
     public AIChat(Node node, JsonObject params, List<String> upNodeIdList, String salt, INode<?, ?> upNode) {
         super(node, params, upNodeIdList, salt, upNode);
     }
 
-    public AIChat(Node node, JsonObject params, List<String> upNodeIdList, String salt, JsonObject context, Validator validator,INode<?, ?> upNode) {
-        super(node, params, upNodeIdList, salt, context, validator,upNode);
+    public AIChat(Node node, JsonObject params, List<String> upNodeIdList, String salt, JsonObject context, Validator validator, INode<?, ?> upNode) {
+        super(node, params, upNodeIdList, salt, context, validator, upNode);
     }
 
     public static class Handle implements BiFunction<WorkFlowManage, AIChat, Supplier<List<Node>>> {
@@ -83,6 +95,8 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
                 });
                 LLM llm = provider.getModel(model.getModelType(), model.getModelName(), map, Map.of(), LLM.class);
                 llm.invoke(messages, true, new Callback<>() {
+                    private final StringBuilder reasoningContent = new StringBuilder();
+
                     @Override
                     public void onResponse(@NotNull Call call, @NotNull ChatCompletion chatCompletion) {
                         workFlowManage.write(node, chatCompletion.toChunk());
@@ -90,6 +104,12 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
 
                     @Override
                     public void onStream(@NotNull Call call, @NotNull ChatCompletionChunk chatCompletion) {
+                        chatCompletion.getChoices().forEach(c -> {
+                            String r = c.getDelta().getString("reasoning_content");
+                            if (StringUtils.isNotEmpty(r)) {
+                                reasoningContent.append(r);
+                            }
+                        });
                         workFlowManage.write(node, chatCompletion);
                     }
 
@@ -97,6 +117,7 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
                     public void onFinish(@NotNull Call call) {
                         node.status = NodeStatus.SUCCESS;
                         workFlowManage.writeContext(node, "content", llm.getContent());
+                        workFlowManage.writeContext(node, "reasoning_content", reasoningContent.toString());
                         workFlowManage.nextInvoke(node, () -> workFlowManage.getNextList(node.node.getId()).stream().map(DefaultKeyValue::getValue).toList());
                     }
 

@@ -47,7 +47,7 @@ public class ConversationRecord implements BaseEntity<ConversationRecord> {
     private Boolean trample;
 
     @Column(name = "question")
-    private String question;
+    private JsonObject question;
 
     @Column(name = "answer")
     private JsonArray answer;
@@ -73,7 +73,7 @@ public class ConversationRecord implements BaseEntity<ConversationRecord> {
             conversationRecord.conversationId = row.getUUID("conversation_id");
             conversationRecord.star = row.getInteger("star") != 0;
             conversationRecord.trample = row.getInteger("trample") != 0;
-            conversationRecord.question = row.getString("question");
+            conversationRecord.question = JacksonUtils.fromJson(row.getString("question"), JsonObject.class);
             conversationRecord.answer = JacksonUtils.fromJson(row.getString("answer"), JsonArray.class);
             conversationRecord.details = JacksonUtils.fromJson(row.getString("details"), JsonObject.class);
             conversationRecord.runTime = row.getFloat("run_time");

@@ -9,7 +9,7 @@
         <!-- 响应 -->
         <div class="flex w-full">
           <el-avatar src="/ui/user.jpeg" class="mr-4" />
-          <div style="width: calc(100% - 110px)">
+          <div style="width: calc(100% - 50px)">
             <el-card
               style="--el-card-padding: 0px 12px 0 12px"
               v-for="key in Object.keys(qa.answer)"
@@ -32,16 +32,19 @@
     <div class="sticky bottom-0 left-0 z-99999 right-0 pb-4 bg-white">
       <div style="background-color: rgb(243, 244, 246)" class="p-4 rounded-2xl">
         <el-input
-          v-model="question"
+          v-model="question.question"
           class="no-border-input custom-textarea"
           :autosize="{ minRows: 1, maxRows: 6 }"
           type="textarea"
+          @keydown.enter.exact.stop.prevent="conversation(question)"
           autosizee
         >
         </el-input>
         <div class="w-full h-4 relative">
           <div class="absolute right-1 cursor-pointer">
-            <el-icon @click="conversation(question)"><Promotion /></el-icon>
+            <el-button :disabled="isConversation" link>
+              <el-icon @click="conversation(question)"><Promotion /></el-icon
+            ></el-button>
           </div>
         </div>
       </div>
@@ -49,13 +52,18 @@
   </div>
 </template>
 <script setup lang="ts">
-import { inject, reactive, ref } from 'vue'
+import { computed, inject, reactive, ref } from 'vue'
 import { Promotion } from '@element-plus/icons-vue'
 import { ConversationStream } from '@/api/common'
 import Answer from '@/components/Answer/index.vue'
-
 const conversationRecordList = ref<Array<any>>([])
-const question = ref<string>('')
+const emit = defineEmits(['chanage'])
+const question = ref<any>({
+  question: ''
+})
+const isConversation = computed(() => {
+  return !question.value.question.trim()
+})
 const conversationAPI = inject('conversationAPI') as any
 const displayDict: any = {
   reasoning_content: 'reasoning',
@@ -95,23 +103,27 @@ const getOnStream = (conversationRecord: any) => {
       }
       return null
     })
+    emit('chanage')
   }
   return onStream
 }
 
-const conversation = (text: string) => {
-  question.value = ''
+const conversation = (q: any) => {
+  if (isConversation.value) {
+    return
+  }
   const conversationRecord = reactive({
     answer: {},
-    question: { question: text }
+    question: { ...q }
   })
   conversationRecordList.value.push(conversationRecord)
   new ConversationStream(
-    conversationAPI(text),
+    conversationAPI(q),
     getOnStream(conversationRecord),
     () => {},
     () => {}
   ).stream()
+  question.value.question = ''
 }
 </script>
 <style lang="scss">

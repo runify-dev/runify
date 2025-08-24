@@ -14,6 +14,8 @@ import jakarta.validation.ValidatorFactory;
 import lombok.Getter;
 import lombok.SneakyThrows;
 
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -45,7 +47,13 @@ public class WorkFlowManage {
     /**
      * 用户收集参数
      */
+    @Getter
     private final Map<String, Object> params;
+
+    /**
+     * 运行开始时间
+     */
+    private LocalDateTime startTime;
 
     /**
      * 用于存储上下文
@@ -76,14 +84,18 @@ public class WorkFlowManage {
     /**
      * 工作流写出
      */
-    private final Write<INode<?, ?>, ChatCompletionChunk, Boolean> write;
+    private final Write<WorkFlowManage, INode<?, ?>, ChatCompletionChunk, Boolean> write;
     /**
      * 已运行的节点信息
      */
     @Getter
     private List<INode<?, ?>> nodes;
 
-    public WorkFlowManage(WorkFlow workFlow, List<Message> messages, Map<String, Object> params, Map<String, Map<String, Object>> context, Write<INode<?, ?>, ChatCompletionChunk, Boolean> write) {
+    public WorkFlowManage(WorkFlow workFlow,
+                          List<Message> messages,
+                          Map<String, Object> params,
+                          Map<String, Map<String, Object>> context,
+                          Write<WorkFlowManage, INode<?, ?>, ChatCompletionChunk, Boolean> write) {
         this.workFlow = workFlow;
         this.getStartNode = () -> workFlow.getNode("start-node");
         this.nodeNewInstance = NodeManage.of();
@@ -95,6 +107,7 @@ public class WorkFlowManage {
         this.messages = messages;
         this.params.put("messages", this.messages);
         this.nodes = new ArrayList<>();
+        this.startTime = LocalDateTime.now();
     }
 
     public void invoke() {
@@ -125,7 +138,7 @@ public class WorkFlowManage {
             List<NodeStatus> running = List.of(NodeStatus.RUNNING, NodeStatus.BEFORE_RUNNING);
             boolean b = this.nodes.stream().anyMatch(iNode -> running.contains(iNode.status));
             if (!b) {
-                this.write.write(null, null, true);
+                this.write.write(this, null, null, true);
             }
         }
 
@@ -166,6 +179,7 @@ public class WorkFlowManage {
     public void writeContext(INode<?, ?> iNode, String key, Object value) {
         Map<String, Object> m = this.context.computeIfAbsent(iNode.node.getId(), k -> new HashMap<>());
         m.put(key, value);
+        iNode.context.put(key, value);
     }
 
     /**
@@ -174,7 +188,7 @@ public class WorkFlowManage {
      * @param chatCompletionChunk 需要输出的chunk
      */
     public void write(INode<?, ?> node, ChatCompletionChunk chatCompletionChunk) {
-        this.write.write(node, chatCompletionChunk, false);
+        this.write.write(this, node, chatCompletionChunk, false);
     }
 
     /**
@@ -212,6 +226,11 @@ public class WorkFlowManage {
     public static WorkFlowManage restore(WorkFlow workFlow, JsonObject workflowDetails, String restoreNodeId) {
 
         return null;
+    }
+
+    public float getRuntime() {
+        long executionTime = ChronoUnit.MILLIS.between(this.startTime, LocalDateTime.now());
+        return (float) executionTime / 1000;
     }
 
     /**

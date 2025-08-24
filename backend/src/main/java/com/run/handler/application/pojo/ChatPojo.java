@@ -15,7 +15,8 @@ import java.util.UUID;
 @Getter
 @Setter
 public class ChatPojo {
-    private String question;
+
+    private QuestionPojo question;
 
     private UUID conversationId;
 }

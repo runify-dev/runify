@@ -7,28 +7,29 @@ import com.run.common.result.Result;
 import com.run.common.util.JacksonUtils;
 import com.run.dao.entity.Application;
 import com.run.dao.entity.Conversation;
+import com.run.dao.entity.ConversationRecord;
 import com.run.dao.entity.User;
 import com.run.dao.mapper.ApplicationMapper;
 import com.run.dao.mapper.ConversationMapper;
+import com.run.dao.mapper.ConversationRecordMapper;
 import com.run.handler.application.IApplicationHandler;
 import com.run.handler.application.pojo.ChatPojo;
 import com.run.handler.application.pojo.EditApplicationPojo;
+import com.run.workflow.Answer;
 import com.run.workflow.INode;
 import com.run.workflow.WorkFlowManage;
 import com.run.workflow.entity.WorkFlow;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.inject.Inject;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * {@code @Author:张少虎}
@@ -40,11 +41,13 @@ public class ApplicationHandlerImpl implements IApplicationHandler {
 
     protected ApplicationMapper applicationMapper;
     private final ConversationMapper conversationMapper;
+    private final ConversationRecordMapper conversationRecordMapper;
 
     @Inject
-    public ApplicationHandlerImpl(ApplicationMapper applicationMapper, ConversationMapper conversationMapper) {
+    public ApplicationHandlerImpl(ApplicationMapper applicationMapper, ConversationMapper conversationMapper, ConversationRecordMapper conversationRecordMapper) {
         this.applicationMapper = applicationMapper;
         this.conversationMapper = conversationMapper;
+        this.conversationRecordMapper = conversationRecordMapper;
     }
 
     @Override
@@ -76,7 +79,7 @@ public class ApplicationHandlerImpl implements IApplicationHandler {
                     if (conversation == null) {
                         Conversation conversationNew = new Conversation(UUID.randomUUID(),
                                 UUID.fromString(applicationId),
-                                StringUtils.substring(pojo.getQuestion(), 0, 128),
+                                StringUtils.substring(pojo.getQuestion().getQuestion(), 0, 128),
                                 new JsonObject(), ((User) context.user().get("user")).getId(),
                                 ConversationUserType.ANONYMOUS_USER,
                                 0, 0, 0, 0,
@@ -104,13 +107,27 @@ public class ApplicationHandlerImpl implements IApplicationHandler {
         context.response().write(Buffer.buffer("", "utf-8"));
         String conversationRecordId = UUID.randomUUID().toString();
         WorkFlowManage workFlowManage = new WorkFlowManage(WorkFlow.of(workflow),
-                List.of(new UserMessage(pojo.getQuestion())),
+                List.of(new UserMessage(pojo.getQuestion().getQuestion())),
                 new HashMap<>(Map.of("conversationId", conversation.getId(),
                         "applicationId", application.getId(),
                         "conversationRecordId", conversationRecordId)),
-                new HashMap<>(), (node, chunk, isEnd) -> {
+                new HashMap<>(), (wm, node, chunk, isEnd) -> {
             if (isEnd) {
-                context.response().end();
+                String conversationId = wm.getParams().get("conversationId").toString();
+                String applicationId = wm.getParams().get("applicationId").toString();
+                List<INode<?, ?>> nodes = wm.getNodes();
+                List<Answer> answers = nodes.stream().map(n -> n.getAnswerList(wm)).flatMap(Collection::stream).toList();
+                ConversationRecord conversationRecord = new ConversationRecord(UUID.fromString(conversationRecordId),
+                        UUID.fromString(conversationId),
+                        UUID.fromString(applicationId), false, false,
+                        new JsonObject(pojo.getQuestion().toMap()),
+                        new JsonArray(answers),
+                        new JsonObject(), wm.getRuntime(), LocalDateTime.now(), LocalDateTime.now());
+                conversationRecordMapper.save(conversationRecord)
+                        .onSuccess(_ -> {
+                            context.response().end();
+                        })
+                        .onFailure(context::fail);
                 return;
             }
             List<HashMap<String, Object>> list = chunk.toAppMap().stream().map(m -> {
@@ -120,7 +137,8 @@ public class ApplicationHandlerImpl implements IApplicationHandler {
                 result.put("node_id", node.getNode().getId());
                 result.put("display_id", node.getDisplayId());
                 result.put("node_name", node.getNode().getProperties().getString("name"));
-                result.put("conversationRecordId", conversationRecordId);
+                result.put("conversation_record_id", conversationRecordId);
+                result.put("conversation_id", conversation.getId());
                 return result;
             }).toList();
             for (HashMap<String, Object> result : list) {

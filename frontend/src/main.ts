@@ -51,7 +51,6 @@ const myTagPlugin = (md: markdownit) => {
       /* 解析逻辑 */
       const text = state.src.slice(state.bMarks[startLine], state.eMarks[startLine]);
       const match = text.match(/<my_tag(.*?)>/);
-      console.log('ss', match)
       if (match) {
         const token = state.push('my_tag', 'my_tag', 1);
         token.content = ""

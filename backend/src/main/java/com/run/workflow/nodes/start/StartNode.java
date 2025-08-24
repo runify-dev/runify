@@ -2,10 +2,7 @@ package com.run.workflow.nodes.start;
 
 import com.run.common.keyvalue.DefaultKeyValue;
 import com.run.common.openai.request.message.Message;
-import com.run.workflow.INode;
-import com.run.workflow.NodeStatus;
-import com.run.workflow.WorkFlowManage;
-import com.run.workflow.WorkflowType;
+import com.run.workflow.*;
 import com.run.workflow.entity.Node;
 import com.run.workflow.entity.NodeResult;
 import com.run.workflow.nodes.start.entity.StartNodeData;
@@ -31,6 +28,11 @@ public class StartNode extends INode<StartNode, StartNodeData> {
      * 节点支持在什么工作流中运行
      */
     public final static List<WorkflowType> supportWorkflow = List.of(WorkflowType.CHAT_WORKFLOW);
+
+    @Override
+    public List<Answer> getAnswerList(WorkFlowManage wm) {
+        return List.of();
+    }
 
     public StartNode(Node node, JsonObject params, List<String> upNodeIdList, String salt, INode<?, ?> upNode) {
         super(node, params, upNodeIdList, salt, upNode);

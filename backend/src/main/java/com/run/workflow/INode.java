@@ -13,6 +13,7 @@ import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -58,6 +59,8 @@ public abstract class INode<T extends INode, NodeData> {
     private INode<?, ?> upNode;
     @Getter
     private List<String> upNodeIdList;
+
+    public abstract List<Answer> getAnswerList(WorkFlowManage wm);
 
     public Boolean getNodeDisplaySingle(Node node) {
         JsonObject jsonObject = node.getProperties().getJsonObject("nodeData", new JsonObject());
