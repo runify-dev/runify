@@ -58,7 +58,7 @@ public class ConfigModule {
         @Override
         public boolean support() {
             String config = System.getenv("RUNIFY_CONFIG");
-            return Strings.CS.equals("ENV", config);
+            return Strings.CS.equals("ENV", config) || StringUtils.isEmpty(config);
         }
 
         @Override
