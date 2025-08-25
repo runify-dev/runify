@@ -1,5 +1,6 @@
 package com.run.dao.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.run.common.constants.ConversationUserType;
 import com.run.common.constants.DatabaseType;
 import com.run.common.util.JacksonUtils;
@@ -93,6 +94,7 @@ public class Conversation implements BaseEntity<Conversation> {
     }
 
     @Override
+    @JsonIgnore
     public Map<DatabaseType, BaseConvert<Conversation>> getConvertMap() {
         return Map.of(DatabaseType.SQLITE, new Sqlite());
     }

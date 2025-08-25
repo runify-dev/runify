@@ -42,6 +42,10 @@ public class ChatRoute implements IRoute {
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
                 .handler(applicationHandler::chat);
+        apiRoute.get("/application/folder/:folderId/resource/:applicationId/conversation/:currentPage/:pageSize")
+                .handler(BodyHandler.create())
+                .handler(tokenBasicAuthHandler)
+                .handler(applicationHandler::pageConversation);
     }
 
 

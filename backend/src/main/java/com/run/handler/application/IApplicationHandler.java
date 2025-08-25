@@ -30,4 +30,17 @@ public interface IApplicationHandler {
      */
     void chat(RoutingContext context);
 
+    /**
+     * 分页查询对话
+     *
+     * @param context 上下文
+     */
+    void pageConversation(RoutingContext context);
+
+    /**
+     * 分页查询对话记录
+     *
+     * @param context 上下文
+     */
+    void pageConversationRecord(RoutingContext context);
 }

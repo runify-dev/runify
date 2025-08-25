@@ -14,6 +14,7 @@ import com.run.dao.mapper.ConversationMapper;
 import com.run.dao.mapper.ConversationRecordMapper;
 import com.run.handler.application.IApplicationHandler;
 import com.run.handler.application.pojo.ChatPojo;
+import com.run.handler.application.pojo.ConversationQuery;
 import com.run.handler.application.pojo.EditApplicationPojo;
 import com.run.workflow.Answer;
 import com.run.workflow.INode;
@@ -21,10 +22,19 @@ import com.run.workflow.WorkFlowManage;
 import com.run.workflow.entity.WorkFlow;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
+import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
+import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.expression.StringValue;
+import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
+import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
+import net.sf.jsqlparser.expression.operators.relational.GreaterThan;
+import net.sf.jsqlparser.expression.operators.relational.LikeExpression;
+import net.sf.jsqlparser.expression.operators.relational.MinorThan;
+import net.sf.jsqlparser.schema.Column;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.inject.Inject;
@@ -96,6 +106,7 @@ public class ApplicationHandlerImpl implements IApplicationHandler {
 
     }
 
+
     private void extracted(RoutingContext context, CompositeFuture ok, ChatPojo pojo) {
         Conversation conversation = ok.resultAt(0);
         Application application = ok.resultAt(1);
@@ -147,5 +158,48 @@ public class ApplicationHandlerImpl implements IApplicationHandler {
 
         });
         workFlowManage.invoke();
+    }
+
+    public Expression getConversationQuery(ConversationQuery query) {
+        List<Expression> expressions = new ArrayList<>();
+        Expression applicationIdEq = new EqualsTo().withLeftExpression(new Column("application_id"))
+                .withRightExpression(new StringValue(query.getApplicationId()));
+        String startTime = query.getStartTime();
+        if (StringUtils.isNotEmpty(startTime)) {
+            MinorThan createTime = new MinorThan()
+                    .withLeftExpression(new Column("create_time"))
+                    .withRightExpression(new StringValue(startTime));
+            expressions.add(createTime);
+        }
+        if (StringUtils.isNotEmpty(query.getEndTime())) {
+            GreaterThan createTime = new GreaterThan().withLeftExpression(new Column("create_time"))
+                    .withRightExpression(new StringValue(query.getEndTime()));
+            expressions.add(createTime);
+        }
+        if (StringUtils.isNotEmpty(query.getName())) {
+            LikeExpression name = new LikeExpression()
+                    .withLeftExpression(new Column("name"))
+                    .withRightExpression(new StringValue(query.getName()));
+            expressions.add(name);
+        }
+        return expressions.stream().reduce(applicationIdEq, (x, y) ->
+                new AndExpression().withLeftExpression(x).withRightExpression(y));
+    }
+
+    @Override
+    public void pageConversation(RoutingContext context) {
+        String currentPage = context.pathParam("currentPage");
+        String pageSize = context.pathParam("pageSize");
+        MultiMap entries = context.queryParams().copy();
+        entries.addAll(context.pathParams());
+        Expression conversationQuery = getConversationQuery(new ConversationQuery(entries));
+        conversationMapper.page(conversationQuery, Long.parseLong(currentPage), Long.parseLong(pageSize))
+                .onSuccess(result -> context.end(Result.success(result).toBuffer()))
+                .onFailure(context::fail);
+    }
+
+    @Override
+    public void pageConversationRecord(RoutingContext context) {
+
     }
 }

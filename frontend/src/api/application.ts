@@ -21,9 +21,20 @@ const chat: (
   return postStream(`/api/application/folder/${folderId}/resource/${applicationId}/conversation`, conversation)
 }
 
+const pageConversation: (
+  folderId: string,
+  applicationId: String,
+  currentPage: number,
+  pageSize: number,
+  query: any,
+  loading?: Ref<boolean>
+) => Promise<Result<any>> = (folderId, applicationId, currentPage, pageSize, query, loading) => {
+  return get(`/application/folder/${folderId}/resource/${applicationId}/conversation/${currentPage}/${pageSize}`, query, loading)
+}
 
 
 export default {
   edit,
-  chat
+  chat,
+  pageConversation
 }
