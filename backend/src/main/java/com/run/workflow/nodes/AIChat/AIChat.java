@@ -11,6 +11,7 @@ import com.run.common.openai.response.chunk.ChatCompletionChunk;
 import com.run.common.util.JacksonUtils;
 import com.run.common.util.RSAUtil;
 import com.run.dao.mapper.ModelMapper;
+import com.run.models.BaseOpenaiChatModel;
 import com.run.models.IProvider;
 import com.run.models.ModelProvideConstants;
 import com.run.models.callback.Callback;
@@ -93,7 +94,7 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
                 String decrypt = RSAUtil.decrypt(model.getCredential());
                 Map<String, Object> map = JacksonUtils.fromJson(decrypt, new TypeReference<Map<String, Object>>() {
                 });
-                LLM llm = provider.getModel(model.getModelType(), model.getModelName(), map, Map.of(), LLM.class);
+                BaseOpenaiChatModel llm = provider.getModel(model.getModelType(), model.getModelName(), map, Map.of(), LLM.class);
                 llm.invoke(messages, true, new Callback<>() {
                     private final StringBuilder reasoningContent = new StringBuilder();
 

@@ -25,7 +25,7 @@ public class DeepSeekProvider implements IProvider {
         ModelInfo deepseek_chat = new ModelInfo("deepseek-chat", "", ModelType.LLM, new LLMCredential(), LLM.class);
         modelInfoManage = ModelInfoManage.builder()
                 .append(deepseek_reasoner, true)
-                .append(deepseek_chat, true).build();
+                .append(deepseek_chat, false).build();
         try {
             String file = Objects.requireNonNull(this.getClass().getResource("icon/deepseek.svg")).getFile();
             String icon = Files.readString(Paths.get(file), StandardCharsets.UTF_8);
