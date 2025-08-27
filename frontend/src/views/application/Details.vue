@@ -1,10 +1,5 @@
 <template>
   <TopHeaderVue root-route-name="applicationDetails">
-    <template #before>
-      <span class="ml-3 whitespace-nowrap text-white">
-        {{ application?.name }}
-      </span>
-    </template>
   </TopHeaderVue>
   <div style="height: calc(100vh - 40px)">
     <router-view></router-view>

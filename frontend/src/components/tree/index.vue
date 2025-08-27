@@ -4,13 +4,13 @@
             <div class="knowledge-menu" @click="router.push({
                 path: `/${resource}/star`
             })" :class="star ? 'is_current' : ''">
-                <AppIcon name="app-document"></AppIcon>
+                <AppIcon name="app-collect"></AppIcon>
                 收藏
             </div>
             <div class="knowledge-menu" @click="router.push({
                 path: `/${resource}/share`
             })" :class="share ? 'is_current' : ''">
-                <AppIcon name="app-document"></AppIcon>
+                <AppIcon name="app-share"></AppIcon>
                 分享
             </div>
         </div>

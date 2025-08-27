@@ -7,7 +7,7 @@
         height: 50px;
       "
     >
-      <div class="pl-4">
+      <div class="pl-4 text-white">
         {{ application.name }}
       </div>
       <div class="pr-4">

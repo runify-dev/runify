@@ -1,7 +1,7 @@
 const noteRouter = {
     path: "/application",
     name: "application",
-    meta: { title: "应用", icon: 'app-document', activeMenu: "application" },
+    meta: { title: "应用", icon: 'app-application', activeMenu: "application" },
     component: () => import("@/views/application/index.vue"),
     redirect: '/application/folder/root/resource/root',
     children: [

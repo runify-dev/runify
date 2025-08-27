@@ -1,7 +1,7 @@
 const noteRouter = {
   path: "/model",
   name: "model",
-  meta: { title: "模型", icon: 'app-document', activeMenu: "model" },
+  meta: { title: "模型", icon: 'app-model', activeMenu: "model" },
   component: () => import("@/views/model/index.vue"),
   redirect: '/model/folder/root/resource/root',
   children: [

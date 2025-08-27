@@ -6,7 +6,7 @@
             <span></span>
         </div>
         <div class="content">
-            <AppIcon name="app-document"></AppIcon>
+            <AppIcon :name="menu.meta?.icon"></AppIcon>
             <span>{{ menu.meta?.title }}</span>
         </div>
     </div>
@@ -29,8 +29,8 @@ const isActive = computed(() => {
 </script>
 <style lang="scss" scoped>
 .card {
-    width: 40px;
-    height: 40px;
+    width: 46px;
+    height: 46px;
     border-radius: 7px;
     position: relative;
     display: flex;
