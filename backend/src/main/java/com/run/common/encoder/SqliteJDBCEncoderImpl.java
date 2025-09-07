@@ -1,5 +1,6 @@
 package com.run.common.encoder;
 
+import com.run.common.util.CommonUtils;
 import io.vertx.core.json.JsonArray;
 import io.vertx.jdbcclient.impl.actions.JDBCColumnDescriptor;
 import io.vertx.jdbcclient.spi.JDBCColumnDescriptorProvider;
@@ -23,6 +24,16 @@ public class SqliteJDBCEncoderImpl extends JDBCEncoderImpl {
 
     @Override
     public Object encode(Tuple input, int pos, JDBCColumnDescriptorProvider provider) throws SQLException {
-        return super.doEncode(JDBCColumnDescriptor.wrap(JDBCType.OTHER), pos);
+        Object value = input.getValue(pos-1);
+        if (value instanceof String) {
+            return super.doEncode(JDBCColumnDescriptor.wrap(JDBCType.VARCHAR), value);
+        } else if (value instanceof Integer) {
+            return super.doEncode(JDBCColumnDescriptor.wrap(JDBCType.INTEGER), value);
+        } else if (value instanceof Double) {
+            return super.doEncode(JDBCColumnDescriptor.wrap(JDBCType.DOUBLE), value);
+        } else if (value instanceof Float) {
+            return super.doEncode(JDBCColumnDescriptor.wrap(JDBCType.FLOAT), value);
+        }
+        return super.encode(input, pos, provider);
     }
 }
