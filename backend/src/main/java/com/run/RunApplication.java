@@ -4,7 +4,6 @@ package com.run;
 import com.run.dagger.component.AppComponent;
 import com.run.dagger.component.DaggerAppComponent;
 import com.run.dagger.module.AppModule;
-import com.run.dagger.module.ConfigModule;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.ext.web.Router;
 import io.vertx.launcher.application.VertxApplication;

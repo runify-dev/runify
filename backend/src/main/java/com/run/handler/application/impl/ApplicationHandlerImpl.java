@@ -4,6 +4,7 @@ package com.run.handler.application.impl;
 import com.run.common.constants.ConversationUserType;
 import com.run.common.openai.request.message.UserMessage;
 import com.run.common.result.Result;
+import com.run.common.util.FieldUtil;
 import com.run.common.util.JacksonUtils;
 import com.run.dao.entity.Application;
 import com.run.dao.entity.Conversation;
@@ -36,6 +37,8 @@ import net.sf.jsqlparser.expression.operators.relational.LikeExpression;
 import net.sf.jsqlparser.expression.operators.relational.MinorThan;
 import net.sf.jsqlparser.schema.Column;
 import org.apache.commons.lang3.StringUtils;
+import org.jooq.Condition;
+import org.jooq.impl.DSL;
 
 import javax.inject.Inject;
 import java.time.LocalDateTime;
@@ -160,30 +163,19 @@ public class ApplicationHandlerImpl implements IApplicationHandler {
         workFlowManage.invoke();
     }
 
-    public Expression getConversationQuery(ConversationQuery query) {
-        List<Expression> expressions = new ArrayList<>();
-        Expression applicationIdEq = new EqualsTo().withLeftExpression(new Column("application_id"))
-                .withRightExpression(new StringValue(query.getApplicationId()));
+    public Condition getConversationQuery(ConversationQuery query) {
+        Condition condition = DSL.field("application_id").eq(query.getApplicationId());
         String startTime = query.getStartTime();
         if (StringUtils.isNotEmpty(startTime)) {
-            MinorThan createTime = new MinorThan()
-                    .withLeftExpression(new Column("create_time"))
-                    .withRightExpression(new StringValue(startTime));
-            expressions.add(createTime);
+            condition = condition.and(DSL.field("create_time").le(startTime));
         }
         if (StringUtils.isNotEmpty(query.getEndTime())) {
-            GreaterThan createTime = new GreaterThan().withLeftExpression(new Column("create_time"))
-                    .withRightExpression(new StringValue(query.getEndTime()));
-            expressions.add(createTime);
+            condition = condition.and(DSL.field("create_time").ge(startTime));
         }
         if (StringUtils.isNotEmpty(query.getName())) {
-            LikeExpression name = new LikeExpression()
-                    .withLeftExpression(new Column("name"))
-                    .withRightExpression(new StringValue(query.getName()));
-            expressions.add(name);
+            condition = condition.and(DSL.field("name").like(query.getName()));
         }
-        return expressions.stream().reduce(applicationIdEq, (x, y) ->
-                new AndExpression().withLeftExpression(x).withRightExpression(y));
+        return condition;
     }
 
     @Override
@@ -192,7 +184,7 @@ public class ApplicationHandlerImpl implements IApplicationHandler {
         String pageSize = context.pathParam("pageSize");
         MultiMap entries = context.queryParams().copy();
         entries.addAll(context.pathParams());
-        Expression conversationQuery = getConversationQuery(new ConversationQuery(entries));
+        Condition conversationQuery = getConversationQuery(new ConversationQuery(entries));
         conversationMapper.page(conversationQuery, Long.parseLong(currentPage), Long.parseLong(pageSize))
                 .onSuccess(result -> context.end(Result.success(result).toBuffer()))
                 .onFailure(context::fail);

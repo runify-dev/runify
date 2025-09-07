@@ -1,7 +1,7 @@
 package com.run.common.config;
 
-import com.run.common.constants.DatabaseType;
 import lombok.Data;
+import org.jooq.SQLDialect;
 
 /**
  * {@code @Author:张少虎}
@@ -17,7 +17,7 @@ public class AppConfig {
 
     public static AppConfig getDefault() {
         DataBase dataBase = new DataBase();
-        dataBase.setType(DatabaseType.SQLITE);
+        dataBase.setType(SQLDialect.SQLITE);
         AppConfig appConfig = new AppConfig();
         System s = new System();
         s.setDataPath("data");

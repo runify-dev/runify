@@ -2,11 +2,11 @@ package com.run.dagger.module;
 
 import com.run.common.config.AppConfig;
 import com.run.common.config.DataBase;
-import com.run.common.constants.DatabaseType;
 import dagger.Module;
 import dagger.Provides;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
+import org.jooq.SQLDialect;
 import org.yaml.snakeyaml.Yaml;
 
 import javax.inject.Singleton;
@@ -68,7 +68,7 @@ public class ConfigModule {
             String databaseType = System.getenv("RUNIFY_DATABASE_TYPE");
             com.run.common.config.System system = new com.run.common.config.System();
             system.setDataPath(Optional.of(systemDataPath).orElse("data"));
-            dataBase.setType(Optional.of(databaseType).map(DatabaseType::valueOf).orElse(DatabaseType.SQLITE));
+            dataBase.setType(Optional.of(databaseType).map(SQLDialect::valueOf).orElse(SQLDialect.SQLITE));
             dataBase.setHost(Optional.of(System.getenv("RUNIFY_DATABASE_HOST")).orElse("127.0.0.1"));
             dataBase.setPort(Optional.of(System.getenv("RUNIFY_DATABASE_PORT")).map(Integer::valueOf).orElse(5432));
             dataBase.setUsername(Optional.of(System.getenv("RUNIFY_DATABASE_USERNAME")).orElse("postgres"));
@@ -99,7 +99,7 @@ public class ConfigModule {
 
     @Provides
     @Singleton
-    public DatabaseType dbType() {
+    public SQLDialect dbType() {
         return appConfig.getDatabase().getType();
     }
 }

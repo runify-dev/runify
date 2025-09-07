@@ -2,39 +2,31 @@ package com.run.dao.common.mapper;
 
 
 import com.run.common.config.AppConfig;
-import com.run.common.constants.DatabaseType;
 import com.run.common.result.Page;
-import com.run.common.util.SqlGenUtil;
+import com.run.common.util.FieldUtil;
 import com.run.dao.common.convert.BaseConvert;
 import com.run.dao.common.entity.BaseEntity;
 import io.vertx.core.Future;
 import io.vertx.sqlclient.*;
+import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.templates.SqlTemplate;
 import io.vertx.sqlclient.templates.TupleMapper;
+import lombok.Getter;
 import lombok.SneakyThrows;
-import net.sf.jsqlparser.expression.*;
-import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
-import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
-import net.sf.jsqlparser.schema.Column;
-import net.sf.jsqlparser.schema.Table;
-import net.sf.jsqlparser.statement.delete.Delete;
-import net.sf.jsqlparser.statement.select.Limit;
-import net.sf.jsqlparser.statement.select.PlainSelect;
-import net.sf.jsqlparser.statement.select.Select;
-import net.sf.jsqlparser.statement.select.SelectItem;
-import net.sf.jsqlparser.statement.update.Update;
-import net.sf.jsqlparser.util.SelectUtils;
 import org.apache.commons.lang3.reflect.FieldUtils;
+import org.jooq.*;
+import org.jooq.conf.ParamType;
+import org.jooq.conf.Settings;
+import org.jooq.impl.DSL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+
+import static org.jooq.impl.DSL.*;
 
 /**
  * {@code @Author:张少虎}
@@ -43,20 +35,28 @@ import java.util.Map;
  * {@code @注释: }
  */
 public class BaseMapper<T extends BaseEntity<T>> {
+    Logger log = LoggerFactory.getLogger(this.getClass());
 
+    protected T entity;
 
-    protected final T entity;
+    private List<org.jooq.Field<?>> fields;
 
-    protected final Table table;
+    @Getter
+    private Table<?> table;
 
     protected Pool client;
 
-    protected DatabaseType dbType;
-    private BaseConvert convert;
-    private final String saveTemplate;
-    private final Field primaryField;
+    protected SQLDialect dbType;
+    @Getter
+    private DSLContext dslContext;
 
-    Logger log = LoggerFactory.getLogger(this.getClass());
+    private BaseConvert convert;
+
+    private String saveTemplate;
+
+    @Getter
+    private org.jooq.Field<Object> primaryField;
+
 
     protected BaseConvert<T> getConvert() {
         if (convert == null) {
@@ -65,69 +65,76 @@ public class BaseMapper<T extends BaseEntity<T>> {
         return convert;
     }
 
-    public Table getTable() {
-        return table;
-    }
-
-    public Table generateTable(com.run.dao.common.annotations.Table t) {
-        if (dbType == DatabaseType.POSTGRESQL) {
-            return new Table(t.catalogName(), t.schemaName(), t.name());
+    public Table<?> generateTable(com.run.dao.common.annotations.Table t) {
+        if (List.of(SQLDialect.POSTGRES, SQLDialect.H2).contains(dbType)) {
+            return DSL.table(DSL.name(t.schemaName(), t.name()));
         }
-        return new Table(t.catalogName(), t.name());
+        return DSL.table(DSL.name(t.name()));
     }
 
     @SneakyThrows
     @Inject
     public BaseMapper(Pool client, AppConfig appConfig) {
-        this.client = client;
-        this.dbType = appConfig.getDatabase().getType();
         Class<T> entityClass = currentEntity();
-        this.entity = entityClass.getConstructor().newInstance();
-        com.run.dao.common.annotations.Table t = entityClass.getAnnotation(com.run.dao.common.annotations.Table.class);
-        this.table = generateTable(t);
-        this.saveTemplate = SqlGenUtil.generateInsertSql(table, entityClass);
-        List<Field> fields = Arrays.stream(FieldUtils
-                        .getFieldsWithAnnotation(entityClass, com.run.dao.common.annotations.Column.class))
-                .filter(field -> field.getAnnotation(com.run.dao.common.annotations.Column.class).primaryKey()).toList();
-        if (fields.size() != 1) {
-            throw new RuntimeException("主键只能有一个");
-        }
-        this.primaryField = fields.get(0);
+        this.constructor(client, appConfig.getDatabase().getType(), entityClass);
     }
 
     @SneakyThrows
     public BaseMapper() {
         Class<T> entityClass = currentEntity();
-        this.entity = entityClass.getConstructor().newInstance();
-        com.run.dao.common.annotations.Table t = entityClass.getAnnotation(com.run.dao.common.annotations.Table.class);
-        this.table = generateTable(t);
-        this.saveTemplate = SqlGenUtil.generateInsertSql(table, entityClass);
-        List<Field> fields = Arrays.stream(FieldUtils
-                        .getFieldsWithAnnotation(entityClass, com.run.dao.common.annotations.Column.class))
-                .filter(field -> field.getAnnotation(com.run.dao.common.annotations.Column.class).primaryKey()).toList();
-        if (fields.size() != 1) {
-            throw new RuntimeException("主键只能有一个");
-        }
-        this.primaryField = fields.get(0);
+        this.constructor(null, SQLDialect.SQLITE, entityClass);
     }
 
     @SneakyThrows
-    public BaseMapper(Pool client, DatabaseType dbType, Class<T> entityClass) {
+    public BaseMapper(Pool client, SQLDialect dbType, Class<T> entityClass) {
+        this.constructor(client, dbType, entityClass);
+    }
+
+    @SneakyThrows
+    private void constructor(Pool client, SQLDialect dbType, Class<T> entityClass) {
         this.client = client;
         this.dbType = dbType;
+        this.dslContext = using(dbType, new Settings().withRenderNamedParamPrefix(""));
         this.entity = entityClass.getConstructor().newInstance();
         com.run.dao.common.annotations.Table t = entityClass.getAnnotation(com.run.dao.common.annotations.Table.class);
         this.table = generateTable(t);
-        this.saveTemplate = SqlGenUtil.generateInsertSql(table, entityClass);
+        this.fields = FieldUtil.getFieldList(entityClass);
         List<Field> fields = Arrays.stream(FieldUtils
                         .getFieldsWithAnnotation(entityClass, com.run.dao.common.annotations.Column.class))
                 .filter(field -> field.getAnnotation(com.run.dao.common.annotations.Column.class).primaryKey()).toList();
         if (fields.size() != 1) {
             throw new RuntimeException("主键只能有一个");
         }
-        this.primaryField = fields.get(0);
+        this.primaryField = DSL.field(fields.getFirst().getName());
+
+        this.saveTemplate = generateSaveTemplate();
     }
 
+    private String generateSaveTemplate() {
+        Map<org.jooq.Field<?>, Param<?>> updateMap = new HashMap<>();
+        for (org.jooq.Field<?> field : fields) {
+            updateMap.put(field, param("#{" + field.getName() + "}"));
+        }
+        return dslContext.insertInto(table)
+                .set(updateMap).getSQL(ParamType.NAMED);
+    }
+
+    private String generateUpdateTemplate(T obj) {
+        Map<String, Object> map = getConvert().toMap(obj);
+        Map<org.jooq.Field<?>, Param<?>> updateMap = new HashMap<>();
+        for (org.jooq.Field<?> field : fields) {
+            if (!field.getName().equals(primaryField.getName())) {
+                if (map.get(field.getName()) != null) {
+                    updateMap.put(field, param("#{" + field.getName() + "}"));
+                }
+            }
+        }
+        return dslContext.update(table)
+                .set(updateMap)
+                .where(primaryField.eq(param("#{" + primaryField.getName() + "}")))
+                .getSQL(ParamType.NAMED);
+
+    }
 
     public Class<T> currentEntity() {
         ParameterizedType genericSuperclass = (ParameterizedType) getClass().getGenericSuperclass();
@@ -168,55 +175,62 @@ public class BaseMapper<T extends BaseEntity<T>> {
     }
 
     /**
-     * 查询
+     * 检索
      *
-     * @param select 查询条件
-     * @param params 参数
-     * @return 异步响应
-     */
-    public Future<RowSet<T>> search(Select select, Map<String, Object> params) {
-        String template = select.getPlainSelect().toString();
-        log.info("sql:{}\n{}", template, params);
-        return SqlTemplate.forQuery(client, select.getPlainSelect().toString())
-                .mapTo(this.getConvert()::mapTo)
-                .execute(params);
-
-    }
-
-    /**
-     * 查询
-     *
-     * @param select 查询
-     * @return 异步响应
-     */
-    public Future<RowSet<T>> search(Select select) {
-        return search(select, Map.of());
-    }
-
-    /**
-     * 查询
-     *
-     * @param where 条件
+     * @param condition 查询
+     * @param params    参数
      * @return 数据
      */
-    public Future<RowSet<T>> search(Expression where, Map<String, Object> params) {
-        Select select = SelectUtils.buildSelectFromTable(table);
-        PlainSelect plainSelect = select.getPlainSelect();
-        plainSelect.withWhere(where);
-        return search(select, params);
+    public Future<RowSet<T>> search(Condition condition, Map<String, Object> params) {
+        String template = dslContext.select(fields).from(table).where(condition).getSQL(ParamType.NAMED);
+        return search(template, params);
     }
+
+    /**
+     * 检索
+     *
+     * @param template 模版
+     * @param params   参数
+     * @return 数据
+     */
+    public Future<RowSet<T>> search(String template, Map<String, Object> params) {
+        return SqlTemplate.forQuery(client, template)
+                .mapTo(this.getConvert()::mapTo)
+                .execute(params);
+    }
+
+    /**
+     * 检索
+     *
+     * @param template      模版
+     * @param params        参数
+     * @param sqlConnection 连接
+     * @return 数据
+     */
+    public Future<RowSet<T>> search(String template, Map<String, Object> params, SqlConnection sqlConnection) {
+        return SqlTemplate.forQuery(sqlConnection, template)
+                .mapTo(this.getConvert()::mapTo)
+                .execute(params);
+    }
+
 
     /**
      * 查询一条数据
      *
-     * @param where 条件
+     * @param template 模版字符串
+     * @param params   参数
      * @return 数据
      */
-    public Future<T> one(Expression where) {
-        Select select = SelectUtils.buildSelectFromTable(table);
-        PlainSelect plainSelect = select.getPlainSelect();
-        plainSelect.withWhere(where);
-        return one(select);
+    public Future<T> one(String template, Map<String, Object> params) {
+        return search(template, params).compose(row -> {
+            int size = row.size();
+            if (size == 1) {
+                return Future.succeededFuture(row.iterator().next());
+            } else if (size > 1) {
+                return Future.failedFuture(new RuntimeException("数据大于1条"));
+            }
+            return Future.succeededFuture(null);
+        });
     }
 
     /**
@@ -226,34 +240,36 @@ public class BaseMapper<T extends BaseEntity<T>> {
      * @return 数据
      */
     public Future<T> getById(String id) {
-        Select select = SelectUtils.buildSelectFromTable(table);
-        PlainSelect plainSelect = select.getPlainSelect();
-        String name = this.primaryField.getAnnotation(com.run.dao.common.annotations.Column.class).name();
-        EqualsTo equalsTo = new EqualsTo().withLeftExpression(new Column(name))
-                .withRightExpression(new StringValue(id));
-        plainSelect.withWhere(equalsTo);
-        return one(equalsTo);
+        String sql = dslContext
+                .select(fields)
+                .from(table)
+                .where(primaryField.eq(param("#{" + primaryField.getName() + "}")))
+                .getSQL(ParamType.NAMED);
+        return one(sql, Map.of(primaryField.getName(), id));
     }
 
     /**
      * 查询一条数据
      *
-     * @param where  条件
-     * @param params 条件数据
+     * @param condition 条件
+     * @param params    条件数据
      * @return 数据
      */
-    public Future<T> one(Expression where, Map<String, Object> params) {
-        Select select = SelectUtils.buildSelectFromTable(table);
-        PlainSelect plainSelect = select.getPlainSelect();
-        plainSelect.withWhere(where);
-        return one(select, params);
+    public Future<T> one(Condition condition, Map<String, Object> params) {
+        String sql = dslContext
+                .select(fields)
+                .from(table)
+                .where(condition)
+                .getSQL(ParamType.NAMED);
+        return one(sql, params);
     }
 
     public Future<SqlResult<Void>> deleteById(String id, SqlClient sqlClient) {
-        String name = this.primaryField.getAnnotation(com.run.dao.common.annotations.Column.class).name();
-        EqualsTo equalsTo = new EqualsTo().withLeftExpression(new Column(name))
-                .withRightExpression(new Column("#{%s}".formatted(name)));
-        return delete(equalsTo, Map.of(name, id));
+        String sql = this.dslContext
+                .delete(table)
+                .where(primaryField.eq(param("#{" + primaryField.getName() + "}")))
+                .getSQL(ParamType.NAMED);
+        return delete(sql, Map.of(primaryField.getName(), id));
     }
 
     /**
@@ -263,72 +279,52 @@ public class BaseMapper<T extends BaseEntity<T>> {
      * @return SqlResult
      */
     public Future<SqlResult<Void>> deleteById(String id) {
-        String name = this.primaryField.getAnnotation(com.run.dao.common.annotations.Column.class).name();
-        EqualsTo equalsTo = new EqualsTo().withLeftExpression(new Column(name))
-                .withRightExpression(new Column("#{%s}".formatted(name)));
-        return delete(equalsTo, Map.of(name, id));
+        return deleteById(id, client);
     }
 
     /**
      * 删除数据
      *
-     * @param where  条件
-     * @param params 参数
+     * @param condition 条件
+     * @param params    参数
      * @return SqlResult
      */
-    public Future<SqlResult<Void>> delete(Expression where, Map<String, Object> params, SqlClient sqlClient) {
-        Delete delete = new Delete();
-        delete.withTable(table);
-        delete.withWhere(where);
-        return delete(delete, params);
+    public Future<SqlResult<Void>> delete(Condition condition, Map<String, Object> params, SqlClient sqlClient) {
+        String sql = dslContext.delete(table).where(condition).getSQL(ParamType.NAMED);
+        return delete(sql, params, sqlClient);
     }
 
     /**
      * 删除数据
      *
-     * @param where  条件
-     * @param params 参数
+     * @param template 删除字符串
+     * @param params   参数
      * @return SqlResult
      */
-    public Future<SqlResult<Void>> delete(Expression where, Map<String, Object> params) {
-        Delete delete = new Delete();
-        delete.withTable(table);
-        delete.withWhere(where);
-        return delete(delete, params);
+    public Future<SqlResult<Void>> delete(String template, Map<String, Object> params, SqlClient sqlClient) {
+        return SqlTemplate.forUpdate(sqlClient, template)
+                .execute(params);
     }
+
 
     /**
      * 删除数据
      *
-     * @param delete 删除对象
-     * @param params 参数
+     * @param template 删除对象
+     * @param params   参数
      * @return 异步响应
      */
-    public Future<SqlResult<Void>> delete(Delete delete, Map<String, Object> params, SqlClient sqlClient) {
-        return SqlTemplate.forUpdate(sqlClient, delete.toString())
-                .execute(params);
+    public Future<SqlResult<Void>> delete(String template, Map<String, Object> params) {
+        return delete(template, params, client);
     }
 
-    /**
-     * 删除数据
-     *
-     * @param delete 删除对象
-     * @param params 参数
-     * @return 异步响应
-     */
-    public Future<SqlResult<Void>> delete(Delete delete, Map<String, Object> params) {
-        return SqlTemplate.forUpdate(client, delete.toString())
-                .execute(params);
+    public Future<SqlResult<Void>> delete(Condition condition, Map<String, Object> params) {
+        String template = dslContext.delete(table).where(condition).getSQL(ParamType.NAMED);
+        return delete(template, params, client);
     }
 
-    public Future<SqlResult<Void>> update(Expression where, Map<String, Object> params) {
-        Update update = SqlGenUtil.generateUpdateSql(table, params, primaryField.getAnnotation(com.run.dao.common.annotations.Column.class).name());
-        return SqlTemplate.forUpdate(client, update.toString())
-                .execute(params);
-    }
-
-    public Future<SqlResult<Void>> update(Update update, Map<String, Object> params) {
-        return SqlTemplate.forUpdate(client, update.toString())
+    public Future<SqlResult<Void>> update(String template, Map<String, Object> params) {
+        return SqlTemplate.forUpdate(client, template)
                 .execute(params);
     }
 
@@ -339,67 +335,34 @@ public class BaseMapper<T extends BaseEntity<T>> {
      * @return SqlResult
      */
     public Future<SqlResult<Void>> update(T t) {
-        Update update = SqlGenUtil.generateUpdateSql(table, t);
-        if (update.getUpdateSets().size() == 0) {
-            return Future.failedFuture("不存在的数据修改");
-        }
-        return SqlTemplate.forUpdate(client, update.toString())
+        String template = generateUpdateTemplate(t);
+        return SqlTemplate.forUpdate(client, template)
                 .mapFrom(TupleMapper.mapper(this.getConvert()::toMap))
                 .execute(t);
     }
 
-    /**
-     * 查询一条
-     *
-     * @param select 查询条件
-     * @return 异步响应
-     */
-    public Future<T> one(Select select) {
-        return one(select, Map.of());
-    }
 
     /**
-     * 查询一条
+     * 查询列表
      *
-     * @param select 查询条件
-     * @param params 参数
+     * @param condition 查询条件
+     * @param params    参数
      * @return 异步响应
      */
-    public Future<T> one(Select select, Map<String, Object> params) {
-        return search(select, params).compose(rowSet -> {
-            int size = rowSet.size();
-            if (size == 1) {
-                return Future.succeededFuture(rowSet.iterator().next());
-            } else if (size > 1) {
-                return Future.failedFuture(new RuntimeException("数据大于1条"));
-            }
-            return Future.succeededFuture(null);
-        });
+    public Future<List<T>> list(Condition condition, Map<String, Object> params) {
+        return _list(condition, params).compose(BaseMapper::toListFuture);
     }
 
     /**
      * 查询列表
      *
-     * @param where  查询条件
-     * @param params 参数
+     * @param condition 查询条件
+     * @param params    参数
      * @return 异步响应
      */
-    public Future<List<T>> list(Expression where, Map<String, Object> params) {
-        return _list(where, params).compose(BaseMapper::toListFuture);
-    }
-
-    /**
-     * 查询列表
-     *
-     * @param where  查询条件
-     * @param params 参数
-     * @return 异步响应
-     */
-    public Future<RowSet<T>> _list(Expression where, Map<String, Object> params) {
-        Select select = SelectUtils.buildSelectFromTable(table);
-        PlainSelect plainSelect = select.getPlainSelect();
-        plainSelect.withWhere(where);
-        return SqlTemplate.forQuery(client, select.toString())
+    public Future<RowSet<T>> _list(Condition condition, Map<String, Object> params) {
+        String sql = dslContext.select(fields).from(table).where(condition).getSQL(ParamType.NAMED);
+        return SqlTemplate.forQuery(client, sql)
                 .mapTo(this.getConvert()::mapTo)
                 .execute(params);
     }
@@ -407,14 +370,14 @@ public class BaseMapper<T extends BaseEntity<T>> {
     /**
      * 分页查询
      *
-     * @param where       查询条件
+     * @param condition   查询条件
      * @param currentPage 当前页
      * @param pageSize    每页大小
      * @return 分页数据
      */
-    public Future<Page<T>> page(Expression where, long currentPage, long pageSize) {
-        Future<Long> count = count(where);
-        return _page(where, currentPage, pageSize).compose(rowSet -> count.compose(c -> {
+    public Future<Page<T>> page(Condition condition, long currentPage, long pageSize) {
+        Future<Long> count = count(condition);
+        return _page(condition, currentPage, pageSize).compose(rowSet -> count.compose(c -> {
             List<T> ts = toList(rowSet);
             return Future.succeededFuture(new Page<T>(ts, c, currentPage, pageSize));
         }));
@@ -441,16 +404,18 @@ public class BaseMapper<T extends BaseEntity<T>> {
     /**
      * 分页查询
      *
-     * @param where       查询条件
+     * @param condition   查询条件
      * @param currentPage 当前页
      * @param pageSize    每页大小
      * @return 分页结果
      */
-    private Future<RowSet<T>> _page(Expression where, long currentPage, long pageSize) {
-        Select select = SelectUtils.buildSelectFromTable(table);
-        select.getPlainSelect().withWhere(where);
-        select.setLimit(new Limit().withOffset(new LongValue(((currentPage - 1) * pageSize))).withRowCount(new LongValue(pageSize)));
-        return SqlTemplate.forQuery(client, select.toString())
+    private Future<RowSet<T>> _page(Condition condition, long currentPage, long pageSize) {
+        String sql = dslContext.select(fields).from(table).where(condition)
+                .offset((currentPage - 1) * pageSize)
+                .limit(pageSize)
+                .getSQL(ParamType.NAMED);
+
+        return SqlTemplate.forQuery(client, sql)
                 .mapTo(this.getConvert()::mapTo)
                 .execute(Map.of());
 
@@ -459,16 +424,13 @@ public class BaseMapper<T extends BaseEntity<T>> {
     /**
      * 获取count
      *
-     * @param where 条件
+     * @param condition 条件
      * @return count 数
      */
-    public Future<Long> count(Expression where) {
-        Select select = SelectUtils.buildSelectFromTable(table);
-        Function count = new Function().withName("COUNT").withParameters(new ExpressionList<>().withExpressions(new Column("*")));
-        SelectItem<?> c = new SelectItem<>().withExpression(count).withAlias(new Alias("count"));
-        PlainSelect plainSelect = select.getPlainSelect();
-        plainSelect.withSelectItems(List.of(c)).withWhere(where);
-        return SqlTemplate.forQuery(client, select.toString())
+    public Future<Long> count(Condition condition) {
+        String sql = dslContext.selectCount().from(table)
+                .where(condition).getSQL(ParamType.NAMED);
+        return SqlTemplate.forQuery(client, sql)
                 .execute(Map.of()).compose(rows -> {
                     Row next = rows.iterator().next();
                     return Future.succeededFuture(next.getLong("count"));

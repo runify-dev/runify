@@ -2,10 +2,7 @@ package com.run.handler.user.impl;
 
 
 import com.run.common.result.Result;
-import com.run.common.util.CommonUtils;
-import com.run.common.util.JWTUtil;
-import com.run.common.util.SqlGenUtil;
-import com.run.common.util.ValidatorUtil;
+import com.run.common.util.*;
 import com.run.common.validator.Group;
 import com.run.dao.entity.User;
 import com.run.dao.mapper.UserMapper;
@@ -23,6 +20,8 @@ import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import org.apache.commons.beanutils.BeanUtils;
+import org.jooq.Condition;
+import org.jooq.impl.DSL;
 
 import javax.inject.Inject;
 import java.util.List;
@@ -74,14 +73,10 @@ public class UserHandlerImpl implements IUserHandler {
             String password = loginPojo.getPassword();
 
 
-            AndExpression where = new AndExpression()
-                    .withLeftExpression(new EqualsTo().withLeftExpression(new Column("username"))
-                            .withRightExpression(new StringValue(username)))
-                    .withRightExpression(new EqualsTo().withLeftExpression(new Column("password"))
-                            .withRightExpression(new StringValue(CommonUtils.getSHA256(password))));
-
-
-            userMapper.search(where, Map.of())
+            Condition eq = FieldUtil.getField(User::getUsername)
+                    .eq(FieldUtil.getParms(User::getUsername))
+                    .and(FieldUtil.getField(User::getPassword).eq(FieldUtil.getParms(User::getPassword)));
+            userMapper.search(eq, Map.of("username", username, "password", CommonUtils.getSHA256(password)))
                     .onSuccess(rows -> {
                         if (rows.size() > 0) {
                             User user = rows.iterator().next();
@@ -100,7 +95,7 @@ public class UserHandlerImpl implements IUserHandler {
     @Override
     public Handler<RoutingContext> profile() {
         return context -> {
-            io.vertx.ext.auth.User user = context.user();
+                io.vertx.ext.auth.User user = context.user();
             User userInstance = user.get("user");
             UserPojo userPojo = new UserPojo();
             try {

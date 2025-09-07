@@ -1,7 +1,6 @@
 package com.run.auth.provider;
 
 import com.auth0.jwt.interfaces.Claim;
-import com.run.common.constants.DatabaseType;
 import com.run.common.util.JWTUtil;
 import com.run.dao.common.mapper.BaseMapper;
 import io.vertx.core.Future;
@@ -12,10 +11,7 @@ import io.vertx.ext.auth.authentication.Credentials;
 import io.vertx.ext.auth.authentication.TokenCredentials;
 import io.vertx.ext.auth.impl.UserImpl;
 import io.vertx.sqlclient.Pool;
-import net.sf.jsqlparser.expression.Expression;
-import net.sf.jsqlparser.expression.StringValue;
-import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
-import net.sf.jsqlparser.schema.Column;
+import org.jooq.SQLDialect;
 
 import java.util.Map;
 
@@ -28,7 +24,7 @@ import java.util.Map;
 public class TokenProvider implements AuthenticationProvider {
     private Pool pool;
 
-    private DatabaseType dbType;
+    private SQLDialect dbType;
     private BaseMapper<com.run.dao.entity.User> userMapper;
 
     private BaseMapper<com.run.dao.entity.User> getUserMapper() {
@@ -38,7 +34,7 @@ public class TokenProvider implements AuthenticationProvider {
         return this.userMapper;
     }
 
-    public TokenProvider(Pool pool, DatabaseType dbType) {
+    public TokenProvider(Pool pool, SQLDialect dbType) {
         this.pool = pool;
         this.dbType = dbType;
     }
@@ -49,21 +45,12 @@ public class TokenProvider implements AuthenticationProvider {
         String token = tokenCredentials.getToken();
         Map<String, Claim> data = JWTUtil.decodeToken(token);
         String userId = data.get("id").asString();
-
-
-        Expression where = new EqualsTo().withLeftExpression(new Column("id"))
-                .withRightExpression(new StringValue(userId));
-
-        return getUserMapper().search(where, Map.of())
-                .compose(rows -> {
-                    int size = rows.size();
-                    if (size == 1) {
-                        com.run.dao.entity.User user = rows.iterator().next();
-                        return Future.succeededFuture(new UserImpl(new JsonObject(Map.of("user", user)), new JsonObject()));
-                    } else if (size > 1) {
-                        return Future.failedFuture(new RuntimeException("数据大于1条"));
+        return getUserMapper().getById(userId)
+                .compose(user -> {
+                    if (user == null) {
+                        return Future.failedFuture(new RuntimeException("用户不存在"));
                     }
-                    return Future.failedFuture(new RuntimeException("用户不存在"));
+                    return Future.succeededFuture(new UserImpl(new JsonObject(Map.of("user", user)), new JsonObject()));
                 });
 
     }

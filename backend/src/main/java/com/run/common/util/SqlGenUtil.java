@@ -1,6 +1,6 @@
 package com.run.common.util;
 
-import com.run.common.constants.DatabaseType;
+
 import com.run.dao.common.entity.BaseEntity;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
@@ -94,26 +94,7 @@ public class SqlGenUtil {
         ).toList();
     }
 
-    public static <T extends BaseEntity<T>> List<UpdateSet> getUpdateSetList(T o, DatabaseType databaseType) {
-        Class<? extends BaseEntity> clazz = o.getClass();
-        Field[] fields = FieldUtils.getAllFields(clazz);
-        Map<String, Object> objectMap = o.getConvert(databaseType).toMap(o);
-        List<UpdateSet> updateSetList = new ArrayList<>();
-        for (Field field : fields) {
-            com.run.dao.common.annotations.Column column = field.getAnnotation(com.run.dao.common.annotations.Column.class);
-            if (field.isAnnotationPresent(com.run.dao.common.annotations.Column.class)) {
-                Object value = objectMap.get(field.getName());
-                if ((value instanceof String && StringUtils.isNotEmpty((String) value)) || value != null) {
-                    if (!column.primaryKey()) {
-                        UpdateSet updateSet = new UpdateSet(new Column("\"" + column.name() + "\""),
-                                new Column("#{" + field.getName() + "}"));
-                        updateSetList.add(updateSet);
-                    }
-                }
-            }
-        }
-        return updateSetList;
-    }
+
 
     public static Update generateUpdateSql(Table table, Map<String, Object> params, String primaryKey) {
         Update update = new Update();

@@ -16,6 +16,12 @@ import net.sf.jsqlparser.expression.operators.relational.LikeExpression;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.statement.update.Update;
 import net.sf.jsqlparser.statement.update.UpdateSet;
+import org.jooq.Condition;
+import org.jooq.DSLContext;
+import org.jooq.LikeEscapeStep;
+import org.jooq.Param;
+import org.jooq.conf.ParamType;
+import org.jooq.impl.DSL;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -82,22 +88,14 @@ public class FullNodeRelation<T extends BaseEntity<T>, N extends BaseEntity<N>, 
     }
 
     public Future<String> getNodeName(UUID parentId, String type) {
-        Expression andExpression = new LikeExpression().withLeftExpression(new Column("name"))
-                .withRightExpression(new Column("#{name}"));
+        Condition lick = DSL.field("name").like(DSL.param("#{name}", String.class));
         String prefix = this.wallNodeRelation.getNamePrefixMap().get(type);
         Future<RowSet<N>> rowSetFuture;
         if (parentId == null) {
-            rowSetFuture = this.getNodeMapper()._list(new AndExpression().withLeftExpression(andExpression)
-                    .withRightExpression(new IsNullExpression()
-                            .withLeftExpression(new Column("parent_id"))), Map.of("name", prefix + "%"));
-
+            rowSetFuture = this.getNodeMapper()._list(lick.and(DSL.field("parent_id").isNull()), Map.of("name", prefix + "%"));
         } else {
-            rowSetFuture = this.getNodeMapper()._list(new AndExpression().withLeftExpression(andExpression)
-                            .withRightExpression(new EqualsTo()
-                                    .withLeftExpression(new Column("parent_id"))
-                                    .withRightExpression(new Column("#{parent_id}"))),
+            rowSetFuture = this.getNodeMapper()._list(DSL.field("parent_id").eq(DSL.param("#{parent_id}")),
                     Map.of("name", prefix + "%", "parent_id", parentId));
-
         }
         return rowSetFuture
                 .compose(rowSet -> {
@@ -172,7 +170,7 @@ public class FullNodeRelation<T extends BaseEntity<T>, N extends BaseEntity<N>, 
     public Future<N> move(UUID pId, UUID id) {
         return nodeMapper.getById(id.toString()).compose(node -> validateNodeName(pId, getWallNodeRelation().getName(node), getWallNodeRelation().getId(node)).compose(ok -> Future.succeededFuture(node))).compose(node -> {
             this.getWallNodeRelation().setParentId(node, pId);
-            return nodeRelationMapper.delete(new EqualsTo().withLeftExpression(new Column("descendant_id")).withRightExpression(new Column("#{descendant_id}")), Map.of("descendant_id", id)).compose(ok -> getNodeRelation(pId, this.getWallNodeRelation().getId(node))).compose(nodeRelations -> nodeRelationMapper.batch_save(nodeRelations)).compose(ok -> nodeMapper.update(node).compose(r -> Future.succeededFuture(node)));
+            return nodeRelationMapper.delete(DSL.field("descendant_id").eq(DSL.param("#{descendant_id}")), Map.of("descendant_id", id)).compose(ok -> getNodeRelation(pId, this.getWallNodeRelation().getId(node))).compose(nodeRelations -> nodeRelationMapper.batch_save(nodeRelations)).compose(ok -> nodeMapper.update(node).compose(r -> Future.succeededFuture(node)));
         });
 
     }
@@ -185,11 +183,11 @@ public class FullNodeRelation<T extends BaseEntity<T>, N extends BaseEntity<N>, 
      * @return 异步函数
      */
     public Future<SqlResult<Void>> _rename(UUID id, String name) {
-        Update update = new Update();
-        update.setTable(this.getNodeMapper().getTable());
-        update.setUpdateSets(List.of(new UpdateSet(new Column("name"), new StringValue(name))));
-        update.withWhere(new EqualsTo(new Column("id"), new StringValue(id.toString())));
-        return nodeMapper.update(update, Map.of());
+        DSLContext dslContext = this.getNodeMapper().getDslContext();
+        String template = dslContext.update(this.getNodeMapper().getTable())
+                .set(DSL.field("name"), name)
+                .where(DSL.field("id").eq(id)).getSQL(ParamType.NAMED);
+        return nodeMapper.update(template, Map.of());
     }
 
     public Future<SqlResult<Void>> rename(UUID folderId, UUID id, String name) {
@@ -213,9 +211,7 @@ public class FullNodeRelation<T extends BaseEntity<T>, N extends BaseEntity<N>, 
                 .deleteById(id)
                 .compose(ok ->
                         this.getNodeRelationMapper()
-                                .delete(new EqualsTo()
-                                        .withLeftExpression(new Column("descendant_id"))
-                                        .withRightExpression(new Column("#{descendant_id}")), Map.of("descendant_id", id))
+                                .delete(DSL.field("descendant_id").eq(DSL.param("#{descendant_id}")), Map.of("descendant_id", id))
                 );
     }
 

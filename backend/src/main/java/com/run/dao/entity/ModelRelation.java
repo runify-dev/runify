@@ -1,7 +1,6 @@
 package com.run.dao.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.run.common.constants.DatabaseType;
 import com.run.dao.common.annotations.Column;
 import com.run.dao.common.annotations.Table;
 import com.run.dao.common.convert.BaseConvert;
@@ -14,6 +13,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.jooq.SQLDialect;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -107,10 +107,10 @@ public class ModelRelation implements BaseEntity<ModelRelation> {
 
     @Override
     @JsonIgnore
-    public Map<DatabaseType, BaseConvert<ModelRelation>> getConvertMap() {
-        return Map.of(DatabaseType.SQLITE, new Sqlite(),
-                DatabaseType.POSTGRESQL, new Pgsql(),
-                DatabaseType.H2, new Pgsql());
+    public Map<SQLDialect, BaseConvert<ModelRelation>> getConvertMap() {
+        return Map.of(SQLDialect.SQLITE, new Sqlite(),
+                SQLDialect.POSTGRES, new Pgsql(),
+                SQLDialect.H2, new Pgsql());
     }
 
 

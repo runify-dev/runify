@@ -1,7 +1,6 @@
 package com.run.handler.tree.impl;
 
 
-import com.run.common.constants.DatabaseType;
 import com.run.common.result.Result;
 import com.run.common.util.TreeUtil;
 import com.run.dao.common.entity.FullNodeRelation;
@@ -17,6 +16,8 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.sqlclient.Pool;
 import net.sf.jsqlparser.expression.Expression;
 import org.apache.commons.lang3.StringUtils;
+import org.jooq.Condition;
+import org.jooq.SQLDialect;
 
 import javax.inject.Inject;
 import java.util.Map;
@@ -32,10 +33,10 @@ public class NodeHandlerImpl implements INodeHandler {
 
     private Pool pool;
 
-    private DatabaseType dbType;
+    private SQLDialect dbType;
 
     @Inject
-    public NodeHandlerImpl(Pool pool, DatabaseType dbType) {
+    public NodeHandlerImpl(Pool pool, SQLDialect dbType) {
         this.pool = pool;
         this.dbType = dbType;
     }
@@ -55,8 +56,8 @@ public class NodeHandlerImpl implements INodeHandler {
                     ModelMapper::getResourceById)
     );
 
-    public Expression getWhere(String resource, QueryNodePojo queryNodePojo) {
-        return TreeUtil.getWhere(queryNodePojo, sourceMap.get(resource).getNodeRelationMapper().getTable());
+    public Condition getWhere(String resource, QueryNodePojo queryNodePojo) {
+        return TreeUtil.getWhere(queryNodePojo, sourceMap.get(resource).getNodeRelationMapper());
 
     }
 
@@ -89,7 +90,8 @@ public class NodeHandlerImpl implements INodeHandler {
 
     public void list(RoutingContext context, QueryNodePojo queryNodePojo, String resource) {
         BaseMapper<?> nodeMapper = sourceMap.get(resource).getNodeMapper();
-        Expression where = TreeUtil.getWhere(queryNodePojo, sourceMap.get(resource).getNodeRelationMapper().getTable());
+        Condition where = TreeUtil.getWhere(queryNodePojo,
+                sourceMap.get(resource).getNodeRelationMapper());
         nodeMapper.list(where, Map.of())
                 .onSuccess(ok -> context.end(Result.success(ok).toBuffer()))
                 .onFailure(e -> context.end(Result.error(e.toString()).toBuffer()));

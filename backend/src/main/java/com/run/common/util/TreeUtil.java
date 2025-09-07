@@ -13,12 +13,15 @@ import net.sf.jsqlparser.expression.StringValue;
 import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
 import net.sf.jsqlparser.expression.operators.relational.*;
 import net.sf.jsqlparser.schema.Column;
-import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.Select;
 import net.sf.jsqlparser.statement.select.SelectItem;
 import net.sf.jsqlparser.util.SelectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.jooq.Condition;
+import org.jooq.DSLContext;
+import org.jooq.Table;
+import org.jooq.impl.DSL;
 
 import java.util.*;
 
@@ -63,9 +66,7 @@ public class TreeUtil {
                     wallNodeRelation.apply(UUID.randomUUID(), null, nodeId, 1),
                     wallNodeRelation.apply(UUID.randomUUID(), nodeId, nodeId, 0)));
         }
-        return mapper.list(new EqualsTo()
-                                .withLeftExpression(new Column("descendant_id"))
-                                .withRightExpression(new Column("#{descendant_id}")),
+        return mapper.list(DSL.field("descendant_id").eq(DSL.param("#{descendant_id}")),
                         Map.of("descendant_id", parentId))
                 .compose(nodeRelations -> {
                     List<T> result = new ArrayList<>();
@@ -82,51 +83,41 @@ public class TreeUtil {
      * 构建查询条件
      *
      * @param queryNodePojo 查询对象
-     * @param table         需要查询的表
+     * @param baseMapper    需要查询的表
      * @return 表达式
      */
-    public static Expression getWhere(QueryNodePojo queryNodePojo, Table table) {
-        Select select = SelectUtils.buildSelectFromTable(table);
-        List<Expression> exceptionList = new ArrayList<>();
+    public static Condition getWhere(QueryNodePojo queryNodePojo,
+                                     BaseMapper<?> baseMapper
+    ) {
+        Condition condition = DSL.noCondition();
         if (StringUtils.isNotEmpty(queryNodePojo.getFolderId())) {
-            EqualsTo equalsTo = new EqualsTo().withLeftExpression(new Column("ancestor_id"))
-                    .withRightExpression(new StringValue(queryNodePojo.getFolderId()));
-            exceptionList.add(equalsTo);
+            condition = condition.and(DSL.field("ancestor_id").eq(queryNodePojo.getFolderId()));
         } else {
-            exceptionList.add(new IsNullExpression().withLeftExpression(new Column("ancestor_id")));
+            condition = condition.and(DSL.field("ancestor_id").isNull());
         }
         if (queryNodePojo.getDepth() != null) {
-            exceptionList.add(new EqualsTo().withLeftExpression(new Column("depth"))
-                    .withRightExpression(new LongValue(queryNodePojo.getDepth())));
+            condition = condition.and(DSL.field("depth").eq(queryNodePojo.getDepth()));
         }
         if (StringUtils.isNotEmpty(queryNodePojo.getName())) {
-            exceptionList.add(new LikeExpression().withLeftExpression(new Column("name"))
-                    .withRightExpression(new StringValue(queryNodePojo.getName())));
+            condition = condition.and(DSL.field("name").eq(queryNodePojo.getName()));
         }
         if (queryNodePojo.getStar() != null) {
-            exceptionList.add(new IsBooleanExpression().withLeftExpression(new Column("star"))
-                    .withIsTrue(queryNodePojo.getStar()));
+            condition = condition.and(DSL.field("star").eq(queryNodePojo.getStar()));
         }
         if (queryNodePojo.getShare() != null) {
-            exceptionList.add(new IsBooleanExpression().withLeftExpression(new Column("share"))
-                    .withIsTrue(queryNodePojo.getShare()));
+            condition = condition.and(DSL.field("share").eq(queryNodePojo.getShare()));
         }
         if (StringUtils.isNotEmpty(queryNodePojo.getType())) {
             if (StringUtils.equals("folder", queryNodePojo.getType())) {
-                exceptionList.add(new EqualsTo().withLeftExpression(new Column("type"))
-                        .withRightExpression(new StringValue(queryNodePojo.getType())));
+                condition = condition.and(DSL.field("type").eq(queryNodePojo.getType()));
             } else {
-                exceptionList.add(new NotEqualsTo().withLeftExpression(new Column("type"))
-                        .withRightExpression(new StringValue("folder")));
+                condition = condition.and(DSL.field("type").eq("folder"));
             }
-
         }
-        Optional<Expression> reduce = exceptionList.stream().reduce((pre, next) -> new AndExpression().withLeftExpression(pre).withRightExpression(next));
-        PlainSelect plainSelect = select.getPlainSelect();
-        plainSelect.withWhere(reduce.orElse(null));
-        plainSelect.withSelectItems(List.of(SelectItem.from(new Column("descendant_id"))));
-        return new InExpression().withLeftExpression(new Column("id"))
-                .withRightExpression(new Column("(%s)".formatted(select.toString())));
+        return DSL.field("id").in(baseMapper.getDslContext().select(DSL.field("descendant_id"))
+                .from(baseMapper.getTable())
+                .where(condition));
+
 
     }
 
@@ -139,24 +130,17 @@ public class TreeUtil {
      * @return 是否校验通过
      */
     public static <T extends BaseEntity<T>> Future<Boolean> validateNodeName(UUID parentId, String nodeName, UUID nodeId, BaseMapper<T> mapper) {
-        Expression andExpression = new EqualsTo().withLeftExpression(new Column("name"))
-                .withRightExpression(new Column("#{name}"));
+
+        Condition condition = DSL.field("name").eq(DSL.param("#{name}"));
         if (nodeId != null) {
-            andExpression = new AndExpression().withLeftExpression(andExpression)
-                    .withRightExpression(new NotEqualsTo().withLeftExpression(new Column("id"))
-                            .withRightExpression(new Column("#{id}")));
+            condition = condition.and(DSL.field("id").notEqual(DSL.param("#{id}")));
         }
         Future<RowSet<T>> rowSetFuture;
         if (parentId == null) {
-            rowSetFuture = mapper._list(new AndExpression().withLeftExpression(andExpression)
-                    .withRightExpression(new IsNullExpression()
-                            .withLeftExpression(new Column("parent_id"))), Map.of("name", nodeName, "id", nodeId != null ? nodeId : ""));
+            rowSetFuture = mapper._list(condition.and(DSL.field("parent_id").isNull()), Map.of("name", nodeName, "id", nodeId != null ? nodeId : ""));
 
         } else {
-            rowSetFuture = mapper._list(new AndExpression().withLeftExpression(andExpression)
-                            .withRightExpression(new EqualsTo()
-                                    .withLeftExpression(new Column("parent_id"))
-                                    .withRightExpression(new Column("#{parent_id}"))),
+            rowSetFuture = mapper._list(condition.and(DSL.field("parent_id").eq(DSL.param("#{parent_id}"))),
                     Map.of("name", nodeName, "parent_id", parentId, "id", nodeId != null ? nodeId : ""));
 
         }

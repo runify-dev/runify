@@ -3,17 +3,14 @@ package com.run.common.initialization;
 import com.run.common.config.AppConfig;
 import com.run.common.config.DataBase;
 import com.run.common.config.System;
-import com.run.common.constants.DatabaseType;
 import org.flywaydb.core.Flyway;
+import org.jooq.SQLDialect;
 
 import javax.inject.Inject;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.UUID;
 
 /**
  * {@code @Author:张少虎}
@@ -33,9 +30,9 @@ public class MigrationInitialization {
     public void init() {
         DataBase database = appConfig.getDatabase();
         System system = appConfig.getSystem();
-        if (database.getType() == DatabaseType.POSTGRESQL) {
+        if (database.getType() == SQLDialect.POSTGRES) {
             migrationsPgsql(database);
-        } else if (database.getType() == DatabaseType.H2) {
+        } else if (database.getType() == SQLDialect.H2) {
             migrationsH2(system.getDataPath());
         } else {
             migrationsSqlite(system.getDataPath());
@@ -64,7 +61,7 @@ public class MigrationInitialization {
                 throw new RuntimeException(e);
             }
         }
-        String url = "jdbc:h2:file:" + path+"/runify;DATABASE_TO_UPPER=false";
+        String url = "jdbc:h2:file:" + path + "/runify;DATABASE_TO_UPPER=false";
         // 配置 Flyway
         Flyway flyway = Flyway.configure()
                 .dataSource(url, null, null)

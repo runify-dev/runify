@@ -2,19 +2,18 @@ package com.run.dao.entity;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.run.common.constants.DatabaseType;
 import com.run.common.util.JacksonUtils;
 import com.run.dao.common.annotations.Column;
 import com.run.dao.common.annotations.Table;
 import com.run.dao.common.convert.BaseConvert;
 import com.run.dao.common.entity.BaseEntity;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.json.impl.JsonUtil;
 import io.vertx.sqlclient.Row;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.jooq.SQLDialect;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -88,10 +87,10 @@ public class FileEntity implements BaseEntity<FileEntity> {
 
     @Override
     @JsonIgnore
-    public Map<DatabaseType, BaseConvert<FileEntity>> getConvertMap() {
-        return Map.of(DatabaseType.SQLITE, new Sqlite(),
-                DatabaseType.POSTGRESQL, new Pgsql(),
-                DatabaseType.H2, new Pgsql());
+    public Map<SQLDialect, BaseConvert<FileEntity>> getConvertMap() {
+        return Map.of(SQLDialect.SQLITE, new Sqlite(),
+                SQLDialect.POSTGRES, new Pgsql(),
+                SQLDialect.H2, new Pgsql());
     }
 
 

@@ -1,7 +1,7 @@
 package com.run.dao.common.entity;
 
-import com.run.common.constants.DatabaseType;
 import com.run.dao.common.convert.BaseConvert;
+import org.jooq.SQLDialect;
 
 import java.util.Map;
 
@@ -12,9 +12,9 @@ import java.util.Map;
  * {@code @注释: }
  */
 public interface BaseEntity<T> {
-    default BaseConvert<T> getConvert(DatabaseType dbType) {
+    default BaseConvert<T> getConvert(SQLDialect dbType) {
         return getConvertMap().get(dbType);
     }
 
-    Map<DatabaseType, BaseConvert<T>> getConvertMap();
+    Map<SQLDialect, BaseConvert<T>> getConvertMap();
 }

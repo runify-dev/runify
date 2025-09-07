@@ -1,12 +1,11 @@
 package com.run.dagger.module;
 
 
-
 import com.run.auth.TokenBasicAuthHandler;
-import com.run.common.constants.DatabaseType;
 import dagger.Module;
 import dagger.Provides;
 import io.vertx.sqlclient.Pool;
+import org.jooq.SQLDialect;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -22,7 +21,7 @@ public class TokenAuthHandlerModule   {
     @Inject
     @Singleton
     @Provides
-    public TokenBasicAuthHandler getTokenBasicAuthHandler(Pool pool, DatabaseType dbType) {
+    public TokenBasicAuthHandler getTokenBasicAuthHandler(Pool pool, SQLDialect dbType) {
         return new TokenBasicAuthHandler(pool, dbType);
     }
 

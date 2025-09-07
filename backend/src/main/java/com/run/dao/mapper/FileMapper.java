@@ -1,8 +1,9 @@
 package com.run.dao.mapper;
 
 import com.run.common.config.AppConfig;
-import com.run.common.constants.DatabaseType;
+
 import com.run.common.util.CommonUtils;
+import com.run.common.util.FieldUtil;
 import com.run.dao.common.entity.BaseReadStream;
 import com.run.dao.common.mapper.BaseMapper;
 import com.run.dao.entity.FileEntity;
@@ -20,6 +21,8 @@ import io.vertx.sqlclient.templates.SqlTemplate;
 import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
 import net.sf.jsqlparser.schema.Column;
 import org.jetbrains.annotations.Nullable;
+import org.jooq.Field;
+import org.jooq.SQLDialect;
 
 import javax.inject.Inject;
 import java.io.File;
@@ -41,6 +44,7 @@ public class FileMapper extends BaseMapper<FileEntity> {
     public FileMapper(Pool client, AppConfig appConfig) {
         super(client, appConfig);
     }
+
     /**
      * 获取大对象
      *
@@ -211,7 +215,7 @@ public class FileMapper extends BaseMapper<FileEntity> {
     }
 
     public BaseReadStream downloadFile(Vertx vertx, FileEntity fileEntity) {
-        if (dbType == DatabaseType.POSTGRESQL) {
+        if (dbType == SQLDialect.POSTGRES) {
             return new PgsqlReadStream(fileEntity.getLoId(), 0L, 1024 * 64L, fileEntity.getSize());
         } else {
             return new FileReadStream(vertx, fileEntity.getPath());
@@ -243,21 +247,24 @@ public class FileMapper extends BaseMapper<FileEntity> {
     public Future<SqlResult<Void>> save(FileEntity fileEntity, File file, int capacity) {
         String sha256 = CommonUtils.getSHA256(file);
         fileEntity.setSha256Hash(sha256);
-        return search(new EqualsTo().withLeftExpression(new Column("sha256_hash")).withRightExpression(new Column("#{sha256_hash}")), Map.of("sha256_hash", sha256)).compose(rows -> {
-            if (rows.size() == 0) {
-                return SqlTemplate.forQuery(client, "SELECT lo_creat(-1)::int8 as lo_id;").execute(Map.of()).compose(loId -> {
-                    Row next = loId.iterator().next();
-                    Long lo_id = next.getLong("lo_id");
-                    fileEntity.setLoId(lo_id);
-                    return uploadLargeObject(file, lo_id, capacity);
-                }).compose(ok -> save(fileEntity));
 
-            } else {
-                FileEntity next = rows.iterator().next();
-                fileEntity.setLoId(next.getLoId());
-                return save(fileEntity);
-            }
-        });
+        return search(FieldUtil.getField(FileEntity::getSha256Hash).eq(FieldUtil.getParms(FileEntity::getSha256Hash))
+                , Map.of("sha256_hash", sha256))
+                .compose(rows -> {
+                    if (rows.size() == 0) {
+                        return SqlTemplate.forQuery(client, "SELECT lo_creat(-1)::int8 as lo_id;").execute(Map.of()).compose(loId -> {
+                            Row next = loId.iterator().next();
+                            Long lo_id = next.getLong("lo_id");
+                            fileEntity.setLoId(lo_id);
+                            return uploadLargeObject(file, lo_id, capacity);
+                        }).compose(ok -> save(fileEntity));
+
+                    } else {
+                        FileEntity next = rows.iterator().next();
+                        fileEntity.setLoId(next.getLoId());
+                        return save(fileEntity);
+                    }
+                });
     }
 
     /**

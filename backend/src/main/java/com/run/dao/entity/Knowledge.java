@@ -2,8 +2,6 @@ package com.run.dao.entity;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.run.common.constants.DatabaseType;
 import com.run.common.util.JacksonUtils;
 import com.run.dao.common.annotations.Column;
 import com.run.dao.common.annotations.Table;
@@ -15,6 +13,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.jooq.SQLDialect;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -109,10 +108,10 @@ public class Knowledge implements BaseEntity<Knowledge> {
 
     @Override
     @JsonIgnore
-    public Map<DatabaseType, BaseConvert<Knowledge>> getConvertMap() {
-        return Map.of(DatabaseType.SQLITE, new Sqlite(),
-                DatabaseType.POSTGRESQL, new Pgsql(),
-                DatabaseType.H2, new Pgsql());
+    public Map<SQLDialect, BaseConvert<Knowledge>> getConvertMap() {
+        return Map.of(SQLDialect.SQLITE, new Sqlite(),
+                SQLDialect.POSTGRES, new Pgsql(),
+                SQLDialect.H2, new Pgsql());
     }
 
 

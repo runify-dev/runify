@@ -1,7 +1,7 @@
 package com.run.common.config;
 
-import com.run.common.constants.DatabaseType;
 import lombok.Data;
+import org.jooq.SQLDialect;
 
 /**
  * {@code @Author:张少虎}
@@ -11,7 +11,7 @@ import lombok.Data;
  */
 @Data
 public class DataBase {
-    private DatabaseType type;
+    private SQLDialect type;
     private String username;
     private String password;
     private String host;

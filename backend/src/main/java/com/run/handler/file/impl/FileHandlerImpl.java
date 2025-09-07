@@ -1,7 +1,6 @@
 package com.run.handler.file.impl;
 
 
-import com.run.common.constants.DatabaseType;
 import com.run.common.result.Result;
 import com.run.common.util.CommonUtils;
 import com.run.dao.common.entity.BaseReadStream;
@@ -14,6 +13,7 @@ import io.vertx.core.http.MimeMapping;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.RoutingContext;
+import org.jooq.SQLDialect;
 
 import javax.inject.Inject;
 import java.io.File;
@@ -34,12 +34,12 @@ import java.util.UUID;
 public class FileHandlerImpl implements IFileHandler {
     private final FileMapper fileMapper;
 
-    private final DatabaseType dbType;
+    private final SQLDialect dbType;
 
     private final Vertx vertx;
 
     @Inject
-    public FileHandlerImpl(FileMapper fileMapper, DatabaseType dbType, Vertx vertx) {
+    public FileHandlerImpl(FileMapper fileMapper, SQLDialect dbType, Vertx vertx) {
         this.fileMapper = fileMapper;
         this.dbType = dbType;
         this.vertx = vertx;
@@ -62,7 +62,7 @@ public class FileHandlerImpl implements IFileHandler {
             fileEntity.setMeta(new JsonObject());
             fileEntity.setRef(null);
             fileEntity.setRefType(null);
-            if (dbType == DatabaseType.POSTGRESQL) {
+            if (dbType == SQLDialect.POSTGRES) {
                 fileMapper.save(fileEntity, file, 1024 * 1024).onSuccess(ok -> {
                     context.end(Result.success(fileEntity).toBuffer());
                 }).onFailure(context::fail);

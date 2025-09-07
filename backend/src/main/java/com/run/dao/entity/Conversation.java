@@ -2,7 +2,6 @@ package com.run.dao.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.run.common.constants.ConversationUserType;
-import com.run.common.constants.DatabaseType;
 import com.run.common.util.JacksonUtils;
 import com.run.dao.common.annotations.Column;
 import com.run.dao.common.annotations.Table;
@@ -14,6 +13,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.jooq.SQLDialect;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -95,7 +95,7 @@ public class Conversation implements BaseEntity<Conversation> {
 
     @Override
     @JsonIgnore
-    public Map<DatabaseType, BaseConvert<Conversation>> getConvertMap() {
-        return Map.of(DatabaseType.SQLITE, new Sqlite());
+    public Map<SQLDialect, BaseConvert<Conversation>> getConvertMap() {
+        return Map.of(SQLDialect.SQLITE, new Sqlite());
     }
 }

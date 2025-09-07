@@ -1,7 +1,5 @@
 package com.run.dao.entity;
 
-import com.run.common.constants.ConversationUserType;
-import com.run.common.constants.DatabaseType;
 import com.run.common.util.JacksonUtils;
 import com.run.dao.common.annotations.Column;
 import com.run.dao.common.annotations.Table;
@@ -14,6 +12,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.jooq.SQLDialect;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -84,7 +83,7 @@ public class ConversationRecord implements BaseEntity<ConversationRecord> {
     }
 
     @Override
-    public Map<DatabaseType, BaseConvert<ConversationRecord>> getConvertMap() {
-        return Map.of(DatabaseType.SQLITE, new Sqlite());
+    public Map<SQLDialect, BaseConvert<ConversationRecord>> getConvertMap() {
+        return Map.of(SQLDialect.SQLITE, new Sqlite());
     }
 }
