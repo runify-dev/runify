@@ -4,19 +4,17 @@ package com.run.handler.application.impl;
 import com.run.common.constants.ConversationUserType;
 import com.run.common.openai.request.message.UserMessage;
 import com.run.common.result.Result;
-import com.run.common.util.FieldUtil;
 import com.run.common.util.JacksonUtils;
-import com.run.dao.entity.Application;
-import com.run.dao.entity.Conversation;
-import com.run.dao.entity.ConversationRecord;
-import com.run.dao.entity.User;
+import com.run.dao.entity.*;
 import com.run.dao.mapper.ApplicationMapper;
+import com.run.dao.mapper.ApplicationRelationMapper;
 import com.run.dao.mapper.ConversationMapper;
 import com.run.dao.mapper.ConversationRecordMapper;
 import com.run.handler.application.IApplicationHandler;
 import com.run.handler.application.pojo.ChatPojo;
 import com.run.handler.application.pojo.ConversationQuery;
 import com.run.handler.application.pojo.EditApplicationPojo;
+import com.run.handler.common.impl.TreeHandler;
 import com.run.workflow.Answer;
 import com.run.workflow.INode;
 import com.run.workflow.WorkFlowManage;
@@ -28,14 +26,6 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
-import net.sf.jsqlparser.expression.Expression;
-import net.sf.jsqlparser.expression.StringValue;
-import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
-import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
-import net.sf.jsqlparser.expression.operators.relational.GreaterThan;
-import net.sf.jsqlparser.expression.operators.relational.LikeExpression;
-import net.sf.jsqlparser.expression.operators.relational.MinorThan;
-import net.sf.jsqlparser.schema.Column;
 import org.apache.commons.lang3.StringUtils;
 import org.jooq.Condition;
 import org.jooq.impl.DSL;
@@ -50,14 +40,18 @@ import java.util.*;
  * {@code @Version 1.0}
  * {@code @注释: }
  */
-public class ApplicationHandlerImpl implements IApplicationHandler {
+public class ApplicationHandlerImpl extends TreeHandler<Application, ApplicationRelation, ApplicationMapper, ApplicationRelationMapper> implements IApplicationHandler {
 
     protected ApplicationMapper applicationMapper;
     private final ConversationMapper conversationMapper;
     private final ConversationRecordMapper conversationRecordMapper;
 
     @Inject
-    public ApplicationHandlerImpl(ApplicationMapper applicationMapper, ConversationMapper conversationMapper, ConversationRecordMapper conversationRecordMapper) {
+    public ApplicationHandlerImpl(ApplicationMapper applicationMapper,
+                                  ApplicationRelationMapper applicationRelationMapper,
+                                  ConversationMapper conversationMapper,
+                                  ConversationRecordMapper conversationRecordMapper) {
+        super(applicationMapper, applicationRelationMapper);
         this.applicationMapper = applicationMapper;
         this.conversationMapper = conversationMapper;
         this.conversationRecordMapper = conversationRecordMapper;
@@ -78,8 +72,38 @@ public class ApplicationHandlerImpl implements IApplicationHandler {
     }
 
     @Override
-    public void get(RoutingContext context) {
-        String node_id = context.pathParam("node_id");
+    protected String getNodeName(Application application) {
+        return application.getName();
+    }
+
+    @Override
+    protected UUID getNodeId(Application application) {
+        return application.getId();
+    }
+
+    @Override
+    protected ApplicationRelation newRelation(UUID id, UUID ancestorId, UUID descendantId, Integer dept) {
+        return new ApplicationRelation(id, ancestorId, descendantId, dept);
+    }
+
+    @Override
+    protected Application newNode(UUID id, UUID parentId, String type, String name) {
+        return new Application(id, parentId, name, type, "", new JsonObject(), new JsonObject(), false, false, LocalDateTime.now(), LocalDateTime.now());
+    }
+
+    @Override
+    protected UUID getAncestorId(ApplicationRelation applicationRelation) {
+        return applicationRelation.getAncestorId();
+    }
+
+    @Override
+    protected Integer getDepth(ApplicationRelation applicationRelation) {
+        return applicationRelation.getDepth();
+    }
+
+    @Override
+    protected Map<String, String> getNamePrefixMap() {
+        return Map.of("md", "新建应用", "folder", "新建文件夹");
     }
 
     @Override

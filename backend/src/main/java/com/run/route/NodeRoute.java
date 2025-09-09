@@ -37,36 +37,7 @@ public class NodeRoute implements IRoute {
 
     @Override
     public void initRoute() {
-        apiRoute.get("/:resource/folder/:folderId/resource/:resourceId")
-                .handler(tokenBasicAuthHandler)
-                .handler(iNodeHandler::get);
 
-        apiRoute.delete("/:resource/folder/:folderId/resource/:resourceId")
-                .handler(tokenBasicAuthHandler)
-                .handler(iNodeHandler::delete);
-
-        apiRoute.post("/:resource/folder/:folderId/resource/:resourceId/rename")
-                .handler(BodyHandler.create())
-                .handler(tokenBasicAuthHandler)
-                .handler(iNodeHandler::rename);
-
-        apiRoute.post("/:resource/folder/:folderId")
-                .handler(BodyHandler.create())
-                .handler(tokenBasicAuthHandler)
-                .handler(iNodeHandler::create);
-
-        apiRoute.get("/:resource/folder/:folderId/tree")
-                .handler(tokenBasicAuthHandler)
-                .handler(iNodeHandler::listTree);
-        apiRoute.get("/:resource/folder/:folderId/resource")
-                .handler(tokenBasicAuthHandler)
-                .handler(iNodeHandler::listResource);
-        apiRoute.get("/:resource/folder/:folderId/star")
-                .handler(tokenBasicAuthHandler)
-                .handler(iNodeHandler::listStar);
-        apiRoute.get("/:resource/folder/:folderId/shared")
-                .handler(tokenBasicAuthHandler)
-                .handler(iNodeHandler::listShared);
 
     }
 

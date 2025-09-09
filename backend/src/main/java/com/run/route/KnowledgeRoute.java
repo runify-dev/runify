@@ -53,6 +53,32 @@ public class KnowledgeRoute implements IRoute {
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
                 .handler(iKnowledgeHandler::edit);
+        apiRoute.get("/knowledge/folder/:folderId/resource/:resourceId")
+                .handler(tokenBasicAuthHandler)
+                .handler(iKnowledgeHandler::get);
+        apiRoute.delete("/knowledge/folder/:folderId/resource/:resourceId")
+                .handler(tokenBasicAuthHandler)
+                .handler(iKnowledgeHandler::delete);
+        apiRoute.post("/knowledge/folder/:folderId/resource/:resourceId/rename")
+                .handler(BodyHandler.create())
+                .handler(tokenBasicAuthHandler)
+                .handler(iKnowledgeHandler::rename);
+        apiRoute.post("/knowledge/folder/:folderId")
+                .handler(BodyHandler.create())
+                .handler(tokenBasicAuthHandler)
+                .handler(iKnowledgeHandler::create);
+        apiRoute.get("/knowledge/folder/:folderId/tree")
+                .handler(tokenBasicAuthHandler)
+                .handler(iKnowledgeHandler::listTree);
+        apiRoute.get("/knowledge/folder/:folderId/resource")
+                .handler(tokenBasicAuthHandler)
+                .handler(iKnowledgeHandler::listResource);
+        apiRoute.get("/knowledge/folder/:folderId/star")
+                .handler(tokenBasicAuthHandler)
+                .handler(iKnowledgeHandler::listStar);
+        apiRoute.get("/knowledge/folder/:folderId/shared")
+                .handler(tokenBasicAuthHandler)
+                .handler(iKnowledgeHandler::listShared);
     }
 
     @Override

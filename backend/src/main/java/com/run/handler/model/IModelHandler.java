@@ -1,5 +1,6 @@
 package com.run.handler.model;
 
+import com.run.handler.common.ITreeHandler;
 import io.vertx.ext.web.RoutingContext;
 
 /**
@@ -8,7 +9,7 @@ import io.vertx.ext.web.RoutingContext;
  * {@code @Version 1.0}
  * {@code @注释: }
  */
-public interface IModelHandler {
+public interface IModelHandler extends ITreeHandler {
     /**
      * 获取供应商列表
      *

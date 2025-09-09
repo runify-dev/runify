@@ -3,13 +3,19 @@ package com.run.handler.knowledge.impl;
 
 import com.run.common.result.Result;
 import com.run.dao.entity.Knowledge;
+import com.run.dao.entity.KnowledgeRelation;
 import com.run.dao.mapper.KnowledgeMapper;
+import com.run.dao.mapper.KnowledgeRelationMapper;
+import com.run.handler.common.impl.TreeHandler;
 import com.run.handler.knowledge.IKnowledgeHandler;
 import com.run.handler.knowledge.pojo.EditKnowledge;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.inject.Inject;
+import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -18,11 +24,12 @@ import java.util.UUID;
  * {@code @Version 1.0}
  * {@code @注释: }
  */
-public class KnowledgeHandlerImpl implements IKnowledgeHandler {
+public class KnowledgeHandlerImpl extends TreeHandler<Knowledge, KnowledgeRelation, KnowledgeMapper, KnowledgeRelationMapper> implements IKnowledgeHandler {
     private final KnowledgeMapper knowledgeMapper;
 
     @Inject
-    public KnowledgeHandlerImpl(KnowledgeMapper knowledgeMapper) {
+    public KnowledgeHandlerImpl(KnowledgeMapper knowledgeMapper, KnowledgeRelationMapper knowledgeRelationMapper) {
+        super(knowledgeMapper, knowledgeRelationMapper);
         this.knowledgeMapper = knowledgeMapper;
     }
 
@@ -44,4 +51,38 @@ public class KnowledgeHandlerImpl implements IKnowledgeHandler {
     }
 
 
+    @Override
+    protected String getNodeName(Knowledge knowledge) {
+        return knowledge.getName();
+    }
+
+    @Override
+    protected UUID getNodeId(Knowledge knowledge) {
+        return knowledge.getId();
+    }
+
+    @Override
+    protected KnowledgeRelation newRelation(UUID id, UUID ancestorId, UUID descendantId, Integer dept) {
+        return new KnowledgeRelation(id, ancestorId, descendantId, dept);
+    }
+
+    @Override
+    protected Knowledge newNode(UUID id, UUID parentId, String type, String name) {
+        return new Knowledge(id, parentId, name, type, "", "", false, false, new JsonObject(), LocalDateTime.now(), LocalDateTime.now());
+    }
+
+    @Override
+    protected UUID getAncestorId(KnowledgeRelation knowledgeRelation) {
+        return knowledgeRelation.getAncestorId();
+    }
+
+    @Override
+    protected Integer getDepth(KnowledgeRelation knowledgeRelation) {
+        return knowledgeRelation.getDepth();
+    }
+
+    @Override
+    protected Map<String, String> getNamePrefixMap() {
+        return Map.of("md", "新建知识库", "folder", "新建文件夹");
+    }
 }

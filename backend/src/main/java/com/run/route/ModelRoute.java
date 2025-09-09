@@ -53,6 +53,32 @@ public class ModelRoute implements IRoute {
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
                 .handler(modelHandler::edit);
+        apiRoute.get("/model/folder/:folderId/resource/:resourceId")
+                .handler(tokenBasicAuthHandler)
+                .handler(modelHandler::get);
+        apiRoute.delete("/model/folder/:folderId/resource/:resourceId")
+                .handler(tokenBasicAuthHandler)
+                .handler(modelHandler::delete);
+        apiRoute.post("/model/folder/:folderId/resource/:resourceId/rename")
+                .handler(BodyHandler.create())
+                .handler(tokenBasicAuthHandler)
+                .handler(modelHandler::rename);
+        apiRoute.post("/model/folder/:folderId")
+                .handler(BodyHandler.create())
+                .handler(tokenBasicAuthHandler)
+                .handler(modelHandler::create);
+        apiRoute.get("/model/folder/:folderId/tree")
+                .handler(tokenBasicAuthHandler)
+                .handler(modelHandler::listTree);
+        apiRoute.get("/model/folder/:folderId/resource")
+                .handler(tokenBasicAuthHandler)
+                .handler(modelHandler::listResource);
+        apiRoute.get("/model/folder/:folderId/star")
+                .handler(tokenBasicAuthHandler)
+                .handler(modelHandler::listStar);
+        apiRoute.get("/model/folder/:folderId/shared")
+                .handler(tokenBasicAuthHandler)
+                .handler(modelHandler::listShared);
     }
 
     @Override

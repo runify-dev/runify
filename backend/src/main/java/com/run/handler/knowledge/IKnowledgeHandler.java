@@ -1,5 +1,6 @@
 package com.run.handler.knowledge;
 
+import com.run.handler.common.ITreeHandler;
 import io.vertx.ext.web.RoutingContext;
 
 /**
@@ -8,7 +9,7 @@ import io.vertx.ext.web.RoutingContext;
  * {@code @Version 1.0}
  * {@code @注释: }
  */
-public interface IKnowledgeHandler {
+public interface IKnowledgeHandler extends ITreeHandler {
 
 
     /**

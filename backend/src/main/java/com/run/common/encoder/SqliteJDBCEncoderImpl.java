@@ -24,7 +24,7 @@ public class SqliteJDBCEncoderImpl extends JDBCEncoderImpl {
 
     @Override
     public Object encode(Tuple input, int pos, JDBCColumnDescriptorProvider provider) throws SQLException {
-        Object value = input.getValue(pos-1);
+        Object value = input.getValue(pos - 1);
         if (value instanceof String) {
             return super.doEncode(JDBCColumnDescriptor.wrap(JDBCType.VARCHAR), value);
         } else if (value instanceof Integer) {

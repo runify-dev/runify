@@ -2,7 +2,11 @@ package com.run.handler.model.impl;
 
 import com.run.common.result.Result;
 import com.run.common.util.CommonUtils;
+import com.run.dao.entity.Model;
+import com.run.dao.entity.ModelRelation;
 import com.run.dao.mapper.ModelMapper;
+import com.run.dao.mapper.ModelRelationMapper;
+import com.run.handler.common.impl.TreeHandler;
 import com.run.handler.model.IModelHandler;
 import com.run.handler.model.pojo.ModelEditPojo;
 import com.run.models.IProvider;
@@ -10,11 +14,13 @@ import com.run.models.ModelInfo;
 import com.run.models.ModelProvideConstants;
 import com.run.models.ProvideInfo;
 import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import lombok.SneakyThrows;
 
 import javax.inject.Inject;
+import java.time.LocalDateTime;
 import java.util.*;
 
 /**
@@ -23,12 +29,13 @@ import java.util.*;
  * {@code @Version 1.0}
  * {@code @注释: }
  */
-public class ModelHandlerImpl implements IModelHandler {
+public class ModelHandlerImpl extends TreeHandler<Model, ModelRelation, ModelMapper, ModelRelationMapper> implements IModelHandler {
     protected ModelMapper modelMapper;
     private final Vertx vertx;
 
     @Inject
-    public ModelHandlerImpl(ModelMapper modelMapper, Vertx vertx) {
+    public ModelHandlerImpl(ModelMapper modelMapper, ModelRelationMapper modelRelationMapper, Vertx vertx) {
+        super(modelMapper, modelRelationMapper);
         this.modelMapper = modelMapper;
         this.vertx = vertx;
     }
@@ -98,5 +105,40 @@ public class ModelHandlerImpl implements IModelHandler {
                     context.end(Result.success(true).toBuffer());
                 })
                 .onFailure(context::fail);
+    }
+
+    @Override
+    protected String getNodeName(Model model) {
+        return model.getName();
+    }
+
+    @Override
+    protected UUID getNodeId(Model model) {
+        return model.getId();
+    }
+
+    @Override
+    protected ModelRelation newRelation(UUID id, UUID ancestorId, UUID descendantId, Integer dept) {
+        return new ModelRelation(id, ancestorId, descendantId, dept);
+    }
+
+    @Override
+    protected Model newNode(UUID id, UUID parentId, String type, String name) {
+        return new Model(id, parentId, type, name, "", "openai_provider", "LLM", "", "", new JsonArray(), new JsonObject(), false, false, LocalDateTime.now(), LocalDateTime.now());
+    }
+
+    @Override
+    protected UUID getAncestorId(ModelRelation modelRelation) {
+        return modelRelation.getAncestorId();
+    }
+
+    @Override
+    protected Integer getDepth(ModelRelation modelRelation) {
+        return modelRelation.getDepth();
+    }
+
+    @Override
+    protected Map<String, String> getNamePrefixMap() {
+        return Map.of("md", "新建模型", "folder", "新建文件夹");
     }
 }

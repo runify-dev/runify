@@ -3,6 +3,7 @@ package com.run.dao.common.convert;
 import com.run.dao.common.annotations.Column;
 import com.run.dao.entity.User;
 import io.vertx.sqlclient.Row;
+import org.apache.commons.lang3.reflect.FieldUtils;
 
 import java.lang.reflect.Field;
 import java.util.HashMap;
@@ -19,7 +20,7 @@ public interface BaseConvert<T> {
 
     default Map<String, Object> toMap(T t) {
         Class<?> aClass = t.getClass();
-        Field[] fields = aClass.getDeclaredFields();
+        Field[] fields = FieldUtils.getAllFields(aClass);
         Map<String, Object> result = new HashMap<>();
         for (Field field : fields) {
             if (field.isAnnotationPresent(Column.class)) {

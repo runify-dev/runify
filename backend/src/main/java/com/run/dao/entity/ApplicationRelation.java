@@ -5,6 +5,7 @@ import com.run.dao.common.annotations.Column;
 import com.run.dao.common.annotations.Table;
 import com.run.dao.common.convert.BaseConvert;
 import com.run.dao.common.entity.BaseEntity;
+import com.run.dao.common.entity.BaseRelation;
 import com.run.dao.common.entity.WallNodeRelation;
 import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.Row;
@@ -28,27 +29,24 @@ import java.util.UUID;
 @Table(schemaName = "public", name = "application_relation")
 @Getter
 @Setter
-@NoArgsConstructor
 @AllArgsConstructor
-public class ApplicationRelation implements BaseEntity<ApplicationRelation> {
-    @Column(name = "id", primaryKey = true)
-    private UUID id;
-    /**
-     * 祖先节点
-     */
-    @Column(name = "ancestor_id")
-    private UUID ancestorId;
-    /**
-     * 后代节点
-     */
-    @Column(name = "descendant_id")
-    private UUID descendantId;
-    /**
-     * 层级深度 祖先和后代的层级深度
-     */
-    @Column(name = "depth")
-    private Integer depth;
+public class ApplicationRelation extends BaseRelation implements BaseEntity<ApplicationRelation> {
+    public ApplicationRelation(UUID id, UUID ancestorId, UUID descendantId, Integer dept) {
+        setId(id);
+        setAncestorId(ancestorId);
+        setDescendantId(descendantId);
+        setDepth(dept);
+    }
 
+    public static void main(String[] args) {
+        ApplicationRelation applicationRelation = new ApplicationRelation();
+        applicationRelation.setId(UUID.randomUUID());
+        applicationRelation.setDepth(1);
+        applicationRelation.setDescendantId(UUID.randomUUID());
+        applicationRelation.setAncestorId(UUID.randomUUID());
+        Map<String, Object> map = applicationRelation.getConvertMap().get(SQLDialect.SQLITE).toMap(applicationRelation);
+        System.out.println(map);
+    }
 
     public static WallNodeRelation<ApplicationRelation, Application> getWallNodeRelation() {
         return new WallNodeRelation<>() {
