@@ -103,7 +103,7 @@ public class ApplicationHandlerImpl extends TreeHandler<Application, Application
 
     @Override
     protected Map<String, String> getNamePrefixMap() {
-        return Map.of("md", "新建应用", "folder", "新建文件夹");
+        return Map.of("application", "新建应用", "folder", "新建文件夹");
     }
 
     @Override
@@ -188,7 +188,7 @@ public class ApplicationHandlerImpl extends TreeHandler<Application, Application
     }
 
     public Condition getConversationQuery(ConversationQuery query) {
-        Condition condition = DSL.field("application_id").eq(query.getApplicationId());
+        Condition condition = DSL.field("application_id").eq(DSL.param("#{application_id}"));
         String startTime = query.getStartTime();
         if (StringUtils.isNotEmpty(startTime)) {
             condition = condition.and(DSL.field("create_time").le(startTime));
@@ -208,8 +208,9 @@ public class ApplicationHandlerImpl extends TreeHandler<Application, Application
         String pageSize = context.pathParam("pageSize");
         MultiMap entries = context.queryParams().copy();
         entries.addAll(context.pathParams());
-        Condition conversationQuery = getConversationQuery(new ConversationQuery(entries));
-        conversationMapper.page(conversationQuery, Long.parseLong(currentPage), Long.parseLong(pageSize))
+        ConversationQuery conversation = new ConversationQuery(entries);
+        Condition conversationQuery = getConversationQuery(conversation);
+        conversationMapper.page(conversationQuery, Long.parseLong(currentPage), Long.parseLong(pageSize), Map.of("application_id", conversation.getApplicationId()))
                 .onSuccess(result -> context.end(Result.success(result).toBuffer()))
                 .onFailure(context::fail);
     }

@@ -29,7 +29,9 @@ import { useRouter, useRoute } from 'vue-router'
 import type { Type } from '@/api/type/common'
 const treeAsideRef = ref<typeof TreeAside>()
 const create = (type: Type, id?: string) => {
-  return NodeApi.create('application', id ? id : 'root', { type: type }).then((ok) => {
+  return NodeApi.create('application', id ? id : 'root', {
+    type: type == 'folder' ? 'folder' : 'application'
+  }).then((ok) => {
     if (!id) {
       data.value.push({ ...ok.data, operate: 'rename' })
       nodeClick(ok.data, true)

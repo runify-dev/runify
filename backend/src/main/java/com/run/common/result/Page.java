@@ -20,6 +20,6 @@ import java.util.List;
 public class Page<T> {
     protected List<T> records;
     protected long total;
-    protected long size;
     protected long current;
+    protected long size;
 }

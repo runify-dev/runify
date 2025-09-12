@@ -32,7 +32,9 @@ const currentNode = ref<any>()
 provide('getNode', () => currentNode.value)
 const treeAsideRef = ref<typeof TreeAside>()
 const create = (type: Type, id?: string) => {
-  return NodeApi.create('model', id ? id : 'root', { type: type }).then((ok) => {
+  return NodeApi.create('model', id ? id : 'root', {
+    type: type == 'folder' ? 'folder' : 'model'
+  }).then((ok) => {
     if (!id) {
       data.value.push({ ...ok.data, operate: 'rename' })
       nodeClick(ok.data, true)

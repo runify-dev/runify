@@ -156,16 +156,19 @@ public abstract class TreeHandler<Node extends BaseEntity<Node>, Relation extend
                             .delete(DSL.field("descendant_id")
                                             .eq(DSL.param("#{descendant_id}")).or(DSL.field("ancestor_id").eq(DSL.param("#{ancestor_id}"))),
                                     Map.of("descendant_id", resourceId,
-                                            "ancestor_id", resourceId));
+                                            "ancestor_id", resourceId), sqlClient);
                 });
 
     }
 
     public Future<SqlResult<Void>> delete(String resourceId) {
-        return nodeMapper.getClient()
-                .withTransaction(sqlConnection -> {
-                    return delete(resourceId, sqlConnection);
-                });
+//        return nodeMapper.getClient()
+//                .withTransaction(sqlConnection -> {
+//                    return delete(resourceId, sqlConnection);
+//                });
+
+        return delete(resourceId, nodeMapper.getClient());
+
     }
 
     public void delete(RoutingContext context) {

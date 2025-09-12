@@ -436,9 +436,9 @@ public class BaseMapper<T extends BaseEntity<T>> {
      * @param pageSize    每页大小
      * @return 分页数据
      */
-    public Future<Page<T>> page(Condition condition, long currentPage, long pageSize) {
-        Future<Long> count = count(condition);
-        return _page(condition, currentPage, pageSize).compose(rowSet -> count.compose(c -> {
+    public Future<Page<T>> page(Condition condition, long currentPage, long pageSize, Map<String, Object> params) {
+        Future<Long> count = count(condition, params);
+        return _page(condition, currentPage, pageSize, params).compose(rowSet -> count.compose(c -> {
             List<T> ts = toList(rowSet);
             return Future.succeededFuture(new Page<T>(ts, c, currentPage, pageSize));
         }));
@@ -470,15 +470,17 @@ public class BaseMapper<T extends BaseEntity<T>> {
      * @param pageSize    每页大小
      * @return 分页结果
      */
-    private Future<RowSet<T>> _page(Condition condition, long currentPage, long pageSize) {
+    private Future<RowSet<T>> _page(Condition condition, long currentPage, long pageSize, Map<String, Object> params) {
         String sql = dslContext.select(fields).from(table).where(condition)
-                .offset((currentPage - 1) * pageSize)
-                .limit(pageSize)
+                .offset(DSL.param("#{offset}", Integer.class))
+                .limit(DSL.param("#{limit}", Integer.class))
                 .getSQL(ParamType.NAMED);
-
+        HashMap<String, Object> result = new HashMap<>(params);
+        result.put("offset", (currentPage - 1) * pageSize);
+        result.put("limit", pageSize);
         return SqlTemplate.forQuery(client, sql)
                 .mapTo(this.getConvert()::mapTo)
-                .execute(Map.of());
+                .execute(result);
 
     }
 
@@ -490,11 +492,27 @@ public class BaseMapper<T extends BaseEntity<T>> {
      */
     public Future<Long> count(Condition condition) {
         String sql = dslContext.selectCount().from(table)
-                .where(condition).getSQL(ParamType.NAMED);
+                .where(condition).getQuery().toString();
         return SqlTemplate.forQuery(client, sql)
                 .execute(Map.of()).compose(rows -> {
                     Row next = rows.iterator().next();
-                    return Future.succeededFuture(next.getLong("count"));
+                    return Future.succeededFuture(next.getLong("count(*)"));
+                });
+    }
+
+    /**
+     * 获取count
+     *
+     * @param condition 条件
+     * @return count 数
+     */
+    public Future<Long> count(Condition condition, Map<String, Object> params) {
+        String sql = dslContext.selectCount().from(table)
+                .where(condition).getSQL(ParamType.NAMED);
+        return SqlTemplate.forQuery(client, sql)
+                .execute(params).compose(rows -> {
+                    Row next = rows.iterator().next();
+                    return Future.succeededFuture(next.getLong("count(*)"));
                 });
 
     }

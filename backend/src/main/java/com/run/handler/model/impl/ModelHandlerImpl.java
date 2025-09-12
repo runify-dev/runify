@@ -139,6 +139,6 @@ public class ModelHandlerImpl extends TreeHandler<Model, ModelRelation, ModelMap
 
     @Override
     protected Map<String, String> getNamePrefixMap() {
-        return Map.of("md", "新建模型", "folder", "新建文件夹");
+        return Map.of("model", "新建模型", "folder", "新建文件夹");
     }
 }

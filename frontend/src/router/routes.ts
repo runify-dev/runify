@@ -1,4 +1,5 @@
 import type { RouteRecordRaw } from "vue-router";
+import systemManageRoute from "@/router/modules/system_manage"
 const modules: any = import.meta.glob("./modules/*.ts", { eager: true });
 const routeList: any = [
   ...Object.keys(modules).map((key) => modules[key].default),
