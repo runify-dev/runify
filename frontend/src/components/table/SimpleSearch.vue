@@ -28,6 +28,7 @@
           class="block pt-2 ps-10 text-sm text-gray-900 border border-gray-300 rounded-lg w-80 bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
           placeholder="搜索"
           v-model="keyword"
+          @keydown.enter="search"
         />
       </div>
     </div>
@@ -37,7 +38,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 const props = defineProps<{ modelValue?: string }>()
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue', 'search'])
 const keyword = computed({
   get: () => {
     return props.modelValue
@@ -46,5 +47,8 @@ const keyword = computed({
     emit('update:modelValue', _v)
   }
 })
+const search = () => {
+  emit('search')
+}
 </script>
 <style lang="scss" scoped></style>

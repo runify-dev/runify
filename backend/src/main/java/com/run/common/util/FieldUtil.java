@@ -58,14 +58,14 @@ public class FieldUtil {
     }
 
     @SuppressWarnings("unchecked")
-    public static <T, R> Field<R> getParms(SFunction<T, R> function) {
+    public static <T, R> Param<R> getParms(SFunction<T, R> function) {
         try {
             SerializedLambda lambda = getSerializedLambda(function);
             String cacheKey = generateCacheKey(lambda);
             // 先从缓存中获取
             Param<?> cachedParam = PARMS_CACHE.get(cacheKey);
             if (cachedParam != null) {
-                return (Field<R>) cachedParam;
+                return (Param<R>) cachedParam;
             }
             // 解析字段信息
             FieldInfo fieldInfo = resolveFieldInfo(lambda);

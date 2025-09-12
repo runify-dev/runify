@@ -1,6 +1,7 @@
 package com.run.handler.user.impl;
 
 
+import com.run.common.result.Page;
 import com.run.common.result.Result;
 import com.run.common.util.*;
 import com.run.common.validator.Group;
@@ -9,7 +10,9 @@ import com.run.dao.mapper.UserMapper;
 import com.run.handler.user.IUserHandler;
 import com.run.handler.user.pojo.LoginPojo;
 import com.run.handler.user.pojo.UserPojo;
+import com.run.handler.user.pojo.UserQueryPojo;
 import io.vertx.core.Handler;
+import io.vertx.core.MultiMap;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.sqlclient.Pool;
 import io.vertx.sqlclient.templates.SqlTemplate;
@@ -20,10 +23,14 @@ import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import org.apache.commons.beanutils.BeanUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.jooq.Condition;
+import org.jooq.Field;
+import org.jooq.Param;
 import org.jooq.impl.DSL;
 
 import javax.inject.Inject;
+import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Map;
 
@@ -92,18 +99,22 @@ public class UserHandlerImpl implements IUserHandler {
         };
     }
 
+    public UserPojo to(User user) {
+        UserPojo userPojo = new UserPojo();
+        try {
+            BeanUtils.copyProperties(userPojo, user);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        return userPojo;
+    }
+
     @Override
     public Handler<RoutingContext> profile() {
         return context -> {
-                io.vertx.ext.auth.User user = context.user();
+            io.vertx.ext.auth.User user = context.user();
             User userInstance = user.get("user");
-            UserPojo userPojo = new UserPojo();
-            try {
-                BeanUtils.copyProperties(userPojo, userInstance);
-                context.end(Result.success(userPojo).toBuffer());
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
+            context.end(Result.success(to(userInstance)).toBuffer());
         };
 
     }
@@ -114,4 +125,47 @@ public class UserHandlerImpl implements IUserHandler {
             context.end(Result.success("已成功退出登录").toBuffer());
         };
     }
+
+    public Condition getCondition(UserQueryPojo queryPojo) {
+        String mixing = queryPojo.getMixing();
+        Condition condition = DSL.noCondition();
+        Field<String> username = FieldUtil.getField(User::getUsername);
+        Field<String> nikiName = FieldUtil.getField(User::getNickname);
+        if (StringUtils.isNotEmpty(mixing)) {
+            Field<String> phone = FieldUtil.getField(User::getPhone);
+            Field<String> email = FieldUtil.getField(User::getEmail);
+            Param<String> mixingParams = FieldUtil.getParms(UserQueryPojo::getMixing);
+            condition = condition.and(username.like(mixingParams)
+                    .or(nikiName.like(mixingParams)
+                            .or(phone.like(mixingParams))
+                            .or(email.like(mixingParams))));
+        }
+        if (StringUtils.isNotEmpty(queryPojo.getNickname())) {
+            condition = condition.and(username.like(FieldUtil.getParms(User::getUsername)));
+        }
+        if (StringUtils.isNotEmpty(queryPojo.getNickname())) {
+            condition = condition.and(username.like(FieldUtil.getParms(User::getNickname)));
+        }
+        return condition;
+    }
+
+    @Override
+    public void page(RoutingContext context) {
+        MultiMap entries = context.queryParams();
+        String currentPage = context.pathParam("currentPage");
+        String pageSize = context.pathParam("pageSize");
+        UserQueryPojo userQueryPojo = new UserQueryPojo(entries);
+        userMapper.page(getCondition(userQueryPojo), Long.parseLong(currentPage), Long.parseLong(pageSize), userQueryPojo.toMap())
+                .onSuccess(userPage -> {
+                    List<UserPojo> list = userPage.getRecords().stream().map(this::to).toList();
+                    Page<UserPojo> result = new Page<>();
+                    result.setRecords(list);
+                    result.setSize(userPage.getSize());
+                    result.setCurrent(userPage.getCurrent());
+                    result.setTotal(userPage.getTotal());
+                    context.end(Result.success(result).toBuffer());
+                }).onFailure(context::fail);
+    }
+
+
 }

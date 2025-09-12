@@ -54,7 +54,10 @@ public class UserRoute implements IRoute {
                 .handler(iUserHandler.login());
 
         apiRoute.get("/logout")
+                .handler(tokenBasicAuthHandler)
                 .handler(iUserHandler.logout());
+        apiRoute.get("/user/:currentPage/:pageSize")
+                .handler(iUserHandler::page);
     }
 
     @Override

@@ -38,4 +38,6 @@ public interface IUserHandler {
      * @return 登出处理器
      */
     Handler<RoutingContext> logout();
+
+    void page(RoutingContext context);
 }
