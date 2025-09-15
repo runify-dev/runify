@@ -1,6 +1,6 @@
 <template>
   <SimpleSearch v-model="keyword" @search="() => pageUser()"
-    ><el-button>创建用户</el-button></SimpleSearch
+    ><el-button @click="openCreateUser">创建用户</el-button></SimpleSearch
   >
   <TableVue :data="userList">
     <TableColumnVue prop="username">
@@ -41,6 +41,7 @@
     :pager-count="7"
     v-on:update:current-page="(c) => (currentPage = c)"
   ></Pagination>
+  <CreateUser ref="createUserRef"></CreateUser>
 </template>
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
@@ -49,6 +50,7 @@ import TableColumnVue from '@/components/table/TableColumn.vue'
 import TableVue from '@/components/table/index.vue'
 import SimpleSearch from '@/components/table/SimpleSearch.vue'
 import Pagination from '@/components/table/Pagination.vue'
+import CreateUser from '@/views/user-management/components/CreateUserDialog.vue'
 import type { User } from '@/api/type/user'
 const userList = ref<Array<User>>([])
 
@@ -56,7 +58,10 @@ const currentPage = ref<number>(1)
 const pageSize = ref<number>(10)
 const total = ref<number>(0)
 const keyword = ref<string>()
-
+const createUserRef = ref<InstanceType<typeof CreateUser>>()
+const openCreateUser = () => {
+  createUserRef.value?.open()
+}
 const pageUser = () => {
   UserAPI.page({ mixing: keyword.value }, currentPage.value, pageSize.value).then((ok) => {
     currentPage.value = ok.data.current

@@ -27,4 +27,11 @@ const logout: (
 ) => Promise<Result<User>> = (loading) => {
   return get(`/logout`, undefined, loading)
 }
-export default { login, profile, logout, page }
+
+const createUser: (
+  body: any,
+  loading?: Ref<boolean>
+) => Promise<Result<User>> = (body, loading) => {
+  return post(`/user`, body, {}, loading)
+}
+export default { login, profile, logout, page, createUser }

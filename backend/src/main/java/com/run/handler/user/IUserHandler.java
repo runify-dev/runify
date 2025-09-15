@@ -13,10 +13,8 @@ import io.vertx.ext.web.RoutingContext;
 public interface IUserHandler {
     /**
      * 创建用户
-     *
-     * @return 创建用户
      */
-    Handler<RoutingContext> createUser();
+    void createUser(RoutingContext context);
 
     /**
      * 登陆

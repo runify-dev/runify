@@ -129,8 +129,8 @@ export const get: (
 /**
  * faso post请求 一般用来添加资源
  * @param url    资源url
- * @param params 参数
  * @param data   添加数据
+ * @param params 参数
  * @param loading loading
  * @returns 异步promise对象
  */

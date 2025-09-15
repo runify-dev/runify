@@ -1,6 +1,7 @@
 package com.run.dao.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.run.common.validator.Group;
 import com.run.dao.common.annotations.Column;
 import com.run.dao.common.annotations.Table;
@@ -30,6 +31,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(schemaName = "public", name = "user")
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class User implements BaseEntity<User> {
     @Column(name = "id", primaryKey = true)
     private UUID id;
@@ -37,7 +39,6 @@ public class User implements BaseEntity<User> {
     @NotBlank(message = "邮箱不能为空", groups = Group.Create.class)
     private String email;
     @Column(name = "phone")
-    @NotBlank(message = "手机号不能为空", groups = Group.Create.class)
     private String phone;
     @Column(name = "nick_name")
     @NotBlank(message = "昵称不能为空", groups = Group.Create.class)

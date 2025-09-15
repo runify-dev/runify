@@ -11,17 +11,11 @@ import com.run.handler.user.IUserHandler;
 import com.run.handler.user.pojo.LoginPojo;
 import com.run.handler.user.pojo.UserPojo;
 import com.run.handler.user.pojo.UserQueryPojo;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.sqlclient.Pool;
-import io.vertx.sqlclient.templates.SqlTemplate;
-import net.sf.jsqlparser.expression.StringValue;
-import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
-import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
-import net.sf.jsqlparser.schema.Column;
-import net.sf.jsqlparser.schema.Table;
-import net.sf.jsqlparser.statement.select.PlainSelect;
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jooq.Condition;
@@ -30,9 +24,10 @@ import org.jooq.Param;
 import org.jooq.impl.DSL;
 
 import javax.inject.Inject;
-import java.lang.reflect.InvocationTargetException;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * {@code @Author:张少虎}
@@ -54,20 +49,25 @@ public class UserHandlerImpl implements IUserHandler {
     }
 
     @Override
-    public Handler<RoutingContext> createUser() {
-        return context -> {
-            User user = context.body().asPojo(User.class);
-            String sql = SqlGenUtil.generateInsertSql("user", User.class);
-            ValidatorUtil.validate(user, Group.Create.class);
-            SqlTemplate.forUpdate(pool, sql).mapFrom(User.class)
-                    .executeBatch(List.of(user))
-                    .onSuccess(ok -> {
-                        context.end(Result.success(user).toBuffer());
-                    }).onFailure(throwable -> {
-                        context.end(Result.success(throwable.toString()).toBuffer());
-                    });
+    public void createUser(RoutingContext context) {
+        User user = context.body().asPojo(User.class);
+        user.setId(UUID.randomUUID());
+        user.setCreateTime(LocalDateTime.now());
+        user.setUpdateTime(LocalDateTime.now());
+        user.setIcon("/ui/user.jpeg");
+        ValidatorUtil.validate(user, Group.Create.class);
+        userMapper.one(FieldUtil.getField(User::getUsername)
+                                .eq(FieldUtil.getParms(User::getUsername)),
+                        Map.of("username", user.getUsername()))
+                .compose(u -> {
+                    if (u == null) {
+                        return userMapper.save(user);
+                    }
+                    return Future.failedFuture("用户名存在");
+                }).onSuccess(ok -> {
+                    context.end(Result.success(user).toBuffer());
+                }).onFailure(context::fail); ;
 
-        };
     }
 
     @Override
