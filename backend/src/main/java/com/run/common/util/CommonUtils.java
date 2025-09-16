@@ -1,5 +1,6 @@
 package com.run.common.util;
 
+import com.run.models.ProvideInfo;
 import io.netty.util.internal.StringUtil;
 import io.vertx.sqlclient.RowSet;
 import lombok.SneakyThrows;
@@ -7,8 +8,11 @@ import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
@@ -26,6 +30,18 @@ import java.util.UUID;
  * {@code @注释: }
  */
 public class CommonUtils {
+    public static String getFileContent(String path) {
+        try (InputStream is = CommonUtils.class.getClassLoader().getResourceAsStream(path)) {
+            if (is == null) {
+                throw new RuntimeException("Resource not found: " + path);
+            }
+            return new String(is.readAllBytes(), StandardCharsets.UTF_8);
+
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to read resource: " + path, e);
+        }
+    }
+
     /**
      * 将字符串加密
      *

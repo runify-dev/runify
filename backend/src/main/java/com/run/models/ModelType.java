@@ -1,10 +1,8 @@
 package com.run.models;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.Objects;
 
 /**
  * {@code @Author:张少虎}
@@ -13,7 +11,7 @@ import java.util.Objects;
  * {@code @注释: }
  */
 public enum ModelType {
-    LLM("LLM", "大语言模型", "icon/text-generation.svg");
+    LLM("LLM", "大语言模型", "com/run/models/icon/text-generation.svg");
     private String code;
     private String message;
     private String icon;
@@ -33,9 +31,12 @@ public enum ModelType {
     ModelType(String code, String message, String iconPath) {
         this.code = code;
         this.message = message;
-        try {
-            String file = Objects.requireNonNull(this.getClass().getResource(iconPath)).getFile();
-            this.icon = Files.readString(Paths.get(file), StandardCharsets.UTF_8);
+        try (InputStream is = this.getClass().getClassLoader().getResourceAsStream(iconPath)) {
+            if (is == null) {
+                throw new RuntimeException("Resource not found: " + iconPath);
+            }
+            this.icon = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
