@@ -6,6 +6,7 @@ import com.run.models.impl.openai.model.LLM;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -27,13 +28,18 @@ public class OpenaiProvider implements IProvider {
         modelInfoManage = ModelInfoManage.builder()
                 .append(deepseek, true)
                 .append(qwenMax, false).build();
-        try {
-            String file = Objects.requireNonNull(this.getClass().getResource("icon/openai.svg")).getFile();
-            String icon = Files.readString(Paths.get(file), StandardCharsets.UTF_8);
+        String filePath = "com/run/models/impl/openai/icon/openai.svg";
+        try (InputStream is = this.getClass().getClassLoader().getResourceAsStream(filePath)) {
+            if (is == null) {
+                throw new RuntimeException("Resource not found: " + filePath);
+            }
+            String icon = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+            // 使用 icon
             provideInfo = new ProvideInfo("openai_provider", "OpenAI", icon);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Failed to read resource: " + filePath, e);
         }
+
     }
 
     @Override
