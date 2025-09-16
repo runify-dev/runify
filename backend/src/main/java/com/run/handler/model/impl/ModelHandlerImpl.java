@@ -22,6 +22,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import lombok.SneakyThrows;
+import org.apache.commons.lang3.StringUtils;
 
 import javax.inject.Inject;
 import java.time.LocalDateTime;
@@ -150,17 +151,17 @@ public class ModelHandlerImpl extends TreeHandler<Model, ModelRelation, ModelMap
         String resourceId = context.pathParam("resourceId");
         modelMapper.getById(resourceId)
                 .compose(model -> {
-                    if (model == null) {
-                        return Future.succeededFuture(null);
-                    }
-                    if ("model".equals(model.getType())) {
+
+                    if (model != null && "model".equals(model.getType())) {
                         String credential = model.getCredential();
-                        String decrypt = RSAUtil.decrypt(credential);
-                        JsonObject convert = JacksonUtils.convert(decrypt, JsonObject.class);
-                        Map<String, Object> result = JacksonUtils.convert(model, new TypeReference<Map<String, Object>>() {
-                        });
-                        result.put("credential", convert);
-                        return Future.succeededFuture(result);
+                        if (StringUtils.isNotEmpty(credential)) {
+                            String decrypt = RSAUtil.decrypt(credential);
+                            JsonObject convert = JacksonUtils.convert(decrypt, JsonObject.class);
+                            Map<String, Object> result = JacksonUtils.convert(model, new TypeReference<Map<String, Object>>() {
+                            });
+                            result.put("credential", convert);
+                            return Future.succeededFuture(result);
+                        }
                     }
                     return Future.succeededFuture(model);
                 })
