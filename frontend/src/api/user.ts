@@ -1,5 +1,5 @@
 import { Result, type Page } from '@/request/Result'
-import { get, post } from '@/request/index'
+import { get, post, del } from '@/request/index'
 import type {
   User,
   LoginPojo,
@@ -34,4 +34,10 @@ const createUser: (
 ) => Promise<Result<User>> = (body, loading) => {
   return post(`/user`, body, {}, loading)
 }
-export default { login, profile, logout, page, createUser }
+const deleteUser: (
+  userId: string,
+  loading?: Ref<boolean>
+) => Promise<Result<boolean>> = (userId, loading) => {
+  return del(`/user/${userId}`, {}, {}, loading)
+}
+export default { login, profile, logout, page, createUser, deleteUser }

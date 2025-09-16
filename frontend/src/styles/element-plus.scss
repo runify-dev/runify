@@ -1,0 +1,13 @@
+
+// button
+.el-button {
+  --el-button-font-weight: 400;
+  padding: 5px 12px;
+
+  &:hover {
+    color: var(--el-menu-active-color) !important;
+    background: var(--el-color-primary-light-9) !important;
+  }
+}
+
+

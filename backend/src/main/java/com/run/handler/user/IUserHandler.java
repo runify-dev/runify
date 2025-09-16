@@ -16,6 +16,8 @@ public interface IUserHandler {
      */
     void createUser(RoutingContext context);
 
+    void deleteUser(RoutingContext context);
+
     /**
      * 登陆
      *

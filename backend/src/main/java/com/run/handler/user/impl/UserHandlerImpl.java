@@ -55,6 +55,7 @@ public class UserHandlerImpl implements IUserHandler {
         user.setCreateTime(LocalDateTime.now());
         user.setUpdateTime(LocalDateTime.now());
         user.setIcon("/ui/user.jpeg");
+        user.setPassword(CommonUtils.getSHA256(user.getPassword()));
         ValidatorUtil.validate(user, Group.Create.class);
         userMapper.one(FieldUtil.getField(User::getUsername)
                                 .eq(FieldUtil.getParms(User::getUsername)),
@@ -66,8 +67,15 @@ public class UserHandlerImpl implements IUserHandler {
                     return Future.failedFuture("用户名存在");
                 }).onSuccess(ok -> {
                     context.end(Result.success(user).toBuffer());
-                }).onFailure(context::fail); ;
+                }).onFailure(context::fail);
+    }
 
+    @Override
+    public void deleteUser(RoutingContext context) {
+        String userId = context.pathParam("id");
+        userMapper.deleteById(userId).onSuccess(ok -> {
+            context.end(Result.success(true).toBuffer());
+        }).onFailure(context::fail);
     }
 
     @Override
