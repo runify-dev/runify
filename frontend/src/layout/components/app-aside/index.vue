@@ -75,6 +75,16 @@ onMounted(() => {
         userPojo.value = user
     })
 })
+// 如果用的 <script setup>
+const toSystem = () => {
+  // ...
+}
+const toAbout = () => {
+  // ...
+}
+const openHelp = () => {
+  // ...
+}
 const logout = () => {
     user.logout();
     router.push('/')

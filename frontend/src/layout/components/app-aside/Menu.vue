@@ -6,7 +6,7 @@
             <span></span>
         </div>
         <div class="content">
-            <AppIcon :name="menu.meta?.icon"></AppIcon>
+            <AppIcon v-if="typeof menu.meta?.icon === 'string'" :name="menu.meta.icon" />
             <span>{{ menu.meta?.title }}</span>
         </div>
     </div>
