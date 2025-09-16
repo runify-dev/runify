@@ -1,7 +1,10 @@
 package com.run.handler.model.impl;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.run.common.result.Result;
 import com.run.common.util.CommonUtils;
+import com.run.common.util.JacksonUtils;
+import com.run.common.util.RSAUtil;
 import com.run.dao.entity.Model;
 import com.run.dao.entity.ModelRelation;
 import com.run.dao.mapper.ModelMapper;
@@ -13,6 +16,7 @@ import com.run.models.IProvider;
 import com.run.models.ModelInfo;
 import com.run.models.ModelProvideConstants;
 import com.run.models.ProvideInfo;
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -140,5 +144,27 @@ public class ModelHandlerImpl extends TreeHandler<Model, ModelRelation, ModelMap
     @Override
     protected Map<String, String> getNamePrefixMap() {
         return Map.of("model", "新建模型", "folder", "新建文件夹");
+    }
+
+    public void get(RoutingContext context) {
+        String resourceId = context.pathParam("resourceId");
+        modelMapper.getById(resourceId)
+                .compose(model -> {
+                    if (model == null) {
+                        return Future.succeededFuture(null);
+                    }
+                    if ("model".equals(model.getType())) {
+                        String credential = model.getCredential();
+                        String decrypt = RSAUtil.decrypt(credential);
+                        JsonObject convert = JacksonUtils.convert(decrypt, JsonObject.class);
+                        Map<String, Object> result = JacksonUtils.convert(model, new TypeReference<Map<String, Object>>() {
+                        });
+                        result.put("credential", convert);
+                        return Future.succeededFuture(result);
+                    }
+                    return Future.succeededFuture(model);
+                })
+                .onSuccess(ok -> context.end(Result.success(ok).toBuffer()))
+                .onFailure(context::fail);
     }
 }
