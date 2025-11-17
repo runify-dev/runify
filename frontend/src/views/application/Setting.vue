@@ -50,11 +50,9 @@ const resourceId = computed(() => {
   return id
 })
 const save = () => {
-  ApplicationAPI.edit(folderId.value, resourceId.value, workflowRef.value?.getGraphData()).then(
-    () => {
-      ElMessage.success('保存成功')
-    }
-  )
+  ApplicationAPI.edit(resourceId.value, workflowRef.value?.getGraphData()).then(() => {
+    ElMessage.success('保存成功')
+  })
 }
 
 onMounted(() => {

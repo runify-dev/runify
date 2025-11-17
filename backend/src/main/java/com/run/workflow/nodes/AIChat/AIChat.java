@@ -30,12 +30,14 @@ import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * {@code @Author:张少虎}
@@ -71,7 +73,7 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
 
         @Override
         public Supplier<List<Node>> apply(WorkFlowManage workFlowManage, AIChat node) {
-            List<Message> messages = (List<Message>) workFlowManage.getContextVariable(List.of("start-node", "messages"));
+            List<Message> messages = new ArrayList<>((List<Message>) workFlowManage.getContextVariable(List.of("start-node", "messages")));
             Message userMessage = messages.get(messages.size() - 1);
             if (StringUtils.isNotEmpty(node.params.getSystem())) {
                 Optional<Message> systemMessage = messages.stream().filter(message -> message.getRole().equals("system")).findFirst();

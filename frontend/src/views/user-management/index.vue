@@ -37,6 +37,9 @@
             <el-button @click="deleteUser(row.id)" style="margin: 1px" link type="primary">
               <el-icon> <Delete /> </el-icon
             ></el-button>
+            <el-button @click="openAuthResource(row.id)" style="margin: 1px" link type="primary">
+              <AppIcon name="app-auth-resource"></AppIcon>
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -51,6 +54,7 @@
     v-on:update:current-page="(c) => (currentPage = c)"
   ></Pagination>
   <CreateUser ref="createUserRef"></CreateUser>
+  <ResourceAuthDrawer ref="ResourceAUthDrawerRef"></ResourceAuthDrawer>
 </template>
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
@@ -61,14 +65,21 @@ import CreateUser from '@/views/user-management/components/CreateUserDialog.vue'
 import type { User } from '@/api/type/user'
 import AdaptiveHeight from '@/components/adaptive-height/index.vue'
 import { ElMessage } from 'element-plus'
+import AppIcon from '@/components/icons/AppIcon.vue'
+import ResourceAuthDrawer from '@/views/user-management/components/ResourceAuthDrawer.vue'
 const userList = ref<Array<User>>([])
 const currentPage = ref<number>(1)
 const pageSize = ref<number>(10)
 const total = ref<number>(0)
 const keyword = ref<string>()
 const createUserRef = ref<InstanceType<typeof CreateUser>>()
+const ResourceAUthDrawerRef = ref<InstanceType<typeof ResourceAuthDrawer>>()
 const openCreateUser = () => {
   createUserRef.value?.open()
+}
+
+const openAuthResource = (userId: string) => {
+  ResourceAUthDrawerRef.value?.open(userId)
 }
 const pageUser = () => {
   UserAPI.page({ mixing: keyword.value }, currentPage.value, pageSize.value).then((ok) => {

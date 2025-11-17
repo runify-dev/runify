@@ -8,7 +8,7 @@ export const routes: Array<RouteRecordRaw> = [
   {
     path: "/",
     name: "home",
-    redirect: "knowledge",
+    redirect: "application",
     component: () => import("@/layout/AppLayout.vue"),
     children: routeList,
   },

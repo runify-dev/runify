@@ -1,6 +1,7 @@
 package com.run.handler.application;
 
-import com.run.handler.common.ITreeHandler;
+import com.run.dao.entity.Application;
+import com.run.handler.common.IResourceHandler;
 import io.vertx.ext.web.RoutingContext;
 
 /**
@@ -9,7 +10,7 @@ import io.vertx.ext.web.RoutingContext;
  * {@code @Version 1.0}
  * {@code @注释: }
  */
-public interface IApplicationHandler extends ITreeHandler {
+public interface IApplicationHandler extends IResourceHandler<Application> {
     /**
      * 修改
      *
@@ -17,12 +18,6 @@ public interface IApplicationHandler extends ITreeHandler {
      */
     void edit(RoutingContext context);
 
-    /**
-     * 查询一个
-     *
-     * @param context 上下文
-     */
-    void get(RoutingContext context);
 
     /**
      * 对话

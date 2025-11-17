@@ -2,10 +2,10 @@ package com.run.route;
 
 import com.run.auth.TokenBasicAuthHandler;
 import com.run.common.route.IRoute;
-import com.run.handler.knowledge.IKnowledgeHandler;
-import com.run.handler.knowledge.impl.KnowledgeHandlerImpl;
 import com.run.handler.model.IModelHandler;
+import com.run.handler.model.impl.ModelFolderHandlerImpl;
 import com.run.handler.model.impl.ModelHandlerImpl;
+import com.run.handler.model.IModelFolderHandler;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
@@ -25,16 +25,19 @@ public class ModelRoute implements IRoute {
     protected TokenBasicAuthHandler tokenBasicAuthHandler;
 
     private final IModelHandler modelHandler;
+    private final IModelFolderHandler modelFolderHandler;
 
     protected OpenAPI openAPI;
 
     @Inject
     public ModelRoute(@Named("apiRoute") Router apiRoute, OpenAPI openAPI,
                       TokenBasicAuthHandler tokenBasicAuthHandler,
-                      ModelHandlerImpl modelHandler) {
+                      ModelHandlerImpl modelHandler,
+                      ModelFolderHandlerImpl modelFolderHandler) {
         this.apiRoute = apiRoute;
         this.openAPI = openAPI;
         this.modelHandler = modelHandler;
+        this.modelFolderHandler = modelFolderHandler;
         this.tokenBasicAuthHandler = tokenBasicAuthHandler;
     }
 
@@ -49,36 +52,63 @@ public class ModelRoute implements IRoute {
         apiRoute.get("/model/:provider/type")
                 .handler(tokenBasicAuthHandler)
                 .handler(modelHandler::listModelType);
-        apiRoute.put("/model/folder/:folderId/resource/:resourceId")
+
+        apiRoute.get("/model/resources/:resourceId")
+                .handler(tokenBasicAuthHandler)
+                .handler(modelHandler::get);
+
+        apiRoute.put("/model/resources/:resourceId")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
                 .handler(modelHandler::edit);
-        apiRoute.get("/model/folder/:folderId/resource/:resourceId")
-                .handler(tokenBasicAuthHandler)
-                .handler(modelHandler::get);
-        apiRoute.delete("/model/folder/:folderId/resource/:resourceId")
+
+        apiRoute.delete("/model/resources/:resourceId")
                 .handler(tokenBasicAuthHandler)
                 .handler(modelHandler::delete);
-        apiRoute.post("/model/folder/:folderId/resource/:resourceId/rename")
+
+        apiRoute.post("/model/resources/:resourceId/modify-name")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
                 .handler(modelHandler::rename);
-        apiRoute.post("/model/folder/:folderId")
+
+        apiRoute.post("/model/folders/:folderId/modify-name")
+                .handler(BodyHandler.create())
+                .handler(tokenBasicAuthHandler)
+                .handler(modelFolderHandler::rename);
+
+        apiRoute.get("/model/folders/:folderId")
+                .handler(tokenBasicAuthHandler)
+                .handler(modelFolderHandler::get);
+
+        apiRoute.delete("/model/folders/:folderId")
+                .handler(tokenBasicAuthHandler)
+                .handler(modelFolderHandler::delete);
+
+        apiRoute.post("/model/folders/:folderId")
+                .handler(BodyHandler.create())
+                .handler(tokenBasicAuthHandler)
+                .handler(modelFolderHandler::create);
+
+        apiRoute.get("/model/folders/:folderId/subtree")
+                .handler(tokenBasicAuthHandler)
+                .handler(modelHandler::tree);
+
+        apiRoute.get("/model/folders/:folderId/resources")
+                .handler(tokenBasicAuthHandler)
+                .handler(modelHandler::list);
+
+        apiRoute.post("/model/folders/:folderId/resources")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
                 .handler(modelHandler::create);
-        apiRoute.get("/model/folder/:folderId/tree")
+
+        apiRoute.get("/model/permissions/:userId")
                 .handler(tokenBasicAuthHandler)
-                .handler(modelHandler::listTree);
-        apiRoute.get("/model/folder/:folderId/resource")
+                .handler(modelHandler::listResourcePermission);
+
+        apiRoute.put("/model/permissions/:userId/authorization/:resourceId/:permission")
                 .handler(tokenBasicAuthHandler)
-                .handler(modelHandler::listResource);
-        apiRoute.get("/model/folder/:folderId/star")
-                .handler(tokenBasicAuthHandler)
-                .handler(modelHandler::listStar);
-        apiRoute.get("/model/folder/:folderId/shared")
-                .handler(tokenBasicAuthHandler)
-                .handler(modelHandler::listShared);
+                .handler(modelHandler::authResourcePermission);
     }
 
     @Override

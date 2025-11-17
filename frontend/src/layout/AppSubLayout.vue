@@ -27,15 +27,16 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 const props = withDefaults(
   defineProps<{
     left?: number
+    computeAsideWidth?: (x: number) => number
   }>(),
-  { left: 60 }
+  { left: 60, computeAsideWidth: (x: number) => x - 60 }
 )
 const isDorp = ref<boolean>(false)
 const clientX = ref<number>()
 
 const elAsideWidth = computed(() => {
   if (!clientX.value) return window.innerWidth < 640 ? 0 : 180
-  const asideWidth = clientX.value - props.left
+  const asideWidth = props.computeAsideWidth(clientX.value)
   if (asideWidth < 100) {
     return 0
   } else if (clientX.value > 500) {

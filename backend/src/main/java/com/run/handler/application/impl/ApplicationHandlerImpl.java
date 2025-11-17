@@ -4,17 +4,17 @@ package com.run.handler.application.impl;
 import com.run.common.constants.ConversationUserType;
 import com.run.common.openai.request.message.UserMessage;
 import com.run.common.result.Result;
+import com.run.common.util.CommonUtils;
 import com.run.common.util.JacksonUtils;
 import com.run.dao.entity.*;
-import com.run.dao.mapper.ApplicationMapper;
-import com.run.dao.mapper.ApplicationRelationMapper;
-import com.run.dao.mapper.ConversationMapper;
-import com.run.dao.mapper.ConversationRecordMapper;
+import com.run.dao.mapper.*;
 import com.run.handler.application.IApplicationHandler;
 import com.run.handler.application.pojo.ChatPojo;
 import com.run.handler.application.pojo.ConversationQuery;
 import com.run.handler.application.pojo.EditApplicationPojo;
-import com.run.handler.common.impl.TreeHandler;
+import com.run.handler.common.Tool;
+import com.run.handler.common.impl.ResourceHandlerImpl;
+import com.run.handler.common.pojo.SimpleNodePojo;
 import com.run.workflow.Answer;
 import com.run.workflow.INode;
 import com.run.workflow.WorkFlowManage;
@@ -26,6 +26,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jooq.Condition;
 import org.jooq.impl.DSL;
@@ -40,7 +41,7 @@ import java.util.*;
  * {@code @Version 1.0}
  * {@code @注释: }
  */
-public class ApplicationHandlerImpl extends TreeHandler<Application, ApplicationRelation, ApplicationMapper, ApplicationRelationMapper> implements IApplicationHandler {
+public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, ApplicationFolder, ApplicationPermission, ApplicationRelation, ApplicationMapper, ApplicationFolderMapper, ApplicationPermissionMapper, ApplicationRelationMapper> implements IApplicationHandler {
 
     protected ApplicationMapper applicationMapper;
     private final ConversationMapper conversationMapper;
@@ -48,10 +49,12 @@ public class ApplicationHandlerImpl extends TreeHandler<Application, Application
 
     @Inject
     public ApplicationHandlerImpl(ApplicationMapper applicationMapper,
+                                  ApplicationFolderMapper applicationFolderMapper,
                                   ApplicationRelationMapper applicationRelationMapper,
+                                  ApplicationPermissionMapper applicationPermissionMapper,
                                   ConversationMapper conversationMapper,
                                   ConversationRecordMapper conversationRecordMapper) {
-        super(applicationMapper, applicationRelationMapper);
+        super(applicationMapper, applicationFolderMapper, applicationRelationMapper, applicationPermissionMapper);
         this.applicationMapper = applicationMapper;
         this.conversationMapper = conversationMapper;
         this.conversationRecordMapper = conversationRecordMapper;
@@ -71,14 +74,21 @@ public class ApplicationHandlerImpl extends TreeHandler<Application, Application
 
     }
 
+
     @Override
-    protected String getNodeName(Application application) {
-        return application.getName();
+    protected SimpleNodePojo resourceToSimpleNodePojo(Application application) {
+        SimpleNodePojo simpleNodePojo = new SimpleNodePojo();
+        CommonUtils.copyProperties(application, simpleNodePojo);
+        simpleNodePojo.setType("application");
+        return simpleNodePojo;
     }
 
     @Override
-    protected UUID getNodeId(Application application) {
-        return application.getId();
+    protected SimpleNodePojo folderToSimpleNodePojo(ApplicationFolder applicationFolder) {
+        SimpleNodePojo simpleNodePojo = new SimpleNodePojo();
+        CommonUtils.copyProperties(applicationFolder, simpleNodePojo);
+        simpleNodePojo.setType("folder");
+        return simpleNodePojo;
     }
 
     @Override
@@ -87,9 +97,15 @@ public class ApplicationHandlerImpl extends TreeHandler<Application, Application
     }
 
     @Override
-    protected Application newNode(UUID id, UUID parentId, String type, String name) {
-        return new Application(id, parentId, name, type, "", new JsonObject(), new JsonObject(), false, false, LocalDateTime.now(), LocalDateTime.now());
+    protected UUID getParentId(Application resource) {
+        return resource.getParentId();
     }
+
+    @Override
+    protected void setName(Application resource, String name) {
+        resource.setName(name);
+    }
+
 
     @Override
     protected UUID getAncestorId(ApplicationRelation applicationRelation) {
@@ -102,8 +118,33 @@ public class ApplicationHandlerImpl extends TreeHandler<Application, Application
     }
 
     @Override
-    protected Map<String, String> getNamePrefixMap() {
-        return Map.of("application", "新建应用", "folder", "新建文件夹");
+    protected String getName(Application resource) {
+        return "";
+    }
+
+    @Override
+    protected UUID getTarget(ApplicationPermission permission) {
+        return permission.getTarget();
+    }
+
+    @Override
+    protected String getPermission(ApplicationPermission permission) {
+        return permission.getPermission();
+    }
+
+    @Override
+    protected String getNamePrefix() {
+        return "新建应用";
+    }
+
+    @Override
+    protected Application newResource(UUID resourceId, UUID parentUuId, String name, RoutingContext context) {
+        return new Application(resourceId, parentUuId, name, "", "", new JsonObject(), new JsonObject(), false, false, LocalDateTime.now(), LocalDateTime.now());
+    }
+
+    @Override
+    protected ApplicationPermission newPermission(UUID id, UUID userId, UUID target, String permission) {
+        return new ApplicationPermission(id, userId, target, permission, LocalDateTime.now(), LocalDateTime.now());
     }
 
     @Override

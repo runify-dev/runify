@@ -1,22 +1,16 @@
 package com.run.dao.entity;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.run.common.util.JacksonUtils;
 import com.run.dao.common.annotations.Column;
 import com.run.dao.common.annotations.Table;
-import com.run.dao.common.convert.BaseConvert;
 import com.run.dao.common.entity.BaseEntity;
 import io.vertx.core.json.JsonObject;
-import io.vertx.sqlclient.Row;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.jooq.SQLDialect;
 
 import java.time.LocalDateTime;
-import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -83,49 +77,6 @@ public class FileEntity implements BaseEntity<FileEntity> {
     @Column(name = "update_time")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime updateTime;
-
-
-    @Override
-    @JsonIgnore
-    public Map<SQLDialect, BaseConvert<FileEntity>> getConvertMap() {
-        return Map.of(SQLDialect.SQLITE, new Sqlite(),
-                SQLDialect.POSTGRES, new Pgsql(),
-                SQLDialect.H2, new Pgsql());
-    }
-
-
-    class Pgsql implements BaseConvert<FileEntity> {
-        @Override
-        public FileEntity mapTo(Row row) {
-            FileEntity file = new FileEntity();
-            file.id = row.getUUID("id");
-            file.fileName = row.getString("file_name");
-            file.loId = row.getLong("lo_id");
-            file.sha256Hash = row.getString("sha256_hash");
-            file.refType = row.getString("ref_type");
-            file.ref = row.getString("ref");
-            file.meta = row.getJsonObject("meta");
-            file.size = row.getLong("size");
-            return file;
-        }
-    }
-
-    class Sqlite implements BaseConvert<FileEntity> {
-        @Override
-        public FileEntity mapTo(Row row) {
-            FileEntity file = new FileEntity();
-            file.id = row.getUUID("id");
-            file.fileName = row.getString("file_name");
-            file.loId = row.getLong("lo_id");
-            file.sha256Hash = row.getString("sha256_hash");
-            file.refType = row.getString("ref_type");
-            file.ref = row.getString("ref");
-            file.meta = JacksonUtils.fromJson(row.getString("meta"), JsonObject.class);
-            file.size = row.getLong("size");
-            file.path = row.getString("path");
-            return file;
-        }
-    }
 
 
 }

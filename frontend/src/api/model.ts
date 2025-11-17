@@ -30,8 +30,8 @@ const edit: (
   resourceId: string,
   model: any,
   loading?: Ref<boolean>
-) => Promise<Result<any>> = (folderId, resourceId, model, loading) => {
-  return put(`/model/folder/${folderId}/resource/${resourceId}`, model, {}, loading)
+) => Promise<Result<any>> = (resourceId, model, loading) => {
+  return put(`/model/resources/${resourceId}`, model, {}, loading)
 }
 export default {
   getProvider,

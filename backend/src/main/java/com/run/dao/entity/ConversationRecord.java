@@ -1,21 +1,16 @@
 package com.run.dao.entity;
 
-import com.run.common.util.JacksonUtils;
 import com.run.dao.common.annotations.Column;
 import com.run.dao.common.annotations.Table;
-import com.run.dao.common.convert.BaseConvert;
 import com.run.dao.common.entity.BaseEntity;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.sqlclient.Row;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.jooq.SQLDialect;
 
 import java.time.LocalDateTime;
-import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -63,27 +58,4 @@ public class ConversationRecord implements BaseEntity<ConversationRecord> {
     @Column(name = "update_time")
     private LocalDateTime updateTime;
 
-    class Sqlite implements BaseConvert<ConversationRecord> {
-        @Override
-        public ConversationRecord mapTo(Row row) {
-            ConversationRecord conversationRecord = new ConversationRecord();
-            conversationRecord.id = row.getUUID("id");
-            conversationRecord.applicationId = row.getUUID("application_id");
-            conversationRecord.conversationId = row.getUUID("conversation_id");
-            conversationRecord.star = row.getInteger("star") != 0;
-            conversationRecord.trample = row.getInteger("trample") != 0;
-            conversationRecord.question = JacksonUtils.fromJson(row.getString("question"), JsonObject.class);
-            conversationRecord.answer = JacksonUtils.fromJson(row.getString("answer"), JsonArray.class);
-            conversationRecord.details = JacksonUtils.fromJson(row.getString("details"), JsonObject.class);
-            conversationRecord.runTime = row.getFloat("run_time");
-            conversationRecord.createTime = row.getLocalDateTime("create_time");
-            conversationRecord.updateTime = row.getLocalDateTime("update_time");
-            return conversationRecord;
-        }
-    }
-
-    @Override
-    public Map<SQLDialect, BaseConvert<ConversationRecord>> getConvertMap() {
-        return Map.of(SQLDialect.SQLITE, new Sqlite());
-    }
 }

@@ -22,7 +22,6 @@ import java.security.PrivateKey;
 public class AppInitialization {
     @Inject
     public AppInitialization(UserRoute userRoute,
-                             NodeRoute nodeRoute,
                              KnowledgeRoute knowledgeRoute,
                              FileRoute fileRoute,
                              ChatRoute chatRoute,
@@ -33,7 +32,6 @@ public class AppInitialization {
                              MigrationInitialization migrationInitialization,
                              SystemSettingMapper systemSettingMapper) {
         userRoute.init();
-        nodeRoute.init();
         knowledgeRoute.init();
         fileRoute.init();
         chatRoute.init();

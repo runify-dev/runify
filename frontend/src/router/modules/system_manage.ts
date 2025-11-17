@@ -10,6 +10,12 @@ const noteRouter = {
       name: 'user',
       meta: { title: '用户管理', activeMenu: 'system-management' },
       component: () => import("@/views/user-management/index.vue"),
+    },
+    {
+      path: 'resource-authorization',
+      name: 'resource-authorization',
+      meta: { title: '资源授权', activeMenu: 'resource-authorization' },
+      component: () => import("@/views/resource-authorization/index.vue"),
     }
   ]
 };

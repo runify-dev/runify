@@ -32,7 +32,6 @@ public class ModelMapper extends BaseMapper<Model> {
     @Setter
     public static class ModelDetail extends Model {
         private Map<String, Object> credentialData;
-
     }
 
     public ModelMapper(Pool client, SQLDialect dbType) {

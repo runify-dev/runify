@@ -3,8 +3,11 @@ package com.run.handler.user.impl;
 
 import com.run.common.result.Page;
 import com.run.common.result.Result;
-import com.run.common.util.*;
+import com.run.common.util.CommonUtils;
+import com.run.common.util.JWTUtil;
+import com.run.common.util.ValidatorUtil;
 import com.run.common.validator.Group;
+import com.run.dao.common.F;
 import com.run.dao.entity.User;
 import com.run.dao.mapper.UserMapper;
 import com.run.handler.user.IUserHandler;
@@ -56,9 +59,10 @@ public class UserHandlerImpl implements IUserHandler {
         user.setUpdateTime(LocalDateTime.now());
         user.setIcon("/ui/user.jpeg");
         user.setPassword(CommonUtils.getSHA256(user.getPassword()));
+        user.setRole("USER");
         ValidatorUtil.validate(user, Group.Create.class);
-        userMapper.one(FieldUtil.getField(User::getUsername)
-                                .eq(FieldUtil.getParms(User::getUsername)),
+        userMapper.one(F.field(User::getUsername)
+                                .eq(F.params(User::getUsername)),
                         Map.of("username", user.getUsername()))
                 .compose(u -> {
                     if (u == null) {
@@ -88,9 +92,9 @@ public class UserHandlerImpl implements IUserHandler {
             String password = loginPojo.getPassword();
 
 
-            Condition eq = FieldUtil.getField(User::getUsername)
-                    .eq(FieldUtil.getParms(User::getUsername))
-                    .and(FieldUtil.getField(User::getPassword).eq(FieldUtil.getParms(User::getPassword)));
+            Condition eq = F.field(User::getUsername)
+                    .eq(F.params(User::getUsername))
+                    .and(F.field(User::getPassword).eq(F.params(User::getPassword)));
             userMapper.search(eq, Map.of("username", username, "password", CommonUtils.getSHA256(password)))
                     .onSuccess(rows -> {
                         if (rows.size() > 0) {
@@ -137,22 +141,22 @@ public class UserHandlerImpl implements IUserHandler {
     public Condition getCondition(UserQueryPojo queryPojo) {
         String mixing = queryPojo.getMixing();
         Condition condition = DSL.noCondition();
-        Field<String> username = FieldUtil.getField(User::getUsername);
-        Field<String> nikiName = FieldUtil.getField(User::getNickname);
+        Field<String> username = F.field(User::getUsername);
+        Field<String> nikiName = F.field(User::getNickname);
         if (StringUtils.isNotEmpty(mixing)) {
-            Field<String> phone = FieldUtil.getField(User::getPhone);
-            Field<String> email = FieldUtil.getField(User::getEmail);
-            Param<String> mixingParams = FieldUtil.getParms(UserQueryPojo::getMixing);
+            Field<String> phone = F.field(User::getPhone);
+            Field<String> email = F.field(User::getEmail);
+            Param<String> mixingParams = F.params(UserQueryPojo::getMixing);
             condition = condition.and(username.like(mixingParams)
                     .or(nikiName.like(mixingParams)
                             .or(phone.like(mixingParams))
                             .or(email.like(mixingParams))));
         }
         if (StringUtils.isNotEmpty(queryPojo.getNickname())) {
-            condition = condition.and(username.like(FieldUtil.getParms(User::getUsername)));
+            condition = condition.and(username.like(F.params(User::getUsername)));
         }
         if (StringUtils.isNotEmpty(queryPojo.getNickname())) {
-            condition = condition.and(username.like(FieldUtil.getParms(User::getNickname)));
+            condition = condition.and(username.like(F.params(User::getNickname)));
         }
         return condition;
     }

@@ -2,6 +2,7 @@ package com.run.dagger.module;
 
 import com.run.common.config.AppConfig;
 import com.run.common.config.DataBase;
+import com.run.dao.common.F;
 import dagger.Module;
 import dagger.Provides;
 import org.apache.commons.lang3.StringUtils;
@@ -86,6 +87,7 @@ public class ConfigModule {
         for (InitConfig initConfig : initConfigs) {
             if (initConfig.support()) {
                 this.appConfig = initConfig.get();
+                F.activeSQLDialect(this.appConfig.getDatabase().getType());
                 return;
             }
         }

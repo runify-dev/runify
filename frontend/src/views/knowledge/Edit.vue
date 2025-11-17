@@ -2,7 +2,7 @@
   <div class="sticky h-full z-60 top-0 left-0 right-0">
     <div
       class="w-full h-10 flex items-center gap-x-4 p-4 mb-5 shadow-lg outline outline-black/5 dark:bg-slate-800 dark:shadow-none dark:-outline-offset-1 dark:outline-white/10"
-      style="background: linear-gradient(135deg, rgb(29 43 100 / 79%), rgb(248, 205, 218));"
+      style="background: linear-gradient(135deg, rgb(29 43 100 / 79%), rgb(248, 205, 218))"
     >
       <el-icon class="hover:cursor-pointer" @click="goDetails">
         <ArrowLeft class="text-white" />
@@ -26,14 +26,12 @@
   </div>
 </template>
 <script setup lang="ts">
-import type { ResourceType } from '@/api/type/common'
 import { MdEditor, type ToolbarNames, type HeadList } from 'md-editor-v3'
 import FileAPI from '@/api/file'
 import { computed, onMounted, ref, reactive } from 'vue'
 import NodeApi from '@/api/node'
 import KnowledgeApi from '@/api/knowledge'
 import { useRoute, useRouter } from 'vue-router'
-defineProps<{ resource: ResourceType }>()
 
 const route = useRoute()
 const router = useRouter()
@@ -59,7 +57,6 @@ const resourceId = computed(() => {
 })
 
 const get = () => {
-  console.log('ss')
   NodeApi.resourceInfo('knowledge', folderId.value, resourceId.value).then((ok) => {
     knowledge.value = ok.data
   })
@@ -123,7 +120,7 @@ const toolbars = ref<ToolbarNames[]>([
 ])
 
 const edit = () => {
-  KnowledgeApi.edit(folderId.value ? folderId.value : 'root', resourceId.value, {
+  KnowledgeApi.edit(resourceId.value, {
     content: knowledge.value.content
   }).then((ok) => {
     goDetails()

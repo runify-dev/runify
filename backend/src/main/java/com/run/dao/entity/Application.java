@@ -1,21 +1,15 @@
 package com.run.dao.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.run.common.util.JacksonUtils;
 import com.run.dao.common.annotations.Column;
 import com.run.dao.common.annotations.Table;
-import com.run.dao.common.convert.BaseConvert;
 import com.run.dao.common.entity.BaseEntity;
 import io.vertx.core.json.JsonObject;
-import io.vertx.sqlclient.Row;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.jooq.SQLDialect;
 
 import java.time.LocalDateTime;
-import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -46,17 +40,17 @@ public class Application implements BaseEntity<Application> {
      */
     @Column(name = "name")
     private String name;
-    /**
-     * 节点类型
-     */
-    @Column(name = "type")
-    private String type;
 
     /**
      * 应用描述
      */
     @Column(name = "desc")
     private String desc;
+    /**
+     * icon
+     */
+    @Column(name = "icon")
+    private String icon;
     /**
      * 工作流对象
      */
@@ -83,62 +77,5 @@ public class Application implements BaseEntity<Application> {
 
     @Column(name = "update_time")
     private LocalDateTime updateTime;
-
-    public Application(Row row) {
-        this.id = row.getUUID("id");
-        this.name = row.getString("name");
-        this.desc = row.getString("desc");
-        this.workflow = row.getJsonObject("workflow");
-        this.setting = row.getJsonObject("setting");
-        this.star = row.getBoolean("star");
-        this.share = row.getBoolean("share");
-        this.type = row.getString("type");
-        this.parentId=row.getUUID("parent_id");
-        this.createTime = row.getLocalDateTime("create_time");
-        this.updateTime = row.getLocalDateTime("update_time");
-    }
-
-
-    @Override
-    @JsonIgnore
-    public Map<SQLDialect, BaseConvert<Application>> getConvertMap() {
-        return Map.of(SQLDialect.SQLITE, new Sqlite(),
-                SQLDialect.POSTGRES, new Pgsql(),
-                SQLDialect.H2, new Pgsql());
-    }
-
-
-    class Pgsql implements BaseConvert<Application> {
-        @Override
-        public Application mapTo(Row row) {
-            return new Application(row);
-        }
-    }
-
-    class Sqlite implements BaseConvert<Application> {
-        @Override
-        public Map<String, Object> toMap(Application application) {
-            Map<String, Object> map = BaseConvert.super.toMap(application);
-            map.put("workflow",JacksonUtils.toJson(application.workflow));
-            return map;
-        }
-
-        @Override
-        public Application mapTo(Row row) {
-            Application application = new Application();
-            application.id = row.getUUID("id");
-            application.name = row.getString("name");
-            application.parentId=row.getUUID("parent_id");
-            application.desc = row.getString("desc");
-            application.workflow = JacksonUtils.fromJson(row.getString("workflow"), JsonObject.class);
-            application.setting = JacksonUtils.fromJson(row.getString("setting"), JsonObject.class);
-            application.star = row.getInteger("star") != 0;
-            application.share = row.getInteger("share") != 0;
-            application.type = row.getString("type");
-            application.createTime = row.getLocalDateTime("create_time");
-            application.updateTime = row.getLocalDateTime("update_time");
-            return application;
-        }
-    }
 
 }

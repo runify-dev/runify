@@ -3,7 +3,9 @@ package com.run.route;
 
 import com.run.auth.TokenBasicAuthHandler;
 import com.run.common.route.IRoute;
+import com.run.handler.application.IApplicationFolderHandler;
 import com.run.handler.application.IApplicationHandler;
+import com.run.handler.application.impl.ApplicationFolderHandlerImpl;
 import com.run.handler.application.impl.ApplicationHandlerImpl;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
@@ -24,52 +26,80 @@ public class ApplicationRoute implements IRoute {
 
     private final Pool pool;
 
-    protected TokenBasicAuthHandler tokenBasicAuthHandler;
+    protected final TokenBasicAuthHandler tokenBasicAuthHandler;
 
-    private IApplicationHandler applicationHandler;
+    private final IApplicationHandler applicationHandler;
+    private final IApplicationFolderHandler applicationFolderHandler;
 
     @Inject
-    public ApplicationRoute(@Named("apiRoute") Router apiRoute, Pool pool, TokenBasicAuthHandler tokenBasicAuthHandler, ApplicationHandlerImpl applicationHandler) {
+    public ApplicationRoute(@Named("apiRoute") Router apiRoute, Pool pool,
+                            TokenBasicAuthHandler tokenBasicAuthHandler,
+                            ApplicationHandlerImpl applicationHandler,
+                            ApplicationFolderHandlerImpl applicationFolderHandler) {
         this.apiRoute = apiRoute;
         this.pool = pool;
         this.tokenBasicAuthHandler = tokenBasicAuthHandler;
         this.applicationHandler = applicationHandler;
+        this.applicationFolderHandler = applicationFolderHandler;
     }
 
     @Override
     public void initRoute() {
-        apiRoute.put("/application/folder/:folderId/resource/:resourceId")
-                .handler(BodyHandler.create())
-                .handler(tokenBasicAuthHandler)
-                .handler(applicationHandler::edit);
-        apiRoute.get("/application/folder/:folderId/resource/:resourceId")
+        apiRoute.get("/application/resources/:resourceId")
                 .handler(tokenBasicAuthHandler)
                 .handler(applicationHandler::get);
 
-        apiRoute.delete("/application/folder/:folderId/resource/:resourceId")
+        apiRoute.put("/application/resources/:resourceId")
+                .handler(BodyHandler.create())
+                .handler(tokenBasicAuthHandler)
+                .handler(applicationHandler::edit);
+
+        apiRoute.delete("/application/resources/:resourceId")
                 .handler(tokenBasicAuthHandler)
                 .handler(applicationHandler::delete);
 
-        apiRoute.post("/application/folder/:folderId/resource/:resourceId/rename")
+        apiRoute.post("/application/resources/:resourceId/modify-name")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
                 .handler(applicationHandler::rename);
-        apiRoute.post("/application/folder/:folderId")
+
+        apiRoute.post("/application/folders/:folderId/modify-name")
+                .handler(BodyHandler.create())
+                .handler(tokenBasicAuthHandler)
+                .handler(applicationFolderHandler::rename);
+
+        apiRoute.get("/application/folders/:folderId")
+                .handler(tokenBasicAuthHandler)
+                .handler(applicationFolderHandler::get);
+
+        apiRoute.delete("/application/folders/:folderId")
+                .handler(tokenBasicAuthHandler)
+                .handler(applicationFolderHandler::delete);
+
+        apiRoute.post("/application/folders/:folderId")
+                .handler(BodyHandler.create())
+                .handler(tokenBasicAuthHandler)
+                .handler(applicationFolderHandler::create);
+
+        apiRoute.get("/application/folders/:folderId/subtree")
+                .handler(tokenBasicAuthHandler)
+                .handler(applicationHandler::tree);
+
+        apiRoute.get("/application/folders/:folderId/resources")
+                .handler(tokenBasicAuthHandler)
+                .handler(applicationHandler::list);
+
+        apiRoute.post("/application/folders/:folderId/resources")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
                 .handler(applicationHandler::create);
-        apiRoute.get("/application/folder/:folderId/tree")
+
+        apiRoute.get("/application/permissions/:userId")
                 .handler(tokenBasicAuthHandler)
-                .handler(applicationHandler::listTree);
-        apiRoute.get("/application/folder/:folderId/resource")
+                .handler(applicationHandler::listResourcePermission);
+        apiRoute.put("/application/permissions/:userId/authorization/:resourceId/:permission")
                 .handler(tokenBasicAuthHandler)
-                .handler(applicationHandler::listResource);
-        apiRoute.get("/application/folder/:folderId/star")
-                .handler(tokenBasicAuthHandler)
-                .handler(applicationHandler::listStar);
-        apiRoute.get("/application/folder/:folderId/shared")
-                .handler(tokenBasicAuthHandler)
-                .handler(applicationHandler::listShared);
+                .handler(applicationHandler::authResourcePermission);
     }
 
     @Override

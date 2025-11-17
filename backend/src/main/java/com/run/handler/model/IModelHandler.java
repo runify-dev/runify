@@ -1,5 +1,8 @@
 package com.run.handler.model;
 
+import com.run.dao.entity.Knowledge;
+import com.run.dao.entity.Model;
+import com.run.handler.common.IResourceHandler;
 import com.run.handler.common.ITreeHandler;
 import io.vertx.ext.web.RoutingContext;
 
@@ -9,7 +12,7 @@ import io.vertx.ext.web.RoutingContext;
  * {@code @Version 1.0}
  * {@code @注释: }
  */
-public interface IModelHandler extends ITreeHandler {
+public interface IModelHandler extends IResourceHandler<Model> {
     /**
      * 获取供应商列表
      *

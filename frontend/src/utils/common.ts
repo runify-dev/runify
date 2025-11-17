@@ -1,6 +1,9 @@
 import { type Node, type Tree } from "@/api/type/node"
+import { cloneDeep } from "lodash"
 export const toTree = (nodeList: Array<Tree>) => {
+  nodeList = cloneDeep(nodeList)
   const nodeMap = Object.fromEntries(nodeList.map(item => [item.id, item]))
+  const childrenList = new Set<string>();
   for (let index = 0; index < nodeList.length; index++) {
     const element = nodeList[index];
     if (!element.children) {
@@ -12,12 +15,14 @@ export const toTree = (nodeList: Array<Tree>) => {
         if (!pNode.children) {
           pNode.children = []
         }
+        childrenList.add(element.id)
         pNode.children.push(element)
+
       }
 
     }
   }
-  return nodeList.filter(item => !item.parentId)
+  return nodeList.filter(item => !childrenList.has(item.id))
 }
 
 export const generateAnchor = (id: string, direction: 'left' | 'right' | 'top' | 'bottom', branch: 'main' | string, status: 'success' | 'fail',) => {

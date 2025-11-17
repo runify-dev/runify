@@ -1,6 +1,10 @@
 package com.run.handler.common;
 
+import com.run.handler.common.pojo.QueryFolderPojo;
+import io.vertx.core.Future;
 import io.vertx.ext.web.RoutingContext;
+
+import java.util.List;
 
 /**
  * {@code @Author:张少虎}
@@ -8,7 +12,7 @@ import io.vertx.ext.web.RoutingContext;
  * {@code @Version 1.0}
  * {@code @注释: }
  */
-public interface ITreeHandler {
+public interface ITreeHandler<F, R> {
     /**
      * 获取文件夹下资源列表
      */

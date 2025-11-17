@@ -1,26 +1,27 @@
-package com.run.common.util;
+package com.run.dao.common;
 
+import com.run.common.config.AppConfig;
 import com.run.dao.common.annotations.Column;
+import com.run.dao.common.constants.ConvertConstants;
+import com.run.dao.common.convert.Converter;
+import com.run.dao.common.convert.EntityConvert;
+import com.run.dao.common.entity.EntityConfig;
+import com.run.dao.entity.Application;
 import com.run.dao.entity.User;
-import net.sf.jsqlparser.expression.Expression;
-import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
-import net.sf.jsqlparser.expression.operators.relational.ParenthesedExpressionList;
-import net.sf.jsqlparser.statement.insert.Insert;
-import net.sf.jsqlparser.statement.select.Values;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.jooq.*;
 import org.jooq.Record;
 import org.jooq.conf.ParamType;
-import org.jooq.conf.RenderNameStyle;
 import org.jooq.conf.Settings;
 import org.jooq.impl.DSL;
-import org.jooq.impl.DefaultConfiguration;
 
+import javax.inject.Inject;
 import java.io.Serializable;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.lang.invoke.SerializedLambda;
 import java.lang.reflect.Method;
-import java.lang.reflect.ParameterizedType;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -28,14 +29,85 @@ import java.util.function.Function;
 
 import static org.jooq.impl.DSL.*;
 
-public class FieldUtil {
-
+public class F {
+    private static final MethodHandles.Lookup lookup = MethodHandles.lookup();
     // 缓存字段解析结果，提高性能
     private static final ConcurrentMap<String, Field<?>> FIELD_CACHE = new ConcurrentHashMap<>();
     private static final ConcurrentMap<String, Param<?>> PARMS_CACHE = new ConcurrentHashMap<>();
+    private static final Map<Class<?>, EntityConfig<?>> ENTITY_CONFIG_CACHE = new ConcurrentHashMap<>();
+    private static SQLDialect active;
+
+    public static void activeSQLDialect(SQLDialect active) {
+        F.active = active;
+    }
 
     @SuppressWarnings("unchecked")
-    public static <T, R> Field<R> getField(SFunction<T, R> function) {
+    public static <T> EntityConfig<T> getEntityConfig(Class<T> clazz) {
+        return (EntityConfig<T>) ENTITY_CONFIG_CACHE.computeIfAbsent(clazz, F::createEntityConfig);
+    }
+
+    public static String getSchema(Class<?> clazz) {
+        EntityConfig<?> entityConfig = getEntityConfig(clazz);
+        Schema schema = entityConfig.getTable(active).getSchema();
+        return Optional.ofNullable(schema).map(Schema::getName).orElse(null);
+    }
+
+    public static EntityConfig<?> createEntityConfig(Class<?> clazz) {
+        List<EntityConfig.Item<?>> configItems = createConfigItems(clazz);
+        SQLDialect sqlDialect = getStaticField(clazz, "ACTIVE");
+        return new EntityConfig(configItems, sqlDialect == null ? active : sqlDialect);
+    }
+
+    public static List<EntityConfig.Item<?>> createConfigItems(Class<?> clazz) {
+        com.run.dao.common.annotations.Table t = clazz.getAnnotation(com.run.dao.common.annotations.Table.class);
+        Table<Record> table = table(name(t.catalogName(), t.schemaName(), t.name()));
+        List<EntityConfig.Item<?>> result = new ArrayList<>(ConvertConstants.values().length);
+        Map<SQLDialect, Map<String, Converter<?, ?>>> converterMap = getStaticField(clazz, "CUSTOMIZE_CONVERTER");
+        converterMap = converterMap == null ? new ConcurrentHashMap<>() : converterMap;
+        Map<SQLDialect, Table<?>> tableMap = getStaticField(clazz, "CUSTOMIZE_TABLE");
+        tableMap = tableMap == null ? new ConcurrentHashMap<>() : tableMap;
+        for (ConvertConstants constant : ConvertConstants.values()) {
+            EntityConfig.Item<?> item = createConfigItem(table, constant, clazz, converterMap, tableMap);
+            result.add(item);
+        }
+        return result;
+    }
+
+
+    private static EntityConfig.Item<?> createConfigItem(Table<?> table, ConvertConstants constant,
+                                                         Class<?> clazz,
+                                                         Map<SQLDialect, Map<String, Converter<?, ?>>> converterMap,
+                                                         Map<SQLDialect, Table<?>> tableMap) {
+        SQLDialect dialect = constant.getSqlDialect();
+        Table<?> resolvedTable = tableMap.computeIfAbsent(dialect, k -> table);
+        Map<String, Converter<?, ?>> resolvedConverters = converterMap.computeIfAbsent(dialect, k -> Map.of());
+        Table<?> tableName = constant.getMappingTable().apply(resolvedTable);
+        EntityConvert<?> convert = constant.getNewInstance().apply(clazz, resolvedConverters);
+        return new EntityConfig.Item<>(dialect, tableName, convert);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T, R> R getStaticField(Class<T> clazz, String fieldName) {
+        try {
+            MethodHandle handle = lookup.findStaticGetter(clazz, fieldName, Object.class);
+            return (R) handle.invoke();
+        } catch (Throwable e) {
+            return null;
+        }
+    }
+
+    public static Field<?> field(Class<?> clazz, String field) {
+        Table<?> table = getEntityConfig(clazz).getTable();
+        return DSL.field(DSL.name(Optional.ofNullable(table.getSchema()).map(Schema::getName).orElse(null), field));
+    }
+
+    public static <R> Field<R> field(Class<?> clazz, String field, Class<R> fieldClass) {
+        Table<?> table = getEntityConfig(clazz).getTable();
+        return DSL.field(DSL.name(Optional.ofNullable(table.getSchema()).map(Schema::getName).orElse(null), field), fieldClass);
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T, R> Field<R> field(SFunction<T, R> function) {
         try {
             SerializedLambda lambda = getSerializedLambda(function);
             String cacheKey = generateCacheKey(lambda);
@@ -46,7 +118,7 @@ public class FieldUtil {
             }
             // 解析字段信息
             FieldInfo fieldInfo = resolveFieldInfo(lambda);
-            Field<R> field = (Field<R>) DSL.field(fieldInfo.columnName());
+            Field<R> field = (Field<R>) DSL.field(DSL.name(fieldInfo.schemaName(), fieldInfo.columnName()));
 
             // 放入缓存
             FIELD_CACHE.put(cacheKey, field);
@@ -58,7 +130,7 @@ public class FieldUtil {
     }
 
     @SuppressWarnings("unchecked")
-    public static <T, R> Param<R> getParms(SFunction<T, R> function) {
+    public static <T, R> Param<R> params(SFunction<T, R> function) {
         try {
             SerializedLambda lambda = getSerializedLambda(function);
             String cacheKey = generateCacheKey(lambda);
@@ -108,7 +180,7 @@ public class FieldUtil {
     public interface SFunction<T, R> extends Function<T, R>, Serializable {
     }
 
-    private record FieldInfo(String fieldName, String columnName) {
+    private record FieldInfo(String fieldName, String columnName, String schemaName) {
 
     }
 
@@ -159,6 +231,7 @@ public class FieldUtil {
         String className = lambda.getImplClass().replace("/", ".");
 
         Class<?> clazz = Class.forName(className);
+        String schema = getSchema(clazz);
         String fieldName = resolveFieldNameFromMethod(methodName);
 
         // 优先查找字段上的@Column注解
@@ -166,7 +239,7 @@ public class FieldUtil {
             java.lang.reflect.Field field = clazz.getDeclaredField(fieldName);
             Column column = field.getAnnotation(Column.class);
             if (column != null && !column.name().trim().isEmpty()) {
-                return new FieldInfo(fieldName, column.name());
+                return new FieldInfo(fieldName, column.name(), schema);
             }
         } catch (NoSuchFieldException e) {
             // 如果字段不存在，继续尝试通过getter方法查找
@@ -176,11 +249,11 @@ public class FieldUtil {
         Method method = clazz.getMethod(methodName);
         Column column = method.getAnnotation(Column.class);
         if (column != null && !column.name().trim().isEmpty()) {
-            return new FieldInfo(fieldName, column.name());
+            return new FieldInfo(fieldName, column.name(), schema);
         }
 
         // 最后使用默认的字段名转换（驼峰转下划线）
-        return new FieldInfo(fieldName, camelToUnderline(fieldName));
+        return new FieldInfo(fieldName, camelToUnderline(fieldName), schema);
     }
 
     /**
@@ -236,9 +309,9 @@ public class FieldUtil {
     public static Table<?> getTable(Class<?> clazz) {
         if (clazz.isAnnotationPresent(com.run.dao.common.annotations.Table.class)) {
             com.run.dao.common.annotations.Table annotation = clazz.getAnnotation(com.run.dao.common.annotations.Table.class);
-            return DSL.table(DSL.name(annotation.schemaName(), annotation.name()));
+            return table(DSL.name(annotation.schemaName(), annotation.name()));
         }
-        return DSL.table(DSL.name(camelToUnderline(clazz.getName())));
+        return table(DSL.name(camelToUnderline(clazz.getName())));
 
     }
 
@@ -248,8 +321,8 @@ public class FieldUtil {
         java.lang.reflect.Field[] fields = FieldUtils.getAllFields(clazz);
         List<Field<?>> result = new ArrayList<>();
         for (java.lang.reflect.Field field : fields) {
-            if (field.isAnnotationPresent(com.run.dao.common.annotations.Column.class)) {
-                com.run.dao.common.annotations.Column annotation = field.getAnnotation(com.run.dao.common.annotations.Column.class);
+            if (field.isAnnotationPresent(Column.class)) {
+                Column annotation = field.getAnnotation(Column.class);
                 Field<?> f = DSL.field(DSL.name(annotation.name()));
                 register(implClass, "get" + field.getName(), f);
                 result.add(f);
@@ -271,7 +344,7 @@ public class FieldUtil {
         SelectConditionStep<Record> where = using(SQLDialect.SQLITE, new Settings().withRenderNamedParamPrefix(""))
                 .select()
                 .from(table)
-                .where(getField(User::getCreateTime).eq(getParms(User::getCreateTime)));
+                .where(field(User::getCreateTime).eq(params(User::getCreateTime)));
 
         Map<String, Param<?>> params = where.getParams();
         System.out.println(params);
@@ -284,9 +357,9 @@ public class FieldUtil {
         DSLContext dslContext = using(SQLDialect.SQLITE, new Settings().withRenderNamedParamPrefix(""));
         List<Field<?>> fields = getFieldList(User.class);
         Table<?> table = getTable(User.class);
-        Map<org.jooq.Field<?>, Param<?>> updateMap = new HashMap<>();
-        for (org.jooq.Field<?> field : fields) {
-            updateMap.put(field, param("#{" + field.getName() + "}"));
+        Map<Field<?>, Param<?>> updateMap = new HashMap<>();
+        for (Field<?> field : fields) {
+            updateMap.put(field, params(Application::getId));
 
         }
         return dslContext.insertInto(table)

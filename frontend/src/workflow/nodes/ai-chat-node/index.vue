@@ -50,7 +50,8 @@ import MdInput from '@/components/md/MDInput.vue'
 import SimpleNodeContainer from '@/workflow/common/SimpleNodeContainer.vue'
 import type { BaseNodeModel } from '@logicflow/core'
 import type { FormInstance } from 'element-plus'
-import NodeAPI from '@/api/node'
+import { TreeCommonAPI } from '@/api/tree'
+const treeCommonAPI = new TreeCommonAPI('model')
 import { inject, onMounted, ref, watch } from 'vue'
 const getModel = inject('getModel') as () => BaseNodeModel
 const model = getModel()
@@ -77,7 +78,7 @@ const validate = () => {
 }
 const nodeContentLifeCycle = {
   onMounted: () => {
-    NodeAPI.listResource('model').then((ok) => {
+    treeCommonAPI.listResource('root').then((ok) => {
       modelList.value = ok.data
     })
   }

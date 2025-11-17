@@ -4,12 +4,11 @@ import type { Ref } from 'vue'
 
 
 const edit: (
-  folderId: string,
   applicationId: String,
   workflow: any,
   loading?: Ref<boolean>
-) => Promise<Result<any>> = (folderId, applicationId, workflow, loading) => {
-  return put(`/application/folder/${folderId}/resource/${applicationId}`, { 'workflow': workflow }, undefined, loading)
+) => Promise<Result<any>> = (applicationId, workflow, loading) => {
+  return put(`/application/resources/${applicationId}`, { 'workflow': workflow }, undefined, loading)
 }
 
 

@@ -3,9 +3,10 @@ package com.run.dao.common.mapper;
 
 import com.run.common.config.AppConfig;
 import com.run.common.result.Page;
-import com.run.common.util.FieldUtil;
-import com.run.dao.common.convert.BaseConvert;
+import com.run.dao.common.F;
+import com.run.dao.common.convert.EntityConvert;
 import com.run.dao.common.entity.BaseEntity;
+import com.run.dao.common.entity.EntityConfig;
 import io.vertx.core.Future;
 import io.vertx.sqlclient.*;
 import io.vertx.sqlclient.Row;
@@ -38,7 +39,6 @@ import static org.jooq.impl.DSL.using;
 public class BaseMapper<T extends BaseEntity<T>> {
     Logger log = LoggerFactory.getLogger(this.getClass());
 
-    protected T entity;
 
     private List<org.jooq.Field<?>> fields;
 
@@ -51,27 +51,16 @@ public class BaseMapper<T extends BaseEntity<T>> {
     @Getter
     private DSLContext dslContext;
 
-    private BaseConvert convert;
-
     private String saveTemplate;
 
     @Getter
     private org.jooq.Field<Object> primaryField;
+    private EntityConfig<T> entityConfig;
 
-
-    protected BaseConvert<T> getConvert() {
-        if (convert == null) {
-            return this.entity.getConvert(dbType);
-        }
-        return convert;
+    protected EntityConvert<T> getConvert() {
+        return entityConfig.getConvert(dbType);
     }
 
-    public Table<?> generateTable(com.run.dao.common.annotations.Table t) {
-        if (List.of(SQLDialect.POSTGRES, SQLDialect.H2).contains(dbType)) {
-            return DSL.table(DSL.name(t.schemaName(), t.name()));
-        }
-        return DSL.table(DSL.name(t.name()));
-    }
 
     @SneakyThrows
     @Inject
@@ -96,10 +85,9 @@ public class BaseMapper<T extends BaseEntity<T>> {
         this.client = client;
         this.dbType = dbType;
         this.dslContext = using(dbType, new Settings().withRenderNamedParamPrefix(""));
-        this.entity = entityClass.getConstructor().newInstance();
-        com.run.dao.common.annotations.Table t = entityClass.getAnnotation(com.run.dao.common.annotations.Table.class);
-        this.table = generateTable(t);
-        this.fields = FieldUtil.getFieldList(entityClass);
+        this.entityConfig = F.getEntityConfig(entityClass);
+        this.table = entityConfig.getTable(dbType);
+        this.fields = F.getFieldList(entityClass);
         List<Field> fields = Arrays.stream(FieldUtils
                         .getFieldsWithAnnotation(entityClass, com.run.dao.common.annotations.Column.class))
                 .filter(field -> field.getAnnotation(com.run.dao.common.annotations.Column.class).primaryKey()).toList();
@@ -512,7 +500,8 @@ public class BaseMapper<T extends BaseEntity<T>> {
         return SqlTemplate.forQuery(client, sql)
                 .execute(params).compose(rows -> {
                     Row next = rows.iterator().next();
-                    return Future.succeededFuture(next.getLong("count(*)"));
+                    Long aLong = next.getLong(0);
+                    return Future.succeededFuture(aLong);
                 });
 
     }

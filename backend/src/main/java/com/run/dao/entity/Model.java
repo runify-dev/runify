@@ -2,26 +2,21 @@ package com.run.dao.entity;
 
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.run.common.util.JacksonUtils;
 import com.run.common.util.RSAUtil;
 import com.run.dao.common.annotations.Column;
 import com.run.dao.common.annotations.Table;
-import com.run.dao.common.convert.BaseConvert;
 import com.run.dao.common.entity.BaseEntity;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.sqlclient.Row;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.jooq.SQLDialect;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -43,17 +38,15 @@ public class Model implements BaseEntity<Model> {
      */
     @Column(name = "parent_id")
     private UUID parentId;
-    /**
-     * 节点类型
-     */
-    @Column(name = "type")
-    private String type;
-
+    
     @Column(name = "name")
     private String name;
 
     @Column(name = "desc")
     private String desc;
+
+    @Column(name = "icon")
+    private String icon;
 
     @Column(name = "provider")
     private String provider;
@@ -95,75 +88,6 @@ public class Model implements BaseEntity<Model> {
     @Column(name = "update_time")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime updateTime;
-
-
-    @Override
-    @JsonIgnore
-    public Map<SQLDialect, BaseConvert<Model>> getConvertMap() {
-        return Map.of(SQLDialect.SQLITE, new Sqlite(),
-                SQLDialect.POSTGRES, new Pgsql(),
-                SQLDialect.H2, new Pgsql());
-    }
-
-
-    static class Pgsql implements BaseConvert<Model> {
-        @Override
-        public Model mapTo(Row row) {
-            Model model = new Model();
-            model.id = row.getUUID("id");
-            model.parentId = row.getUUID("parent_id");
-            model.type = row.getString("type");
-            model.name = row.getString("name");
-            model.desc = row.getString("desc");
-            model.provider = row.getString("provider");
-            model.modelType = row.getString("model_type");
-            model.modelName = row.getString("model_name");
-            model.credential = row.getString("credential");
-            model.modelParameterForm = row.getJsonArray("model_parameter_form");
-            model.meta = row.getJsonObject("meta");
-            model.star = row.getBoolean("star");
-            model.share = row.getBoolean("share");
-            model.createTime = row.getLocalDateTime("create_time");
-            model.updateTime = row.getLocalDateTime("update_time");
-            return model;
-        }
-    }
-
-    class Sqlite implements BaseConvert<Model> {
-        @Override
-        public Map<String, Object> toMap(Model model) {
-            Map<String, Object> map = BaseConvert.super.toMap(model);
-            map.put("meta", JacksonUtils.toJson(model.meta));
-            map.put("model_params_form", JacksonUtils.toJson(model.modelParameterForm.stream().toList()));
-            return map;
-        }
-
-        @Override
-        public Model mapTo(Row row) {
-            Model model = new Model();
-            model.id = row.getUUID("id");
-            model.parentId = row.getUUID("parent_id");
-            model.type = row.getString("type");
-            model.name = row.getString("name");
-            model.desc = row.getString("desc");
-            model.provider = row.getString("provider");
-            model.modelType = row.getString("model_type");
-            model.modelName = row.getString("model_name");
-            model.credential = row.getString("credential");
-            try {
-                model.modelParameterForm = new JsonArray(row.getString("model_parameter_form"));
-
-            } catch (Exception e) {
-                model.modelParameterForm = new JsonArray();
-            }
-            model.meta = JacksonUtils.fromJson(row.getString("meta"), JsonObject.class);
-            model.star = row.getInteger("star") != 0;
-            model.share = row.getInteger("share") != 0;
-            model.createTime = row.getLocalDateTime("create_time");
-            model.updateTime = row.getLocalDateTime("update_time");
-            return model;
-        }
-    }
 
     public String encrypt(JsonObject credential) {
         return RSAUtil.encrypt(JacksonUtils.toJson(credential.getMap()));

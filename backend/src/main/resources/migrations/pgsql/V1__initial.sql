@@ -1,19 +1,20 @@
 CREATE TABLE "public"."user" (
-                                 "id" uuid NOT NULL,
-                                 "email" varchar(255) COLLATE "pg_catalog"."default",
-                                 "phone" varchar(255) COLLATE "pg_catalog"."default",
-                                 "nick_name" varchar(255) COLLATE "pg_catalog"."default",
-                                 "username" varchar(255) COLLATE "pg_catalog"."default",
-                                 "password" varchar(255) COLLATE "pg_catalog"."default",
-                                 "create_time" timestamp(6),
-                                 "update_time" timestamp(6),
-                                 "icon" varchar(255) COLLATE "pg_catalog"."default",
-                                 CONSTRAINT "user_pkey" PRIMARY KEY ("id")
+  "id" uuid NOT NULL,
+  "email" varchar(255) COLLATE "pg_catalog"."default",
+  "phone" varchar(255) COLLATE "pg_catalog"."default",
+  "nick_name" varchar(255) COLLATE "pg_catalog"."default",
+  "username" varchar(255) COLLATE "pg_catalog"."default",
+  "password" varchar(255) COLLATE "pg_catalog"."default",
+  "create_time" timestamp(6),
+  "update_time" timestamp(6),
+  "icon" varchar(255) COLLATE "pg_catalog"."default",
+  "role" varchar(255) COLLATE "pg_catalog"."default" NOT NULL,
+  CONSTRAINT "user_pkey" PRIMARY KEY ("id")
 )
 ;
 
 ALTER TABLE "public"."user"
-    OWNER TO "postgres";
+  OWNER TO "postgres";
 
 COMMENT ON COLUMN "public"."user"."id" IS '用户id';
 
@@ -33,7 +34,9 @@ COMMENT ON COLUMN "public"."user"."update_time" IS '修改时间';
 
 COMMENT ON COLUMN "public"."user"."icon" IS '用户图标';
 
-INSERT INTO "public"."user" ("id", "email", "phone", "nick_name", "username", "password", "create_time", "update_time", "icon") VALUES ('22d90f6c-2092-43b8-aa14-d1f9731522ac', 'shaohuzhang1@163.com', NULL, '管理员', 'admin', '32d991775d14e9fa31a3633eb3cd253d5c1ecfae8b64dc6d7391a29ccc6fd824', '2022-04-17 00:59:01', '2025-04-05 00:00:00', '/ui/user.jpeg');
+COMMENT ON COLUMN "public"."user"."role" IS '角色';
+
+INSERT INTO "public"."user" ("id", "email", "phone", "nick_name", "username", "password", "create_time", "update_time", "icon", "role") VALUES ('22d90f6c-2092-43b8-aa14-d1f9731522ac', '', NULL, '管理员', 'admin', '8ded6cfcf8a627e51d361fbccc4af20242bc2cd3239a6fafcc1b9b5eb0ffcb1d', '2022-04-17 00:59:01', '2025-04-05 00:00:00', '/ui/user.jpeg', 'ADMIN');
 
 CREATE TABLE "public"."file" (
   "id" uuid NOT NULL,
@@ -58,7 +61,6 @@ ALTER TABLE "public"."file"
 CREATE TABLE "public"."knowledge" (
   "id" uuid NOT NULL,
   "parent_id" uuid,
-  "type" varchar(255) COLLATE "pg_catalog"."default" NOT NULL,
   "meta" jsonb,
   "create_time" timestamp(6),
   "update_time" timestamp(6),
@@ -118,7 +120,6 @@ COMMENT ON COLUMN "public"."knowledge_relation"."depth" IS '层级';
 CREATE TABLE "public"."application" (
   "id" uuid NOT NULL,
   "parent_id" uuid,
-  "type" varchar(255) COLLATE "pg_catalog"."default" NOT NULL,
   "setting" jsonb,
   "create_time" timestamp(6),
   "update_time" timestamp(6),

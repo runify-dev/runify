@@ -1,9 +1,9 @@
 <template>
   <header class="sticky top-0 left-0 z-50 bg-white right-0">
-      <div
-        class="w-full h-10 flex items-center gap-x-4 p-4 mb-5 shadow-lg outline outline-black/5 dark:bg-slate-800 dark:shadow-none dark:-outline-offset-1 dark:outline-white/10"
-        style="background: linear-gradient(135deg, rgb(29 43 100 / 79%), rgb(248, 205, 218));"
-      >
+    <div
+      class="w-full h-10 flex items-center gap-x-4 p-4 mb-5 shadow-lg outline outline-black/5 dark:bg-slate-800 dark:shadow-none dark:-outline-offset-1 dark:outline-white/10"
+      style="background: linear-gradient(135deg, rgb(29 43 100 / 79%), rgb(248, 205, 218))"
+    >
       <span class="text-white">{{ name }} </span>
       <div class="flex-auto"></div>
       <el-button type="primary" text bg @click="goEdit">{{ $t('common.edit') }} </el-button>
@@ -146,7 +146,6 @@
 <script setup lang="ts">
 import DynamicsForm from '@/components/dynamics-form/index.vue'
 import ModelAPI from '@/api/model'
-import NodeAPI from '@/api/node'
 import { computed, onMounted, ref, watch, inject } from 'vue'
 import RadioCard from '@/components/radio-card/index.vue'
 import { groupBy } from '@/utils/common'
@@ -154,14 +153,10 @@ import ModelParameterForm from '@/views/model/components/ModelParameterForm.vue'
 import { input_type_list } from '@/components/dynamics-form/constructor/data'
 import { ElMessage } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
+import { TreeCommonAPI } from '@/api/tree'
+const treeCommonAPI = new TreeCommonAPI('model')
 const router = useRouter()
 const route = useRoute()
-const folderId = computed(() => {
-  const {
-    params: { folderId }
-  } = route as any
-  return folderId
-})
 const resourceId = computed(() => {
   const {
     params: { id }
@@ -264,14 +259,14 @@ watch(
   { immediate: true }
 )
 const goEdit = () => {
-  router.push({ name: 'modelEdit', params: { folderId: folderId.value, id: resourceId.value } })
+  router.push({ name: 'modelEdit', params: { id: resourceId.value } })
 }
 
 watch(resourceId, () => {
   get()
 })
 const get = () => {
-  NodeAPI.resourceInfo('model', folderId.value, resourceId.value).then((ok) => {
+  treeCommonAPI.getResource(resourceId.value).then((ok) => {
     baseModelForm.value = ok.data
     dynamicsFormValue.value = ok.data.credential
   })

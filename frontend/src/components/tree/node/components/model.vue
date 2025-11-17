@@ -20,8 +20,12 @@
           </el-icon>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item command="a" @click="reName">重命名</el-dropdown-item>
-              <el-dropdown-item command="a" @click="remove">删除</el-dropdown-item>
+              <el-dropdown-item
+                @click="p.execute({ data, node })"
+                v-for="p in currentProcessors"
+                :key="p.label"
+                >{{ p.label }}</el-dropdown-item
+              >
             </el-dropdown-menu>
           </template>
         </el-dropdown>
@@ -36,27 +40,25 @@ import { set } from 'lodash'
 import AppIcon from '@/components/icons/AppIcon.vue'
 import NodeApi from '@/api/node'
 import type Node from 'element-plus/es/components/tree/src/model/node'
-import type { ResourceType } from '@/api/type/common'
+import { Config } from '@/components/tree/index'
 const props = defineProps<{
   data: TreeNodeData
   node: Node
-  resource: ResourceType
+  config: Config
 }>()
 
-const remove = () => {
-  NodeApi.remove(props.resource, props.data.parentId, props.data.id).then(() => {
-    props.node.remove()
-  })
-}
-const reName = () => {
-  set(props.data, 'operate', 'rename')
-}
 const enter = () => {
   if (nodeName.value) {
-    NodeApi.rename(props.resource, props.data.parentId, props.data.id, nodeName.value).then(() => {
-      set(props.data, 'operate', 'view')
-      set(props.data, 'name', nodeName.value)
-    })
+    props.config
+      .modifyName({
+        data: props.data,
+        node: props.node,
+        name: nodeName.value
+      })
+      .then(() => {
+        set(props.data, 'operate', 'view')
+        set(props.data, 'name', nodeName.value)
+      })
   }
 }
 const operate = computed(() => {
@@ -81,6 +83,10 @@ const fileTypeMap: any = {
 }
 const icon = computed(() => {
   return fileTypeMap[props.data.type]
+})
+
+const currentProcessors = computed(() => {
+  return props.config.getProcessor('FOLDER')
 })
 </script>
 <style lang="scss">

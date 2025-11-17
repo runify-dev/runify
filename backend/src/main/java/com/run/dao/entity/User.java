@@ -1,23 +1,18 @@
 package com.run.dao.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.run.common.validator.Group;
 import com.run.dao.common.annotations.Column;
 import com.run.dao.common.annotations.Table;
-import com.run.dao.common.convert.BaseConvert;
 import com.run.dao.common.entity.BaseEntity;
-import io.vertx.sqlclient.Row;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.jooq.SQLDialect;
 
 import java.time.LocalDateTime;
-import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -52,45 +47,13 @@ public class User implements BaseEntity<User> {
     @NotBlank(message = "密码不能为空", groups = Group.Create.class)
     @Max(value = 20, message = "密码最大值")
     private String password;
+
+    @Column(name = "role")
+    private String role;
+
     @Column(name = "create_time")
     private LocalDateTime createTime;
     @Column(name = "update_time")
     private LocalDateTime updateTime;
 
-    public User(Row row) {
-        this.id = row.getUUID("id");
-        this.email = row.getString("email");
-        this.phone = row.getString("phone");
-        this.nickname = row.getString("nick_name");
-        this.username = row.getString("username");
-        this.password = row.getString("password");
-        this.icon = row.getString("icon");
-        this.createTime = row.getLocalDateTime("create_time");
-        this.updateTime = row.getLocalDateTime("update_time");
-    }
-
-
-    @Override
-    @JsonIgnore
-    public Map<SQLDialect, BaseConvert<User>> getConvertMap() {
-        return Map.of(SQLDialect.SQLITE, new Sqlite(),
-                SQLDialect.POSTGRES, new Pgsql(),
-                SQLDialect.H2, new Pgsql());
-    }
-
-
-    class Pgsql implements BaseConvert<User> {
-        @Override
-        public User mapTo(Row row) {
-            return new User(row);
-        }
-    }
-
-    class Sqlite implements BaseConvert<User> {
-
-        @Override
-        public User mapTo(Row row) {
-            return new User(row);
-        }
-    }
 }

@@ -64,12 +64,6 @@ public abstract class TreeHandler<Node extends BaseEntity<Node>, Relation extend
                 .where(condition));
     }
 
-    public static void main(String[] args) {
-        HashMap<String, Object> objectObjectHashMap = new HashMap<>();
-        objectObjectHashMap.put("folderId", null);
-        System.out.println(objectObjectHashMap);
-    }
-
     public void list(RoutingContext context, QueryNodePojo queryNodePojo) {
         Condition where = getWhere(queryNodePojo);
         nodeMapper.search(where, Map.of(

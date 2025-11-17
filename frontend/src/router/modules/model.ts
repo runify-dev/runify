@@ -1,24 +1,25 @@
-const noteRouter = {
+const modelRouter = {
   path: "/model",
   name: "model",
   meta: { title: "模型", icon: 'app-model', activeMenu: "model" },
   component: () => import("@/views/model/index.vue"),
-  redirect: '/model/folder/root/resource/root',
+  redirect: '/model/folders/root',
   children: [
     {
-      path: 'folder/:folderId/resource/:id',
-      name: 'modelListResource',
+      path: 'folders/:id',
+      name: 'modelFolders',
       meta: { title: 'common.fileUpload.document', activeMenu: 'model' },
       component: () => import("@/views/model/List.vue"),
     },
+
     {
-      path: 'folder/:folderId/resource/:id/details',
+      path: 'resources/:id',
       name: 'modelDetails',
       meta: { title: 'common.fileUpload.document', activeMenu: 'model' },
       component: () => import("@/views/model/Details.vue"),
     },
     {
-      path: 'folder/:folderId/resource/:id/edit',
+      path: 'resources/:id/edit',
       name: 'modelEdit',
       meta: { title: 'common.fileUpload.document', activeMenu: 'model' },
       component: () => import("@/views/model/Edit.vue"),
@@ -26,4 +27,4 @@ const noteRouter = {
   ]
 };
 
-export default noteRouter;
+export default modelRouter;

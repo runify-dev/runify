@@ -1,36 +1,25 @@
-const noteRouter = {
+const knowledgeRouter = {
   path: "/knowledge",
   name: "knowledge",
   meta: { title: "知识库", icon: 'app-document', 'activeMenu': 'knowledge' },
   component: () => import("@/views/knowledge/index.vue"),
-  redirect: '/knowledge/folder/root/resource/root',
+  redirect: '/knowledge/folders/root',
   children: [
     {
-      path: 'star',
-      name: 'knowledgeListResourceStar',
+      path: 'folders/:id',
+      name: 'knowledgeFolders',
       meta: { title: 'common.fileUpload.document', activeMenu: 'knowledge' },
       component: () => import("@/views/knowledge/List.vue"),
     },
+
     {
-      path: 'share',
-      name: 'knowledgeListResourceShare',
-      meta: { title: 'common.fileUpload.document', activeMenu: 'knowledge' },
-      component: () => import("@/views/knowledge/List.vue"),
-    },
-    {
-      path: 'folder/:folderId/resource/:id',
-      name: 'knowledgeListResource',
-      meta: { title: 'common.fileUpload.document', activeMenu: 'knowledge' },
-      component: () => import("@/views/knowledge/List.vue"),
-    },
-    {
-      path: 'folder/:folderId/resource/:id/details',
+      path: 'resources/:id',
       name: 'knowledgeDetails',
       meta: { title: 'common.fileUpload.document', activeMenu: 'knowledge' },
       component: () => import("@/views/knowledge/Details.vue"),
     },
     {
-      path: 'folder/:folderId/resource/:id/edit',
+      path: 'resources/:id/edit',
       name: 'knowledgeEdit',
       meta: { title: 'common.fileUpload.document', activeMenu: 'knowledge' },
       component: () => import("@/views/knowledge/Edit.vue"),
@@ -38,4 +27,4 @@ const noteRouter = {
   ]
 };
 
-export default noteRouter;
+export default knowledgeRouter;

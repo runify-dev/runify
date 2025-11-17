@@ -2,7 +2,7 @@
   <header class="sticky z-60 top-0 left-0 right-0 bg-white">
     <div
       class="w-full h-10 flex items-center gap-x-4 p-4 mb-5 shadow-lg outline outline-black/5 dark:bg-slate-800 dark:shadow-none dark:-outline-offset-1 dark:outline-white/10"
-      style="background: linear-gradient(135deg, rgb(29 43 100 / 79%), rgb(248, 205, 218));"
+      style="background: linear-gradient(135deg, rgb(29 43 100 / 79%), rgb(248, 205, 218))"
     >
       <span class="text-white">{{ knowledge.name }}</span>
       <div class="flex-auto"></div>
@@ -18,14 +18,13 @@
   </MdPreview>
 </template>
 <script setup lang="ts">
-import type { ResourceType } from '@/api/type/common'
 import { MdPreview } from 'md-editor-v3'
-defineProps<{ resource: ResourceType }>()
 import { useRoute, useRouter } from 'vue-router'
 const route = useRoute()
 const router = useRouter()
 import { computed, onMounted, ref, watch } from 'vue'
-import NodeApi from '@/api/node'
+import { TreeCommonAPI } from '@/api/tree'
+const treeCommonAPI = new TreeCommonAPI('knowledge')
 const knowledge = ref<any>({})
 const folderId = computed(() => {
   const {
@@ -44,9 +43,8 @@ const resourceId = computed(() => {
 })
 
 const get = () => {
-  NodeApi.resourceInfo('knowledge', folderId.value, resourceId.value).then((ok) => {
+  treeCommonAPI.getResource(resourceId.value).then((ok) => {
     knowledge.value = ok.data
-    console.log(ok.data)
   })
 }
 watch(resourceId, () => {

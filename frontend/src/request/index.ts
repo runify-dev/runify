@@ -56,11 +56,6 @@ instance.interceptors.response.use(
     return response
   },
   (err: any) => {
-    if (err.response?.status === 404) {
-      if (!err.response.config.url.includes('/application/authentication')) {
-        router.push('/404 ')
-      }
-    }
     if (err.response?.status === 401) {
       router.push({ name: 'login' })
     }

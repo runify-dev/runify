@@ -4,7 +4,10 @@ package com.run.route;
 import com.run.auth.TokenBasicAuthHandler;
 import com.run.common.openapi.CommonOpenAPI;
 import com.run.common.route.IRoute;
+import com.run.handler.application.impl.ApplicationFolderHandlerImpl;
+import com.run.handler.knowledge.IKnowledgeFolderHandler;
 import com.run.handler.knowledge.IKnowledgeHandler;
+import com.run.handler.knowledge.impl.KnowledgeFolderHandlerImpl;
 import com.run.handler.knowledge.impl.KnowledgeHandlerImpl;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
@@ -33,52 +36,82 @@ public class KnowledgeRoute implements IRoute {
 
     protected TokenBasicAuthHandler tokenBasicAuthHandler;
 
-    private IKnowledgeHandler iKnowledgeHandler;
+    private final IKnowledgeHandler iKnowledgeHandler;
+
+    private final IKnowledgeFolderHandler knowledgeFolderHandler;
 
     protected OpenAPI openAPI;
 
     @Inject
     public KnowledgeRoute(@Named("apiRoute") Router apiRoute, OpenAPI openAPI,
                           TokenBasicAuthHandler tokenBasicAuthHandler,
-                          KnowledgeHandlerImpl knowledgeHandler) {
+                          KnowledgeHandlerImpl knowledgeHandler,
+                          KnowledgeFolderHandlerImpl knowledgeFolderHandler) {
         this.apiRoute = apiRoute;
         this.openAPI = openAPI;
         this.iKnowledgeHandler = knowledgeHandler;
         this.tokenBasicAuthHandler = tokenBasicAuthHandler;
+        this.knowledgeFolderHandler = knowledgeFolderHandler;
     }
 
     @Override
     public void initRoute() {
-        apiRoute.put("/knowledge/folder/:folderId/resource/:resourceId")
+        apiRoute.get("/knowledge/resources/:resourceId")
+                .handler(tokenBasicAuthHandler)
+                .handler(iKnowledgeHandler::get);
+
+        apiRoute.put("/knowledge/resources/:resourceId")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
                 .handler(iKnowledgeHandler::edit);
-        apiRoute.get("/knowledge/folder/:folderId/resource/:resourceId")
-                .handler(tokenBasicAuthHandler)
-                .handler(iKnowledgeHandler::get);
-        apiRoute.delete("/knowledge/folder/:folderId/resource/:resourceId")
+
+        apiRoute.delete("/knowledge/resources/:resourceId")
                 .handler(tokenBasicAuthHandler)
                 .handler(iKnowledgeHandler::delete);
-        apiRoute.post("/knowledge/folder/:folderId/resource/:resourceId/rename")
+
+        apiRoute.post("/knowledge/resources/:resourceId/modify-name")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
                 .handler(iKnowledgeHandler::rename);
-        apiRoute.post("/knowledge/folder/:folderId")
+
+        apiRoute.post("/knowledge/folders/:folderId/modify-name")
+                .handler(BodyHandler.create())
+                .handler(tokenBasicAuthHandler)
+                .handler(knowledgeFolderHandler::rename);
+
+        apiRoute.get("/knowledge/folders/:folderId")
+                .handler(tokenBasicAuthHandler)
+                .handler(knowledgeFolderHandler::get);
+
+        apiRoute.delete("/knowledge/folders/:folderId")
+                .handler(tokenBasicAuthHandler)
+                .handler(knowledgeFolderHandler::delete);
+
+        apiRoute.post("/knowledge/folders/:folderId")
+                .handler(BodyHandler.create())
+                .handler(tokenBasicAuthHandler)
+                .handler(knowledgeFolderHandler::create);
+
+        apiRoute.get("/knowledge/folders/:folderId/subtree")
+                .handler(tokenBasicAuthHandler)
+                .handler(iKnowledgeHandler::tree);
+
+        apiRoute.get("/knowledge/folders/:folderId/resources")
+                .handler(tokenBasicAuthHandler)
+                .handler(iKnowledgeHandler::list);
+
+        apiRoute.post("/knowledge/folders/:folderId/resources")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
                 .handler(iKnowledgeHandler::create);
-        apiRoute.get("/knowledge/folder/:folderId/tree")
+
+        apiRoute.get("/knowledge/permissions/:userId")
                 .handler(tokenBasicAuthHandler)
-                .handler(iKnowledgeHandler::listTree);
-        apiRoute.get("/knowledge/folder/:folderId/resource")
+                .handler(iKnowledgeHandler::listResourcePermission);
+
+        apiRoute.put("/knowledge/permissions/:userId/authorization/:resourceId/:permission")
                 .handler(tokenBasicAuthHandler)
-                .handler(iKnowledgeHandler::listResource);
-        apiRoute.get("/knowledge/folder/:folderId/star")
-                .handler(tokenBasicAuthHandler)
-                .handler(iKnowledgeHandler::listStar);
-        apiRoute.get("/knowledge/folder/:folderId/shared")
-                .handler(tokenBasicAuthHandler)
-                .handler(iKnowledgeHandler::listShared);
+                .handler(iKnowledgeHandler::authResourcePermission);
     }
 
     @Override

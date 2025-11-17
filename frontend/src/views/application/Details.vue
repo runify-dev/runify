@@ -1,26 +1,19 @@
 <template>
-  <TopHeaderVue root-route-name="applicationDetails">
-  </TopHeaderVue>
+  <TopHeaderVue root-route-name="applicationDetails"> </TopHeaderVue>
   <div style="height: calc(100vh - 40px)">
     <router-view></router-view>
   </div>
 </template>
 <script setup lang="ts">
 import TopHeaderVue from '@/layout/top-header/index.vue'
-import NodeApi from '@/api/node'
 import { useRoute } from 'vue-router'
 import { computed, watch, ref, provide, onBeforeMount } from 'vue'
-
+import { TreeCommonAPI } from '@/api/tree'
+const treeCommonAPI = new TreeCommonAPI('application')
 const application = ref<any>()
 const applicationPrimision = ref<Promise<any>>()
 const route = useRoute()
 
-const folderId = computed(() => {
-  const {
-    params: { folderId }
-  } = route as any
-  return folderId
-})
 const resourceId = computed(() => {
   const {
     params: { id }
@@ -28,7 +21,7 @@ const resourceId = computed(() => {
   return id
 })
 const get = () => {
-  return NodeApi.resourceInfo('application', folderId.value, resourceId.value).then((ok) => {
+  return treeCommonAPI.getResource(resourceId.value).then((ok) => {
     application.value = ok.data
     return ok.data
   })

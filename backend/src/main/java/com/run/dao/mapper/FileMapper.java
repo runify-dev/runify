@@ -3,7 +3,7 @@ package com.run.dao.mapper;
 import com.run.common.config.AppConfig;
 
 import com.run.common.util.CommonUtils;
-import com.run.common.util.FieldUtil;
+import com.run.dao.common.F;
 import com.run.dao.common.entity.BaseReadStream;
 import com.run.dao.common.mapper.BaseMapper;
 import com.run.dao.entity.FileEntity;
@@ -248,7 +248,7 @@ public class FileMapper extends BaseMapper<FileEntity> {
         String sha256 = CommonUtils.getSHA256(file);
         fileEntity.setSha256Hash(sha256);
 
-        return search(FieldUtil.getField(FileEntity::getSha256Hash).eq(FieldUtil.getParms(FileEntity::getSha256Hash))
+        return search(F.field(FileEntity::getSha256Hash).eq(F.params(FileEntity::getSha256Hash))
                 , Map.of("sha256_hash", sha256))
                 .compose(rows -> {
                     if (rows.size() == 0) {
