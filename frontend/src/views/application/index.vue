@@ -51,13 +51,13 @@ const config = new Config(
       treeCommonAPI.createResource(event.data.id, {}).then((ok) => {
         if (event.data.id === 'root') {
           data.value.push({ ...ok.data, type: 'application', operate: 'rename' })
-          go(ok.data.id, ok.data)
+          go(ok.data.id, { ...ok.data, type: 'application' })
         } else {
           event.node.insertAfter(
             { data: { ...ok.data, type: 'application', operate: 'rename' } },
             event.node
           )
-          go(ok.data.id, ok.data)
+          go(ok.data.id, { ...ok.data, type: 'application' })
         }
       })
     }),
@@ -65,13 +65,13 @@ const config = new Config(
       treeCommonAPI.createFolder(event.data.id, {}).then((ok) => {
         if (event.data.id === 'root') {
           data.value.push({ ...ok.data, type: 'folder', operate: 'rename' })
-          go(ok.data.id, ok.data)
+          go(ok.data.id, { ...ok.data, type: 'folder' })
         } else {
           event.node.insertAfter(
             { data: { ...ok.data, type: 'folder', operate: 'rename' } },
             event.node
           )
-          go(ok.data.id, ok.data)
+          go(ok.data.id, { ...ok.data, type: 'folder' })
         }
       })
     }),

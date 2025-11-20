@@ -1,6 +1,6 @@
 import type { Resource } from '@/api/type/common'
 
-type Postion = "ROOT" | 'FOLDER' | 'RESOURCE' | 'KNOWLEDGE' | 'APPLICATION' | 'MODEL' | "MARKDOWN"
+type Postion = "ROOT" | 'FOLDER' | 'RESOURCE' | 'KNOWLEDGE' | 'APPLICATION' | 'MODEL' | "MARKDOWN" | "NOTE"
 
 class Processor {
   label: string

@@ -16,7 +16,7 @@ interface Node {
   /**
    * 节点类型
    */
-  type: "folder" | "file" | "knowledge" | "application" | 'model'
+  type: "folder" | "file" | "knowledge" | "application" | 'model' | 'note'
   /**
    * 节点所属
    */

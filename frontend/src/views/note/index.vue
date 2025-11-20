@@ -27,36 +27,36 @@ import { Config, Processor } from '@/components/tree/index'
 import { TreeCommonAPI } from '@/api/tree'
 import { set } from 'lodash'
 const treeAsideRef = ref<typeof TreeAside>()
-const treeCommonAPI = new TreeCommonAPI('knowledge')
+const treeCommonAPI = new TreeCommonAPI('note')
 const router = useRouter()
 const route = useRoute()
 const go = (id: string, data?: any) => {
   if (['star', 'share', 'root'].includes(id)) {
-    router.push({ name: 'knowledgeFolders', params: { id: id } })
+    router.push({ name: 'noteFolders', params: { id: id } })
     return
   }
   if (data) {
     if (data.type == 'folder') {
-      router.push({ name: 'knowledgeFolders', params: { id: id } })
+      router.push({ name: 'noteFolders', params: { id: id } })
     } else {
-      router.push({ name: 'knowledgeDetails', params: { id: id } })
+      router.push({ name: 'noteDetails', params: { id: id } })
     }
   }
 }
 const config = new Config(
-  'knowledge',
+  'note',
   [
-    new Processor('创建知识库', '', ['FOLDER', 'KNOWLEDGE', 'ROOT'], (event: any) => {
+    new Processor('创建笔记', '', ['FOLDER', 'NOTE', 'ROOT'], (event: any) => {
       treeCommonAPI.createResource(event.data.id, {}).then((ok) => {
         if (event.data.id === 'root') {
-          data.value.push({ ...ok.data, type: 'knowledge', operate: 'rename' })
-          go(ok.data.id, { ...ok.data, type: 'knowledge' })
+          data.value.push({ ...ok.data, type: 'note', operate: 'rename' })
+          go(ok.data.id, { ...ok.data, type: 'note' })
         } else {
           event.node.insertAfter(
-            { data: { ...ok.data, type: 'knowledge', operate: 'rename' } },
+            { data: { ...ok.data, type: 'note', operate: 'rename' } },
             event.node
           )
-          go(ok.data.id, { ...ok.data, type: 'knowledge' })
+          go(ok.data.id, { ...ok.data, type: 'note' })
         }
       })
     }),

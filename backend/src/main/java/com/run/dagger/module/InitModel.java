@@ -25,7 +25,8 @@ public class InitModel {
             KnowledgeRoute knowledgeRoute,
             FileRoute fileRoute,
             ChatRoute chatRoute,
-            ApplicationRoute applicationRoute
+            ApplicationRoute applicationRoute,
+            NoteRoute noteRoute
     ) {
         System.out.println("ss");
         return "OK";

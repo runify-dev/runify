@@ -167,3 +167,45 @@ CREATE TABLE "system_setting" (
   "meta" TEXT,
   PRIMARY KEY ("type")
 );
+
+
+CREATE TABLE "note" (
+                             "id" text(32) NOT NULL,
+                             "parent_id" text(32),
+                             "name" TEXT(256),
+                             "icon" TEXT(256),
+                             "content" TEXT,
+                             "excerpt" TEXT(256),
+                             "star" INTEGER(2),
+                             "share" INTEGER(2),
+                             "create_time" TIMESTAMP,
+                             "update_time" TIMESTAMP,
+                             PRIMARY KEY ("id")
+);
+
+CREATE TABLE "note_folder" (
+  "id" TEXT(32) NOT NULL,
+  "parent_id" TEXT(32),
+  "name" TEXT(256),
+  "desc" TEXT(256),
+  "create_time" TIMESTAMP,
+  "update_time" TIMESTAMP,
+  PRIMARY KEY ("id")
+);
+
+CREATE TABLE "note_relation" (
+                                      "id" text(32) NOT NULL,
+                                      "ancestor_id" text(32),
+                                      "descendant_id" text(32),
+                                      "depth" integer(10),
+                                      PRIMARY KEY ("id")
+);
+CREATE TABLE "note_permission" (
+  "id" text NOT NULL,
+  "user_id" text,
+  "target" TEXT,
+  "permission" TEXT,
+  "create_time" TIMESTAMP,
+  "update_time" TIMESTAMP,
+  PRIMARY KEY ("id")
+);

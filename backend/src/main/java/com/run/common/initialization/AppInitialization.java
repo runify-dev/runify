@@ -26,6 +26,7 @@ public class AppInitialization {
                              FileRoute fileRoute,
                              ChatRoute chatRoute,
                              ApplicationRoute applicationRoute,
+                             NoteRoute noteRoute,
                              DocRoute docRoute,
                              ModelRoute modelRoute,
                              UIInitialization uiInitialization,
@@ -39,6 +40,7 @@ public class AppInitialization {
         docRoute.init();
         migrationInitialization.init();
         uiInitialization.init();
+        noteRoute.init();
         modelRoute.init();
         systemSettingMapper.getById("RSA").onSuccess(systemSetting -> {
             if (systemSetting == null) {
