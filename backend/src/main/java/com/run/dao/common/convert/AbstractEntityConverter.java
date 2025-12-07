@@ -74,10 +74,7 @@ public abstract class AbstractEntityConverter<T> implements EntityConvert<T> {
         T instance = (T) constructorHandle.invoke();
         for (FieldMapping field : this.fieldMappings) {
             Class<?> type = field.field.getType();
-            if (type.isEnum() || Enum.class.isAssignableFrom(type)) {
-                type = Enum.class;
-            }
-            Converter<?, ?> converter = customizeConverters.getOrDefault(field.field.getName(), converters.get(type));
+            Converter<?, ?> converter = customizeConverters.getOrDefault(field.field.getName(), converters.get(type.isEnum() || Enum.class.isAssignableFrom(type) ? Enum.class : type));
             Object value = converter.deserialize(row, field.columnName, type);
             field.setValue(instance, value);
         }

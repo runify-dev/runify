@@ -50,4 +50,9 @@ defineExpose({ open, close })
 .run-drawer-header {
   margin-bottom: 0;
 }
+.lf-node-selected {
+  .node-container {
+    outline-color: var(--el-color-primary);
+  }
+}
 </style>

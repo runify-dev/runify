@@ -38,10 +38,16 @@ public class ChatRoute implements IRoute {
 
     @SneakyThrows
     private void chat() {
-        apiRoute.post("/application/folder/:folderId/resource/:applicationId/conversation")
+        apiRoute.post("/application/:applicationId/conversation")
+                .handler(BodyHandler.create())
+                .handler(tokenBasicAuthHandler)
+                .handler(applicationHandler::createConversation);
+
+        apiRoute.post("/application/:applicationId/conversation/:conversationId")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
                 .handler(applicationHandler::chat);
+
         apiRoute.get("/application/folder/:folderId/resource/:applicationId/conversation/:currentPage/:pageSize")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)

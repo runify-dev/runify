@@ -11,7 +11,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class SystemMessage extends Message {
+public class SystemMessage implements Message {
     /**
      * 用户消息的内容。
      */

@@ -1,7 +1,6 @@
 import { fileURLToPath, URL } from 'node:url'
 
 import { defineConfig, loadEnv } from 'vite'
-import tailwindcss from '@tailwindcss/vite'
 import vue from '@vitejs/plugin-vue'
 const envDir = './env'
 import type { ProxyOptions } from 'vite'
@@ -25,7 +24,7 @@ export default defineConfig(({ mode }) => {
     lintOnSave: false,
     base: ENV.VITE_BASE_PATH,
     envDir: envDir,
-    plugins: [vue(), DefineOptions(), tailwindcss()],
+    plugins: [vue(), DefineOptions()],
     server: {
       cors: true,
       host: '0.0.0.0',

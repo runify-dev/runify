@@ -1,38 +1,14 @@
 <template>
   <div style="height: 100%; display: flex; flex-direction: column" class="pr-4 pl-4">
     <div style="flex: 1; display: grid; grid-template-rows: auto 1fr">
-      <div class="mb-8" v-for="qa in conversationRecordList" :key="qa.conversationRecordId">
-        <!-- question -->
-        <div class="flex w-full justify-end mb-2">
-          <el-card style="--el-card-padding: 8px"> {{ qa.question.question }} </el-card>
-        </div>
-        <!-- 响应 -->
-        <div class="flex w-full">
-          <el-avatar src="/ui/user.jpeg" class="mr-4" />
-          <div style="width: calc(100% - 50px)">
-            <el-card
-              style="--el-card-padding: 0px 12px 0 12px"
-              v-for="key in Object.keys(qa.answer)"
-              :key="key"
-            >
-              <template v-for="node_id in Object.keys(qa.answer[key])" :key="node_id">
-                <Answer
-                  :chunk="qa.answer[key][node_id][display]"
-                  :type="display"
-                  v-for="display in Object.keys(qa.answer[key][node_id])"
-                  :key="display"
-                >
-                </Answer>
-              </template>
-            </el-card>
-          </div>
-        </div>
+      <div class="mb-8 overflow-hidden" v-for="(message, index) in messages" :key="index">
+        <Contents :content="message.content"></Contents>
       </div>
     </div>
     <div class="sticky bottom-0 left-0 z-99999 right-0 pb-4 bg-white">
       <div style="background-color: rgb(243, 244, 246)" class="p-4 rounded-2xl">
         <el-input
-          v-model="question.question"
+          v-model="question.content"
           class="no-border-input custom-textarea"
           :autosize="{ minRows: 1, maxRows: 6 }"
           type="textarea"
@@ -55,53 +31,33 @@
 import { computed, inject, reactive, ref } from 'vue'
 import { Promotion } from '@element-plus/icons-vue'
 import { ConversationStream } from '@/api/common'
-import Answer from '@/components/Answer/index.vue'
-const conversationRecordList = ref<Array<any>>([])
+import Contents from './content/Contents.vue'
+
+const messages = ref<Array<any>>([])
 const emit = defineEmits(['chanage'])
 const question = ref<any>({
-  question: ''
+  content: ''
 })
 const isConversation = computed(() => {
-  return !question.value.question.trim()
+  return !question.value.content.trim()
 })
 const conversationAPI = inject('conversationAPI') as any
-const displayDict: any = {
-  reasoning_content: 'reasoning',
-  content: 'markdown'
-}
 
-const getOnStream = (conversationRecord: any) => {
+const getOnStream = (message: any) => {
+  const index: any[] = []
   const onStream = (chunk: any) => {
-    if (!conversationRecord['conversationRecordId'] && chunk.conversationRecordId) {
-      conversationRecord.conversationRecordId = chunk.conversationRecordId
-    }
-    if (!conversationRecord.answer[chunk.display_id]) {
-      conversationRecord.answer[chunk.display_id] = {}
-    }
-    if (!conversationRecord.answer[chunk.display_id][chunk.node_id]) {
-      conversationRecord.answer[chunk.display_id][chunk.node_id] = {}
-    }
-    Object.keys(displayDict).forEach((key) => {
-      if (chunk[key]) {
-        if (conversationRecord.answer[chunk.display_id][chunk.node_id]) {
-          if (conversationRecord.answer[chunk.display_id][chunk.node_id][displayDict[key]]) {
-            conversationRecord.answer[chunk.display_id][chunk.node_id][displayDict[key]][
-              displayDict[key]
-            ] += chunk[key]
-          } else {
-            conversationRecord.answer[chunk.display_id][chunk.node_id][displayDict[key]] = {
-              ...chunk,
-              [displayDict[key]]: chunk[key]
-            }
-          }
-        } else {
-          conversationRecord.answer[chunk.display_id][chunk.node_id][displayDict[key]] = {
-            ...chunk,
-            [displayDict[key]]: chunk[key]
-          }
-        }
+    chunk.content.forEach((content: any) => {
+      const id = content.realNodeId + '_' + content.type
+      let i = index.indexOf(id)
+      if (i < 0) {
+        i = index.length
+        index.push(id)
       }
-      return null
+      if (message.content.length <= i) {
+        message.content[i] = content
+      } else {
+        message.content[i].content += content.content
+      }
     })
     emit('chanage')
   }
@@ -112,18 +68,24 @@ const conversation = (q: any) => {
   if (isConversation.value) {
     return
   }
-  const conversationRecord = reactive({
-    answer: {},
-    question: { ...q }
+
+  messages.value.push({
+    type: 'USER',
+    content: [{ ...q, type: 'QUESTION' }]
   })
-  conversationRecordList.value.push(conversationRecord)
+  const answerMessage = reactive({
+    type: 'LOADING',
+    content: []
+  })
+
+  messages.value.push(answerMessage)
   new ConversationStream(
-    conversationAPI(q),
-    getOnStream(conversationRecord),
+    conversationAPI({ ...q }),
+    getOnStream(answerMessage),
     () => {},
     () => {}
   ).stream()
-  question.value.question = ''
+  question.value.content = ''
 }
 </script>
 <style lang="scss">

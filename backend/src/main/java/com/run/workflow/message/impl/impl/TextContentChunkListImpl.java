@@ -1,0 +1,34 @@
+package com.run.workflow.message.impl.impl;
+
+
+import com.run.common.constants.ContentTypeConstants;
+import com.run.common.util.CommonUtils;
+import com.run.workflow.message.struct.Content;
+import com.run.workflow.message.struct.TextContent;
+import com.run.workflow.message.struct.chunk.TextContentChunk;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
+
+import java.util.*;
+import java.util.stream.Collectors;
+
+public class TextContentChunkListImpl {
+    public static Boolean support(ContentTypeConstants type) {
+        return type == ContentTypeConstants.TEXT;
+    }
+
+    public static List<Content> toBlock(List<TextContentChunk> self) {
+        List<Content> result = new ArrayList<>();
+        LinkedHashMap<String, List<TextContentChunk>> r = self.stream().collect(Collectors.groupingBy(TextContentChunk::getRealNodeId, LinkedHashMap::new, Collectors.toList()));
+        for (Map.Entry<String, List<TextContentChunk>> stringListEntry : r.entrySet()) {
+            List<TextContentChunk> value = stringListEntry.getValue();
+            TextContentChunk first = value.getFirst();
+            String collect = value.stream().map(TextContentChunk::getContent).collect(Collectors.joining());
+            TextContentChunk textContentChunk = new TextContentChunk();
+            CommonUtils.copyProperties(first, textContentChunk);
+            textContentChunk.setContent(collect);
+            result.add(textContentChunk);
+        }
+        return result;
+    }
+}

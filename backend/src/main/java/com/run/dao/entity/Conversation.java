@@ -1,6 +1,7 @@
 package com.run.dao.entity;
 
-import com.run.common.constants.ConversationUserType;
+import com.run.common.constants.ConversationExecuteConstants;
+import com.run.common.constants.ConversationUserConstants;
 import com.run.dao.common.annotations.Column;
 import com.run.dao.common.annotations.Table;
 import com.run.dao.common.entity.BaseEntity;
@@ -34,6 +35,9 @@ public class Conversation implements BaseEntity<Conversation> {
     @Column(name = "name")
     private String name;
 
+    @Column(name = "execute_type")
+    private ConversationExecuteConstants executeType;
+
     @Column(name = "meta")
     private JsonObject meta;
 
@@ -41,7 +45,7 @@ public class Conversation implements BaseEntity<Conversation> {
     private UUID conversationUserId;
 
     @Column(name = "conversation_user_type")
-    private ConversationUserType conversationUserType;
+    private ConversationUserConstants conversationUserType;
 
     @Column(name = "star_num")
     private Integer starNum;
@@ -52,9 +56,8 @@ public class Conversation implements BaseEntity<Conversation> {
     @Column(name = "mark_sum")
     private Integer markSum;
 
-    @Column(name = "conversation_record_count")
-    private Integer conversationRecordCount;
-
+    @Column(name = "conversation_count")
+    private Integer conversationCount;
 
     @Column(name = "is_deleted")
     private Boolean isDeleted;

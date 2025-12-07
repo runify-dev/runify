@@ -15,8 +15,6 @@ import java.util.UUID;
 @Getter
 @Setter
 public class ChatPojo {
-
     private QuestionPojo question;
-
-    private UUID conversationId;
+    private String workflowRunId;
 }

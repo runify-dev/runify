@@ -1,5 +1,8 @@
 package com.run.common.openai.request.message;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.util.List;
 
 /**
@@ -8,7 +11,9 @@ import java.util.List;
  * {@code @Version 1.0}
  * {@code @注释: }
  */
-public class AssistantMessage extends Message {
+@Getter
+@Setter
+public class AssistantMessage implements Message {
     /**
      * 信息作者的角色，在这种情况下是“助手”。
      */

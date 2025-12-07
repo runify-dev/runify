@@ -6,7 +6,7 @@ package com.run.common.constants;
  * {@code @Version 1.0}
  * {@code @注释: }
  */
-public enum ConversationUserType {
+public enum ConversationUserConstants {
     ANONYMOUS_USER,
-
+    ADMIN_USER
 }

@@ -13,7 +13,7 @@ import java.util.Map;
  */
 @Getter
 @Setter
-public class UserMessage extends Message {
+public class UserMessage implements Message {
     /**
      * 用户消息的内容。
      */

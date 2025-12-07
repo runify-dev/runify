@@ -32,7 +32,7 @@ class RootView extends HtmlResize.view {
     if (!rootEl.innerHTML) {
       const node = document.createElement('div')
 
-      node.className = "overflow-hidden w-full h-full shadow-lg outline  outline-black/5  dark:shadow-none dark:-outline-offset-1 dark:outline-white/10 bg-white dark:bg-gray-800 p-2 rounded-lg"
+      node.className = "overflow-hidden w-full h-full shadow-lg outline  outline-black/5  dark:shadow-none dark:-outline-offset-1 dark:outline-white/10 bg-white dark:bg-gray-800 p-2 rounded-lg node-container"
       rootEl.appendChild(node)
       this.renderVueComponent(node)
     }

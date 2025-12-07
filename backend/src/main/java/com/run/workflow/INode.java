@@ -4,6 +4,7 @@ import com.github.f4b6a3.uuid.UuidCreator;
 import com.run.common.util.CommonUtils;
 import com.run.workflow.entity.Node;
 import com.run.workflow.entity.NodeResult;
+import com.run.workflow.message.struct.Message;
 import io.vertx.core.json.JsonObject;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
@@ -52,7 +53,7 @@ public abstract class INode<T extends INode, NodeData> {
      * 用于区分节点被运行多次的唯一标识
      */
     @Getter
-    private String real_node_id;
+    private String realNodeId;
 
     private String displayId;
 
@@ -99,7 +100,7 @@ public abstract class INode<T extends INode, NodeData> {
         this.validator = factory.getValidator();
         this.upNode = upNode;
         this.upNodeIdList = upNodeIdList;
-        this.real_node_id = CommonUtils.getSHA256(String.join("", upNodeIdList) + salt);
+        this.realNodeId = CommonUtils.getSHA256(node.getId() + String.join("", upNodeIdList) + salt);
         this.context = new JsonObject();
         this.status = NodeStatus.BEFORE_RUNNING;
     }
@@ -114,7 +115,7 @@ public abstract class INode<T extends INode, NodeData> {
         this.node = node;
         this.params = getNodeData(params);
         this.validator = validator;
-        this.real_node_id = CommonUtils.getSHA256(String.join("", upNodeIdList) + salt);
+        this.realNodeId = CommonUtils.getSHA256(node.getId() + String.join("", upNodeIdList) + salt);
         this.context = context;
         this.status = NodeStatus.BEFORE_RUNNING;
         this.upNodeIdList = upNodeIdList;

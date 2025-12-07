@@ -45,3 +45,15 @@ body {
   }
 }
 
+
+/* 自定义样式 */
+.drawer-transition {
+  transition: transform .3s ease !important;
+}
+.content-transition {
+  transition: transform .3s ease !important;
+}
+.overlay {
+  background-color: rgba(0, 0, 0, 0.5);
+  transition: opacity 1s ease;
+}

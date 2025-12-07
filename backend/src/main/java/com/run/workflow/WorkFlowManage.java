@@ -3,9 +3,9 @@ package com.run.workflow;
 import com.run.common.function.Write;
 import com.run.common.keyvalue.DefaultKeyValue;
 import com.run.common.openai.request.message.Message;
-import com.run.common.openai.response.chunk.ChatCompletionChunk;
 import com.run.common.util.TemplateUtils;
 import com.run.workflow.entity.*;
+import com.run.workflow.message.struct.chunk.MessageChunk;
 import com.run.workflow.nodes.NodeManage;
 import io.vertx.core.json.JsonObject;
 import jakarta.validation.Validation;
@@ -24,7 +24,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -39,11 +38,6 @@ public class WorkFlowManage {
      * 工作流对象,存储了工作流相关信息
      */
     private final WorkFlow workFlow;
-
-    /**
-     * 本来可以将messages放在params 但是这个参数很重要
-     */
-    private final List<Message> messages;
     /**
      * 用户收集参数
      */
@@ -54,6 +48,9 @@ public class WorkFlowManage {
      * 运行开始时间
      */
     private LocalDateTime startTime;
+
+    @Getter
+    private List<MessageChunk> messageChunks;
 
     /**
      * 用于存储上下文
@@ -84,7 +81,7 @@ public class WorkFlowManage {
     /**
      * 工作流写出
      */
-    private final Write<WorkFlowManage, INode<?, ?>, ChatCompletionChunk, Boolean> write;
+    private final Write<WorkFlowManage, INode<?, ?>, MessageChunk, Boolean> write;
     /**
      * 已运行的节点信息
      */
@@ -92,10 +89,9 @@ public class WorkFlowManage {
     private List<INode<?, ?>> nodes;
 
     public WorkFlowManage(WorkFlow workFlow,
-                          List<Message> messages,
                           Map<String, Object> params,
                           Map<String, Map<String, Object>> context,
-                          Write<WorkFlowManage, INode<?, ?>, ChatCompletionChunk, Boolean> write) {
+                          Write<WorkFlowManage, INode<?, ?>, MessageChunk, Boolean> write) {
         this.workFlow = workFlow;
         this.getStartNode = () -> workFlow.getNode("start-node");
         this.nodeNewInstance = NodeManage.of();
@@ -104,9 +100,8 @@ public class WorkFlowManage {
         this.write = write;
         this.params = params;
         this.context = context;
-        this.messages = messages;
-        this.params.put("messages", this.messages);
         this.nodes = new ArrayList<>();
+        this.messageChunks = new ArrayList<>();
         this.startTime = LocalDateTime.now();
     }
 
@@ -185,10 +180,11 @@ public class WorkFlowManage {
     /**
      * 将节点数据输出出去
      *
-     * @param chatCompletionChunk 需要输出的chunk
+     * @param chunk 需要输出的chunk
      */
-    public void write(INode<?, ?> node, ChatCompletionChunk chatCompletionChunk) {
-        this.write.write(this, node, chatCompletionChunk, false);
+    public void write(INode<?, ?> node, MessageChunk chunk) {
+        messageChunks.add(chunk);
+        this.write.write(this, node, chunk, false);
     }
 
     /**

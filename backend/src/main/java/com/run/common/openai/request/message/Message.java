@@ -11,14 +11,14 @@ import java.util.Map;
  * {@code @Version 1.0}
  * {@code @注释: }
  */
-@Getter
-@Setter
-public class Message  {
-    private String role;
-    private String content;
 
+public interface Message {
 
-    public Map<String, Object> toMap() {
-        return Map.of("role", this.role, "content", this.content);
+    String getRole();
+
+    String getContent();
+
+    default Map<String, Object> toMap() {
+        return Map.of("role", this.getRole(), "content", this.getContent());
     }
 }

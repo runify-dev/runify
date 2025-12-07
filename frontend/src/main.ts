@@ -7,6 +7,7 @@ import ElementPlus from "element-plus";
 import router from "@/router";
 import Menus from 'vue3-menus';
 import "element-plus/dist/index.css";
+import "@/index.css"
 import "@/styles/index.scss";
 import directives from '@/directives'
 import 'md-editor-v3/lib/preview.css';

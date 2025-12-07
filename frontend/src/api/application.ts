@@ -13,27 +13,30 @@ const edit: (
 
 
 const chat: (
-  folderId: string,
   applicationId: String,
+  conversationId: string,
   conversation: any,
-) => Promise<any> = (folderId, applicationId, conversation) => {
-  return postStream(`/api/application/folder/${folderId}/resource/${applicationId}/conversation`, conversation)
+) => Promise<any> = (applicationId, conversationId, conversation,) => {
+  return postStream(`/api/application/${applicationId}/conversation/${conversationId}`, conversation)
 }
 
 const pageConversation: (
-  folderId: string,
   applicationId: String,
   currentPage: number,
   pageSize: number,
   query: any,
   loading?: Ref<boolean>
-) => Promise<Result<any>> = (folderId, applicationId, currentPage, pageSize, query, loading) => {
-  return get(`/application/folder/${folderId}/resource/${applicationId}/conversation/${currentPage}/${pageSize}`, query, loading)
+) => Promise<Result<any>> = (applicationId, currentPage, pageSize, query, loading) => {
+  return get(`/application/${applicationId}/conversation/${currentPage}/${pageSize}`, query, loading)
 }
 
+const createConversation = (applicationId: String, name: string) => {
+  return post(`/application/${applicationId}/conversation`, { name }, {})
+}
 
 export default {
   edit,
   chat,
-  pageConversation
+  pageConversation,
+  createConversation
 }

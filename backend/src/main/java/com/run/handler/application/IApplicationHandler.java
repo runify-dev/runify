@@ -27,6 +27,13 @@ public interface IApplicationHandler extends IResourceHandler<Application> {
     void chat(RoutingContext context);
 
     /**
+     * 创建对话
+     *
+     * @param context 上下文
+     */
+    void createConversation(RoutingContext context);
+
+    /**
      * 分页查询对话
      *
      * @param context 上下文

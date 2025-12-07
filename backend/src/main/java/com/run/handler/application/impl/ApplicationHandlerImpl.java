@@ -1,39 +1,52 @@
 package com.run.handler.application.impl;
 
 
-import com.run.common.constants.ConversationUserType;
+import com.run.common.constants.ContentTypeConstants;
+import com.run.common.constants.ConversationExecuteConstants;
+import com.run.common.constants.ConversationUserConstants;
+import com.run.common.constants.MessageConstants;
+import com.run.common.keyvalue.DefaultKeyValue;
 import com.run.common.openai.request.message.UserMessage;
 import com.run.common.result.Result;
 import com.run.common.util.CommonUtils;
 import com.run.common.util.JacksonUtils;
+import com.run.dao.common.F;
 import com.run.dao.entity.*;
 import com.run.dao.mapper.*;
 import com.run.handler.application.IApplicationHandler;
+import com.run.handler.application.dto.ConversationDTO;
 import com.run.handler.application.pojo.ChatPojo;
 import com.run.handler.application.pojo.ConversationQuery;
 import com.run.handler.application.pojo.EditApplicationPojo;
-import com.run.handler.common.Tool;
+import com.run.handler.application.vo.ConversationVO;
+import com.run.handler.application.vo.CreateConversationVO;
+import com.run.handler.application.vo.QuestionContent;
 import com.run.handler.common.impl.ResourceHandlerImpl;
 import com.run.handler.common.pojo.SimpleNodePojo;
-import com.run.workflow.Answer;
-import com.run.workflow.INode;
 import com.run.workflow.WorkFlowManage;
 import com.run.workflow.entity.WorkFlow;
-import io.vertx.core.CompositeFuture;
+import com.run.workflow.message.impl.MessageImpl;
+import com.run.workflow.message.impl.impl.MessageChunkListImpl;
+import com.run.workflow.message.struct.Message;
+import com.run.workflow.message.struct.chunk.MessageChunk;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
-import org.apache.commons.beanutils.BeanUtils;
+import io.vertx.sqlclient.RowSet;
+import io.vertx.sqlclient.SqlResult;
 import org.apache.commons.lang3.StringUtils;
 import org.jooq.Condition;
+import org.jooq.conf.ParamType;
 import org.jooq.impl.DSL;
 
 import javax.inject.Inject;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 /**
  * {@code @Author:张少虎}
@@ -45,7 +58,7 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
 
     protected ApplicationMapper applicationMapper;
     private final ConversationMapper conversationMapper;
-    private final ConversationRecordMapper conversationRecordMapper;
+    private final ConversationMessageMapper conversationMessageMapper;
 
     @Inject
     public ApplicationHandlerImpl(ApplicationMapper applicationMapper,
@@ -53,11 +66,11 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
                                   ApplicationRelationMapper applicationRelationMapper,
                                   ApplicationPermissionMapper applicationPermissionMapper,
                                   ConversationMapper conversationMapper,
-                                  ConversationRecordMapper conversationRecordMapper) {
+                                  ConversationMessageMapper conversationMessageMapper) {
         super(applicationMapper, applicationFolderMapper, applicationRelationMapper, applicationPermissionMapper);
         this.applicationMapper = applicationMapper;
         this.conversationMapper = conversationMapper;
-        this.conversationRecordMapper = conversationRecordMapper;
+        this.conversationMessageMapper = conversationMessageMapper;
     }
 
     @Override
@@ -147,83 +160,130 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
         return new ApplicationPermission(id, userId, target, permission, LocalDateTime.now(), LocalDateTime.now());
     }
 
+
     @Override
-    public void chat(RoutingContext context) {
+    public void createConversation(RoutingContext context) {
         String applicationId = context.pathParam("applicationId");
-        ChatPojo pojo = context.body().asPojo(ChatPojo.class);
-        Future<Conversation> conversationFuture = conversationMapper
-                .getById(pojo.getConversationId().toString())
-                .compose(conversation -> {
-                    if (conversation == null) {
-                        Conversation conversationNew = new Conversation(UUID.randomUUID(),
-                                UUID.fromString(applicationId),
-                                StringUtils.substring(pojo.getQuestion().getQuestion(), 0, 128),
-                                new JsonObject(), ((User) context.user().get("user")).getId(),
-                                ConversationUserType.ANONYMOUS_USER,
-                                0, 0, 0, 0,
-                                false, LocalDateTime.now(), LocalDateTime.now());
-                        return conversationMapper.save(conversationNew)
-                                .compose(_ -> Future.succeededFuture(conversationNew));
-                    }
-                    return Future.succeededFuture(conversation);
-                });
-        Future<Application> applicationFuture = applicationMapper.getById(applicationId);
-        Future.all(conversationFuture, applicationFuture)
-                .onSuccess(ok -> extracted(context, ok, pojo))
-                .onFailure(context::fail);
+        User user = context.user().get("user");
+        CreateConversationVO conversationVO = context.body().asPojo(CreateConversationVO.class);
+        Conversation conversation = new Conversation(UUID.randomUUID(),
+                UUID.fromString(applicationId),
+                conversationVO.name(),
+                ConversationExecuteConstants.DEBUG, new JsonObject(),
+                user.getId(), ConversationUserConstants.ADMIN_USER, 0, 0, 0, 0, Boolean.FALSE, LocalDateTime.now(), LocalDateTime.now());
+        conversationMapper.save(conversation).onSuccess(ok -> {
+            ConversationDTO result = new ConversationDTO(conversation.getId(),
+                    conversation.getApplicationId(),
+                    conversation.getName(),
+                    conversation.getExecuteType(),
+                    conversation.getCreateTime(),
+                    conversation.getUpdateTime());
+            context.end(Result.success(result).toBuffer());
+        }).onFailure(context::fail);
 
     }
 
+    @Override
+    public void chat(RoutingContext context) {
+        String applicationId = context.pathParam("applicationId");
+        String conversationId = context.pathParam("conversationId");
+        ConversationVO conversationVO = context.body().asPojo(ConversationVO.class);
+        com.run.workflow.message.struct.QuestionContent questionContent = new com.run.workflow.message.struct.QuestionContent(conversationVO.getContent().getContent(), conversationVO.getWorkflowRunId());
+        ConversationMessage conversationMessage = new ConversationMessage(UUID.randomUUID(),
+                UUID.fromString(conversationId),
+                UUID.fromString(applicationId), UUID.fromString(conversationVO.getWorkflowRunId()),
+                MessageConstants.USER,
+                new JsonArray(List.of(questionContent)),
+                LocalDateTime.now(),
+                LocalDateTime.now());
 
-    private void extracted(RoutingContext context, CompositeFuture ok, ChatPojo pojo) {
-        Conversation conversation = ok.resultAt(0);
-        Application application = ok.resultAt(1);
-        JsonObject workflow = application.getWorkflow();
+        Future<Application> applicationFuture = applicationMapper.getById(applicationId);
+
+        Future<List<ConversationMessage>> conversationMessageFuture = conversationMessageMapper.save(conversationMessage)
+                .compose(ok -> conversationMessageMapper
+                        .list(conversationMessageMapper.select().where(F.field(ConversationMessage::getConversationId)
+                                                .eq(F.params(ConversationMessage::getConversationId)))
+                                        .orderBy(F.field(ConversationMessage::getCreateTime).desc())
+                                        .limit(DSL.param("#{limit}", Integer.class)).getSQL(ParamType.NAMED),
+                                Map.of("conversationId", conversationId, "limit", 10)));
+
+
+        Future.all(applicationFuture, conversationMessageFuture)
+                .onSuccess(ok -> extracted(context, ((Application) ok.resultAt(0)).getWorkflow(),
+                        UUID.fromString(conversationId), UUID.fromString(applicationId),
+                        UUID.fromString(conversationVO.getWorkflowRunId()), ok.resultAt(1)))
+                .onFailure(context::fail);
+    }
+
+
+    public static Map<ConversationMessage, List<ConversationMessage>> groupMessages(List<ConversationMessage> conversationMessages) {
+        List<Integer> userIndices = IntStream.range(0, conversationMessages.size())
+                .filter(i -> List.of(MessageConstants.USER, MessageConstants.TOOL).contains(conversationMessages.get(i).getType()))
+                .boxed().toList();
+
+        Map<ConversationMessage, List<ConversationMessage>> result = new LinkedHashMap<>();
+        for (int i = 0; i < userIndices.size(); i++) {
+            int startIndex = userIndices.get(i);
+            int endIndex = (i < userIndices.size() - 1) ? userIndices.get(i + 1) : conversationMessages.size();
+
+            List<ConversationMessage> group = new ArrayList<>();
+            for (int j = startIndex + 1; j < endIndex; j++) {
+                group.add(conversationMessages.get(j));
+            }
+            result.put(conversationMessages.get(startIndex), group);
+        }
+
+        return result;
+    }
+
+    private void extracted(RoutingContext context,
+                           JsonObject workflow,
+                           UUID conversationId,
+                           UUID applicationId,
+                           UUID workflowRunId,
+                           List<ConversationMessage> conversationMessages) {
+        List<ConversationMessage> list = conversationMessages.stream().sorted(Comparator.comparing(ConversationMessage::getCreateTime)).toList();
+        List<com.run.common.openai.request.message.Message> messages = new ArrayList<>();
+        for (Map.Entry<ConversationMessage, List<ConversationMessage>> kv : groupMessages(list).entrySet()) {
+            com.run.common.openai.request.message.Message chatMessage = MessageImpl.toChatMessage(kv.getKey());
+            List<com.run.common.openai.request.message.Message> chatMessage1 = MessageImpl.toChatMessage(kv.getValue());
+            messages.add(chatMessage);
+            messages.addAll(chatMessage1);
+        }
         context.response().setChunked(true);
         context.response().putHeader("Content-Type", "text/event-stream;charset=utf-8");
         context.response().putHeader("Cache-Control", "no-cache");
         context.response().putHeader("Character-Encoding", "utf-8");
         context.response().write(Buffer.buffer("", "utf-8"));
-        String conversationRecordId = UUID.randomUUID().toString();
         WorkFlowManage workFlowManage = new WorkFlowManage(WorkFlow.of(workflow),
-                List.of(new UserMessage(pojo.getQuestion().getQuestion())),
-                new HashMap<>(Map.of("conversationId", conversation.getId(),
-                        "applicationId", application.getId(),
-                        "conversationRecordId", conversationRecordId)),
+                new HashMap<>(Map.of("messages", messages,
+                        "conversationId", conversationId,
+                        "applicationId", applicationId)),
                 new HashMap<>(), (wm, node, chunk, isEnd) -> {
             if (isEnd) {
-                String conversationId = wm.getParams().get("conversationId").toString();
-                String applicationId = wm.getParams().get("applicationId").toString();
-                List<INode<?, ?>> nodes = wm.getNodes();
-                List<Answer> answers = nodes.stream().map(n -> n.getAnswerList(wm)).flatMap(Collection::stream).toList();
-                ConversationRecord conversationRecord = new ConversationRecord(UUID.fromString(conversationRecordId),
-                        UUID.fromString(conversationId),
-                        UUID.fromString(applicationId), false, false,
-                        new JsonObject(pojo.getQuestion().toMap()),
-                        new JsonArray(answers),
-                        new JsonObject(), wm.getRuntime(), LocalDateTime.now(), LocalDateTime.now());
-                conversationRecordMapper.save(conversationRecord)
-                        .onSuccess(_ -> {
+                List<MessageChunk> messageChunks = wm.getMessageChunks();
+                List<Message> block = MessageChunkListImpl.toBlock(messageChunks);
+                List<ConversationMessage> messageArrayList = new ArrayList<>();
+                for (Message message : block) {
+                    ConversationMessage conversationMessage = new ConversationMessage(UUID.randomUUID(),
+                            conversationId,
+                            applicationId, workflowRunId,
+                            message.type(),
+                            new JsonArray(message.content()),
+                            LocalDateTime.now(),
+                            LocalDateTime.now());
+                    messageArrayList.add(conversationMessage);
+                }
+                conversationMessageMapper.batch_save(messageArrayList).onSuccess(_ -> {
                             context.response().end();
                         })
-                        .onFailure(context::fail);
+                        .onFailure(e -> {
+                            context.fail(e);
+                        });
                 return;
             }
-            List<HashMap<String, Object>> list = chunk.toAppMap().stream().map(m -> {
-                HashMap<String, Object> result = new HashMap<>(m);
-                result.put("status", node.getStatus());
-                result.put("real_node_id", node.getReal_node_id());
-                result.put("node_id", node.getNode().getId());
-                result.put("display_id", node.getDisplayId());
-                result.put("node_name", node.getNode().getProperties().getString("name"));
-                result.put("conversation_record_id", conversationRecordId);
-                result.put("conversation_id", conversation.getId());
-                return result;
-            }).toList();
-            for (HashMap<String, Object> result : list) {
-                context.response().write(Buffer.buffer("data: " + JacksonUtils.toJson(result) + "\n\n", "utf-8"));
-            }
 
+            context.response().write(Buffer.buffer("data: " + JacksonUtils.toJson(chunk) + "\n\n", "utf-8"));
         });
         workFlowManage.invoke();
     }

@@ -16,6 +16,7 @@ import lombok.Getter;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.jooq.*;
+import org.jooq.Record;
 import org.jooq.conf.ParamType;
 import org.jooq.conf.Settings;
 import org.jooq.impl.DSL;
@@ -402,6 +403,10 @@ public class BaseMapper<T extends BaseEntity<T>> {
         return _list(condition, params).compose(BaseMapper::toListFuture);
     }
 
+    public Future<List<T>> list(String template, Map<String, Object> params) {
+        return search(template, params).compose(BaseMapper::toListFuture);
+    }
+
     /**
      * 查询列表
      *
@@ -414,6 +419,10 @@ public class BaseMapper<T extends BaseEntity<T>> {
         return SqlTemplate.forQuery(client, sql)
                 .mapTo(this.getConvert()::mapTo)
                 .execute(params);
+    }
+
+    public SelectJoinStep<Record> select() {
+        return dslContext.select(fields).from(table);
     }
 
     /**

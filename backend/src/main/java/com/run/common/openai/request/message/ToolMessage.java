@@ -1,12 +1,17 @@
 package com.run.common.openai.request.message;
 
+import lombok.Getter;
+import lombok.Setter;
+
 /**
  * {@code @Author:张少虎}
  * {@code @Date: 2025/3/17  22:17}
  * {@code @Version 1.0}
  * {@code @注释: 调用工具}
  */
-public class ToolMessage extends Message {
+@Getter
+@Setter
+public class ToolMessage implements Message {
     /**
      * 用户消息的内容。
      */

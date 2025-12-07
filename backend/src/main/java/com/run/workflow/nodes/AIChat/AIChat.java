@@ -3,10 +3,13 @@ package com.run.workflow.nodes.AIChat;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.run.RunApplication;
+import com.run.common.constants.MessageConstants;
 import com.run.common.keyvalue.DefaultKeyValue;
 import com.run.common.openai.request.message.Message;
 import com.run.common.openai.request.message.SystemMessage;
+import com.run.common.openai.request.message.UserMessage;
 import com.run.common.openai.response.ChatCompletion;
+import com.run.common.openai.response.Choice;
 import com.run.common.openai.response.chunk.ChatCompletionChunk;
 import com.run.common.util.JacksonUtils;
 import com.run.common.util.RSAUtil;
@@ -22,6 +25,9 @@ import com.run.workflow.NodeStatus;
 import com.run.workflow.WorkFlowManage;
 import com.run.workflow.entity.Node;
 import com.run.workflow.entity.NodeResult;
+import com.run.workflow.message.struct.chunk.MessageChunk;
+import com.run.workflow.message.struct.chunk.ReasoningChunk;
+import com.run.workflow.message.struct.chunk.TextContentChunk;
 import com.run.workflow.nodes.AIChat.entity.AIChatNodeData;
 import io.vertx.core.json.JsonObject;
 import jakarta.validation.Validator;
@@ -36,8 +42,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * {@code @Author:张少虎}
@@ -53,7 +57,7 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
 
     @Override
     public List<Answer> getAnswerList(WorkFlowManage wm) {
-        Answer answer = new Answer(this.getReal_node_id(), this.getNode().getId(), this.getDisplayId(),
+        Answer answer = new Answer(this.getRealNodeId(), this.getNode().getId(), this.getDisplayId(),
                 wm.getParams().get("conversationRecordId").toString(),
                 wm.getParams().get("conversationId").toString());
         answer.put("content", this.context.getString("content"));
@@ -74,12 +78,12 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
         @Override
         public Supplier<List<Node>> apply(WorkFlowManage workFlowManage, AIChat node) {
             List<Message> messages = new ArrayList<>((List<Message>) workFlowManage.getContextVariable(List.of("start-node", "messages")));
-            Message userMessage = messages.get(messages.size() - 1);
+            UserMessage userMessage = (UserMessage) messages.get(messages.size() - 1);
             if (StringUtils.isNotEmpty(node.params.getSystem())) {
                 Optional<Message> systemMessage = messages.stream().filter(message -> message.getRole().equals("system")).findFirst();
                 String systemContent = workFlowManage.generatePrompt(node.params.getSystem());
                 if (systemMessage.isPresent()) {
-                    systemMessage.get().setContent(systemContent);
+                    ((SystemMessage) systemMessage.get()).setContent(systemContent);
                 } else {
                     SystemMessage message = new SystemMessage();
                     message.setContent(systemContent);
@@ -102,7 +106,10 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
 
                     @Override
                     public void onResponse(@NotNull Call call, @NotNull ChatCompletion chatCompletion) {
-                        workFlowManage.write(node, chatCompletion.toChunk());
+                        for (Choice choice : chatCompletion.getChoices()) {
+                            String content = choice.getMessage().getContent();
+                            workFlowManage.write(node, new MessageChunk(MessageConstants.ASSISTANT, List.of(new TextContentChunk(content, node, (String) workFlowManage.getParams().get("workflowRunId")))));
+                        }
                     }
 
                     @Override
@@ -111,9 +118,13 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
                             String r = c.getDelta().getString("reasoning_content");
                             if (StringUtils.isNotEmpty(r)) {
                                 reasoningContent.append(r);
+                                workFlowManage.write(node, new MessageChunk(MessageConstants.ASSISTANT, List.of(new ReasoningChunk(r, node, (String) workFlowManage.getParams().get("workflowRunId")))));
+                            }
+                            String content = c.getDelta().getContent();
+                            if (StringUtils.isNotEmpty(content)) {
+                                workFlowManage.write(node, new MessageChunk(MessageConstants.ASSISTANT, List.of(new TextContentChunk(content, node, (String) workFlowManage.getParams().get("workflowRunId")))));
                             }
                         });
-                        workFlowManage.write(node, chatCompletion);
                     }
 
                     @Override
