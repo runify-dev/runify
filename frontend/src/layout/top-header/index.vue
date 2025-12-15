@@ -35,7 +35,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { getChildRouteListByPathAndName } from '@/router/index'
+import { getChildRouteListByPathAndName } from '@/router/admin/index'
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 const r = useRoute()

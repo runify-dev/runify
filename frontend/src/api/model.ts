@@ -1,5 +1,5 @@
 import { Result } from '@/request/Result'
-import { get, post, put, del } from '@/request/index'
+import { get, post, put, del } from '@/request/admin/index'
 import type {
   MarkdownNode
 } from '@/api/type/knowledge'

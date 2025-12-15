@@ -1,5 +1,5 @@
 import { Result } from '@/request/Result'
-import { get, post, put, del } from '@/request/index'
+import { get, post, put, del } from '@/request/admin/index'
 import type {
     CreateNodePojo,
     QueryNodePojo
@@ -11,7 +11,7 @@ import type { ResourceType } from './type/common'
  * 创建节点
  * @param createNodePojo 创建节点对象
  * @param loading loading
- * @returns 
+ * @returns
  */
 const create: (
     resource_type: ResourceType,
@@ -23,8 +23,8 @@ const create: (
 }
 /**
  * 获取节点列表
- * @param loading  
- * @returns 
+ * @param loading
+ * @returns
  */
 const listResource: (
     resource_type: ResourceType,
@@ -49,8 +49,8 @@ const listTree: (
  * 修改节点
  * @param nodeId 节点id
  * @param editNodePojo 修改节点数据对象
- * @param loading 
- * @returns 
+ * @param loading
+ * @returns
  */
 const edit: (
     nodeId: string,
@@ -67,10 +67,10 @@ export const ResourceTypeNameMap = {
 }
 /**
  * 获取资源下 文件夹 info信息
- * @param resourceType 
- * @param floderId 
- * @param loading 
- * @returns 
+ * @param resourceType
+ * @param floderId
+ * @param loading
+ * @returns
  */
 const resourceInfo: (resourceType: ResourceType, floderId: string, sourceId: string, loading?: Ref<boolean>) => Promise<Result<Node>> = (resourceType, floderId, sourceId, loading) => {
     if (floderId) {
@@ -91,7 +91,7 @@ const resourceInfo: (resourceType: ResourceType, floderId: string, sourceId: str
  * 删除节点 根据节点id
  * @param nodeId  节点id
  * @param loading 加载器
- * @returns 
+ * @returns
  */
 const remove: (
     resourceType: ResourceType,

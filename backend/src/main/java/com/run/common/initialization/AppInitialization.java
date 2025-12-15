@@ -1,6 +1,5 @@
 package com.run.common.initialization;
 
-import com.run.RunApplication;
 import com.run.common.openapi.DocRoute;
 import com.run.common.util.RSAUtil;
 import com.run.dao.entity.SystemSetting;
@@ -10,7 +9,6 @@ import io.vertx.core.json.JsonObject;
 
 import javax.inject.Inject;
 import java.security.KeyPair;
-import java.security.PrivateKey;
 
 /**
  * {@code @Author:张少虎}

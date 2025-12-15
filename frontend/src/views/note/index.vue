@@ -11,7 +11,7 @@
       </TreeAside>
     </template>
     <template #main>
-      <RouterView></RouterView>
+      <RouterView :key="route.fullPath"></RouterView>
     </template>
   </AppSubLayout>
 </template>

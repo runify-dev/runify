@@ -27,7 +27,7 @@ public class RouteModule {
     @Inject
     public Router apiRoute(Vertx vertx, @Named("mainRoute") Router router) {
         Router restAPI = Router.router(vertx);
-        router.route("/api/*").subRouter(restAPI);
+        router.route("/admin/api/*").subRouter(restAPI);
         restAPI.route()
                 .failureHandler(new RestFailureHandler())
                 .handler(new ResultHandler());

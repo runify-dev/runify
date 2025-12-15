@@ -1,5 +1,5 @@
 import { Result } from '@/request/Result'
-import { get, post, put, del } from '@/request/index'
+import { get, post, put, del } from '@/request/admin/index'
 import type {
     MarkdownNode
 } from '@/api/type/knowledge'
@@ -8,8 +8,8 @@ import { type Node, type EditNodePojo } from '@/api/type/node'
 /**
  * 根据nodeid 查询Markdown文档
  * @param node_id  节点id
- * @param loading 
- * @returns 
+ * @param loading
+ * @returns
  */
 const getById: (
     node_id: String,

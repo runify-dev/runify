@@ -1,5 +1,5 @@
 import { Result, type Page } from '@/request/Result'
-import { get, post, del } from '@/request/index'
+import { get, post, del } from '@/request/admin/index'
 import type {
   User,
   LoginPojo,

@@ -4,8 +4,7 @@ import { config } from 'md-editor-v3';
 import * as ElementPlusIconsVue from "@element-plus/icons-vue";
 import App from "./App.vue";
 import ElementPlus from "element-plus";
-import router from "@/router";
-import Menus from 'vue3-menus';
+import router from "@/router/admin/index";
 import "element-plus/dist/index.css";
 import "@/index.css"
 import "@/styles/index.scss";
@@ -17,19 +16,13 @@ import i18n from '@/locales'
 import components from '@/components'
 import markdownit from 'markdown-it';
 import screenfull from 'screenfull';
-
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
-
 import Cropper from 'cropperjs';
-
-
 import mermaid from 'mermaid';
-
 import highlight from 'highlight.js';
 import 'highlight.js/styles/atom-one-dark.css';
 import * as prettier from 'prettier';
-
 import parserMarkdown from 'prettier/plugins/markdown';
 const parseAttributes = (str: string) => {
   if (!str) {

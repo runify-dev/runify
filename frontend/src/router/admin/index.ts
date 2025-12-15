@@ -6,9 +6,10 @@ import {
   type RouteRecordRaw,
   type RouteRecordName
 } from 'vue-router'
-import { routes } from '@/router/routes'
+import { routes } from '@/router/admin/routes'
+console.log(window.RUNIFY_APP.admin.baseURL ? window.RUNIFY_APP.admin.baseURL : import.meta.env.BASE_URL)
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHistory(window.RUNIFY_APP.admin.baseURL ? window.RUNIFY_APP.admin.baseURL : import.meta.env.BASE_URL),
   routes: routes
 })
 

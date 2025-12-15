@@ -1,5 +1,5 @@
 import { Result } from '@/request/Result'
-import { get, post, put, del, postStream } from '@/request/index'
+import { get, post, put, del, postStream } from '@/request/admin/index'
 import type { Ref } from 'vue'
 
 

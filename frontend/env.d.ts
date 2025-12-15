@@ -2,3 +2,13 @@
 declare module "swagger-ui-dist"
 declare module "katex"
 declare module "pinyin-pro"
+interface Window {
+  RUNIFY_APP: {
+    admin: {
+      baseURL: string
+    },
+    chat: {
+      baseURL: string
+    }
+  }
+}

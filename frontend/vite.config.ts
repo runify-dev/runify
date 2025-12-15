@@ -1,19 +1,41 @@
 import { fileURLToPath, URL } from 'node:url'
-
 import { defineConfig, loadEnv } from 'vite'
 import vue from '@vitejs/plugin-vue'
-const envDir = './env'
+import path from 'path'
+import fs from 'fs'
+import { createHtmlPlugin } from 'vite-plugin-html'
 import type { ProxyOptions } from 'vite'
 import DefineOptions from 'unplugin-vue-define-options/vite'
+const envDir = './env'
+// 自定义插件：重命名入口文件
+const renameHtmlPlugin = (outDir: string, entry: string) => {
+  return {
+    name: 'rename-html',
+    closeBundle: () => {
+      const buildDir = path.resolve(__dirname, outDir)
+      const oldFile = path.join(buildDir, entry)
+      const newFile = path.join(buildDir, 'index.html')
+
+      // 检查文件是否存在
+      if (fs.existsSync(oldFile)) {
+        // 删除已存在的 index.html
+        if (fs.existsSync(newFile)) {
+          fs.unlinkSync(newFile)
+        }
+        // 重命名文件
+        fs.renameSync(oldFile, newFile)
+      }
+    },
+  }
+}
 export default defineConfig(({ mode }) => {
   const ENV = loadEnv(mode, envDir)
   const proxyConf: Record<string, string | ProxyOptions> = {}
-  proxyConf['/api'] = {
+  console.log(ENV)
+  proxyConf['/admin/api'] = {
     target: 'http://127.0.0.1:8080',
     changeOrigin: true,
-    rewrite: (path) => path.replace(ENV.VITE_BASE_PATH, '/'),
     configure: (proxy, options) => {
-      // 移除响应头中的 Content-Length
       proxy.on("proxyRes", (proxyRes, request, response) => {
         delete proxyRes.headers['content-length']
       });
@@ -22,9 +44,9 @@ export default defineConfig(({ mode }) => {
   return {
     preflight: false,
     lintOnSave: false,
-    base: ENV.VITE_BASE_PATH,
+    base: './',
     envDir: envDir,
-    plugins: [vue(), DefineOptions()],
+    plugins: [vue(), DefineOptions(), createHtmlPlugin({ template: ENV.VITE_ENTRY }), , renameHtmlPlugin(`dist${ENV.VITE_BASE_PATH}`, ENV.VITE_ENTRY)],
     server: {
       cors: true,
       host: '0.0.0.0',
@@ -33,7 +55,10 @@ export default defineConfig(({ mode }) => {
       proxy: proxyConf
     },
     build: {
-      outDir: 'dist/ui'
+      outDir: `dist${ENV.VITE_BASE_PATH}`,
+      rollupOptions: {
+        input: ENV.VITE_ENTRY,
+      },
     },
     resolve: {
       alias: {
