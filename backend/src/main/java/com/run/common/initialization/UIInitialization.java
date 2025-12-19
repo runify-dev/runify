@@ -30,7 +30,7 @@ public class UIInitialization {
 
     public void init() {
         StaticHandlerImpl staticHandler = new StaticHandlerImpl(FileSystemAccess.RELATIVE, "ui/");
-        router.get().handler(staticHandler);
+//        router.get().handler(staticHandler);
         router.route().last().handler(context -> {
             vertx.fileSystem().readFile("ui/index.html")
                     .onSuccess(result -> {

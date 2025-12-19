@@ -41,7 +41,7 @@ public class RouteModule {
     @Inject
     public Router uiRoute(Vertx vertx, @Named("mainRoute") Router router) {
         Router uiRoute = Router.router(vertx);
-        router.route("/ui/*").subRouter(uiRoute);
+        router.route("/admin/*").subRouter(uiRoute);
         return uiRoute;
     }
 

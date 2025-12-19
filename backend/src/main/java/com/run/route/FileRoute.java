@@ -32,24 +32,30 @@ public class FileRoute implements IRoute {
     protected Router apiRoute;
 
     protected OpenAPI openAPI;
-
+    protected Router uiRoute;
     protected IFileHandler iFileHandler;
 
     @Inject
-    public FileRoute(@Named("apiRoute") Router apiRoute, OpenAPI openAPI, FileHandlerImpl fileHandler) {
+    public FileRoute(@Named("apiRoute") Router apiRoute,
+                     @Named("uiRoute") Router uiRoute,
+                     OpenAPI openAPI, FileHandlerImpl fileHandler) {
         this.apiRoute = apiRoute;
         this.openAPI = openAPI;
+        this.uiRoute = uiRoute;
         this.iFileHandler = fileHandler;
     }
 
     @Override
     public void initRoute() {
-        apiRoute.post("/file")
+        apiRoute.post("/storage/file")
                 .handler(BodyHandler.create().setBodyLimit(Long.MAX_VALUE)
                         .setDeleteUploadedFilesOnEnd(true))
                 .handler(iFileHandler::upload);
-        apiRoute.get("/file/:file_id")
+        apiRoute.get("/storage/file/:fileId")
                 .handler(iFileHandler::download);
+        uiRoute.getWithRegex("/.*/api/storage/file/(?<fileId>[^\\/]+)")
+                .handler(iFileHandler::download);
+
     }
 
     @Override

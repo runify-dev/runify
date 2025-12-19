@@ -4,8 +4,8 @@ import type { FileEntity } from './type/file'
 
 
 const uploadFile: (data: any) => Promise<Result<FileEntity>> = (data) => {
-    return post('/file', data)
+  return post('/storage/file', data)
 }
 export default {
-    uploadFile
+  uploadFile
 }

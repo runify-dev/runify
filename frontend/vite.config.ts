@@ -31,7 +31,7 @@ const renameHtmlPlugin = (outDir: string, entry: string) => {
 export default defineConfig(({ mode }) => {
   const ENV = loadEnv(mode, envDir)
   const proxyConf: Record<string, string | ProxyOptions> = {}
-  console.log(ENV)
+
   proxyConf['/admin/api'] = {
     target: 'http://127.0.0.1:8080',
     changeOrigin: true,
@@ -40,6 +40,16 @@ export default defineConfig(({ mode }) => {
         delete proxyRes.headers['content-length']
       });
     },
+  }
+  // 前端静态资源转发到本身
+  proxyConf[`^${ENV.VITE_BASE_PATH}.+\/storage\/file\/.*$`] = {
+    target: `http://127.0.0.1:8080`,
+    changeOrigin: true,
+  }
+  // 前端静态资源转发到本身
+  proxyConf[`^${ENV.VITE_BASE_PATH}storage\/file\/.*$`] = {
+    target: `http://127.0.0.1:8080`,
+    changeOrigin: true,
   }
   return {
     preflight: false,

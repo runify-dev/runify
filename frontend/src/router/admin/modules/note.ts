@@ -17,13 +17,8 @@ const knowledgeRouter = {
       name: 'noteDetails',
       meta: { title: 'common.fileUpload.document', activeMenu: 'note' },
       component: () => import("@/views/note/Details.vue"),
-    },
-    {
-      path: 'resources/:id/edit',
-      name: 'noteEdit',
-      meta: { title: 'common.fileUpload.document', activeMenu: 'note' },
-      component: () => import("@/views/note/Edit.vue"),
     }
+
   ]
 };
 

@@ -59,10 +59,11 @@ onMounted(() => {
     const fd = new FormData()
     fd.append('file', file)
     return FileAPI.uploadFile(fd).then((ok) => {
+      e.target.value = ''
       props.editor
         .chain()
         .focus()
-        .setImage({ src: `/admin/api/file/${ok.data.id}` })
+        .setImage({ src: `./api/storage/file/${ok.data.id}` })
         .run()
     })
   })

@@ -93,8 +93,8 @@ public class FileHandlerImpl implements IFileHandler {
 
     @Override
     public void download(RoutingContext context) {
-        String node_id = context.pathParam("file_id");
-        fileMapper.getById(node_id).compose(file -> {
+        String fileId = context.pathParam("fileId");
+        fileMapper.getById(fileId).compose(file -> {
             String contentType = MimeMapping.mimeTypeForFilename(file.getFileName());
             if (contentType != null) {
                 if (contentType.startsWith("text")) {
