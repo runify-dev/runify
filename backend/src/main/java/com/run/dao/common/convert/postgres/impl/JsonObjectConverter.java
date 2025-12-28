@@ -1,6 +1,5 @@
 package com.run.dao.common.convert.postgres.impl;
 
-import com.run.common.util.JacksonUtils;
 import com.run.dao.common.convert.AbstractConverter;
 import com.run.dao.common.convert.annotations.For;
 import io.vertx.core.json.JsonObject;

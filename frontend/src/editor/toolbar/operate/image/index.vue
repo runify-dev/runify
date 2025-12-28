@@ -55,7 +55,6 @@ onMounted(() => {
       e.target.value = ''
       return
     }
-
     const fd = new FormData()
     fd.append('file', file)
     return FileAPI.uploadFile(fd).then((ok) => {

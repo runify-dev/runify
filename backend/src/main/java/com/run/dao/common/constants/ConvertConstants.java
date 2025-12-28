@@ -1,8 +1,7 @@
 package com.run.dao.common.constants;
 
-import com.run.dao.common.annotations.Table;
-import com.run.dao.common.convert.EntityConvert;
 import com.run.dao.common.convert.Converter;
+import com.run.dao.common.convert.EntityConvert;
 import com.run.dao.common.convert.postgres.PostgresConvert;
 import com.run.dao.common.convert.sqlite.SqliteConvert;
 import lombok.Getter;

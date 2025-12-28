@@ -1,6 +1,5 @@
 package com.run.dao.common;
 
-import com.run.common.config.AppConfig;
 import com.run.dao.common.annotations.Column;
 import com.run.dao.common.constants.ConvertConstants;
 import com.run.dao.common.convert.Converter;
@@ -16,7 +15,6 @@ import org.jooq.conf.ParamType;
 import org.jooq.conf.Settings;
 import org.jooq.impl.DSL;
 
-import javax.inject.Inject;
 import java.io.Serializable;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;

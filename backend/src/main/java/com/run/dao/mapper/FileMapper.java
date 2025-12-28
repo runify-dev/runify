@@ -18,10 +18,7 @@ import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowSet;
 import io.vertx.sqlclient.SqlResult;
 import io.vertx.sqlclient.templates.SqlTemplate;
-import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
-import net.sf.jsqlparser.schema.Column;
 import org.jetbrains.annotations.Nullable;
-import org.jooq.Field;
 import org.jooq.SQLDialect;
 
 import javax.inject.Inject;

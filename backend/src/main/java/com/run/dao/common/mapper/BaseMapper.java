@@ -435,11 +435,26 @@ public class BaseMapper<T extends BaseEntity<T>> {
      */
     public Future<Page<T>> page(Condition condition, long currentPage, long pageSize, Map<String, Object> params) {
         Future<Long> count = count(condition, params);
-        return _page(condition, currentPage, pageSize, params).compose(rowSet -> count.compose(c -> {
+        return _page(condition, new ArrayList<>(), currentPage, pageSize, params).compose(rowSet -> count.compose(c -> {
             List<T> ts = toList(rowSet);
             return Future.succeededFuture(new Page<T>(ts, c, currentPage, pageSize));
         }));
+    }
 
+    /**
+     * 分页查询
+     *
+     * @param condition   查询条件
+     * @param currentPage 当前页
+     * @param pageSize    每页大小
+     * @return 分页数据
+     */
+    public Future<Page<T>> page(Condition condition, Collection<? extends OrderField<?>> orderFields, long currentPage, long pageSize, Map<String, Object> params) {
+        Future<Long> count = count(condition, params);
+        return _page(condition, orderFields, currentPage, pageSize, params).compose(rowSet -> count.compose(c -> {
+            List<T> ts = toList(rowSet);
+            return Future.succeededFuture(new Page<T>(ts, c, currentPage, pageSize));
+        }));
     }
 
     /**
@@ -467,8 +482,10 @@ public class BaseMapper<T extends BaseEntity<T>> {
      * @param pageSize    每页大小
      * @return 分页结果
      */
-    private Future<RowSet<T>> _page(Condition condition, long currentPage, long pageSize, Map<String, Object> params) {
+    private Future<RowSet<T>> _page(Condition condition, Collection<? extends OrderField<?>> orderFields,
+                                    long currentPage, long pageSize, Map<String, Object> params) {
         String sql = dslContext.select(fields).from(table).where(condition)
+                .orderBy(orderFields)
                 .offset(DSL.param("#{offset}", Integer.class))
                 .limit(DSL.param("#{limit}", Integer.class))
                 .getSQL(ParamType.NAMED);

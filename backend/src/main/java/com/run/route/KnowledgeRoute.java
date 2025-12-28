@@ -4,7 +4,6 @@ package com.run.route;
 import com.run.auth.TokenBasicAuthHandler;
 import com.run.common.openapi.CommonOpenAPI;
 import com.run.common.route.IRoute;
-import com.run.handler.application.impl.ApplicationFolderHandlerImpl;
 import com.run.handler.knowledge.IKnowledgeFolderHandler;
 import com.run.handler.knowledge.IKnowledgeHandler;
 import com.run.handler.knowledge.impl.KnowledgeFolderHandlerImpl;

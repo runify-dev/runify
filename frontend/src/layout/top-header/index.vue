@@ -15,17 +15,22 @@
           type="radio"
           name="tab"
           :id="`tab${index}`"
-          :checked="r.name === route.name"
+          :checked="r.name === route.name || r.meta.activeSubMenu === route.name"
           v-on:click="go(route)"
           class="tab"
           :style="{ left: `calc(var(--label - width, 100px) * ${index} + 2px)}` }"
         />
         <label
           :for="`tab${index}`"
-          :class="['tab_label', r.name === route.name ? 'tab_label_black' : 'text-white']"
+          :class="[
+            'tab_label',
+            r.name === route.name || r.meta.activeSubMenu === route.name
+              ? 'tab_label_black'
+              : 'text-white'
+          ]"
         >
-          {{ route.meta?.title }}</label
-        >
+          {{ route.meta?.title }}
+        </label>
       </template>
       <div class="indicator" :style="indicatorStyle"></div>
     </div>
@@ -47,7 +52,9 @@ const props = defineProps<{
   rootRouteName: string
 }>()
 const indicatorStyle = computed(() => {
-  const index = routeList.value.findIndex((item) => r.name == item.name)
+  const index = routeList.value.findIndex(
+    (item) => r.name == item.name || r.meta?.activeSubMenu === item.name
+  )
   return { left: `calc(var(--label-width, 100px) * ${index} + 2px)` }
 })
 const routeList = computed(() => {

@@ -24,7 +24,8 @@ import type { BaseNodeModel } from '@logicflow/core'
 import type { LifeCycle } from '@/workflow/common/type'
 import NodeContent from '@/workflow/common/NodeContent.vue'
 const props = defineProps<{
-  validate: () => Promise<boolean>
+  validate: () => Promise<any>
+  submit: () => Promise<any>
   lifeCycle?: LifeCycle
 }>()
 const drawer = ref<boolean>(false)
@@ -32,7 +33,9 @@ const name = ref<string>('')
 
 const confirm = () => {
   props.validate().then(() => {
-    close()
+    props.submit().then(() => {
+      close()
+    })
   })
 }
 const close = () => {
@@ -42,7 +45,6 @@ const close = () => {
 const open = (model: BaseNodeModel) => {
   name.value = model.properties.name
   drawer.value = true
-  return Promise.resolve('ok')
 }
 defineExpose({ open, close })
 </script>

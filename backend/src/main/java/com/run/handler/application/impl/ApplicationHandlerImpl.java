@@ -1,12 +1,9 @@
 package com.run.handler.application.impl;
 
 
-import com.run.common.constants.ContentTypeConstants;
 import com.run.common.constants.ConversationExecuteConstants;
 import com.run.common.constants.ConversationUserConstants;
 import com.run.common.constants.MessageConstants;
-import com.run.common.keyvalue.DefaultKeyValue;
-import com.run.common.openai.request.message.UserMessage;
 import com.run.common.result.Result;
 import com.run.common.util.CommonUtils;
 import com.run.common.util.JacksonUtils;
@@ -15,15 +12,14 @@ import com.run.dao.entity.*;
 import com.run.dao.mapper.*;
 import com.run.handler.application.IApplicationHandler;
 import com.run.handler.application.dto.ConversationDTO;
-import com.run.handler.application.pojo.ChatPojo;
 import com.run.handler.application.pojo.ConversationQuery;
 import com.run.handler.application.pojo.EditApplicationPojo;
 import com.run.handler.application.vo.ConversationVO;
 import com.run.handler.application.vo.CreateConversationVO;
-import com.run.handler.application.vo.QuestionContent;
 import com.run.handler.common.impl.ResourceHandlerImpl;
 import com.run.handler.common.pojo.SimpleNodePojo;
 import com.run.workflow.WorkFlowManage;
+import com.run.workflow.WorkflowType;
 import com.run.workflow.entity.WorkFlow;
 import com.run.workflow.message.impl.MessageImpl;
 import com.run.workflow.message.impl.impl.MessageChunkListImpl;
@@ -35,8 +31,6 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.sqlclient.RowSet;
-import io.vertx.sqlclient.SqlResult;
 import org.apache.commons.lang3.StringUtils;
 import org.jooq.Condition;
 import org.jooq.conf.ParamType;
@@ -46,7 +40,6 @@ import javax.inject.Inject;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 /**
  * {@code @Author:张少虎}
@@ -255,7 +248,7 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
         context.response().putHeader("Cache-Control", "no-cache");
         context.response().putHeader("Character-Encoding", "utf-8");
         context.response().write(Buffer.buffer("", "utf-8"));
-        WorkFlowManage workFlowManage = new WorkFlowManage(WorkFlow.of(workflow),
+        WorkFlowManage workFlowManage = new WorkFlowManage(WorkFlow.of(workflow, WorkflowType.CHAT_WORKFLOW),
                 new HashMap<>(Map.of("messages", messages,
                         "conversationId", conversationId,
                         "applicationId", applicationId)),

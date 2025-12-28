@@ -6,7 +6,6 @@ import com.run.dao.common.entity.BaseEntity;
 import com.run.dao.common.mapper.BaseMapper;
 import io.vertx.core.Future;
 import io.vertx.sqlclient.RowSet;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.jooq.Condition;
 import org.jooq.impl.DSL;
@@ -15,7 +14,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 

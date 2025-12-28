@@ -2,6 +2,7 @@
   <SimpleNodeContainer
     :node-content-life-cycle="nodeContentLifeCycle"
     :model="model"
+    :submit="submit"
     :validate="validate"
   >
     <el-form
@@ -61,13 +62,7 @@ const form = ref({
   system: '',
   contextNumber: 0
 })
-watch(
-  form,
-  () => {
-    model.properties.nodeData = form.value
-  },
-  { deep: true }
-)
+
 const modelList = ref<Array<any>>()
 const formRef = ref<FormInstance>()
 const validate = () => {
@@ -75,6 +70,10 @@ const validate = () => {
     return formRef.value?.validate()
   }
   return Promise.reject(false)
+}
+const submit = () => {
+  model.properties.nodeData = form.value
+  return Promise.resolve(true)
 }
 const nodeContentLifeCycle = {
   onMounted: () => {

@@ -1,0 +1,32 @@
+package com.run.common.query.impl;
+
+import com.run.common.query.Deserialize;
+import com.run.common.query.annotations.QueryParams;
+import com.run.common.query.constants.LocationConstants;
+import com.run.dao.common.convert.annotations.For;
+import io.vertx.core.MultiMap;
+import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
+
+/**
+ * {@code @Author:张少虎}
+ * {@code @Date: 2025/11/15  15:33}
+ * {@code @Version 1.0}
+ * {@code @注释: }
+ */
+@For(Boolean.class)
+public class BooleanDeserialize implements Deserialize<Boolean> {
+    @Override
+    public Boolean deserialize(RoutingContext context, QueryParams queryParams, Class<?> real) {
+        LocationConstants location = queryParams.location();
+        String value;
+        if (location == LocationConstants.PATH) {
+            value = context.pathParam(queryParams.name());
+        } else {
+            MultiMap entries = context.queryParams();
+            value = entries.get(queryParams.name());
+        }
+        return StringUtils.isEmpty(value) ? null : Strings.CS.equals(value, "1");
+    }
+}

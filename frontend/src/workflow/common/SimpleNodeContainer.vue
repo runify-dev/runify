@@ -40,13 +40,18 @@
     <NodeContentContainer
       :life-cycle="nodeContentLifeCycle"
       :validate="validate"
+      :submit="submit"
       ref="nodeContentContainerRef"
     >
       <template #content v-if="$slots.default">
         <slot></slot>
       </template>
     </NodeContentContainer>
-    <NodeMenu :append-node="appendNode" :workflowType="'APPLICATION'" ref="nodeMenuRef"></NodeMenu>
+    <NodeMenu
+      :append-node="appendNode"
+      :workflowType="WorkflowType.APPLICATION"
+      ref="nodeMenuRef"
+    ></NodeMenu>
   </div>
 </template>
 <script setup lang="ts">
@@ -57,11 +62,13 @@ import AppIcon from '@/components/icons/AppIcon.vue'
 import NodeMenu from '@/workflow/common/NodeMenu.vue'
 import { generateAnchor } from '@/utils/common'
 import NodeContentContainer from '@/workflow/common/NodeContentContainer.vue'
+import { WorkflowType } from './data'
 const nodeMenuRef = ref<InstanceType<typeof NodeMenu>>()
 const getModel = inject('getModel') as () => BaseNodeModel
 const model = getModel()
 defineProps<{
-  validate: () => Promise<boolean>
+  validate: () => Promise<any>
+  submit: () => Promise<any>
   nodeContentLifeCycle?: LifeCycle
 }>()
 const appendNode = (node: any, anchorData: any) => {

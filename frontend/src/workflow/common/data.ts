@@ -8,7 +8,7 @@ const startNode = {
   y: 0,
   label: "开始节点",
   properties: {
-    width: 250,
+    width: 200,
     height: 50,
     name: "开始节点",
     isHovered: false,
@@ -27,9 +27,26 @@ const aiChatNode = {
   y: 0,
   label: "ai对话",
   properties: {
-    width: 250,
+    width: 200,
     height: 50,
     name: "ai对话",
+    isHovered: false,
+    field_list: [
+
+    ]
+  }
+}
+
+const toolNode = {
+  type: 'tool-node',
+  text: "",
+  x: 0,
+  y: 0,
+  label: "工具",
+  properties: {
+    width: 200,
+    height: 50,
+    name: "工具",
     isHovered: false,
     field_list: [
       {
@@ -43,7 +60,12 @@ export const baseWorkflow = {
   nodes: [startNode],
   edges: []
 }
-export type WorkflowType = 'APPLICATION'
+
+
+export enum WorkflowType {
+  APPLICATION = 'APPLICATION',
+  PROCESSOR = 'PROCESSOR'
+}
 
 class NodeMeta {
   node: any
@@ -59,8 +81,8 @@ class NodeMeta {
   }
 }
 const nodeMetaList = [
-  // new NodeMeta(startNode, '基本节点', ['APPLICATION'], "/ui/login.jpg"),
-  new NodeMeta(aiChatNode, '基本节点', ['APPLICATION'], "/ui/login.jpg"),
+  new NodeMeta(aiChatNode, '基本节点', [WorkflowType.APPLICATION], `${window.RUNIFY_APP.baseURL}/login.jpg`),
+  new NodeMeta(toolNode, '基本节点', [WorkflowType.APPLICATION], `${window.RUNIFY_APP.baseURL}/login.jpg`),
 ]
 
 export const getNodeMenuList = (workflowType: WorkflowType) => {

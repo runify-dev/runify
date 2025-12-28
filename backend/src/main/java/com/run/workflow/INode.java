@@ -4,7 +4,6 @@ import com.github.f4b6a3.uuid.UuidCreator;
 import com.run.common.util.CommonUtils;
 import com.run.workflow.entity.Node;
 import com.run.workflow.entity.NodeResult;
-import com.run.workflow.message.struct.Message;
 import io.vertx.core.json.JsonObject;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
@@ -14,7 +13,6 @@ import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 

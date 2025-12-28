@@ -2,7 +2,6 @@ package com.run.dao.mapper;
 
 import com.run.common.config.AppConfig;
 import com.run.dao.common.mapper.BaseMapper;
-import com.run.dao.entity.KnowledgePermission;
 import com.run.dao.entity.NotePermission;
 import io.vertx.sqlclient.Pool;
 

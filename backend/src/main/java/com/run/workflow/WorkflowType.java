@@ -14,5 +14,13 @@ public enum WorkflowType {
     /**
      * 对话循环子工作流
      */
-    CHAT_WORKFLOW_LOOP
+    CHAT_WORKFLOW_LOOP,
+    /**
+     * 处理器
+     */
+    PROCESSOR_HTTP,
+    /**
+     * 处理器循环子工作流
+     */
+    PROCESSOR_HTTP_LOOP
 }

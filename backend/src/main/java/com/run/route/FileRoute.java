@@ -15,7 +15,6 @@ import io.swagger.v3.oas.models.responses.ApiResponse;
 import io.swagger.v3.oas.models.responses.ApiResponses;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
-import io.vertx.sqlclient.Pool;
 
 import javax.inject.Inject;
 import javax.inject.Named;

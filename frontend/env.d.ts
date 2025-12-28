@@ -4,6 +4,7 @@ declare module "katex"
 declare module "pinyin-pro"
 interface Window {
   RUNIFY_APP: {
+    baseURL: string
     admin: {
       baseURL: string
     },

@@ -1,6 +1,7 @@
 package com.run.dao.common.convert;
 
 import com.run.common.keyvalue.DefaultKeyValue;
+import com.run.common.pojo.FieldMapping;
 import com.run.common.util.ClassScanUtil;
 import com.run.dao.common.annotations.Column;
 import com.run.dao.common.convert.annotations.For;
@@ -73,9 +74,9 @@ public abstract class AbstractEntityConverter<T> implements EntityConvert<T> {
     public T mapTo(Row row) {
         T instance = (T) constructorHandle.invoke();
         for (FieldMapping field : this.fieldMappings) {
-            Class<?> type = field.field.getType();
-            Converter<?, ?> converter = customizeConverters.getOrDefault(field.field.getName(), converters.get(type.isEnum() || Enum.class.isAssignableFrom(type) ? Enum.class : type));
-            Object value = converter.deserialize(row, field.columnName, type);
+            Class<?> type = field.field().getType();
+            Converter<?, ?> converter = customizeConverters.getOrDefault(field.field().getName(), converters.get(type.isEnum() || Enum.class.isAssignableFrom(type) ? Enum.class : type));
+            Object value = converter.deserialize(row, field.columnName(), type);
             field.setValue(instance, value);
         }
         return instance;
@@ -85,10 +86,10 @@ public abstract class AbstractEntityConverter<T> implements EntityConvert<T> {
     public Map<String, Object> toMap(Object o) {
         HashMap<String, Object> result = new HashMap<>();
         for (FieldMapping field : this.fieldMappings) {
-            Class<?> type = field.field.getType();
+            Class<?> type = field.field().getType();
             Converter<?, ?> converter = (type.isEnum() || Enum.class.isAssignableFrom(type)) ? converters.get(Enum.class) : converters.get(type);
-            Object value = converter.serialize(o, field.field.getName());
-            result.put(field.columnName, value);
+            Object value = converter.serialize(o, field.field().getName());
+            result.put(field.columnName(), value);
         }
         return result;
     }
@@ -98,16 +99,6 @@ public abstract class AbstractEntityConverter<T> implements EntityConvert<T> {
             return LOOKUP.findConstructor(clazz, MethodType.methodType(void.class));
         } catch (Exception e) {
             throw new RuntimeException("No accessible no-arg constructor for: " + clazz.getName(), e);
-        }
-    }
-
-    private record FieldMapping(Field field, String columnName, MethodHandle getter, MethodHandle setter) {
-        void setValue(Object instance, Object value) throws Throwable {
-            setter.invoke(instance, value);
-        }
-
-        Object getValue(Object instance) throws Throwable {
-            return getter.invoke(instance);
         }
     }
 

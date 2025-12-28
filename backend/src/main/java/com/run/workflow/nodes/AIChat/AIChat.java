@@ -19,10 +19,7 @@ import com.run.models.IProvider;
 import com.run.models.ModelProvideConstants;
 import com.run.models.callback.Callback;
 import com.run.models.impl.openai.model.LLM;
-import com.run.workflow.Answer;
-import com.run.workflow.INode;
-import com.run.workflow.NodeStatus;
-import com.run.workflow.WorkFlowManage;
+import com.run.workflow.*;
 import com.run.workflow.entity.Node;
 import com.run.workflow.entity.NodeResult;
 import com.run.workflow.message.struct.chunk.MessageChunk;
@@ -54,6 +51,7 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
      * 节点类型
      */
     public final static String type = "ai-chat-node";
+    public final static List<WorkflowType> supportWorkflow = List.of(WorkflowType.CHAT_WORKFLOW);
 
     @Override
     public List<Answer> getAnswerList(WorkFlowManage wm) {

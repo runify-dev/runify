@@ -19,7 +19,7 @@ import java.util.function.Supplier;
  * {@code @Version 1.0}
  * {@code @注释: }
  */
-public class StartNode extends INode<StartNode, StartNodeData> {
+public class ChatStartNode extends INode<ChatStartNode, StartNodeData> {
     /**
      * 节点类型
      */
@@ -34,18 +34,18 @@ public class StartNode extends INode<StartNode, StartNodeData> {
         return List.of();
     }
 
-    public StartNode(Node node, JsonObject params, List<String> upNodeIdList, String salt, INode<?, ?> upNode) {
+    public ChatStartNode(Node node, JsonObject params, List<String> upNodeIdList, String salt, INode<?, ?> upNode) {
         super(node, params, upNodeIdList, salt, upNode);
     }
 
-    public StartNode(Node node, JsonObject params, List<String> upNodeIdList, String salt, JsonObject context, Validator validator, INode<?, ?> upNode) {
+    public ChatStartNode(Node node, JsonObject params, List<String> upNodeIdList, String salt, JsonObject context, Validator validator, INode<?, ?> upNode) {
         super(node, params, upNodeIdList, salt, context, validator, upNode);
     }
 
-    public static class Handle implements BiFunction<WorkFlowManage, StartNode, Supplier<List<Node>>> {
+    public static class Handle implements BiFunction<WorkFlowManage, ChatStartNode, Supplier<List<Node>>> {
 
         @Override
-        public Supplier<List<Node>> apply(WorkFlowManage workFlowManage, StartNode node) {
+        public Supplier<List<Node>> apply(WorkFlowManage workFlowManage, ChatStartNode node) {
             node.write();
             workFlowManage.writeContext(node, "messages", node.params.messages);
             workFlowManage.writeContext(node, "question", node.params.messages.getLast().getContent());
@@ -65,7 +65,7 @@ public class StartNode extends INode<StartNode, StartNodeData> {
     }
 
     @Override
-    public NodeResult<StartNode> _invoke() {
+    public NodeResult<ChatStartNode> _invoke() {
         return new NodeResult<>(new Handle(), this);
     }
 

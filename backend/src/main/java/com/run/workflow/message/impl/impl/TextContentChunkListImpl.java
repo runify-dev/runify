@@ -4,10 +4,7 @@ package com.run.workflow.message.impl.impl;
 import com.run.common.constants.ContentTypeConstants;
 import com.run.common.util.CommonUtils;
 import com.run.workflow.message.struct.Content;
-import com.run.workflow.message.struct.TextContent;
 import com.run.workflow.message.struct.chunk.TextContentChunk;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.Strings;
 
 import java.util.*;
 import java.util.stream.Collectors;

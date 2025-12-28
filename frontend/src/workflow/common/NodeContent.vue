@@ -26,7 +26,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, onMounted, inject, provide } from 'vue'
+import { ref, onMounted, inject, provide, computed } from 'vue'
 import type { Field, LifeCycle } from '@/workflow/common/type'
 import AppIcon from '@/components/icons/AppIcon.vue'
 import Clipboard from 'vue-clipboard3'
@@ -52,13 +52,35 @@ provide('getOptions', () => {
     })
     .reduce((x: Array<any>, y: Array<any>) => [...x, ...y], [])
 })
+provide('getNodeFieldOptions', () => {
+  const getUpNode = (id: string, result: Array<any>) => {
+    const upNodes = model.graphModel.getNodeIncomingNode(id)
+    upNodes.forEach((node: any) => {
+      result.push(node)
+      getUpNode(node.id, result)
+    })
+    return result
+  }
+  const upNodes = getUpNode(model.id, [])
+  return upNodes.map((node) => {
+    return {
+      label: node.properties.name,
+      value: node.id,
+      children: node.properties.field_list.map((item: any) => ({
+        label: item.label,
+        value: item.value
+      }))
+    }
+  })
+})
 
 const props = defineProps<{
   validate: () => Promise<boolean>
   lifeCycle?: LifeCycle
 }>()
-const fieldList = ref<Array<Field>>([])
-fieldList.value = model.properties.field_list
+const fieldList = computed(() => {
+  return model.properties.field_list
+})
 const name = ref<string>('')
 const copy = (text: string) => {
   const { toClipboard } = Clipboard()

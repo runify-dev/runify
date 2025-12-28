@@ -8,6 +8,7 @@ package com.run.workflow.entity;
  */
 
 import com.run.workflow.INode;
+import com.run.workflow.WorkflowType;
 import io.vertx.core.json.JsonObject;
 import jakarta.validation.Validator;
 import lombok.Getter;
@@ -28,16 +29,17 @@ public class NewNodeParamsInstance {
     private JsonObject context;
     private Validator validator;
     private INode<?, ?> upNode;
+    private WorkflowType workflowType;
 
     public static NewNodeParamsInstance of(Node node,
                                            JsonObject params,
                                            List<String> upNodeIdList,
                                            Validator validator,
-                                           INode<?, ?> upNode) {
-        return of(node, params, upNodeIdList, "", new JsonObject(), validator, upNode);
+                                           INode<?, ?> upNode, WorkflowType workflowType) {
+        return of(node, params, upNodeIdList, "", new JsonObject(), validator, upNode, workflowType);
     }
 
-    public static NewNodeParamsInstance of(Node node, JsonObject params, List<String> upNodeIdList, String slat, JsonObject context, Validator validator, INode<?, ?> upNode) {
+    public static NewNodeParamsInstance of(Node node, JsonObject params, List<String> upNodeIdList, String slat, JsonObject context, Validator validator, INode<?, ?> upNode, WorkflowType workflowType) {
         NewNodeParamsInstance instance = new NewNodeParamsInstance();
         instance.node = node;
         instance.params = params;
@@ -46,6 +48,7 @@ public class NewNodeParamsInstance {
         instance.validator = validator;
         instance.salt = slat;
         instance.upNode = upNode;
+        instance.workflowType = workflowType;
         return instance;
     }
 }

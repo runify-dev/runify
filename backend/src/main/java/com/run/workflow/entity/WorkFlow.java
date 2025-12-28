@@ -2,6 +2,7 @@ package com.run.workflow.entity;
 
 
 import com.run.common.keyvalue.DefaultKeyValue;
+import com.run.workflow.WorkflowType;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import lombok.Getter;
@@ -49,18 +50,21 @@ public class WorkFlow {
 
     private List<NodeField> globalFieldList;
 
+    private WorkflowType workflowType;
+
 
     public WorkFlow() {
 
     }
 
-    public static WorkFlow of(JsonObject workflow) {
+    public static WorkFlow of(JsonObject workflow, WorkflowType workflowType) {
         WorkFlow workFlow = workflow.mapTo(WorkFlow.class);
-        return new WorkFlow(workFlow.nodes, workFlow.edges);
+        return new WorkFlow(workFlow.nodes, workFlow.edges, workflowType);
     }
 
 
-    public WorkFlow(List<Node> nodes, List<Edge> edges) {
+    public WorkFlow(List<Node> nodes, List<Edge> edges, WorkflowType workflowType) {
+        this.workflowType = workflowType;
         this.nodes = nodes;
         this.edges = edges;
         this.nodeMap = this.nodes.stream()

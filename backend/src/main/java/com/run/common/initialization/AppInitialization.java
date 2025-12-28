@@ -27,6 +27,8 @@ public class AppInitialization {
                              NoteRoute noteRoute,
                              DocRoute docRoute,
                              ModelRoute modelRoute,
+                             ProjectRoute projectRoute,
+                             ProcessorRoute processorRoute,
                              UIInitialization uiInitialization,
                              MigrationInitialization migrationInitialization,
                              SystemSettingMapper systemSettingMapper) {
@@ -40,6 +42,8 @@ public class AppInitialization {
         uiInitialization.init();
         noteRoute.init();
         modelRoute.init();
+        projectRoute.init();
+        processorRoute.init();
         systemSettingMapper.getById("RSA").onSuccess(systemSetting -> {
             if (systemSetting == null) {
                 KeyPair keyPair = RSAUtil.generateKeyPair();

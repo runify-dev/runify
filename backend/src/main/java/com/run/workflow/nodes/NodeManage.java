@@ -2,6 +2,7 @@ package com.run.workflow.nodes;
 
 import com.run.common.util.ClassScanUtil;
 import com.run.workflow.INode;
+import com.run.workflow.WorkflowType;
 import com.run.workflow.entity.NewNodeParamsInstance;
 import com.run.workflow.entity.Node;
 import io.vertx.core.json.JsonObject;
@@ -11,9 +12,9 @@ import org.apache.commons.lang3.reflect.FieldUtils;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 
 /**
@@ -23,7 +24,7 @@ import java.util.function.Function;
  * {@code @注释: }
  */
 public class NodeManage implements Function<NewNodeParamsInstance, INode<?, ?>> {
-    private Map<String, Class<? extends INode>> nodeInstanceMap;
+    private ConcurrentHashMap<WorkflowType, ConcurrentMap<String, Class<? extends INode>>> nodeInstanceMap;
 
     public static NodeManage of() {
         List<Class<? extends INode>> classList = ClassScanUtil.getClassList("com.run.workflow.nodes", INode.class);
@@ -37,14 +38,20 @@ public class NodeManage implements Function<NewNodeParamsInstance, INode<?, ?>> 
 
     @SneakyThrows
     public NodeManage(List<Class<? extends INode>> nodeInstanceList) {
-        HashMap<String, Class<? extends INode>> nodeInstanceMap = new HashMap<>();
+        ConcurrentHashMap<WorkflowType, ConcurrentMap<String, Class<? extends INode>>> result = new ConcurrentHashMap<>();
         for (Class<? extends INode> iNodeClass : nodeInstanceList) {
             Field field = FieldUtils.getDeclaredField(iNodeClass, "type");
+            Field supportWorkflowField = FieldUtils.getDeclaredField(iNodeClass, "supportWorkflow");
             field.setAccessible(true);
             String nodeType = (String) field.get(null);
-            nodeInstanceMap.put(nodeType, iNodeClass);
+            supportWorkflowField.setAccessible(true);
+            List<WorkflowType> supportWorkflow = (List<WorkflowType>) supportWorkflowField.get(null);
+            for (WorkflowType workflowType : supportWorkflow) {
+                ConcurrentMap<String, Class<? extends INode>> inner = result.computeIfAbsent(workflowType, t -> new ConcurrentHashMap<>());
+                inner.put(nodeType, iNodeClass);
+            }
         }
-        this.nodeInstanceMap = nodeInstanceMap;
+        this.nodeInstanceMap = result;
     }
 
 
@@ -53,7 +60,10 @@ public class NodeManage implements Function<NewNodeParamsInstance, INode<?, ?>> 
         /***
          * Node node, JsonObject params, List<String> upNodeIdList, String salt, JsonObject context, Validator validator
          */
-        Class<? extends INode> aClass = this.nodeInstanceMap.get(newNodeParamsInstance.getNode().getType());
+        if (!this.nodeInstanceMap.contains(newNodeParamsInstance.getWorkflowType()) &&   !this.nodeInstanceMap.get(newNodeParamsInstance.getWorkflowType()).containsKey(newNodeParamsInstance.getNode().getType())) {
+            throw new RuntimeException("工作流不支持当前节点掉用");
+        }
+        Class<? extends INode> aClass = this.nodeInstanceMap.get(newNodeParamsInstance.getWorkflowType()).get(newNodeParamsInstance.getNode().getType());
         try {
             Constructor<? extends INode> constructor = aClass.getConstructor(new Class[]{Node.class, JsonObject.class, List.class, String.class, JsonObject.class, Validator.class, INode.class});
             INode<?, ?> iNode = constructor.newInstance(newNodeParamsInstance.getNode(),

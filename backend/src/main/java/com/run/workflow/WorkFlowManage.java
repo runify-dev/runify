@@ -2,7 +2,6 @@ package com.run.workflow;
 
 import com.run.common.function.Write;
 import com.run.common.keyvalue.DefaultKeyValue;
-import com.run.common.openai.request.message.Message;
 import com.run.common.util.TemplateUtils;
 import com.run.workflow.entity.*;
 import com.run.workflow.message.struct.chunk.MessageChunk;
@@ -152,7 +151,7 @@ public class WorkFlowManage {
             upNodeIdList = new ArrayList<>(upINode.getUpNodeIdList());
             upNodeIdList.add(upINode.node.getId());
         }
-        NewNodeParamsInstance instance = NewNodeParamsInstance.of(node, new JsonObject(params), upNodeIdList, this.validator, upINode);
+        NewNodeParamsInstance instance = NewNodeParamsInstance.of(node, new JsonObject(params), upNodeIdList, this.validator, upINode, workFlow.getWorkflowType());
         INode<?, ?> iNode = this.nodeNewInstance.apply(instance);
         // 添加方便管理
         this.nodes.add(iNode);

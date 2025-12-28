@@ -1,6 +1,5 @@
 package com.run.common.encoder;
 
-import com.run.common.util.CommonUtils;
 import io.vertx.core.json.JsonArray;
 import io.vertx.jdbcclient.impl.actions.JDBCColumnDescriptor;
 import io.vertx.jdbcclient.spi.JDBCColumnDescriptorProvider;

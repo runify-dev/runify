@@ -3,7 +3,6 @@ package com.run.workflow.message.struct.chunk;
 import com.run.common.constants.ContentTypeConstants;
 import com.run.workflow.INode;
 import com.run.workflow.message.struct.AnswerContent;
-import com.run.workflow.message.struct.Content;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;

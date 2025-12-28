@@ -1,7 +1,6 @@
 package com.run.common.openai.response.chunk;
 
 import com.fasterxml.jackson.annotation.JsonAnySetter;
-import com.run.common.result.Result;
 import io.vertx.core.json.JsonObject;
 import lombok.Getter;
 import lombok.Setter;
