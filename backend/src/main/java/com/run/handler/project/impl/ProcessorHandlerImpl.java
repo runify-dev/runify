@@ -2,23 +2,24 @@ package com.run.handler.project.impl;
 
 import com.run.common.constants.ProcessorProtocolConstants;
 import com.run.common.exception.ApiException;
+import com.run.common.project.ProjectManage;
 import com.run.common.query.Query;
 import com.run.common.result.Result;
+import com.run.common.util.CommonUtils;
 import com.run.dao.common.F;
 import com.run.dao.entity.Processor;
 import com.run.dao.entity.Project;
 import com.run.dao.mapper.ProcessorMapper;
 import com.run.dao.mapper.ProjectMapper;
 import com.run.handler.project.IProcessorHandler;
+import com.run.handler.project.dto.ProcessorDto;
 import com.run.handler.project.vo.CreateProcessorVO;
 import com.run.handler.project.vo.EditProcessorVO;
 import com.run.handler.project.vo.QueryProcessorVO;
-import com.run.workflow.WorkFlowManage;
-import com.run.workflow.WorkflowType;
-import com.run.workflow.entity.WorkFlow;
 import io.vertx.core.Future;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
@@ -28,10 +29,7 @@ import org.jooq.impl.DSL;
 import javax.inject.Inject;
 import javax.inject.Named;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * {@code @Author:张少虎}
@@ -101,7 +99,12 @@ public class ProcessorHandlerImpl implements IProcessorHandler {
     public void get(RoutingContext context) {
         String processorId = context.pathParam("processorId");
         processorMapper.getById(processorId)
-                .onSuccess(ok -> context.end(Result.success(ok).toBuffer()))
+                .onSuccess(ok -> {
+                    ProcessorDto processorDto = new ProcessorDto();
+                    CommonUtils.copyProperties(ok, processorDto);
+                    processorDto.setIsDeploy(ProjectManage.isDeploy(ok.getProjectId(), ok.getId()));
+                    context.end(Result.success(processorDto).toBuffer());
+                })
                 .onFailure(context::fail);
     }
 
@@ -134,34 +137,61 @@ public class ProcessorHandlerImpl implements IProcessorHandler {
     @Override
     public void deploy(RoutingContext context) {
         String processorId = context.pathParam("processorId");
-        Future<Processor> processorFuture = processorMapper.getById(processorId);
-        processorFuture.compose(processor -> {
-                    UUID projectId = processor.getProjectId();
-                    Future<Project> projectFuture = projectMapper.getById(projectId.toString());
-                    return projectFuture.compose(project -> {
-                        if (processor.getProtocol() == ProcessorProtocolConstants.HTTP) {
-                            httpProcessorDeploy(processor, project);
-                        }
-                        return Future.succeededFuture(processor);
-                    });
+        String projectId = context.pathParam("projectId");
+        Future.all(projectMapper.getById(projectId), processorMapper.getById(processorId)).compose((compositeFuture) -> {
+                    Project project = compositeFuture.resultAt(0);
+                    Processor processor = compositeFuture.resultAt(1);
+                    if (processor.getProtocol() == ProcessorProtocolConstants.HTTP) {
+                        httpProcessorDeploy(processor, project);
+                    }
+                    ProcessorDto processorDto = new ProcessorDto();
+                    CommonUtils.copyProperties(processor, processorDto);
+                    processorDto.setIsDeploy(ProjectManage.isDeploy(processor.getProjectId(), processor.getId()));
+                    return Future.succeededFuture(processorDto);
+                }).onSuccess(processor -> context.end(Result.success(processor).toBuffer()))
+                .onFailure(context::fail);
+    }
+
+    @Override
+    public void undeploy(RoutingContext context) {
+        String processorId = context.pathParam("processorId");
+        String projectId = context.pathParam("projectId");
+        Future.all(projectMapper.getById(projectId), processorMapper.getById(processorId)).compose((compositeFuture) -> {
+                    Project project = compositeFuture.resultAt(0);
+                    Processor processor = compositeFuture.resultAt(1);
+                    if (processor.getProtocol() == ProcessorProtocolConstants.HTTP) {
+                        httpProcessorUnDeploy(processor, project);
+                    }
+                    ProcessorDto processorDto = new ProcessorDto();
+                    CommonUtils.copyProperties(processor, processorDto);
+                    processorDto.setIsDeploy(ProjectManage.isDeploy(processor.getProjectId(), processor.getId()));
+                    return Future.succeededFuture(processorDto);
                 }).onSuccess(processor -> context.end(Result.success(processor).toBuffer()))
                 .onFailure(context::fail);
     }
 
     private void httpProcessorDeploy(Processor processor, Project project) {
+        ProjectManage.ProcessorExecutor processorExecutor = ProjectManage.generateProcessorExecutor(project, processor);
         JsonObject meta = processor.getMeta();
         String method = meta.getString("method");
         String path = project.getPath() + meta.getString("url");
+
         mainRouter.route(HttpMethod.valueOf(method), path)
-                .handler((r) -> this.httpProcessorHandler(r, processor));
+                .handler(processorExecutor::handler);
     }
 
-    private void httpProcessorHandler(RoutingContext context, Processor processor) {
-        JsonObject workflow = processor.getWorkflow();
-        WorkFlowManage workFlowManage = new WorkFlowManage(WorkFlow.of(workflow, WorkflowType.PROCESSOR_HTTP),
-                Map.of("context", context),
-                new HashMap<>(), (wm, node, chunk, aBoolean) -> {
-        });
-        workFlowManage.invoke();
+    private void httpProcessorUnDeploy(Processor processor, Project project) {
+        JsonObject meta = processor.getMeta();
+        String method = meta.getString("method");
+        String path = project.getPath() + meta.getString("url");
+        mainRouter.getRoutes().stream().filter(route -> {
+            if (route.getPath() != null && route.getPath().equals(path)) {
+                Set<HttpMethod> methods = route.methods();
+                return methods != null && methods.contains(HttpMethod.valueOf(method));
+            }
+            return false;
+        }).forEach(Route::remove);
+        ProjectManage.unDeploy(project.getId(), processor.getId());
     }
+
 }

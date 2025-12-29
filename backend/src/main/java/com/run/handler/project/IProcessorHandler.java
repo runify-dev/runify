@@ -19,4 +19,10 @@ public interface IProcessorHandler {
 
     void deploy(RoutingContext context);
 
+    /**
+     * 取消部署
+     *
+     * @param context 上下文
+     */
+    void undeploy(RoutingContext context);
 }

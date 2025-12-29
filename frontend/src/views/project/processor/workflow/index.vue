@@ -7,20 +7,14 @@
     </button>
 
     <button
-      @click="() => (debug = true)"
-      class="px-3 py-1 text-sm text-gray-600 hover:bg-gray-200/30 rounded-full"
-    >
-      调试
-    </button>
-    <button
-      v-if="processor && processor.activate"
-      @click="() => (debug = true)"
+      v-if="processor && processor.isDeploy"
+      @click="unDeploy"
       class="px-3 py-1 text-sm text-gray-600 hover:bg-gray-200/30 rounded-full"
     >
       取消部署
     </button>
     <button
-      v-if="processor && !processor.activate"
+      v-if="processor && !processor.isDeploy"
       @click="deploy"
       class="px-3 py-1 text-sm text-gray-600 hover:bg-gray-200/30 rounded-full"
     >
@@ -45,9 +39,18 @@ const processor = ref<any>()
 provide('getDetails', () => processor.value)
 provide('WorkflowType', WorkflowType.PROCESSOR)
 const deploy = () => {
-  processorAPI.deploy(route.params.id as string, route.params.processorId as string).then(() => {
-    console.log('ok')
+  processorAPI.deploy(route.params.id as string, route.params.processorId as string).then((ok) => {
+    processor.value = ok.data
+    ElMessage.success('部署成功')
   })
+}
+const unDeploy = () => {
+  processorAPI
+    .undeploy(route.params.id as string, route.params.processorId as string)
+    .then((ok) => {
+      processor.value = ok.data
+      ElMessage.success('取消部署成功')
+    })
 }
 const save = () => {
   processorAPI

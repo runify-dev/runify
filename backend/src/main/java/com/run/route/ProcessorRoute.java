@@ -66,7 +66,7 @@ public class ProcessorRoute implements IRoute {
         apiRoute.post("/project/:projectId/processor/:processorId/undeploy")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
-                .handler(processorHandler::deploy);
+                .handler(processorHandler::undeploy);
 
     }
 
