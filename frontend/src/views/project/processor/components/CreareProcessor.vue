@@ -39,6 +39,8 @@ import type { FormInstance, FormRules } from 'element-plus'
 import { ElMessage } from 'element-plus'
 import type { CreateProcessorVO } from '@/api/type/processor'
 import processorAPI from '@/api/processor'
+import { useRouter } from 'vue-router'
+const router = useRouter()
 const visible = ref<boolean>()
 const options = [
   {
@@ -47,8 +49,8 @@ const options = [
   }
 ]
 const processor = ref<CreateProcessorVO>({
-  name: '项目名称',
-  desc: '项目描述',
+  name: '',
+  desc: '',
   protocol: 'HTTP'
 })
 const currentProjectId = ref<string>()
@@ -62,7 +64,8 @@ const submit = () => {
   createProcessorRef.value?.validate().then(() => {
     if (currentProjectId.value) {
       processorAPI.createProcessor(currentProjectId.value, processor.value).then((ok) => {
-        ElMessage.success('This is a message.')
+        ElMessage.success('创建成功')
+        router.push({ name: 'processorWorkflow', params: { processorId: ok.data.id } })
       })
     }
   })

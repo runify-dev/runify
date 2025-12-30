@@ -18,9 +18,7 @@ import com.run.handler.project.vo.CreateProcessorVO;
 import com.run.handler.project.vo.EditProcessorVO;
 import com.run.handler.project.vo.QueryProcessorVO;
 import io.vertx.core.Future;
-import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
@@ -30,7 +28,10 @@ import org.jooq.impl.DSL;
 import javax.inject.Inject;
 import javax.inject.Named;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * {@code @Author:张少虎}
@@ -62,7 +63,7 @@ public class ProcessorHandlerImpl implements IProcessorHandler {
                 createProcessorVO.getName(), createProcessorVO.getDesc(),
                 ProcessorProtocolConstants.valueOf(createProcessorVO.getProtocol()),
                 Boolean.FALSE,
-                new JsonObject(), new JsonObject(Map.of("nodes", List.of(), "edges", List.of())), LocalDateTime.now(), LocalDateTime.now());
+                new JsonObject(), new JsonObject(Map.of()), LocalDateTime.now(), LocalDateTime.now());
         this.processorMapper.save(processor).onSuccess(ok -> {
             context.end(Result.success(processor).toBuffer());
         }).onFailure(context::fail);
