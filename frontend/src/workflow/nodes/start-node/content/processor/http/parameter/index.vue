@@ -60,6 +60,9 @@ const getModel = inject('getModel') as () => BaseNodeModel
 const model = getModel()
 const tableData = computed({
   get: () => {
+    if (!props.parameters) {
+      emit('update:parameters', [])
+    }
     return props.parameters
   },
   set: (event: any) => {
@@ -101,9 +104,7 @@ const updateFieldList = () => {
     value: item.field
   }))
 }
-onMounted(() => {
-  updateFieldList()
-})
+
 defineExpose({ updateFieldList })
 </script>
 <style lang="scss" scoped></style>

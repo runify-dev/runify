@@ -39,12 +39,12 @@ const model = getModel()
 const props = defineProps<{
   processor: any
 }>()
-
-const instance = ref<any>({
+const defaultValue = {
   method: 'GET',
   path: '',
   parameters: []
-})
+}
+const instance = ref<any>({ ...defaultValue })
 const methodOptions = ref<Array<any>>([
   {
     label: 'GET',
@@ -87,7 +87,7 @@ const submit = () => {
     })
 }
 onMounted(() => {
-  instance.value = props.processor.meta
+  instance.value = { ...defaultValue, ...props.processor.meta }
   nextTick(() => {
     parametersRef.value?.updateFieldList()
   })
