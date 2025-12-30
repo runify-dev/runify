@@ -2,6 +2,7 @@ package com.run.dagger.module;
 
 import com.run.common.common_handler.ResultHandler;
 import com.run.common.failure_handler.RestFailureHandler;
+import com.run.common.project.ProjectManage;
 import dagger.Module;
 import dagger.Provides;
 import io.vertx.core.Vertx;
@@ -26,6 +27,8 @@ public class RouteModule {
     @Provides
     @Inject
     public Router apiRoute(Vertx vertx, @Named("mainRoute") Router router) {
+        ProjectManage.setRouter(router);
+        ProjectManage.setGetChildRouter(() -> Router.router(vertx));
         Router restAPI = Router.router(vertx);
         router.route("/admin/api/*").subRouter(restAPI);
         restAPI.route()

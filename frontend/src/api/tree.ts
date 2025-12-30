@@ -34,7 +34,7 @@ export class TreeCommonAPI {
    */
   createResource: (
     folderId: string,
-    createNodePojo: CreateFolderPojo,
+    createNodePojo: CreateFolderPojo | any,
     loading?: Ref<boolean>
   ) => Promise<Result<Node>> = (folderId, createNodePojo, loading) => {
     return post(`/${this.resource}/folders/${folderId}/resources`, createNodePojo, undefined, loading)

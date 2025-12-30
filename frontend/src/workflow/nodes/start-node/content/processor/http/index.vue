@@ -18,8 +18,8 @@
         }"
       />
     </el-form-item>
-    <el-form-item label="URL" prop="url">
-      <el-input v-model="instance.url" placeholder="请输入URL" />
+    <el-form-item label="请求地址" prop="path">
+      <el-input v-model="instance.path" placeholder="请输入请求地址" />
     </el-form-item>
     <el-form-item prop="parameters">
       <Parameters ref="parametersRef" :parameters="instance.parameters"></Parameters>
@@ -27,7 +27,7 @@
   </el-form>
 </template>
 <script setup lang="ts">
-import { onMounted, ref, inject, onBeforeMount } from 'vue'
+import { onMounted, ref, inject } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import Parameters from './parameter/index.vue'
 import processorAPI from '@/api/processor'
@@ -42,7 +42,7 @@ const props = defineProps<{
 
 const instance = ref<any>({
   method: 'GET',
-  url: '',
+  path: '',
   parameters: []
 })
 const methodOptions = ref<Array<any>>([
@@ -64,7 +64,7 @@ const methodOptions = ref<Array<any>>([
   }
 ])
 const rules = ref<FormRules<any>>({
-  url: [{ required: true, message: '请输入URL', trigger: 'blur' }],
+  path: [{ required: true, message: '请输入请求地址', trigger: 'blur' }],
   method: [{ required: true, message: '请选择请求方式', trigger: 'blur' }]
 })
 

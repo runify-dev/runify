@@ -9,6 +9,7 @@
         :config="config"
       >
       </TreeAside>
+      <CreateProjectDialog ref="createProjectDialogRef"></CreateProjectDialog>
     </template>
     <template #main>
       <RouterView :key="route.fullPath"></RouterView>
@@ -26,6 +27,8 @@ import { useRouter, useRoute } from 'vue-router'
 import { Config, Processor } from '@/components/tree/index'
 import { TreeCommonAPI } from '@/api/tree'
 import { set } from 'lodash'
+import CreateProjectDialog from '@/views/project/components/CreateProjectDialog .vue'
+const createProjectDialogRef = ref<InstanceType<typeof CreateProjectDialog>>()
 const treeAsideRef = ref<typeof TreeAside>()
 const treeCommonAPI = new TreeCommonAPI('project')
 provide('treeCommonAPI', treeCommonAPI)
@@ -48,18 +51,7 @@ const config = new Config(
   'note',
   [
     new Processor('创建项目', '', ['FOLDER', 'NOTE', 'ROOT'], (event: any) => {
-      treeCommonAPI.createResource(event.data.id, {}).then((ok) => {
-        if (event.data.id === 'root') {
-          data.value.push({ ...ok.data, type: 'project', operate: 'rename' })
-          go(ok.data.id, { ...ok.data, type: 'project' })
-        } else {
-          event.node.insertAfter(
-            { data: { ...ok.data, type: 'project', operate: 'rename' } },
-            event.node
-          )
-          go(ok.data.id, { ...ok.data, type: 'project' })
-        }
-      })
+      createProjectDialogRef.value?.open(event, data.value)
     }),
     new Processor('创建文件夹', '', ['FOLDER', 'ROOT'], (event: any) => {
       treeCommonAPI.createFolder(event.data.id, {}).then((ok) => {

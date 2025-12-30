@@ -1,6 +1,10 @@
 package com.run.handler.project.impl;
 
+import com.run.common.exception.ApiException;
+import com.run.common.result.Result;
 import com.run.common.util.CommonUtils;
+import com.run.common.util.TreeUtil;
+import com.run.dao.common.F;
 import com.run.dao.entity.Project;
 import com.run.dao.entity.ProjectFolder;
 import com.run.dao.entity.ProjectPermission;
@@ -9,13 +13,19 @@ import com.run.dao.mapper.ProjectFolderMapper;
 import com.run.dao.mapper.ProjectMapper;
 import com.run.dao.mapper.ProjectPermissionMapper;
 import com.run.dao.mapper.ProjectRelationMapper;
+import com.run.handler.common.Tool;
 import com.run.handler.common.impl.ResourceHandlerImpl;
 import com.run.handler.common.pojo.SimpleNodePojo;
 import com.run.handler.project.IProjectHandler;
+import com.run.handler.project.vo.CreateProjectVO;
+import com.run.handler.tree.pojo.CreateSimpleNodePojo;
+import io.vertx.core.Future;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.lang3.StringUtils;
 
 import javax.inject.Inject;
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -94,11 +104,35 @@ public class ProjectHandlerImpl extends ResourceHandlerImpl<Project, ProjectFold
 
     @Override
     protected Project newResource(UUID resourceId, UUID parentUuId, String name, RoutingContext context) {
-        return new Project(resourceId, parentUuId, name, "", "", false, false, LocalDateTime.now(), LocalDateTime.now());
+        return new Project(resourceId, parentUuId, name, "", "", "", false, false, LocalDateTime.now(), LocalDateTime.now());
     }
 
     @Override
     protected ProjectPermission newPermission(UUID id, UUID userId, UUID target, String permission) {
         return new ProjectPermission(id, userId, target, permission, LocalDateTime.now(), LocalDateTime.now());
+    }
+
+    @Override
+    public void create(RoutingContext context) {
+        UUID parentUuId = TreeUtil.getParentUuId(context.pathParam("folderId"));
+        CreateProjectVO createProjectVO = context.body().asPojo(CreateProjectVO.class);
+        String name = createProjectVO.getName();
+        UUID nodeId = UUID.randomUUID();
+        Project resource = new Project(nodeId, parentUuId, name, createProjectVO.getDesc(), createProjectVO.getIcon(), createProjectVO.getPath(), false, false, LocalDateTime.now(), LocalDateTime.now());
+        Future<Boolean> validPath = resourceMapper.count(F.field(Project::getPath).eq(F.params(Project::getPath)), Map.of("path", createProjectVO.getPath())).compose(c -> {
+            if (c > 0) {
+                return Future.failedFuture(new ApiException(500, "项目路径已存在"));
+            }
+            return Future.succeededFuture(Boolean.TRUE);
+        });
+        Future<Boolean> booleanFuture = Tool.validName(resourceMapper, parentUuId, createProjectVO.getName());
+        Future.all(validPath, booleanFuture)
+                .compose(ok -> Tool.getNodeRelation(relationMapper, parentUuId, nodeId, this::newRelation, this::getAncestorId, this::getDepth))
+                .compose(relationMapper::batch_save)
+                .compose(ok -> resourceMapper.save(resource))
+                .compose(ok -> Future.succeededFuture(resource))
+                .onSuccess(ok -> context.end(Result.success(ok).toBuffer()))
+                .onFailure(context::fail);
+        ;
     }
 }

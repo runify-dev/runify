@@ -3,6 +3,7 @@ package com.run.handler.project.impl;
 import com.run.common.constants.ProcessorProtocolConstants;
 import com.run.common.exception.ApiException;
 import com.run.common.project.ProjectManage;
+import com.run.common.project.executor.ProcessorExecutor;
 import com.run.common.query.Query;
 import com.run.common.result.Result;
 import com.run.common.util.CommonUtils;
@@ -141,9 +142,8 @@ public class ProcessorHandlerImpl implements IProcessorHandler {
         Future.all(projectMapper.getById(projectId), processorMapper.getById(processorId)).compose((compositeFuture) -> {
                     Project project = compositeFuture.resultAt(0);
                     Processor processor = compositeFuture.resultAt(1);
-                    if (processor.getProtocol() == ProcessorProtocolConstants.HTTP) {
-                        httpProcessorDeploy(processor, project);
-                    }
+                    ProcessorExecutor processorExecutor = ProjectManage.generateProcessorExecutor(project, processor);
+                    processorExecutor.deploy();
                     ProcessorDto processorDto = new ProcessorDto();
                     CommonUtils.copyProperties(processor, processorDto);
                     processorDto.setIsDeploy(ProjectManage.isDeploy(processor.getProjectId(), processor.getId()));
@@ -155,13 +155,8 @@ public class ProcessorHandlerImpl implements IProcessorHandler {
     @Override
     public void undeploy(RoutingContext context) {
         String processorId = context.pathParam("processorId");
-        String projectId = context.pathParam("projectId");
-        Future.all(projectMapper.getById(projectId), processorMapper.getById(processorId)).compose((compositeFuture) -> {
-                    Project project = compositeFuture.resultAt(0);
-                    Processor processor = compositeFuture.resultAt(1);
-                    if (processor.getProtocol() == ProcessorProtocolConstants.HTTP) {
-                        httpProcessorUnDeploy(processor, project);
-                    }
+        processorMapper.getById(processorId).compose(processor -> {
+                    ProjectManage.unDeploy(processor.getProjectId(), processor.getId());
                     ProcessorDto processorDto = new ProcessorDto();
                     CommonUtils.copyProperties(processor, processorDto);
                     processorDto.setIsDeploy(ProjectManage.isDeploy(processor.getProjectId(), processor.getId()));
@@ -169,29 +164,4 @@ public class ProcessorHandlerImpl implements IProcessorHandler {
                 }).onSuccess(processor -> context.end(Result.success(processor).toBuffer()))
                 .onFailure(context::fail);
     }
-
-    private void httpProcessorDeploy(Processor processor, Project project) {
-        ProjectManage.ProcessorExecutor processorExecutor = ProjectManage.generateProcessorExecutor(project, processor);
-        JsonObject meta = processor.getMeta();
-        String method = meta.getString("method");
-        String path = project.getPath() + meta.getString("url");
-
-        mainRouter.route(HttpMethod.valueOf(method), path)
-                .handler(processorExecutor::handler);
-    }
-
-    private void httpProcessorUnDeploy(Processor processor, Project project) {
-        JsonObject meta = processor.getMeta();
-        String method = meta.getString("method");
-        String path = project.getPath() + meta.getString("url");
-        mainRouter.getRoutes().stream().filter(route -> {
-            if (route.getPath() != null && route.getPath().equals(path)) {
-                Set<HttpMethod> methods = route.methods();
-                return methods != null && methods.contains(HttpMethod.valueOf(method));
-            }
-            return false;
-        }).forEach(Route::remove);
-        ProjectManage.unDeploy(project.getId(), processor.getId());
-    }
-
 }

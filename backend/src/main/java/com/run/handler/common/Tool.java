@@ -53,6 +53,35 @@ public class Tool {
      *
      * @param nodeMapper   mapper
      * @param parentId     父id
+     * @param name         获取节点名称
+     * @param <Node>       节点
+     * @param <NodeMapper> mapper
+     * @return 可用名称
+     */
+    public static <Node extends BaseEntity<Node>, NodeMapper extends BaseMapper<Node>> Future<Boolean>
+    validName(NodeMapper nodeMapper, UUID parentId, String name) {
+        Condition eq = DSL.field("name").eq(DSL.param("#{name}", String.class));
+        Future<Long> rowSetFuture;
+        if (parentId == null) {
+            rowSetFuture = nodeMapper.count(eq.and(DSL.field("parent_id").isNull()), Map.of("name", name));
+        } else {
+            rowSetFuture = nodeMapper.count(eq.and(DSL.field("parent_id").eq(DSL.param("#{parent_id}"))),
+                    Map.of("name", name, "parent_id", parentId));
+        }
+        return rowSetFuture
+                .compose(c -> {
+                    if (c > 0) {
+                        return Future.failedFuture(new ApiException(500, "名称已存在"));
+                    }
+                    return Future.succeededFuture(Boolean.TRUE);
+                });
+    }
+
+    /**
+     * 获取可用的名称
+     *
+     * @param nodeMapper   mapper
+     * @param parentId     父id
      * @param getName      获取节点名称
      * @param getPrefix    获取名称前缀
      * @param <Node>       节点

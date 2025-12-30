@@ -30,10 +30,11 @@
       class="pt-4"
     >
       <CardBox
+        :icon="node.icon"
         :title="node.name"
         @click="
           router.push({
-            name: 'noteDetails',
+            name: 'projectDetails',
             params: { folderId: node.parentId ? node.parentId : 'root', id: node.id }
           })
         "

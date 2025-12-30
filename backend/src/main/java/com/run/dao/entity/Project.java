@@ -23,7 +23,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @Table(schemaName = "public", name = "project")
-public class Project  implements BaseEntity<Project> {
+public class Project implements BaseEntity<Project> {
     /**
      * 节点id
      */
@@ -35,10 +35,15 @@ public class Project  implements BaseEntity<Project> {
     @Column(name = "parent_id")
     private UUID parentId;
     /**
-     * 节点名称
+     * 项目名称
      */
     @Column(name = "name")
     private String name;
+    /**
+     * 项目描述
+     */
+    @Column(name = "desc")
+    private String desc;
     /**
      * icon
      */

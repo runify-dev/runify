@@ -1,6 +1,7 @@
 CREATE TABLE "project" (
                              "id" text(32) NOT NULL,
                              "parent_id" text(32),
+                             "desc" TEXT(256),
                              "name" TEXT(256),
                              "icon" TEXT(256),
                              "path" TEXT,

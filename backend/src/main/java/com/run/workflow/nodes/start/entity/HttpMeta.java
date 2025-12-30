@@ -13,7 +13,7 @@ import java.util.List;
 @Data
 public class HttpMeta {
     private String method;
-    private String url;
+    private String path;
     private List<Parameter> parameters;
 
     @Data

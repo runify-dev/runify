@@ -2,6 +2,7 @@ package com.run.workflow.nodes.start;
 
 import com.run.common.constants.ProcessorProtocolConstants;
 import com.run.common.keyvalue.DefaultKeyValue;
+import com.run.common.util.JacksonUtils;
 import com.run.workflow.*;
 import com.run.workflow.entity.Node;
 import com.run.workflow.entity.NodeResult;
@@ -65,7 +66,8 @@ public class ProcessorStartNode extends INode<ProcessorStartNode, ProcessorStart
     public ProcessorStartNodeData<HttpMeta> getNodeData(JsonObject params) {
         JsonObject nodeParams = node.getProperties().getJsonObject("nodeData");
         String protocol = nodeParams.getString("protocol");
-        HttpMeta httpMeta = nodeParams.getJsonObject("meta").mapTo(HttpMeta.class);
+        JsonObject jsonObject = nodeParams.getJsonObject("meta");
+        HttpMeta httpMeta = JacksonUtils.convert(jsonObject.getMap(), HttpMeta.class);
         ProcessorStartNodeData<HttpMeta> processorStartNodeData = new ProcessorStartNodeData<>();
         processorStartNodeData.setMeta(httpMeta);
         processorStartNodeData.setProtocol(ProcessorProtocolConstants.valueOf(protocol));
