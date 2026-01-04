@@ -23,7 +23,7 @@
         label="内容(javascript)"
         prop="code"
       >
-        <CodeEditor v-model="form.code" title="工具"></CodeEditor>
+        <CodeEditor v-model="form.code" title="工具" lang="JAVASCRIPT"></CodeEditor>
       </el-form-item>
     </el-form>
   </SimpleNodeContainer>
@@ -52,7 +52,7 @@ const submit = () => {
 }
 onMounted(() => {
   if (model.properties.nodeData) {
-    form.value = model.properties.nodeData
+    form.value = JSON.parse(JSON.stringify(model.properties.nodeData))
   } else {
     model.properties.nodeData = form.value
   }

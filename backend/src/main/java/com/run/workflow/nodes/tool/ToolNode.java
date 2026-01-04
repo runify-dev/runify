@@ -4,10 +4,7 @@ package com.run.workflow.nodes.tool;
 import com.run.common.keyvalue.DefaultKeyValue;
 import com.run.common.result.Result;
 import com.run.common.util.ConvertValueUtil;
-import com.run.workflow.Answer;
-import com.run.workflow.INode;
-import com.run.workflow.WorkFlowManage;
-import com.run.workflow.WorkflowType;
+import com.run.workflow.*;
 import com.run.workflow.entity.Node;
 import com.run.workflow.entity.NodeResult;
 import com.run.workflow.nodes.tool.pojo.ToolNodeData;
@@ -73,10 +70,7 @@ public class ToolNode extends INode<ToolNode, ToolNodeData> {
                 Value value = greetFunc.execute(input);
                 Object o = ConvertValueUtil.convertValue(value);
                 workFlowManage.writeContext(node, "result", o);
-                RoutingContext routingContext = (RoutingContext) workFlowManage.getParams().get("context");
-                routingContext.response().putHeader("content-type", "application/json;charset=utf-8");
-                routingContext.end(Result.success(o).toBuffer());
-                routingContext.response();
+                node.status = NodeStatus.SUCCESS;
             }
             return () -> workFlowManage
                     .getNextList(node.node.getId())

@@ -22,7 +22,11 @@
       <el-input v-model="instance.path" placeholder="请输入请求地址" />
     </el-form-item>
     <el-form-item prop="parameters">
-      <Parameters ref="parametersRef" :parameters="instance.parameters"></Parameters>
+      <Parameters
+        ref="parametersRef"
+        v-model:parameters="instance.parameters"
+        :updateFieldList="updateFieldList"
+      ></Parameters>
     </el-form-item>
   </el-form>
 </template>
@@ -32,8 +36,7 @@ import type { FormInstance, FormRules } from 'element-plus'
 import Parameters from './parameter/index.vue'
 import processorAPI from '@/api/processor'
 import type { BaseNodeModel } from '@logicflow/core'
-import { nextTick } from 'process'
-const parametersRef = ref<InstanceType<typeof Parameters>>()
+import databaseConnectionPoolAPI from '@/api/database-connection-pool'
 const getModel = inject('getModel') as () => BaseNodeModel
 const model = getModel()
 const props = defineProps<{
@@ -86,11 +89,41 @@ const submit = () => {
       }
     })
 }
+const databaseCollectionPoolList = ref<Array<any>>()
+const getDatabasePool = () => {
+  if (databaseCollectionPoolList.value) {
+    return Promise.resolve(
+      databaseCollectionPoolList.value.map((item: any) => {
+        return { label: item.name, value: item.id }
+      })
+    )
+  }
+  return databaseConnectionPoolAPI.query(props.processor.projectId, {}).then((ok) => {
+    databaseCollectionPoolList.value = ok.data
+    return ok.data.map((item: any) => {
+      return { label: item.name, value: item.id }
+    })
+  })
+}
+
+const updateFieldList = () => {
+  getDatabasePool().then((ok) => {
+    model.properties.field_list = [
+      ...instance.value.parameters.map((item: any) => ({
+        label: item.description,
+        value: item.field
+      })),
+      {
+        label: '连接池',
+        value: 'pools',
+        children: ok
+      }
+    ]
+  })
+}
 onMounted(() => {
   instance.value = { ...defaultValue, ...props.processor.meta }
-  nextTick(() => {
-    parametersRef.value?.updateFieldList()
-  })
+  updateFieldList()
 })
 defineExpose({ validate, submit })
 </script>

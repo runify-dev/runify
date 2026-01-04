@@ -55,3 +55,15 @@ CREATE TABLE "processor" (
                                         "update_time" TIMESTAMP,
                                         PRIMARY KEY ("id")
 );
+
+CREATE TABLE "database_connection_pool" (
+                                        "id" text(32) NOT NULL,
+                                        "project_id" text(32) NOT NULL,
+                                        "name" TEXT(256),
+                                        "desc" TEXT(256),
+                                        "protocol" TEXT(32),
+                                        "meta" TEXT,
+                                        "create_time" TIMESTAMP,
+                                        "update_time" TIMESTAMP,
+                                        PRIMARY KEY ("id")
+);

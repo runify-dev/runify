@@ -1,7 +1,7 @@
 <template>
   <div class="w-full">
     <div class="flex w-full justify-between content-center items-center">
-      <h5 class="break-all lighter">参数</h5>
+      <h5 class="break-all lighter">响应数据</h5>
       <span class="ml-4" style="margin-top: -4px">
         <el-button link type="primary" @click="open()">
           <el-icon><Plus /></el-icon>
@@ -44,7 +44,7 @@
                 v-if="value.location === 'reference'"
                 placeholder="请选择参数"
                 :options="options"
-                v-model="value.value"
+                v-model="value.reference"
                 :show-all-levels="false"
                 class="w-full"
               />

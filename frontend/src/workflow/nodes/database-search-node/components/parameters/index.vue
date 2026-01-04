@@ -76,7 +76,6 @@ const props = defineProps<{
 const createParameterRef = ref<InstanceType<typeof CreateParameter>>()
 const getNodeFieldOptions = inject('getNodeFieldOptions') as any
 const options = getNodeFieldOptions()
-console.log('ssss', options)
 const emit = defineEmits(['update:parameters'])
 const data = computed({
   get: () => {

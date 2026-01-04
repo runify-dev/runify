@@ -68,7 +68,8 @@ provide('getNodeFieldOptions', () => {
       value: node.id,
       children: node.properties.field_list.map((item: any) => ({
         label: item.label,
-        value: item.value
+        value: item.value,
+        children: item.children
       }))
     }
   })

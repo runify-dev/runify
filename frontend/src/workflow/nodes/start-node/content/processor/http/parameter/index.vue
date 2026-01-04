@@ -50,14 +50,11 @@
 </template>
 <script setup lang="ts">
 import { ElMessage } from 'element-plus'
-import { ref, computed, inject, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import CreateParameter from './CreateParameter.vue'
 const createParameterRef = ref<InstanceType<typeof CreateParameter>>()
-const props = defineProps<{ parameters: Array<any> }>()
+const props = defineProps<{ parameters: Array<any>; updateFieldList: () => void }>()
 const emit = defineEmits(['update:parameters'])
-import type { BaseNodeModel } from '@logicflow/core'
-const getModel = inject('getModel') as () => BaseNodeModel
-const model = getModel()
 const tableData = computed({
   get: () => {
     if (!props.parameters) {
@@ -88,23 +85,12 @@ const submit = (event: any) => {
     tableData.value.push(event.row)
   }
   createParameterRef.value?.close()
-
-  updateFieldList()
+  props.updateFieldList()
 }
 
 const deleteParameter = (row: any) => {
-  model.updateFieldList(
-    tableData.value.map((item) => ({ label: item.description, value: item.field }))
-  )
   tableData.value = tableData.value.filter((item: any) => item.field != row.field)
+  props.updateFieldList()
 }
-const updateFieldList = () => {
-  model.properties.field_list = tableData.value.map((item) => ({
-    label: item.description,
-    value: item.field
-  }))
-}
-
-defineExpose({ updateFieldList })
 </script>
 <style lang="scss" scoped></style>

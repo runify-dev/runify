@@ -19,17 +19,14 @@ import com.run.handler.project.vo.EditProcessorVO;
 import com.run.handler.project.vo.QueryProcessorVO;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
 import org.jooq.Condition;
 import org.jooq.impl.DSL;
 
 import javax.inject.Inject;
-import javax.inject.Named;
 import java.time.LocalDateTime;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -43,14 +40,10 @@ public class ProcessorHandlerImpl implements IProcessorHandler {
     private final ProcessorMapper processorMapper;
     private final ProjectMapper projectMapper;
 
-    private final Router mainRouter;
-
     @Inject
-    public ProcessorHandlerImpl(ProcessorMapper processorMapper, ProjectMapper projectMapper,
-                                @Named("mainRoute") Router mainRouter) {
+    public ProcessorHandlerImpl(ProcessorMapper processorMapper, ProjectMapper projectMapper) {
         this.processorMapper = processorMapper;
         this.projectMapper = projectMapper;
-        this.mainRouter = mainRouter;
     }
 
     @Override

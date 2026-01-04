@@ -1,94 +1,18 @@
 <template>
-  <div class="codemirror-editor w-full">
-    <form @submit.prevent>
-      <Codemirror
-        v-model="data"
-        ref="cmRef"
-        :extensions="extensions"
-        :style="codemirrorStyle"
-        :tab-size="4"
-        :autofocus="true"
-        v-bind="$attrs"
-      />
-    </form>
-    <div class="codemirror-editor__footer">
-      <el-button text type="info" @click="open" class="magnify">
-        <el-icon><FullScreen /></el-icon>
-      </el-button>
-    </div>
-    <el-dialog v-model="dialogVisible" :title="title" append-to-body fullscreen destroy-on-close>
-      <form @submit.prevent>
-        <Codemirror
-          v-model="cloneContent"
-          :extensions="extensions"
-          :style="codemirrorStyle"
-          :tab-size="4"
-          :autofocus="true"
-          style="
-            height: calc(100vh - 160px) !important;
-            border: 1px solid #bbbfc4;
-            border-radius: 4px;
-          "
-        />
-      </form>
-      <template #footer>
-        <el-button type="primary" @click="submit">确定</el-button>
-      </template>
-    </el-dialog>
-  </div>
+  <component :is="kw[lang]"></component>
 </template>
-
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { Codemirror } from 'vue-codemirror'
-import { javascript } from '@codemirror/lang-javascript'
-import { oneDark } from '@codemirror/theme-one-dark'
-const props = defineProps<{
-  title: string
-  modelValue: any
-}>()
-const emit = defineEmits(['update:modelValue'])
-
-const data = computed({
-  set: (value) => {
-    emit('update:modelValue', value)
-  },
-  get: () => {
-    return props.modelValue
-  }
-})
-const extensions = [javascript(), oneDark]
-
-const codemirrorStyle = {
-  height: '210px!important',
-  width: '100%'
-}
-const cmRef = ref<InstanceType<typeof Codemirror>>()
-// 弹出框相关代码
-const dialogVisible = ref<boolean>(false)
-
-const cloneContent = ref<string>('')
-
-const open = () => {
-  cloneContent.value = props.modelValue
-  dialogVisible.value = true
-}
-
-function submit() {
-  data.value = cloneContent.value
-  cloneContent.value = ''
-  dialogVisible.value = false
+import JavaScriptCodeEditor from './javascript-code-editor/index.vue'
+import SqlCodeEditor from './sql-code-editor/index.vue'
+withDefaults(
+  defineProps<{
+    lang: string
+  }>(),
+  { lang: 'JAVASCRIPT' }
+)
+const kw: any = {
+  SQL: SqlCodeEditor,
+  JAVASCRIPT: JavaScriptCodeEditor
 }
 </script>
-
-<style lang="scss" scoped>
-.codemirror-editor {
-  position: relative;
-
-  &__footer {
-    position: absolute;
-    bottom: 10px;
-    right: 10px;
-  }
-}
-</style>
+<style lang="scss" scoped></style>

@@ -1,8 +1,10 @@
 package com.run.common.initialization;
 
 import com.run.common.openapi.DocRoute;
+import com.run.common.project.ProjectManage;
 import com.run.common.util.RSAUtil;
 import com.run.dao.entity.SystemSetting;
+import com.run.dao.mapper.DatabaseConnectionPoolMapper;
 import com.run.dao.mapper.SystemSettingMapper;
 import com.run.route.*;
 import io.vertx.core.json.JsonObject;
@@ -29,9 +31,11 @@ public class AppInitialization {
                              ModelRoute modelRoute,
                              ProjectRoute projectRoute,
                              ProcessorRoute processorRoute,
+                             DatabaseCollectionPoolRoute databaseCollectionPoolRoute,
                              UIInitialization uiInitialization,
                              MigrationInitialization migrationInitialization,
-                             SystemSettingMapper systemSettingMapper) {
+                             SystemSettingMapper systemSettingMapper,
+                             DatabaseConnectionPoolMapper databaseConnectionPoolMapper) {
         userRoute.init();
         knowledgeRoute.init();
         fileRoute.init();
@@ -43,7 +47,9 @@ public class AppInitialization {
         noteRoute.init();
         modelRoute.init();
         projectRoute.init();
+        databaseCollectionPoolRoute.init();
         processorRoute.init();
+        ProjectManage.setDatabaseConnectionPoolMapper(databaseConnectionPoolMapper);
         systemSettingMapper.getById("RSA").onSuccess(systemSetting -> {
             if (systemSetting == null) {
                 KeyPair keyPair = RSAUtil.generateKeyPair();

@@ -1,5 +1,6 @@
 package com.run.common.project.executor;
 
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.run.common.constants.ProcessorProtocolConstants;
 import com.run.common.project.ProjectManage;
 import com.run.dao.entity.Processor;
@@ -12,8 +13,10 @@ import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -49,9 +52,27 @@ public class HttpProcessorExecutor extends ProcessorExecutor {
 
     public void handler(RoutingContext context) {
         JsonObject workflow = processor.getWorkflow();
+
         WorkFlowManage workFlowManage = new WorkFlowManage(WorkFlow.of(workflow, WorkflowType.PROCESSOR_HTTP),
-                Map.of("context", context),
+                new HashMap<String, Object>() {{
+                    put("context", context);
+                    put("pools", projectExecutor.getPools());
+                }},
                 new HashMap<>(), (wm, node, chunk, aBoolean) -> {
+            if (aBoolean) {
+                boolean isJsonGenerator = wm.getParams().containsKey("jsonGenerator");
+                if (isJsonGenerator) {
+                    JsonGenerator jsonGenerator = (JsonGenerator) wm.getParams().get("jsonGenerator");
+                    try {
+                        jsonGenerator.writeEndObject();
+                        jsonGenerator.flush();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                    context.end();
+                }
+
+            }
         });
         workFlowManage.invoke();
     }

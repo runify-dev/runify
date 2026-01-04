@@ -56,6 +56,37 @@ const toolNode = {
     ]
   }
 }
+
+const databaseSearchNode = {
+  type: 'database-search-node',
+  text: "",
+  x: 0,
+  y: 0,
+  label: "数据库检索",
+  properties: {
+    width: 200,
+    height: 50,
+    name: "数据库检索",
+    isHovered: false,
+    field_list: []
+  }
+}
+
+
+const jsonResponseNode = {
+  type: 'json-response-node',
+  text: "",
+  x: 0,
+  y: 0,
+  label: "json响应",
+  properties: {
+    width: 200,
+    height: 50,
+    name: "json响应",
+    isHovered: false,
+    field_list: []
+  }
+}
 export const baseWorkflow = {
   nodes: [startNode],
   edges: []
@@ -83,6 +114,8 @@ class NodeMeta {
 const nodeMetaList = [
   new NodeMeta(aiChatNode, '基本节点', [WorkflowType.APPLICATION], `${window.RUNIFY_APP.baseURL}/login.jpg`),
   new NodeMeta(toolNode, '基本节点', [WorkflowType.APPLICATION], `${window.RUNIFY_APP.baseURL}/login.jpg`),
+  new NodeMeta(databaseSearchNode, '基本节点', [WorkflowType.APPLICATION], `${window.RUNIFY_APP.baseURL}/login.jpg`),
+  new NodeMeta(jsonResponseNode, '基本节点', [WorkflowType.APPLICATION], `${window.RUNIFY_APP.baseURL}/login.jpg`)
 ]
 
 export const getNodeMenuList = (workflowType: WorkflowType) => {

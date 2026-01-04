@@ -28,6 +28,7 @@ public class RouteModule {
     @Inject
     public Router apiRoute(Vertx vertx, @Named("mainRoute") Router router) {
         ProjectManage.setRouter(router);
+        ProjectManage.setVertx(vertx);
         ProjectManage.setGetChildRouter(() -> Router.router(vertx));
         Router restAPI = Router.router(vertx);
         router.route("/admin/api/*").subRouter(restAPI);

@@ -84,6 +84,7 @@ public class ProcessorStartNode extends INode<ProcessorStartNode, ProcessorStart
         HttpMeta meta = params.getMeta();
         List<HttpMeta.Parameter> parameters = meta.getParameters();
         RoutingContext routingContext = (RoutingContext) workFlowManage.getParams().get("context");
+        workFlowManage.writeContext(this, "pools", workFlowManage.getParams().get("pools"));
         for (HttpMeta.Parameter parameter : parameters) {
             String field = parameter.getField();
             if (Strings.CS.equals(parameter.getLocation(), "query")) {
