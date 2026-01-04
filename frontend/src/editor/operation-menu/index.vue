@@ -1,6 +1,7 @@
 <template>
   <bubble-menu
-    v-for="m in menus"
+    v-for="(m, index) in menus"
+    :key="index"
     :editor="editor"
     :should-show="() => m.shouldShow(editor)"
     :get-referenced-virtual-element="() => m.getReferencedVirtualElement(editor)"
@@ -11,6 +12,8 @@
 </template>
 <script setup lang="ts">
 import { findParentNode, posToDOMRect } from '@tiptap/core'
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-expect-error
 import { BubbleMenu } from '@tiptap/vue-3/menus'
 import { type Editor } from '@tiptap/vue-3'
 import menus from './index.ts'
@@ -25,11 +28,11 @@ const getListVirtualElement = () => {
     const domRect = posToDOMRect(
       editor.view,
       parentNode.start,
-      parentNode.start + parentNode.node.nodeSize,
+      parentNode.start + parentNode.node.nodeSize
     )
     return {
       getBoundingClientRect: () => domRect,
-      getClientRects: () => [domRect],
+      getClientRects: () => [domRect]
     }
   }
   return null

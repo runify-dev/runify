@@ -76,7 +76,7 @@ const handleTouchStart = (e: any) => {
   swipeDirection.value = null
 }
 
-const handleTouchMove = (e) => {
+const handleTouchMove = (e: any) => {
   if (!isSwiping.value) return
 
   const touchX = e.touches[0].clientX

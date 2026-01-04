@@ -51,11 +51,12 @@
             <artifactId>graal-sdk</artifactId>
             <version>25.0.1</version>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/org.graalvm.js/js -->
         <dependency>
             <groupId>org.graalvm.js</groupId>
             <artifactId>js</artifactId>
             <version>25.0.1</version>
-            <scope>runtime</scope>
+            <type>pom</type>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -294,8 +295,8 @@
                         <phase>generate-resources</phase>
                         <configuration>
                             <target>
-                                <move todir="src/main/resources/ui">
-                                    <fileset dir="../frontend/dist/ui">
+                                <move todir="src/main/resources/">
+                                    <fileset dir="../frontend/dist/">
                                         <exclude name="*."/>
                                     </fileset>
                                 </move>

@@ -61,8 +61,7 @@ const listConversationLog = () => {
     folderId.value,
     applicationId.value,
     currentPage.value,
-    pageSize.value,
-    {}
+    pageSize.value
   ).then((ok) => {
     conversationList.value = ok.data.records
     total.value = ok.data.total

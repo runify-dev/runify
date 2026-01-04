@@ -16,8 +16,9 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import ResourceAuthorzation from './components/ResourceAuthorzation.vue'
-const resource = ref<string>()
-const handleClick = (v: string) => {
+import type { Resource } from '@/api/type/common'
+const resource = ref<Resource>()
+const handleClick = (v: Resource) => {
   resource.value = v
 }
 </script>

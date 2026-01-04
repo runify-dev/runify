@@ -16,11 +16,12 @@ import {
   Mathematics,
   TableKit,
 } from './nodes/index'
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-expect-error
 import { BubbleMenu } from '@tiptap/vue-3/menus'
 import type { Ref } from 'vue'
 const newInstance = (content?: string, onUpdate?: (editor: any) => void) => {
-  const editor = new Editor({
-    immediatelyRender: false,
+  const editor: Editor = new Editor({
     editorProps: {
       attributes: {
         'aria-label': 'Main content area, start typing to enter text.',

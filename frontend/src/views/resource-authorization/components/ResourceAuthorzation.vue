@@ -13,6 +13,7 @@
       >
         <template v-slot="node">
           <NodeVue
+            :config="config"
             :data="node.data"
             :node="node.node"
             :resource="resource"
@@ -26,16 +27,23 @@
   </AppSubLayout>
 </template>
 <script setup lang="ts">
-import { computed, onMounted, ref, provide } from 'vue'
+import { onMounted, ref } from 'vue'
 import NodeVue from '@/components/tree/node/index.vue'
 import AppSubLayout from '@/layout/AppSubLayout.vue'
 import 'md-editor-v3/lib/style.css'
 import NodeApi from '@/api/node'
 import { toTree } from '@/utils/common'
 import { type Tree } from '@/api/type/node'
-import { useRouter, useRoute } from 'vue-router'
-import type { ResourceType, Type } from '@/api/type/common'
-withDefaults(defineProps<{ resource?: ResourceType }>(), { resource: 'application' })
+import { Config } from '@/components/tree/index'
+import type { Resource, Type } from '@/api/type/common'
+
+const props = withDefaults(defineProps<{ resource?: Resource }>(), { resource: 'application' })
+const config = new Config(
+  props.resource,
+  [],
+  () => Promise.resolve(true),
+  () => {}
+)
 const propsConf = ref<any>({
   value: 'id',
   label: 'name',
@@ -48,7 +56,7 @@ const propsConf = ref<any>({
 const currentId = ref<string>()
 
 const data = ref<Array<Tree>>([])
-const nodeClick = () => {}
+const nodeClick = (node: any) => {}
 const auth = (type: Type, id?: string) => {}
 onMounted(() => {
   NodeApi.listTree('model', undefined).then((ok) => {

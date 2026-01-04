@@ -50,7 +50,7 @@ const form = ref<any>({
 })
 
 const validate = () => {
-  return formRef.value?.validate()
+  return formRef.value ? formRef.value.validate() : Promise.resolve(false)
 }
 const submit = () => {
   model.properties.nodeData = form.value

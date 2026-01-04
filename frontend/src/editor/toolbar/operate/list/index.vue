@@ -35,7 +35,11 @@
     </button>
     <template #dropdown>
       <el-dropdown-menu>
-        <el-dropdown-item v-for="button in buttons" @click="focus(button.value)">
+        <el-dropdown-item
+          v-for="(button, index) in buttons"
+          @click="focus(button.value)"
+          :key="index"
+        >
           <button
             data-tooltip-state="closed"
             class="tiptap-button"
@@ -63,6 +67,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { iconComponent } from './icons/index.ts'
+import type { Editor } from '@tiptap/vue-3'
 const props = defineProps<{ editor: Editor }>()
 const buttons = [
   { value: 'bulletList', label: '符号列表' },
@@ -95,7 +100,7 @@ const current = computed(() => {
 const activeState = computed(() => {
   return isActive.value ? 'on' : 'off'
 })
-const focus = (name: 'taskList' | 'orderedList' | 'bulletList') => {
+const focus = (name: 'taskList' | 'orderedList' | 'bulletList' | string) => {
   switch (name) {
     case 'bulletList':
       props.editor.chain().focus().toggleBulletList().run()

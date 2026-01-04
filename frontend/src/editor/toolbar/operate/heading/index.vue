@@ -63,6 +63,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { iconComponent } from './icons/index.ts'
+import type { Editor } from '@tiptap/vue-3'
 const props = defineProps<{ editor: Editor }>()
 
 const activeHeading = computed(() => {
@@ -74,7 +75,7 @@ const buttons = [
   { level: 3, label: '标题3' },
   { level: 4, label: '标题4' },
   { level: 5, label: '标题5' },
-  { level: 6, label: '标题6' },
+  { level: 6, label: '标题6' }
 ]
 const activeState = computed(() => {
   return activeHeading.value ? 'on' : 'off'
@@ -85,7 +86,7 @@ const currentHeading = computed(() => {
   }
   return 'heading'
 })
-const setHeading = (level) => {
+const setHeading = (level: any) => {
   if (currentHeading.value === 'heading' + level) {
     // 如果已经是该级别，切换回段落
     props.editor?.chain().focus().setParagraph().run()

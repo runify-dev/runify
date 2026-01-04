@@ -9,7 +9,7 @@
 </template>
 <script setup lang="ts">
 import { EditorContent, Editor } from '@tiptap/vue-3'
-import { nextTick, onMounted, reactive, ref } from 'vue'
+import { nextTick, onMounted, reactive } from 'vue'
 import './editor/nodes/index.scss'
 import newInstance from './editor/index'
 import Toolbar from './toolbar/index.vue'
@@ -18,7 +18,7 @@ const emit = defineEmits(['change'])
 const change = (v: any) => {
   emit('change', v)
 }
-const editor: Editor = reactive(newInstance('', change))
+const editor: Editor = reactive(newInstance('', change)) as Editor
 const setContent = (content: string) => {
   editor.commands.setContent(content, { contentType: 'markdown' })
 }
