@@ -1,11 +1,11 @@
 <template>
-  <TopHeaderVue root-route-name="applicationDetails"> </TopHeaderVue>
-  <div style="height: calc(100vh - 40px)">
-    <router-view></router-view>
+  <div class="flex flex-col">
+    <div class="card" style="height: calc(100vh - 8rem)">
+      <router-view></router-view>
+    </div>
   </div>
 </template>
 <script setup lang="ts">
-import TopHeaderVue from '@/layout/top-header/index.vue'
 import { useRoute } from 'vue-router'
 import { computed, watch, ref, provide, onBeforeMount } from 'vue'
 import { TreeCommonAPI } from '@/api/tree'
@@ -13,7 +13,6 @@ const treeCommonAPI = new TreeCommonAPI('application')
 const application = ref<any>()
 const applicationPrimision = ref<Promise<any>>()
 const route = useRoute()
-
 const resourceId = computed(() => {
   const {
     params: { id }

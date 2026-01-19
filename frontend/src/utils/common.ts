@@ -17,9 +17,7 @@ export const toTree = (nodeList: Array<Tree>) => {
         }
         childrenList.add(element.id)
         pNode.children.push(element)
-
       }
-
     }
   }
   return nodeList.filter(item => !childrenList.has(item.id))

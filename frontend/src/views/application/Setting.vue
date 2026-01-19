@@ -24,7 +24,7 @@
   <Workflow ref="workflowRef"></Workflow>
 </template>
 <script setup lang="ts">
-import { onMounted, ref, computed, inject } from 'vue'
+import { onMounted, ref, computed, inject, provide } from 'vue'
 import Workflow from '@/workflow/index.vue'
 import ApplicationAPI from '@/api/application'
 import { useRoute } from 'vue-router'
@@ -35,6 +35,7 @@ const debug = ref<boolean>(false)
 const route = useRoute()
 // 注入父组件提供的方法
 const getApplication = inject('getApplication') as any
+provide('getDetails', () => application.value)
 const workflowRef = ref<InstanceType<typeof Workflow>>()
 const application = ref<any>()
 const folderId = computed(() => {

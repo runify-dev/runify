@@ -6,6 +6,9 @@ import fs from 'fs'
 import { createHtmlPlugin } from 'vite-plugin-html'
 import type { ProxyOptions } from 'vite'
 import DefineOptions from 'unplugin-vue-define-options/vite'
+import Components from 'unplugin-vue-components/vite';
+import { PrimeVueResolver } from '@primevue/auto-import-resolver';
+import tailwindcss from '@tailwindcss/vite';
 const envDir = './env'
 // 自定义插件：重命名入口文件
 const renameHtmlPlugin = (outDir: string, entry: string) => {
@@ -62,7 +65,15 @@ export default defineConfig(({ mode }) => {
     lintOnSave: false,
     base: './',
     envDir: envDir,
-    plugins: [vue(), DefineOptions(), createHtmlPlugin({ template: ENV.VITE_ENTRY }), , renameHtmlPlugin(`dist${ENV.VITE_BASE_PATH}`, ENV.VITE_ENTRY)],
+    plugins: [vue(), DefineOptions(),
+    createHtmlPlugin({ template: ENV.VITE_ENTRY }),
+    tailwindcss(),
+    Components({
+      resolvers: [
+        PrimeVueResolver()
+      ]
+    }),
+    renameHtmlPlugin(`dist${ENV.VITE_BASE_PATH}`, ENV.VITE_ENTRY)],
     server: {
       cors: true,
       host: '0.0.0.0',

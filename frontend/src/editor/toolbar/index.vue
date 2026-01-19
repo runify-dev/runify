@@ -1,11 +1,5 @@
 <template>
-  <div
-    role="toolbar"
-    aria-label="toolbar"
-    class="tiptap-toolbar"
-    data-variant="fixed"
-    style="bottom: calc(100% - 267px)"
-  >
+  <div role="toolbar" aria-label="toolbar" class="tiptap-toolbar" data-variant="fixed">
     <div style="flex: 1"></div>
     <Undo :editor="editor"></Undo>
     <Redo :editor="editor"></Redo>

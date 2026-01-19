@@ -1,98 +1,81 @@
 <template>
-  <div style="height: calc(100vh - 16px)">
-    <div>
-      <div
-        class="knowledge-menu"
-        @click="config.go('star')"
-        :class="currentId == 'star' ? 'is_current' : ''"
+  <div style="height: 100%">
+    <div class="h-full">
+      <Tree
+        :filter="true"
+        :value="data"
+        class="w-full"
+        selectionMode="single"
+        :pt="{
+          root: {
+            style: { padding: '16 0' }
+          },
+          nodeLabel: {
+            style: { width: '100%' }
+          }
+        }"
       >
-        <AppIcon name="app-collect"></AppIcon>
-        收藏
-      </div>
-      <div
-        class="knowledge-menu"
-        @click="config.go('share')"
-        :class="currentId == 'share' ? 'is_current' : ''"
-      >
-        <AppIcon name="app-share"></AppIcon>
-        分享
-      </div>
-    </div>
-    <el-divider />
-    <div
-      class="group knowledge-menu flex items-center"
-      :class="currentId == 'root' ? 'is_current' : ''"
-      @click="config.go('root')"
-    >
-      <div>全部</div>
-      <div class="flex-auto"></div>
-      <div class="group-hover:block hidden">
-        <div class="grid place-items-center">
-          <el-dropdown trigger="click">
-            <el-icon>
-              <More />
-            </el-icon>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item
-                  v-for="p in rootProcessor"
-                  command="a"
-                  @click="p.execute({ data: { id: 'root' } })"
-                  :key="p.label"
-                  >{{ p.label }}</el-dropdown-item
-                >
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
-        </div>
-      </div>
-    </div>
-    <div style="overflow-y: auto; height: calc(100vh - 140px)">
-      <el-tree
-        ref="treeRef"
-        :highlight-current="true"
-        @node-click="(node: any) => select(node.id, node)"
-        :current-node-key="
-          ['root', 'shar', 'share'].includes(currentId ? currentId : '') ? undefined : currentId
-        "
-        :default-expanded-keys="currentId ? [currentId] : []"
-        :data="data"
-        node-key="id"
-        :props="propsConf"
-      >
-        <template v-slot="node">
-          <NodeVue :data="node.data" :node="node.node" :config="config"> </NodeVue>
+        <template #nodeicon="scope">
+          <i class="pi pi-folder" v-if="scope.node.type == 'folder'"></i>
         </template>
-      </el-tree>
+        <template #header>
+          <div class="p-tree-node">
+            <div class="p-tree-node-content p-tree-node-selectable">
+              <div class="p-tree-node-label w-full">
+                <div class="flex items-center justify-between w-full group">
+                  <span>全部</span>
+                  <div class="action-buttons">
+                    <Button
+                      v-tooltip="'编辑'"
+                      icon="pi pi-ellipsis-v"
+                      variant="text"
+                      aria-label="Filter"
+                      severity="secondary"
+                      size="small"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
+        <template #default="{ node }">
+          <div class="flex items-center justify-between w-full group">
+            <span>{{ node.label }}</span>
+            <div class="action-buttons">
+              <Button
+                v-tooltip="'编辑'"
+                icon="pi pi-ellipsis-v"
+                variant="text"
+                aria-label="Filter"
+                severity="secondary"
+                size="small"
+              />
+            </div>
+          </div>
+        </template>
+      </Tree>
     </div>
   </div>
 </template>
 <script setup lang="ts">
-import { type Tree } from '@/api/type/node'
 import NodeVue from '@/components/tree/node/index.vue'
 import { computed, ref } from 'vue'
 import { ElTree } from 'element-plus'
 import AppIcon from '@/components/icons/AppIcon.vue'
 import { Config } from '@/components/tree/index'
+import Tree from 'primevue/tree'
+import { PrimeIcons } from '@primevue/core/api'
+import { type TreeNode } from 'primevue/treenode'
+import type { style } from '@logicflow/extension/lib/bpmn-elements/presets/icons'
 const treeRef = ref<InstanceType<typeof ElTree>>()
 const props = withDefaults(
   defineProps<{
     config: Config
     currentId?: string
-    data: Array<Tree>
-    propsConf?: any
+    data: Array<any>
   }>(),
-  {
-    propsConf: {
-      value: 'id',
-      label: 'name',
-      source: 'source',
-      children: 'children',
-      type: 'type',
-      parent_id: 'parentId',
-      meta: 'meta'
-    }
-  }
+  {}
 )
 const emit = defineEmits(['update:currentId'])
 const select = (id: string, node?: any) => {

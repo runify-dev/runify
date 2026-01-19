@@ -1,116 +1,199 @@
 <template>
-  <AppSubLayout>
-    <template #aside>
-      <TreeAside
-        ref="treeAsideRef"
-        :currentId="folderId"
-        @update:currentId="(currentId, node) => go(currentId, node)"
-        :data="data"
-        :config="config"
-      >
-      </TreeAside>
+  <AppMenuContent>
+    <template #menu>
+      <div class="h-full">
+        <Tree
+          v-model:selectionKeys="selectedKeys"
+          v-model:expandedKeys="expandedKeys"
+          :filter="true"
+          :value="nodes"
+          class="w-full"
+          selectionMode="single"
+          @node-select="nodeSelect"
+          :pt="{
+            root: {
+              style: { padding: '16px 0' }
+            },
+            nodeLabel: {
+              style: { width: '100%' }
+            }
+          }"
+        >
+          <template #nodeicon="scope">
+            <i class="pi pi-folder" v-if="scope.node.type == 'folder'"></i>
+          </template>
+          <template #header>
+            <div @click="nodeSelect(undefined)" class="p-tree-node">
+              <div
+                class="p-tree-node-content p-tree-node-selectable"
+                :class="selectedKeys ? '' : 'p-tree-node-selected'"
+              >
+                <div class="p-tree-node-label w-full">
+                  <div class="flex items-center justify-between w-full group">
+                    <span>全部</span>
+                    <div class="action-buttons">
+                      <DropdownMenu
+                        :items="[
+                          {
+                            label: '新建',
+
+                            items: [
+                              {
+                                label: '笔记',
+                                command: () => {
+                                  openCreateApplicationDialog()
+                                }
+                              },
+                              { label: '文件夹' }
+                            ]
+                          }
+                        ]"
+                      >
+                        <template #default>
+                          <Button
+                            v-tooltip="'操作'"
+                            icon="pi pi-ellipsis-v"
+                            variant="text"
+                            aria-label="Filter"
+                            severity="secondary"
+                            size="small"
+                          ></Button>
+                        </template>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </template>
+          <template #default="{ node }">
+            <div class="flex items-center justify-between w-full group">
+              <span>{{ node.label }}</span>
+              <div class="action-buttons">
+                <DropdownMenu
+                  :items="[
+                    {
+                      label: '新建',
+                      visible: node.data.type == 'folder',
+                      items: [
+                        {
+                          label: '笔记',
+                          visible: node.data.type == 'folder',
+                          command: () => {
+                            openCreateApplicationDialog(node)
+                          }
+                        },
+                        { label: '文件夹', visible: node.data.type == 'folder' }
+                      ]
+                    },
+                    {
+                      label: '删除',
+                      command: () => {
+                        removeTreeNode(node)
+                      }
+                    }
+                  ]"
+                >
+                  <template #item="scope">
+                    <div class="p-tieredmenu-item-link">
+                      <span>{{ scope.label }}</span>
+                      <span v-if="scope.hasSubmenu" class="pi pi-angle-right ml-auto" />
+                    </div>
+                  </template>
+                  <template #default>
+                    <Button
+                      v-tooltip="'操作'"
+                      icon="pi pi-ellipsis-v"
+                      variant="text"
+                      aria-label="Filter"
+                      severity="secondary"
+                      size="small"
+                    ></Button>
+                  </template>
+                </DropdownMenu>
+              </div>
+            </div>
+          </template>
+        </Tree>
+
+        <CreateNoteDialog
+          ref="createNoteDialogRef"
+          @create:application:success="createResourceSuccess"
+        ></CreateNoteDialog>
+      </div>
     </template>
-    <template #main>
-      <RouterView :key="route.fullPath"></RouterView>
-    </template>
-  </AppSubLayout>
+    <router-view></router-view>
+  </AppMenuContent>
 </template>
 <script setup lang="ts">
-import AppSubLayout from '@/layout/AppSubLayout.vue'
+import AppMenuContent from '@/layout-plus/app-menu-content/index.vue'
+import CreateNoteDialog from '@/views/note/components/create-note-dialog/index.vue'
+import DropdownMenu from '@/components/dropdown-menu/index.vue'
 import { computed, onMounted, ref } from 'vue'
 import 'md-editor-v3/lib/style.css'
-import TreeAside from '@/components/tree/index.vue'
-import { toTree } from '@/utils/common'
-import { type Tree } from '@/api/type/node'
+import Tree, { type TreeSelectionKeys } from 'primevue/tree'
+import { toTree, toTreeNode } from '@/components/tree/index'
 import { useRouter, useRoute } from 'vue-router'
-import { Config, Processor } from '@/components/tree/index'
+import { TreeManager } from '@/components/tree/index'
 import { TreeCommonAPI } from '@/api/tree'
-import { set } from 'lodash'
-const treeAsideRef = ref<typeof TreeAside>()
+const route = useRoute()
+import type { TreeNode } from 'primevue/treenode'
+
+const expandedKeys = ref<TreeSelectionKeys>()
+const selectedKeys = computed(() => {
+  const id = route.params.id as string
+  if (id === 'root') {
+    return undefined
+  } else {
+    return { [id]: true }
+  }
+})
 const treeCommonAPI = new TreeCommonAPI('note')
 const router = useRouter()
-const route = useRoute()
-const go = (id: string, data?: any) => {
-  if (['star', 'share', 'root'].includes(id)) {
-    router.push({ name: 'noteFolders', params: { id: id } })
+
+const nodeSelect = (treeNode?: TreeNode) => {
+  if (treeNode === undefined) {
+    router.push({ name: 'noteFolders', params: { id: 'root' } })
+
     return
   }
-  if (data) {
-    if (data.type == 'folder') {
-      router.push({ name: 'noteFolders', params: { id: id } })
-    } else {
-      router.push({ name: 'noteDetails', params: { id: id } })
-    }
+  if (treeNode.data.type == 'folder') {
+    router.push({ name: 'noteFolders', params: { id: treeNode.key } })
+  } else {
+    router.push({ name: 'noteDetails', params: { id: treeNode.key } })
   }
 }
-const config = new Config(
-  'note',
-  [
-    new Processor('创建笔记', '', ['FOLDER', 'NOTE', 'ROOT'], (event: any) => {
-      treeCommonAPI.createResource(event.data.id, {}).then((ok) => {
-        if (event.data.id === 'root') {
-          data.value.push({ ...ok.data, type: 'note', operate: 'rename' })
-          go(ok.data.id, { ...ok.data, type: 'note' })
-        } else {
-          event.node.insertAfter(
-            { data: { ...ok.data, type: 'note', operate: 'rename' } },
-            event.node
-          )
-          go(ok.data.id, { ...ok.data, type: 'note' })
-        }
-      })
-    }),
-    new Processor('创建文件夹', '', ['FOLDER', 'ROOT'], (event: any) => {
-      treeCommonAPI.createFolder(event.data.id, {}).then((ok) => {
-        if (event.data.id === 'root') {
-          data.value.push({ ...ok.data, type: 'folder', operate: 'rename' })
-          go(ok.data.id, { ...ok.data, type: 'folder' })
-        } else {
-          event.node.insertAfter(
-            { data: { ...ok.data, type: 'folder', operate: 'rename' } },
-            event.node
-          )
-          go(ok.data.id, { ...ok.data, type: 'folder' })
-        }
-      })
-    }),
-    new Processor('重命名', '', ['FOLDER', 'KNOWLEDGE'], (event: any) => {
-      set(event.data, 'operate', 'rename')
-    }),
-    new Processor('删除', '', ['FOLDER', 'KNOWLEDGE'], (event: any) => {
-      ;(event.data.type == 'folder' ? treeCommonAPI.removeFolder : treeCommonAPI.removeResource)(
-        event.data.id
-      ).then(() => {
-        event.node.remove()
-      })
-    })
-  ],
-  (event: any) => {
-    return (
-      event.data.type == 'folder'
-        ? treeCommonAPI.modifyFolderName
-        : treeCommonAPI.modifyResourceName
-    )(event.data.id, event.name).then(() => {
-      return true
-    })
-  },
-  go
-)
+const createResourceSuccess = (key: string, node: any) => {
+  const treeNode = toTreeNode(node)
+  treeManage.value.addChild(key, treeNode)
+  expandedKeys.value = { [key]: true }
+  router.push({ name: 'noteDetails', params: { id: node.id } })
+}
+const createNoteDialogRef = ref<InstanceType<typeof CreateNoteDialog>>()
+const openCreateApplicationDialog = (node?: TreeNode) => {
+  createNoteDialogRef.value?.open(node)
+}
+const removeTreeNode = (node: TreeNode) => {
+  ;(node.data.type === 'folder'
+    ? treeCommonAPI.removeFolder(node.key)
+    : treeCommonAPI.removeResource(node.key)
+  ).then(() => {
+    treeManage.value.remove(node.key)
+  })
+}
 
-const folderId = computed(() => {
-  const {
-    params: { id }
-  } = route as any
-  return id
-})
-
-const data = ref<Array<Tree>>([])
-
+const nodes = ref<Array<any>>([])
+const treeManage = ref()
 onMounted(() => {
   treeCommonAPI.listTree('root').then((ok) => {
-    data.value = toTree(ok.data)
-    console.log(toTree(ok.data))
+    nodes.value = toTree(ok.data)
+    treeManage.value = new TreeManager(nodes.value)
   })
 })
 </script>
-<style lang="scss" scoped></style>
+<style lang="scss">
+.p-menu-item-selected {
+  background: var(--p-tree-node-selected-background);
+  color: var(--p-tree-node-selected-color);
+}
+</style>

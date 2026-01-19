@@ -1,5 +1,8 @@
 import type { Type } from './common'
-
+/**
+ *
+ * @param node
+ */
 interface Node {
   /**
    * 节点名称
@@ -39,6 +42,7 @@ interface Node {
   updateTime: string
   [key: string]: any;
 }
+
 interface Tree extends Node {
   children?: Tree[];
 }

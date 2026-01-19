@@ -12,7 +12,7 @@ interface ViewCardItem {
   /**
    * 值 根据类型不一样 取值也不一样 default= row[value_field] eval `${parseFloat(row.number).toLocaleString("zh-CN",{style: "decimal",maximumFractionDigits:1})}%&nbsp;&nbsp;&nbsp;`
    */
-  value_field: string
+  valueField: string
 }
 
 interface TableColumn {
@@ -27,7 +27,7 @@ interface TableColumn {
   /**
    * 表数据字段
    */
-  value_field?: string
+  valueField?: string
 
   attrs?: Attrs
   /**
@@ -35,7 +35,7 @@ interface TableColumn {
    */
   type: 'eval' | 'component' | 'default'
 
-  props_info?: PropsInfo
+  propsInfo?: PropsInfo
 }
 interface ColorItem {
   /**
@@ -73,15 +73,15 @@ interface PropsInfo {
   /**
    * 表格选择的card
    */
-  view_card?: Array<ViewCardItem>
+  viewCard?: Array<ViewCardItem>
   /**
    * 表格选择
    */
-  table_columns?: Array<TableColumn>
+  tableColumns?: Array<TableColumn>
   /**
    * 选中 message
    */
-  active_msg?: string
+  activeMsg?: string
 
   /**
    * 组件样式
@@ -91,19 +91,16 @@ interface PropsInfo {
   /**
    * el-form-item 样式
    */
-  item_style?: Dict<any>
+  itemStyle?: Dict<any>
   /**
    * 表单校验 这个和element校验一样
    */
   rules?: Dict<any>
-  /**
-   * 默认 不为空校验提示
-   */
-  err_msg?: string
+
   /**
    *tabs的时候使用
    */
-  tabs_label?: string
+  tabsLabel?: string
 
   [propName: string]: any
 }
@@ -113,7 +110,7 @@ interface FormField {
   /**
    * 输入框类型
    */
-  input_type: string
+  type: string
   /**
    * 提示
    */
@@ -125,15 +122,15 @@ interface FormField {
   /**
    * 默认值
    */
-  default_value?: any
+  defaultValue?: any
   /**
    * 是否显示默认值
    */
-  show_default_value?: boolean
+  showDefaultValue?: boolean
   /**
    *  {field:field_value_list} 表示在 field有值 ,并且值在field_value_list中才显示
    */
-  relation_show_field_dict?: Dict<Array<any>>
+  relationShowFieldDict?: Dict<Array<any>>
   /**
    * 前端attr数据
    */
@@ -141,19 +138,19 @@ interface FormField {
   /**
    * 其他额外信息
    */
-  props_info?: PropsInfo
+  propsInfo?: PropsInfo
   /**
    * 下拉选字段field
    */
-  label_field?: string
+  labelField?: string
   /**
    * 下拉选 value
    */
-  value_field?: string
+  valueField?: string
   /**
    * 下拉选数据
    */
-  option_list?: Array<any>
+  optionList?: Array<any>
 
   children?: Array<FormField>
 }

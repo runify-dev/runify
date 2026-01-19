@@ -8,7 +8,7 @@ export const routes: Array<RouteRecordRaw> = [
     path: "/",
     name: "home",
     redirect: "application",
-    component: () => import("@/layout/AppLayout.vue"),
+    component: () => import("@/layout-plus/index.vue"),
     children: routeList,
   },
   {
@@ -20,5 +20,15 @@ export const routes: Array<RouteRecordRaw> = [
     path: "/login",
     name: "login",
     component: () => import("@/views/login/index.vue"),
+  },
+  {
+    path: "/test",
+    name: "test",
+    component: () => import("@/test.vue"),
+  },
+  {
+    path: "/test1",
+    name: "test1",
+    component: () => import("@/test1.vue"),
   },
 ];
