@@ -1,5 +1,5 @@
 <template>
-  <FormField v-slot="$field" :resolver :name="field" class="flex flex-col gap-1">
+  <FormField v-slot="$field" :resolver="resolver" :name="field" class="flex flex-col gap-1">
     <FieldLabel
       :field="$field"
       :form="form"
@@ -55,9 +55,15 @@ const resolver = computed(() => {
     props_info.value.resolver
       ? new Function('z', `return ${props_info.value.resolver}`)(z)
       : props.formField.required
-        ? z.any().refine((val) => val !== undefined && val !== '', {
-            message: props.formField.label.label + ' ' + '此项必填'
-          })
+        ? z.any().refine(
+            (val) => {
+              console.log(val)
+              return val !== undefined && val !== '' && val !== null
+            },
+            {
+              message: props.formField.label.value + ' ' + '此项必填'
+            }
+          )
         : z.any()
   )
 })

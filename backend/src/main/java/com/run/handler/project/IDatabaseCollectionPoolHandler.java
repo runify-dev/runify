@@ -10,5 +10,10 @@ import io.vertx.ext.web.RoutingContext;
  */
 public interface IDatabaseCollectionPoolHandler {
     void create(RoutingContext context);
+
     void page(RoutingContext context);
+
+    void delete(RoutingContext context);
+
+    void edit(RoutingContext context);
 }

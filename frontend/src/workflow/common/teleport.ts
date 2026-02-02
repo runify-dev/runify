@@ -17,7 +17,7 @@ export function connect(
         render: () => h(Teleport, { to: container } as any, [h(component)]),
         provide: () => ({
           getModel: () => reactive(model),
-          getGraphModel: () => reactive(graphModel)
+          getGraphModel: () => reactive(graphModel),
         })
       })
     )

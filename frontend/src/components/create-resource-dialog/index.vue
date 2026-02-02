@@ -1,5 +1,5 @@
 <template>
-  <Dialog v-model:visible="visible" modal header="新建应用" :style="{ width: '25rem' }">
+  <Dialog v-model:visible="visible" modal :header="`新建${name}`" :style="{ width: '25rem' }">
     <Form
       ref="formRef"
       v-slot="$form"
@@ -9,8 +9,8 @@
       class="flex flex-col gap-4 w-full sm:w-56"
     >
       <div class="flex flex-col gap-2">
-        <label>应用名称</label>
-        <InputText name="name" type="text" placeholder="请输入应用名称" fluid />
+        <label>{{ name }}名称</label>
+        <InputText name="name" type="text" :placeholder="`请输入${name}名称`" fluid />
         <Message v-if="$form.name?.invalid" severity="error" size="small" variant="simple">{{
           $form.name.error.message
         }}</Message>
@@ -29,15 +29,16 @@ import type { TreeNode } from 'primevue/treenode'
 import { TreeCommonAPI } from '@/api/tree'
 import { type FormInstance } from '@primevue/forms'
 import { zodResolver } from '@primevue/forms/resolvers/zod'
-const treeCommonAPI = new TreeCommonAPI('application')
-defineProps<{ treeAPI: TreeCommonAPI }>()
+const props = defineProps<{ name: string; api: TreeCommonAPI }>()
+const emit = defineEmits(['create:resource:success'])
+
 const visible = ref<boolean>(false)
 const formRef = ref<FormInstance>()
 const current = ref<TreeNode>()
 const resolver = ref(
   zodResolver(
     z.object({
-      name: z.string().min(1, { message: '应用名称必填' })
+      name: z.string().min(1, { message: `${props.name}名称必填` })
     })
   )
 )
@@ -50,7 +51,12 @@ const close = () => {
 }
 const submit = ({ valid, values }: any) => {
   if (valid) {
-    treeCommonAPI.createResource(current.value ? current.value.key : 'root', { name: values.name })
+    props.api
+      .createResource(current.value ? current.value.key : 'root', { name: values.name })
+      .then((ok) => {
+        emit('create:resource:success', current.value ? current.value.key : undefined, ok.data)
+        close()
+      })
   }
 }
 

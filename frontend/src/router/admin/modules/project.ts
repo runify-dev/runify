@@ -19,14 +19,15 @@ const projectRouter = {
       redirect: { name: 'projectPublic' },
       children: [
         {
-          path: "public",
-          name: 'projectPublic',
-          meta: { title: '公共资源', activeMenu: 'project' },
-          component: () => import("@/views/project/public/index.vue"),
+          path: "database-collection-pool",
+          name: 'databaseCollectionPool',
+          meta: { title: '数据库连接池', activeMenu: 'project' },
+          component: () => import("@/views/project/database-collection-pool/index.vue"),
+
         },
         {
           path: "processor",
-          name: 'processor',
+          name: 'projectProcessor',
           meta: { title: '处理器', activeMenu: 'project' },
           component: () => import("@/views/project/processor/index.vue"),
           redirect: { name: 'processorTable' },

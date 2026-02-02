@@ -4,20 +4,20 @@
       <Form ref="loginFormRef" :resolver @submit="onFormSubmit" class="flex flex-col gap-8 w-full">
         <FormField v-slot="$field" name="username">
           <FloatLabel>
-            <label>用户名</label>
             <InputText type="text" fluid />
             <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">{{
               $field.error?.message
             }}</Message>
+            <label>用户名</label>
           </FloatLabel>
         </FormField>
         <FormField v-slot="$field" asChild name="password" initialValue="">
           <FloatLabel>
-            <label>密码</label>
             <Password type="text" :feedback="false" toggleMask fluid />
             <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">{{
               $field.error?.message
             }}</Message>
+            <label>密码</label>
           </FloatLabel>
         </FormField>
         <Button
@@ -34,8 +34,8 @@
 import LoginContainer from '@/views/login/LoginContainer.vue'
 import LoginLayout from '@/layout/LoginLayout.vue'
 import { zodResolver } from '@primevue/forms/resolvers/zod'
-import FloatLabel from 'primevue/floatlabel'
 import { z } from 'zod'
+import FloatLabel from 'primevue/floatlabel'
 import useStore from '@/stores'
 import { useRouter } from 'vue-router'
 import { ref } from 'vue'
@@ -50,7 +50,6 @@ const resolver = zodResolver(
 
 const onFormSubmit = ({ valid, values }: any) => {
   if (valid) {
-    console.log(values)
     user.login(values.username, values.password).then(() => {
       router.push('/application')
     })

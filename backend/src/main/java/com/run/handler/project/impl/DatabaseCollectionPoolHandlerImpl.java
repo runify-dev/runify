@@ -5,17 +5,14 @@ import com.run.common.query.Query;
 import com.run.common.result.Result;
 import com.run.dao.common.F;
 import com.run.dao.entity.DatabaseConnectionPool;
-import com.run.dao.entity.Processor;
 import com.run.dao.mapper.DatabaseConnectionPoolMapper;
 import com.run.dao.mapper.ProjectMapper;
 import com.run.handler.project.IDatabaseCollectionPoolHandler;
 import com.run.handler.project.vo.CreateDatabaseCollectionPoolVO;
 import com.run.handler.project.vo.QueryDatabaseCollectionPoolVO;
-import com.run.handler.project.vo.QueryProcessorVO;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
 import org.jooq.Condition;
-import org.jooq.impl.DSL;
 
 import javax.inject.Inject;
 import java.time.LocalDateTime;
@@ -97,5 +94,30 @@ public class DatabaseCollectionPoolHandlerImpl implements IDatabaseCollectionPoo
                     }).onFailure(context::fail);
         }
 
+    }
+
+    @Override
+    public void delete(RoutingContext context) {
+        String databaseCollectionPoolId = context.pathParam("databaseCollectionPoolId");
+        databaseConnectionPoolMapper.deleteById(databaseCollectionPoolId)
+                .onSuccess((ok) -> {
+                    context.end(Result.success(true).toBuffer());
+                }).onFailure(context::fail);
+
+    }
+
+    @Override
+    public void edit(RoutingContext context) {
+        String databaseCollectionPoolId = context.pathParam("databaseCollectionPoolId");
+        CreateDatabaseCollectionPoolVO createDatabaseCollectionPoolVO = context.body().asPojo(CreateDatabaseCollectionPoolVO.class);
+        DatabaseConnectionPool databaseConnectionPool = new DatabaseConnectionPool();
+        databaseConnectionPool.setId(UUID.fromString(databaseCollectionPoolId));
+        databaseConnectionPool.setName(createDatabaseCollectionPoolVO.getName());
+        databaseConnectionPool.setMeta(createDatabaseCollectionPoolVO.getMeta());
+        databaseConnectionPool.setDesc(createDatabaseCollectionPoolVO.getDesc());
+        databaseConnectionPool.setProtocol(DatabaseConnectionProtocolConstants.valueOf(createDatabaseCollectionPoolVO.getProtocol()));
+        databaseConnectionPoolMapper.update(databaseConnectionPool).onSuccess(ok->{
+            context.end(Result.success(databaseConnectionPool).toBuffer());
+        }).onFailure(context::fail);
     }
 }

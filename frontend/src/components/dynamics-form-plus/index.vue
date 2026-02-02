@@ -1,6 +1,6 @@
 <template>
   <Form ref="formRef" @submit.stop class="flex flex-col gap-4" v-slot="$form">
-    <slot></slot>
+    <slot v-bind="$form"></slot>
     <template v-for="item in formFieldList" :key="item.field">
       <FormFieldItem
         ref="formFieldRef"
@@ -20,7 +20,7 @@
 import type { Dict } from '@/api/type/common'
 import FormFieldItem from './form-field-item/index.vue'
 import type { FormField } from '@/components/dynamics-form/type'
-import { ref } from 'vue'
+import { nextTick, ref } from 'vue'
 import { Form, type FormInstance } from '@primevue/forms'
 import type Result from '@/request/Result'
 import _ from 'lodash'
@@ -48,13 +48,13 @@ const formFieldRef = ref<Array<InstanceType<typeof FormFieldItem>>>([])
  * @param field
  */
 const show = (field: FormField) => {
-  if (field.relation_show_field_dict) {
-    const keys = Object.keys(field.relation_show_field_dict)
+  if (field.relationShowFieldDict) {
+    const keys = Object.keys(field.relationShowFieldDict)
     for (const index in keys) {
       const key = keys[index]
       const v = _.get(formValue.value, key)
       if (v && v !== undefined && v !== null) {
-        const values = field.relation_show_field_dict[key]
+        const values = field.relationShowFieldDict[key]
         if (values && values.length > 0) {
           return values.includes(v)
         } else {
@@ -86,9 +86,13 @@ const render = (
     formFieldList.value = render_data
   }
   data = data ? data : {}
-  const value = formFieldList.value
-    .map((item) => {
-      if (data[item.field] !== undefined) {
+  const values: any = {}
+
+  console.log(values)
+  nextTick(() => {
+    formFieldList.value.forEach((item) => {
+      const _v = _.get(data, item.field)
+      if (_v !== undefined) {
         if (item.valueField && item.optionList && item.optionList.length > 0) {
           const value_field = item.valueField
           const find = item.optionList?.find((i) => {
@@ -99,20 +103,18 @@ const render = (
             }
           })
           if (find) {
-            return { [item.field]: data[item.field] }
+            formRef.value?.setFieldValue(item.field, find)
           }
         } else {
-          return { [item.field]: data[item.field] }
+          formRef.value?.setFieldValue(item.field, _v)
         }
       } else {
         if (item.showDefaultValue === true && item.showDefaultValue) {
-          return { [item.field]: item.defaultValue }
+          formRef.value?.setFieldValue(item.field, item.defaultValue)
         }
       }
-      return {}
     })
-    .reduce((x, y) => ({ ...x, ...y }), {})
-  formRef.value?.setValues(value)
+  })
 }
 /**
  * 校验函数

@@ -1,40 +1,61 @@
 <template>
-  <el-row :gutter="10" class="p-8">
-    <el-col :span="8">
-      <el-input
-        v-model="searchText"
-        style="max-width: 600px"
-        placeholder="搜索处理器"
-        class="input-with-select"
-      >
-        <template #append>
-          <el-button :icon="Search" />
-        </template> </el-input
-    ></el-col>
-    <el-col :span="8">
-      <div class="flex items-center justify-center">
-        <div>{{ project?.name }}</div>
-      </div>
-    </el-col>
-    <el-col :span="8"
-      ><el-button class="float-right" @click="openCreateProcessor">新建处理器</el-button></el-col
-    >
-  </el-row>
+  <Toolbar
+    :pt="{
+      root: {
+        style: {
+          border: 0
+        }
+      }
+    }"
+  >
+    <template #start> </template>
+    <template #center>
+      <InputGroup>
+        <InputText v-model="searchText" placeholder="数据源" />
+        <InputGroupAddon>
+          <Button icon="pi pi-search" severity="secondary" variant="text" />
+        </InputGroupAddon>
+      </InputGroup>
+    </template>
+    <template #end> <Button @click="openCreateProcessor" label="新建数据源"></Button></template>
+  </Toolbar>
   <CreareProcessor ref="creareProcessorRef"></CreareProcessor>
   <AdaptiveHeight :exclude-height="230">
     <template #default="{ height }">
-      <el-table :data="tableData" :height="height">
-        <el-table-column type="expand"> </el-table-column>
-        <el-table-column label="处理器名称" prop="name" />
-        <el-table-column label="处理器描述" prop="desc" />
-        <el-table-column label="处理器协议" prop="protocol" />
-        <el-table-column label="操作" prop="protocol">
-          <template #default="scope">
-            <el-button @click="toSetting(scope.row)" link type="primary">
-              <el-icon><Setting /></el-icon> </el-button
-          ></template>
-        </el-table-column>
-      </el-table>
+      <DataTable
+        :value="tableData"
+        v-model:expandedRows="expandedRows"
+        dataKey="id"
+        tableStyle="min-width: 50rem"
+      >
+        <Column expander style="width: 5rem"></Column>
+        <Column field="name" header="处理器名称"></Column>
+        <Column field="desc" header="处理器描述"></Column>
+        <Column field="protocol" header="处理器协议"></Column>
+        <Column field="operate" header="操作">
+          <template #body="scope">
+            <Button
+              icon="pi pi-file-edit"
+              variant="text"
+              rounded
+              aria-label="Cancel"
+              size="normal"
+              @click.stop="toSetting(scope.data)"
+            />
+            <Button
+              icon="pi pi-times-circle"
+              variant="text"
+              rounded
+              aria-label="Cancel"
+              size="normal"
+              @click="deleteProcessor(scope.data)"
+            />
+          </template>
+        </Column>
+        <template #expansion="slotProps">
+          <TableColumnExpand :row="slotProps.data"></TableColumnExpand>
+        </template>
+      </DataTable>
     </template>
   </AdaptiveHeight>
   <Pagination
@@ -49,7 +70,6 @@
 import { ref, computed, inject, onMounted } from 'vue'
 import Pagination from '@/components/table/Pagination.vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Search } from '@element-plus/icons-vue'
 import CreareProcessor from '../components/CreareProcessor.vue'
 import type { TreeCommonAPI } from '@/api/tree'
 import processorAPI from '@/api/processor'
@@ -58,6 +78,7 @@ import AdaptiveHeight from '@/components/adaptive-height/index.vue'
 const router = useRouter()
 const creareProcessorRef = ref<InstanceType<typeof CreareProcessor>>()
 const route = useRoute()
+const expandedRows = ref<any>()
 const treeCommonAPI: TreeCommonAPI = inject('treeCommonAPI') as TreeCommonAPI
 const searchText = ref<string>()
 const toSetting = (row: any) => {
@@ -66,6 +87,7 @@ const toSetting = (row: any) => {
     params: { processorId: row.id, id: projectId.value }
   })
 }
+const deleteProcessor = (processor: any) => {}
 const projectId = computed(() => {
   const {
     params: { id }

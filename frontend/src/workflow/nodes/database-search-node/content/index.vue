@@ -1,60 +1,64 @@
 <template>
-  <el-form
-    ref="formRef"
-    label-position="top"
-    :model="form"
-    label-width="auto"
-    style="max-width: 600px"
-    require-asterisk-position="right"
-  >
-    <el-form-item
-      :rules="[{ required: true, message: 'SQL', trigger: 'blur' }]"
-      label="内容(SQL)"
-      prop="template"
-    >
-      <el-cascader
-        placeholder="请选择参数"
-        :options="options"
-        v-model="form.pool"
-        :show-all-levels="false"
-        class="w-full"
-      />
-    </el-form-item>
-    <el-form-item
-      :rules="[{ required: true, message: 'SQL', trigger: 'blur' }]"
-      label="内容(SQL)"
-      prop="template"
-    >
-      <CodeEditor v-model="form.template" title="SQL" lang="SQL"></CodeEditor>
-    </el-form-item>
-    <el-form-item label="" prop="parameters">
-      <Parameters ref="parametersRef" v-model:parameters="form.parameters"></Parameters>
-    </el-form-item>
-  </el-form>
+  <Form ref="formRef">
+    <Fieldset legend="基本信息">
+      <FormField v-slot="$field: any" :initial-value="[]" name="pool">
+        <label>数据库连接池 </label>
+        <Cascader
+          placeholder="请选择数据库连接池"
+          :config="{ labelKey: 'label', valueKey: 'value' }"
+          :options="options"
+          v-bind:model-value="$field.value"
+          v-on:update:model-value="(v) => $field.onChange({ value: v })"
+          optionLabel="label"
+          optionGroupChildren="children"
+          class="w-full mt-2"
+        />
+      </FormField>
+      <FormField v-slot="$field: any" name="template" class="mt-2">
+        <label>Sql </label>
+        <CodeEditor
+          class="mt-2"
+          v-bind:model-value="$field.value"
+          v-on:update:model-value="(v: any) => $field.onChange({ value: v })"
+          title="SQL"
+          lang="SQL"
+        ></CodeEditor>
+      </FormField>
+    </Fieldset>
+    <FormField v-slot="$field: any" name="parameters" :initial-value="[]">
+      <Parameters
+        ref="parametersRef"
+        v-bind:parameters="$field.value"
+        v-on:update:parameters="(v: any) => $field.onChange({ value: v })"
+      ></Parameters>
+    </FormField>
+  </Form>
 </template>
 <script setup lang="ts">
 import { ref, inject, onMounted } from 'vue'
 import Parameters from '@/workflow/nodes/database-search-node/components/parameters/index.vue'
 import CodeEditor from '@/components/code-editor/index.vue'
 import type { BaseNodeModel } from '@logicflow/core'
-import type { FormInstance } from 'element-plus'
+
+import Cascader from '@/components/cascader/index.vue'
+import type { FormInstance } from '@primevue/forms'
 const getModel = inject('getModel') as () => BaseNodeModel
 const formRef = ref<FormInstance>()
 const model = getModel()
 const getNodeFieldOptions = inject('getNodeFieldOptions') as any
 const options = getNodeFieldOptions()
-const form = ref<any>({
-  pool: [],
-  template: '',
-  parameters: []
-})
 
 const validate = () => {
   return formRef.value ? formRef.value.validate() : Promise.resolve(false)
 }
 const submit = () => {
-  model.properties.nodeData = form.value
-  return Promise.resolve(true)
+  return formRef.value?.validate().then(({ values, errors }) => {
+    if (Object.keys(errors).length == 0) {
+      model.properties.nodeData = values
+      return Promise.resolve(values)
+    }
+    return Promise.resolve(errors)
+  })
 }
 const setField = () => {
   model.properties.field_list = [
@@ -67,9 +71,13 @@ const setField = () => {
 defineExpose({ validate, submit, setField })
 onMounted(() => {
   if (model.properties.nodeData) {
-    form.value = JSON.parse(JSON.stringify(model.properties.nodeData))
+    formRef.value?.setValues(JSON.parse(JSON.stringify(model.properties.nodeData)))
   } else {
-    model.properties.nodeData = form.value
+    model.properties.nodeData = {
+      pool: [],
+      template: '',
+      parameters: []
+    }
   }
   setField()
 })

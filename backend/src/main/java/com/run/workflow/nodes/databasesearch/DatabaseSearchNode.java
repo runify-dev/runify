@@ -6,13 +6,16 @@ import com.run.workflow.*;
 import com.run.workflow.entity.Node;
 import com.run.workflow.entity.NodeResult;
 import com.run.workflow.nodes.databasesearch.pojo.DatabaseSearchNodeData;
+import com.run.workflow.nodes.jsonresponse.pojo.JsonResponseNodeData;
 import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.Pool;
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowSet;
 import io.vertx.sqlclient.templates.SqlTemplate;
 import jakarta.validation.Validator;
+import org.apache.commons.lang3.Strings;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -55,18 +58,28 @@ public class DatabaseSearchNode extends INode<DatabaseSearchNode, DatabaseSearch
         public Supplier<List<Node>> apply(WorkFlowManage workFlowManage, DatabaseSearchNode node) {
             DatabaseSearchNodeData databaseSearchNodeData = node.params;
             Pool pool = (Pool) workFlowManage.getContextVariable(databaseSearchNodeData.getPool());
+            HashMap<String, Object> params = new HashMap<>();
+            for (DatabaseSearchNodeData.Parameter parameter : databaseSearchNodeData.getParameters()) {
+                String location = parameter.getLocation();
+                if (Strings.CS.equals(location, "reference")) {
+                    List<String> reference = (List<String>) parameter.getValue();
+                    params.put(parameter.getField(), workFlowManage.getContextVariable(reference));
+                } else {
+                    params.put(parameter.getField(), parameter.getValue());
+                }
+            }
             SqlTemplate.forQuery(pool, databaseSearchNodeData.getTemplate())
-                    .execute(Map.of()).onSuccess(ok -> {
+                    .execute(params).onSuccess(ok -> {
                         List<Map<String, Object>> result = ok.stream().map(Row::toJson).map(JsonObject::getMap).toList();
                         workFlowManage.writeContext(node, "result", result);
-                        node.status= NodeStatus.SUCCESS;
+                        node.status = NodeStatus.SUCCESS;
                         workFlowManage.nextInvoke(node, () -> workFlowManage
                                 .getNextList(node.node.getId())
                                 .stream()
                                 .map(DefaultKeyValue::getValue)
                                 .toList());
                     }).onFailure(e -> {
-                        System.out.println(e);
+                     System.out.println(e);
                     });
             return null;
         }

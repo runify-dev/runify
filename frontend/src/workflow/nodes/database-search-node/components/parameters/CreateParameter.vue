@@ -1,40 +1,75 @@
 <template>
-  <el-dialog v-model="visible" :title="edit ? '修改' : '添加'" width="500">
-    <el-form
-      :model="form"
-      label-width="auto"
-      label-position="top"
-      require-asterisk-position="right"
-      :rules="rules"
-      ref="formRef"
-    >
-      <el-form-item label="参数" prop="field">
-        <el-input v-model="form.field" />
-      </el-form-item>
-      <el-form-item label="描述" prop="description">
-        <el-input v-model="form.description" />
-      </el-form-item>
-      <el-form-item label="位置" prop="location">
-        <el-segmented v-model="form.location" :options="locationOptions" />
-      </el-form-item>
-    </el-form>
+  <Dialog v-model:visible="visible" :handler="edit ? '修改' : '添加'" :style="{ width: '25rem' }">
+    <Form ref="formRef">
+      <FormField v-slot="$field" name="field" initial-value="" :resolver="resolvers.field">
+        <IftaLabel>
+          <InputText type="text" fluid />
+          <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">{{
+            $field.error?.message
+          }}</Message>
+          <label>参数</label>
+        </IftaLabel>
+      </FormField>
+      <FormField
+        v-slot="$field"
+        class="mt-4"
+        name="desc"
+        initial-value=""
+        :resolver="resolvers.desc"
+      >
+        <IftaLabel>
+          <InputText type="text" fluid />
+          <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">{{
+            $field.error?.message
+          }}</Message>
+          <label>描述</label>
+        </IftaLabel>
+      </FormField>
+
+      <FormField
+        v-slot="$field"
+        class="mt-4"
+        name="location"
+        initial-value="reference"
+        :resolver="resolvers.location"
+      >
+        <label>位置</label>
+        <SelectButton
+          class="mt-2"
+          option-label="label"
+          option-value="value"
+          :options="locationOptions"
+          fluid
+        />
+        <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">{{
+          $field.error?.message
+        }}</Message>
+      </FormField>
+    </Form>
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="close">取消</el-button>
-        <el-button type="primary" @click="submit"> 提交 </el-button>
+        <Button @click="close">取消</Button>
+        <Button @click="submit"> 提交 </Button>
       </div>
     </template>
-  </el-dialog>
+  </Dialog>
 </template>
 <script setup lang="ts">
 import { ref } from 'vue'
-import { type FormRules, type FormInstance } from 'element-plus'
-
+import { zodResolver } from '@primevue/forms/resolvers/zod'
+import { z } from 'zod'
+import type { FormInstance } from '@primevue/forms'
 const visible = ref<boolean>(false)
 const locationOptions = [
   { label: '引用', value: 'reference' },
   { label: '自定义', value: 'customize' }
 ]
+const resolvers = {
+  field: zodResolver(z.string().min(1, { error: '请输入参数' })),
+  desc: zodResolver(z.string().min(1, { error: '请输入描述' })),
+  location: zodResolver(z.string().min(1, { error: '请选择参数位置' }))
+}
+// const typenOptions = ['string', 'integer', 'uuid', 'long', 'double']
 interface Parameters {
   field: string
   description: string
@@ -45,7 +80,7 @@ interface Parameters {
 const defaultValue: Parameters = {
   field: '',
   description: '',
-  required: true,
+  required: false,
   location: 'reference',
   type: 'string'
 }
@@ -65,19 +100,15 @@ const open = (row?: Parameters) => {
     edit.value = true
   }
 }
-const rules = ref<FormRules<Parameters>>({
-  field: [{ required: true, message: '请输入参数', trigger: 'blur' }],
-  description: [{ required: true, message: '请输入描述', trigger: 'blur' }],
-  required: [{ required: true, message: '请选择是否必填', trigger: 'change' }],
-  location: [{ required: true, message: '请选择参数地址', trigger: 'change' }],
-  type: [{ required: true, message: '请选择参数类型', trigger: 'change' }]
-})
+
 const submit = () => {
-  formRef.value?.validate().then(() => {
-    emit('submit', {
-      edit: edit.value,
-      row: form.value
-    })
+  formRef.value?.validate().then(({ values, errors }) => {
+    if (Object.keys(errors).length == 0) {
+      emit('submit', {
+        edit: edit.value,
+        row: values
+      })
+    }
   })
 }
 

@@ -45,10 +45,16 @@ public class DatabaseCollectionPoolRoute implements IRoute {
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
                 .handler(databaseCollectionPoolHandler::create);
-
         apiRoute.get("/project/:projectId/database-collection-pool")
                 .handler(tokenBasicAuthHandler)
                 .handler(databaseCollectionPoolHandler::page);
+        apiRoute.delete("/project/:projectId/database-collection-pool/:databaseCollectionPoolId")
+                .handler(tokenBasicAuthHandler)
+                .handler(databaseCollectionPoolHandler::delete);
+        apiRoute.put("/project/:projectId/database-collection-pool/:databaseCollectionPoolId")
+                .handler(BodyHandler.create())
+                .handler(tokenBasicAuthHandler)
+                .handler(databaseCollectionPoolHandler::edit);
 
     }
 

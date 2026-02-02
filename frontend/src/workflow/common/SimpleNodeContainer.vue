@@ -1,41 +1,42 @@
 <template>
-  <div class="w-full h-full grid grid-flow-col grid-rows-1">
-    <div class="col-span-1 flex items-center mr-1">
-      <img
-        class="size-12 shrink-0 object-fill w-8 h-8 rounded-md"
-        src="/user.jpeg"
-        alt="节点Icon"
-      />
-    </div>
-    <div class="col-span-2 truncate font-normal align-middle text-sm/8">
-      {{ model.properties.name }}
-    </div>
-    <div class="col-span-3 flex justify-center items-center">
-      <div
-        @click="openContent"
-        class="w-5 h-5 hover:bg-gray-100 hover:text-gray-900 hover:cursor-pointer flex rounded-xs justify-center items-center"
-      >
-        <app-icon name="Edit"></app-icon>
+  <div
+    class="custom-node-wrap custom-node-wrap-start"
+    :class="model.isSelected ? 'p-node-selected' : ''"
+  >
+    <div class="title-box">
+      <div class="title-left">
+        <component :is="iconComponent(model.type)"></component>
+        <div class="node-label pl-2">{{ model.properties.name }}</div>
       </div>
-
-      <div
-        class="w-5 h-5 hover:bg-gray-100 hover:text-gray-900 hover:cursor-pointer flex rounded-xs justify-center items-center"
+      <DropdownMenu
+        :items="[
+          {
+            label: '设置',
+            value: 'setting',
+            command: () => {
+              openContent()
+            }
+          },
+          {
+            label: '重命名',
+            value: 'rename',
+            command: () => {
+              model.graphModel.eventCenter.emit('runify:node:open-rename-dialog', reName)
+            }
+          },
+          {
+            label: '删除',
+            value: 'delete',
+            command: () => {
+              model.graphModel.deleteNode(model.id)
+            }
+          }
+        ]"
       >
-        <app-icon name="Share"></app-icon>
-      </div>
-      <div
-        class="w-5 h-5 hover:bg-gray-100 hover:text-gray-900 hover:cursor-pointer flex rounded-xs justify-center items-center"
-      >
-        <el-dropdown trigger="click">
-          <app-icon name="More"></app-icon>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item>重命名</el-dropdown-item>
-              <el-dropdown-item>删除</el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
-      </div>
+        <template #default>
+          <i class="pi pi-ellipsis-h"></i>
+        </template>
+      </DropdownMenu>
     </div>
     <NodeContentContainer
       :life-cycle="nodeContentLifeCycle"
@@ -47,30 +48,32 @@
         <slot></slot>
       </template>
     </NodeContentContainer>
-    <NodeMenu
-      :append-node="appendNode"
-      :workflowType="WorkflowType.APPLICATION"
-      ref="nodeMenuRef"
-    ></NodeMenu>
+    <slot name="content"></slot>
   </div>
 </template>
 <script setup lang="ts">
 import { BaseNodeModel } from '@logicflow/core'
 import { inject, ref, onMounted } from 'vue'
 import type { LifeCycle } from '@/workflow/common/type'
-import AppIcon from '@/components/icons/AppIcon.vue'
-import NodeMenu from '@/workflow/common/NodeMenu.vue'
 import { generateAnchor } from '@/utils/common'
 import NodeContentContainer from '@/workflow/common/NodeContentContainer.vue'
-import { WorkflowType } from './data'
-const nodeMenuRef = ref<InstanceType<typeof NodeMenu>>()
+import DropdownMenu from '@/components/dropdown-menu/index.vue'
+import { iconComponent } from '../icons'
 const getModel = inject('getModel') as () => BaseNodeModel
 const model = getModel()
-defineProps<{
-  validate: () => Promise<any>
-  submit: () => Promise<any>
-  nodeContentLifeCycle?: LifeCycle
-}>()
+const reName = (name: string) => {
+  const nodes = model.graphModel.nodes
+  if (
+    nodes
+      .filter((node: any) => node.id !== model.id)
+      .some((node: any) => node.properties.name.trim() === name.trim())
+  ) {
+    return Promise.reject({ message: '节点名称已存在' })
+  }
+  model.properties.name = name
+  return Promise.resolve({ data: '修改成功' })
+}
+
 const appendNode = (node: any, anchorData: any) => {
   const nodeModel = model.graphModel.addNode({
     type: node.type,
@@ -86,8 +89,14 @@ const appendNode = (node: any, anchorData: any) => {
     targetNodeId: nodeModel.id,
     targetAnchorId: generateAnchor(nodeModel.id, 'left', 'main', 'success')
   })
-  nodeMenuRef.value?.close()
+  return Promise.resolve({ message: '添加成功' })
 }
+defineProps<{
+  validate: () => Promise<any>
+  submit: () => Promise<any>
+  nodeContentLifeCycle?: LifeCycle
+}>()
+
 const nodeContentContainerRef = ref<InstanceType<typeof NodeContentContainer>>()
 const openContent = () => {
   nodeContentContainerRef.value?.open(model)
@@ -95,19 +104,97 @@ const openContent = () => {
 
 onMounted(() => {
   model.openNodeMenu = (anchorData: any) => {
-    nodeMenuRef.value?.open(anchorData)
+    model.graphModel.eventCenter.emit('runify:node:open-add-node-dialog', {
+      call: appendNode,
+      anchorData: anchorData
+    })
   }
 })
 </script>
-<style lang="scss">
-.workflow-simple-node-card-header {
-  height: 10px;
-  padding: 1px;
+<style lang="scss" scope>
+// 定义颜色变量
+$border-color: #dddfe6;
+$text-primary: var(--p-content-color);
+$text-secondary: #7e8393;
+$text-icon: #5d6276;
+$bg-hover: #f0f3f8;
+$bg-light: #f5f7fb;
+$accent-color: #f9a11d;
+$accent-bg: rgba(249, 161, 29, 0.1);
+$white: #fff;
+.custom-node-wrap {
+  box-sizing: border-box;
+  width: 190px;
+  min-height: 84px;
+  padding: 0 12px;
+  background: $white;
+  border: 1px solid $border-color;
+  border-radius: 8px;
+  cursor: pointer;
+  opacity: 1;
+
+  &-start {
+    width: 100%;
+    height: 100%;
+    min-height: 44px;
+    background-image: linear-gradient(180deg, #e3ffef 0%, $white 50%);
+  }
+}
+
+.title-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 10px 0 8px;
+  color: $text-primary;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0;
+
+  .title-left {
+    display: flex;
+    align-items: center;
+    width: 150px;
+
+    .node-label {
+      flex: 1;
+      // 一行显示不下时，省略号
+    }
+  }
+
+  .node-icon {
+    box-sizing: border-box;
+    width: 20px;
+    height: 20px;
+    margin-right: 8px;
+    padding: 3px;
+    border-radius: 4px;
+  }
+
+  .more-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 2px;
+    cursor: pointer;
+
+    &:hover {
+      background: $bg-hover;
+    }
+  }
+
+  .node-more-icon {
+    color: $text-icon;
+    font-size: 12px;
+  }
 }
 
 .lf-node-selected {
-  .workflow-simple-node-card {
-    border: 3px solid var(--el-color-primary);
+  .custom-node-wrap {
+    border: 1px solid var(--primary-color);
   }
 }
 </style>

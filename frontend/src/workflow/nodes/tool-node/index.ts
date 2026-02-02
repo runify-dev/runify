@@ -7,7 +7,7 @@ class ToolNodeView extends RootView {
   }
 }
 export default {
-  type: 'tool-node',
+  type: 'java-script-node',
   model: RootModel,
   view: ToolNodeView
 }

@@ -1,93 +1,164 @@
 <template>
-  <el-dialog v-model="visible" :title="edit ? '修改' : '添加'" width="500">
-    <el-form
-      :model="form"
-      label-width="auto"
-      label-position="top"
-      require-asterisk-position="right"
-      :rules="rules"
-      ref="formRef"
-    >
-      <el-form-item label="参数" prop="field">
-        <el-input v-model="form.field" />
-      </el-form-item>
-      <el-form-item label="描述" prop="description">
-        <el-input v-model="form.description" />
-      </el-form-item>
-      <el-form-item label="必填" prop="required">
-        <el-switch v-model="form.required" />
-      </el-form-item>
-      <el-form-item label="位置" prop="location">
-        <el-segmented v-model="form.location" :options="locationOptions" />
-      </el-form-item>
-      <el-form-item label="类型" prop="type">
-        <el-segmented v-model="form.type" :options="typenOptions" />
-      </el-form-item>
-      <el-form-item label="多参数" prop="many">
-        <el-switch v-model="form.many" />
-      </el-form-item>
-    </el-form>
+  <Dialog v-model:visible="visible" :handler="edit ? '修改' : '添加'" :style="{ width: '35rem' }">
+    <Form ref="formRef">
+      <FormField v-slot="$field" name="field" initial-value="" :resolver="resolvers.field">
+        <IftaLabel>
+          <InputText type="text" fluid />
+          <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">{{
+            $field.error?.message
+          }}</Message>
+          <label>参数</label>
+        </IftaLabel>
+      </FormField>
+      <FormField
+        v-slot="$field"
+        class="mt-4"
+        name="description"
+        initial-value=""
+        :resolver="resolvers.description"
+      >
+        <IftaLabel>
+          <InputText type="text" fluid />
+          <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">{{
+            $field.error?.message
+          }}</Message>
+          <label>描述</label>
+        </IftaLabel>
+      </FormField>
+      <FormField
+        v-slot="$field"
+        class="mt-4"
+        name="required"
+        :initial-value="false"
+        :resolver="resolvers.required"
+      >
+        <label>必填</label>
+        <div class="mt-2">
+          <ToggleSwitch />
+        </div>
+
+        <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">{{
+          $field.error?.message
+        }}</Message>
+      </FormField>
+      <FormField
+        v-slot="$field"
+        class="mt-4"
+        name="location"
+        initial-value="query"
+        :resolver="resolvers.location"
+      >
+        <label>位置</label>
+        <SelectButton
+          class="mt-2"
+          option-label="label"
+          option-value="value"
+          :options="locationOptions"
+          fluid
+        />
+        <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">{{
+          $field.error?.message
+        }}</Message>
+      </FormField>
+      <FormField
+        v-slot="$field"
+        class="mt-4"
+        name="type"
+        initial-value="string"
+        :resolver="resolvers.location"
+      >
+        <label>类型</label>
+        <SelectButton
+          class="mt-2"
+          option-label="label"
+          option-value="value"
+          :options="typenOptions"
+          fluid
+        />
+        <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">{{
+          $field.error?.message
+        }}</Message>
+      </FormField>
+      <FormField
+        v-slot="$field"
+        class="mt-4"
+        name="many"
+        :initial-value="false"
+        :resolver="resolvers.required"
+      >
+        <label>多参数</label>
+        <div class="mt-2">
+          <ToggleSwitch />
+        </div>
+
+        <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">{{
+          $field.error?.message
+        }}</Message>
+      </FormField>
+    </Form>
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="close">取消</el-button>
-        <el-button type="primary" @click="submit"> 提交 </el-button>
+        <Button @click="close">取消</Button>
+        <Button @click="submit"> 提交 </Button>
       </div>
     </template>
-  </el-dialog>
+  </Dialog>
 </template>
 <script setup lang="ts">
-import { ref } from 'vue'
-import { type FormRules, type FormInstance } from 'element-plus'
-
+import { nextTick, ref } from 'vue'
+import { zodResolver } from '@primevue/forms/resolvers/zod'
+import { z } from 'zod'
+import type { FormInstance } from '@primevue/forms'
 const visible = ref<boolean>(false)
-const locationOptions = ['query', 'path']
-const typenOptions = ['string', 'integer', 'uuid', 'long', 'double']
-interface Parameters {
-  field: string
-  description: string
-  required: boolean
-  location: 'query' | 'path'
-  type: 'string' | 'integer' | 'uuid' | 'long' | 'double'
-  many: boolean
-}
-const defaultValue: Parameters = {
-  field: '',
-  description: '',
-  required: false,
-  location: 'query',
-  type: 'string',
-  many: false
+const locationOptions = [
+  { label: 'Query', value: 'query' },
+  { label: 'Path', value: 'path' }
+]
+const typenOptions = [
+  { label: 'String', value: 'string' },
+  { label: 'Integer', value: 'integer' },
+  { label: 'Uuid', value: 'uuid' },
+  { label: 'Long', value: 'long' },
+  { label: 'Double', value: 'double' }
+]
+
+const resolvers = {
+  field: zodResolver(z.string().min(1, { error: '请输入参数' })),
+  description: zodResolver(z.string().min(1, { error: '请输入描述' })),
+  required: zodResolver(z.boolean({ error: '请选择是否必填' })),
+  location: zodResolver(z.string().min(1, { error: '请选择参数位置' })),
+  type: zodResolver(z.string().min(1, { error: '请选择参数类型' })),
+  many: zodResolver(z.boolean({ error: '请选择是否为多参数' }))
 }
 const formRef = ref<FormInstance>()
 const emit = defineEmits(['submit'])
 const edit = ref<boolean>(false)
-const form = ref<Parameters>({ ...defaultValue })
+const curentIndex = ref<number>()
 const close = () => {
-  form.value = { ...defaultValue }
   visible.value = false
   edit.value = false
+  curentIndex.value = undefined
 }
-const open = (row?: Parameters) => {
+const open = (row?: any, index?: number) => {
   visible.value = true
-  if (row) {
-    form.value = row
+  if (row && index !== undefined) {
     edit.value = true
+    curentIndex.value = index
+    nextTick(() => {
+      formRef.value?.setValues(row)
+    })
   }
 }
-const rules = ref<FormRules<Parameters>>({
-  field: [{ required: true, message: '请输入参数', trigger: 'blur' }],
-  description: [{ required: true, message: '请输入描述', trigger: 'blur' }],
-  required: [{ required: true, message: '请选择是否必填', trigger: 'change' }],
-  location: [{ required: true, message: '请选择参数地址', trigger: 'change' }],
-  type: [{ required: true, message: '请选择参数类型', trigger: 'change' }],
-  many: [{ required: true, message: '请选择是否多参数', trigger: 'change' }]
-})
+
 const submit = () => {
-  formRef.value?.validate().then(() => {
-    emit('submit', {
-      edit: edit.value,
-      row: form.value
-    })
+  formRef.value?.validate().then(({ values, errors }) => {
+    if (Object.keys(errors).length == 0) {
+      emit('submit', {
+        edit: edit.value,
+        index: curentIndex.value,
+        row: values
+      })
+    }
   })
 }
 

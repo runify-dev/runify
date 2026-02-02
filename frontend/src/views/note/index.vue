@@ -41,10 +41,15 @@
                               {
                                 label: '笔记',
                                 command: () => {
-                                  openCreateApplicationDialog()
+                                  openCreateNoteDialog()
                                 }
                               },
-                              { label: '文件夹' }
+                              {
+                                label: '文件夹',
+                                command: () => {
+                                  openCreateFolderDialog()
+                                }
+                              }
                             ]
                           }
                         ]"
@@ -80,10 +85,16 @@
                           label: '笔记',
                           visible: node.data.type == 'folder',
                           command: () => {
-                            openCreateApplicationDialog(node)
+                            openCreateNoteDialog(node)
                           }
                         },
-                        { label: '文件夹', visible: node.data.type == 'folder' }
+                        {
+                          label: '文件夹',
+                          visible: node.data.type == 'folder',
+                          command: () => {
+                            openCreateFolderDialog(node)
+                          }
+                        }
                       ]
                     },
                     {
@@ -116,26 +127,35 @@
           </template>
         </Tree>
 
-        <CreateNoteDialog
-          ref="createNoteDialogRef"
-          @create:application:success="createResourceSuccess"
-        ></CreateNoteDialog>
+        <CreateResourceDialog
+          ref="createResourceDialogRef"
+          :api="treeCommonAPI"
+          name="笔记"
+          @create:resource:success="createResourceSuccess"
+        ></CreateResourceDialog>
+        <CreateFolderDialog
+          @create:folder:success="createFolderSuccess"
+          ref="createFolderDialogRef"
+          :api="treeCommonAPI"
+        ></CreateFolderDialog>
       </div>
     </template>
-    <router-view></router-view>
+    <router-view :key="route.path"></router-view>
   </AppMenuContent>
 </template>
 <script setup lang="ts">
 import AppMenuContent from '@/layout-plus/app-menu-content/index.vue'
-import CreateNoteDialog from '@/views/note/components/create-note-dialog/index.vue'
+import CreateResourceDialog from '@/components/create-resource-dialog/index.vue'
+import CreateFolderDialog from '@/components/create-folder-dialog/index.vue'
 import DropdownMenu from '@/components/dropdown-menu/index.vue'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, onBeforeUnmount } from 'vue'
 import 'md-editor-v3/lib/style.css'
 import Tree, { type TreeSelectionKeys } from 'primevue/tree'
 import { toTree, toTreeNode } from '@/components/tree/index'
 import { useRouter, useRoute } from 'vue-router'
 import { TreeManager } from '@/components/tree/index'
 import { TreeCommonAPI } from '@/api/tree'
+import bus from '@/bus/index'
 const route = useRoute()
 import type { TreeNode } from 'primevue/treenode'
 
@@ -164,14 +184,24 @@ const nodeSelect = (treeNode?: TreeNode) => {
   }
 }
 const createResourceSuccess = (key: string, node: any) => {
-  const treeNode = toTreeNode(node)
+  const treeNode = toTreeNode({ ...node, type: 'note' })
   treeManage.value.addChild(key, treeNode)
-  expandedKeys.value = { [key]: true }
+  expandedKeys.value = { ...expandedKeys.value, [key]: true }
   router.push({ name: 'noteDetails', params: { id: node.id } })
 }
-const createNoteDialogRef = ref<InstanceType<typeof CreateNoteDialog>>()
-const openCreateApplicationDialog = (node?: TreeNode) => {
-  createNoteDialogRef.value?.open(node)
+const createFolderSuccess = (key: string, node: any) => {
+  const treeNode = toTreeNode({ ...node, type: 'folder' })
+  treeManage.value.addChild(key, treeNode)
+  expandedKeys.value = { ...expandedKeys.value, [key]: true }
+  router.push({ name: 'noteFolders', params: { id: node.id } })
+}
+const createResourceDialogRef = ref<InstanceType<typeof CreateResourceDialog>>()
+const openCreateNoteDialog = (node?: TreeNode) => {
+  createResourceDialogRef.value?.open(node)
+}
+const createFolderDialogRef = ref<InstanceType<typeof CreateFolderDialog>>()
+const openCreateFolderDialog = (node?: TreeNode) => {
+  createFolderDialogRef.value?.open(node)
 }
 const removeTreeNode = (node: TreeNode) => {
   ;(node.data.type === 'folder'
@@ -185,10 +215,17 @@ const removeTreeNode = (node: TreeNode) => {
 const nodes = ref<Array<any>>([])
 const treeManage = ref()
 onMounted(() => {
+  bus.on('open:create:note:dialog', (id: string) => {
+    const treeNode = treeManage.value?.findNodeByKey(id)
+    openCreateNoteDialog(treeNode ? treeNode : undefined)
+  })
   treeCommonAPI.listTree('root').then((ok) => {
     nodes.value = toTree(ok.data)
     treeManage.value = new TreeManager(nodes.value)
   })
+})
+onBeforeUnmount(() => {
+  bus.off('open:create:note:dialog')
 })
 </script>
 <style lang="scss">

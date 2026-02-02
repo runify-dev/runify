@@ -19,7 +19,7 @@ public class DatabaseSearchNodeData {
     @Data
     public static class Parameter {
         private String field;
-        private String description;
+        private String desc;
         private String required;
         /**
          * reference

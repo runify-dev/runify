@@ -1,14 +1,22 @@
 <template>
   <div style="width: 100%; height: 100%" id="run-workflow-container"></div>
+  <ReNameDialog ref="reNameDialogRef"></ReNameDialog>
+  <AddNodeDialog ref="addNodeDialogRef"></AddNodeDialog>
   <TeleportContainer v-if="flowId" :flow-id="flowId" />
 </template>
 <script setup lang="ts">
+import ReNameDialog from '@/workflow/common/rename-dialog/index.vue'
+import AddNodeDialog from '@/workflow/common/add-node-dialog/index.vue'
 import LogicFlow from '@logicflow/core'
 import '@logicflow/core/dist/index.css'
 import RunEdge from './common/edge'
 import { onMounted, ref } from 'vue'
+const reNameDialogRef = ref<InstanceType<typeof ReNameDialog>>()
+const addNodeDialogRef = ref<InstanceType<typeof AddNodeDialog>>()
 const nodes: any = import.meta.glob('./nodes/**/index.ts', { eager: true })
 import { getTeleport } from '@/workflow/common/teleport'
+import { WorkflowAPI } from './common/common'
+
 const TeleportContainer = getTeleport()
 const lf = ref()
 const flowId = ref('')
@@ -41,6 +49,12 @@ const init = (container: HTMLElement) => {
   })
   lf.value.on('graph:rendered', () => {
     flowId.value = lf.value.graphModel.flowId
+  })
+  lf.value.on('runify:node:open-rename-dialog', (call: any) => {
+    reNameDialogRef.value?.open(call)
+  })
+  lf.value.on('runify:node:open-add-node-dialog', (setting: any) => {
+    addNodeDialogRef.value?.open(setting)
   })
   lf.value.setTheme({
     bezier: {

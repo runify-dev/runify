@@ -44,6 +44,7 @@
         />
       </el-form-item>
     </el-form>
+    <template #content>sss</template>
   </SimpleNodeContainer>
 </template>
 <script setup lang="ts">
@@ -53,7 +54,7 @@ import type { BaseNodeModel } from '@logicflow/core'
 import type { FormInstance } from 'element-plus'
 import { TreeCommonAPI } from '@/api/tree'
 const treeCommonAPI = new TreeCommonAPI('model')
-import { inject, onMounted, ref, watch } from 'vue'
+import { inject, onMounted, ref } from 'vue'
 const getModel = inject('getModel') as () => BaseNodeModel
 const model = getModel()
 const form = ref({

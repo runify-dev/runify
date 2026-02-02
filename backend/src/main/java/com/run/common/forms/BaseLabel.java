@@ -20,7 +20,7 @@ public class BaseLabel {
     /**
      * 组建类型
      */
-    private String inputType;
+    private String type;
     /**
      * 值
      */
@@ -36,7 +36,7 @@ public class BaseLabel {
 
     public Map<String, Object> toMap(Map<String, Object> keywords) {
         return Map.of(
-                "input_type", this.inputType,
+                "type", this.type,
                 "value", this.value,
                 "attrs", this.attrs == null ? Map.of() : this.attrs,
                 "props", this.props == null ? Map.of() : this.props);

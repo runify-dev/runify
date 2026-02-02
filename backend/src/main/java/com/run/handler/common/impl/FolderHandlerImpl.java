@@ -101,7 +101,7 @@ public abstract class FolderHandlerImpl<F extends BaseEntity<F>,
         } else {
             F f = newFolder(nodeId, parentUuId, name, createFolderPojo.getDesc());
             return Tool.validateNodeName(folderMapper, parentUuId, name, null)
-                    .compose(ok -> Tool.getNodeRelation(relationMapper, UUID.fromString(createFolderPojo.getParentId()), nodeId, this::newRelation, this::getAncestorId, this::getDepth))
+                    .compose(ok -> Tool.getNodeRelation(relationMapper, parentUuId, nodeId, this::newRelation, this::getAncestorId, this::getDepth))
                     .compose(relationMapper::batch_save)
                     .compose(ok -> folderMapper.save(f))
                     .compose(ok -> Future.succeededFuture(f));
@@ -148,7 +148,7 @@ public abstract class FolderHandlerImpl<F extends BaseEntity<F>,
         CreateFolderPojo pojo = context.body().asPojo(CreateFolderPojo.class);
         pojo.setParentId(folderId);
         this.create(pojo).onSuccess(rs -> context.end(Result.success(rs).toBuffer()))
-                .onFailure(Future::failedFuture);
+                .onFailure(context::fail);
     }
 
     protected abstract UUID getParentId(F resource);

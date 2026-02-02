@@ -25,6 +25,22 @@ const page: (
 ) => Promise<Result<Page<any>>> = (projectId, query, loading) => {
   return get(`/project/${projectId}/database-collection-pool`, query, loading)
 }
+const deleteById: (
+  projectId: string,
+  databaseCollectionPoolId: string,
+  loading?: Ref<boolean>
+) => Promise<Result<boolean>> = (projectId, databaseCollectionPoolId, loading) => {
+  return del(`/project/${projectId}/database-collection-pool/${databaseCollectionPoolId}`, {}, loading)
+}
+const edit: (
+  projectId: string,
+  databaseCollectionPoolId: string,
+  createDatabaseCollectionPoolVO: CreateDatabaseCollectionPoolVO,
+  loading?: Ref<boolean>
+) => Promise<Result<boolean>> = (projectId, databaseCollectionPoolId, createDatabaseCollectionPoolVO, loading) => {
+  return put(`/project/${projectId}/database-collection-pool/${databaseCollectionPoolId}`, createDatabaseCollectionPoolVO, {}, loading)
+}
 
 
-export default { create, query, page }
+
+export default { create, query, page, deleteById, edit }

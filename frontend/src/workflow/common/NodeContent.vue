@@ -1,34 +1,36 @@
 <template>
-  <h5
-    v-if="$slots.content"
-    class="relative before:block before:absolute before:translate-x-[-50%] before:translate-y-[-50%] before:top-1/2 before:left-[2px] before:w-[2px] before:h-[80%] before:bg-[var(--el-color-primary)] pl-3 font-medium"
-  >
-    基本设置
-  </h5>
   <slot name="content"> </slot>
-  <h5
-    class="relative before:block before:absolute before:translate-x-[-50%] before:translate-y-[-50%] before:top-1/2 before:left-[2px] before:w-[2px] before:h-[80%] before:bg-[var(--el-color-primary)] pl-3 font-medium"
-  >
-    节点输出
-  </h5>
-  <div
-    class="flex p-4 rounded-xs h-[20px] bg-gray-100 font-normal text-[14px] items-center justify-between"
-    v-for="field in fieldList"
-    :key="field.value"
-  >
-    <span>{{ `${field.label}\{\{ ${field.value} \}\}` }} </span>
-    <div
-      @click="copy(`{{${name}.${field.value}}}`)"
-      class="w-5 h-5 hover:bg-gray-100 hover:text-gray-900 hover:cursor-pointer flex rounded-xs justify-center items-center"
-    >
-      <app-icon name="CopyDocument"></app-icon>
-    </div>
-  </div>
+  <Fieldset legend="节点输出">
+    <template v-if="$slots.outputfield">
+      <slot name="outputfield"></slot>
+    </template>
+    <template v-else>
+      <div
+        class="flex p-4 mt-2 rounded-xs h-5 bg-gray-100 font-normal text-[14px] items-center justify-between"
+        v-for="field in fieldList"
+        :key="field.value"
+      >
+        <span>{{ `${field.label}\{\{ ${field.value} \}\}` }} </span>
+        <div
+          @click="copy(`{{${name}.${field.value}}}`)"
+          class="w-5 h-5 hover:bg-gray-100 hover:text-gray-900 hover:cursor-pointer flex rounded-xs justify-center items-center"
+        >
+          <Button
+            v-tooltip="'复制'"
+            icon="pi pi-copy"
+            variant="text"
+            aria-label="Filter"
+            severity="secondary"
+            size="small"
+          ></Button>
+        </div>
+      </div>
+    </template>
+  </Fieldset>
 </template>
 <script setup lang="ts">
 import { ref, onMounted, inject, provide, computed } from 'vue'
-import type { Field, LifeCycle } from '@/workflow/common/type'
-import AppIcon from '@/components/icons/AppIcon.vue'
+import type { LifeCycle } from '@/workflow/common/type'
 import Clipboard from 'vue-clipboard3'
 import { ElMessage } from 'element-plus'
 const getModel = inject('getModel') as any
@@ -66,6 +68,7 @@ provide('getNodeFieldOptions', () => {
     return {
       label: node.properties.name,
       value: node.id,
+      disabled: true,
       children: node.properties.field_list.map((item: any) => ({
         label: item.label,
         value: item.value,

@@ -75,6 +75,7 @@ public class NodeManage implements Function<NewNodeParamsInstance, INode<?, ?>> 
                     newNodeParamsInstance.getUpNode());
             return iNode;
         } catch (Exception e) {
+            e.printStackTrace();
             throw new RuntimeException(e.getMessage());
         }
 

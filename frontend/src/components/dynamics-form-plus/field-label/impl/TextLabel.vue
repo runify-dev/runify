@@ -17,7 +17,7 @@ const props = defineProps<{
   form: any
 }>()
 const label = computed(() => {
-  return props.formField.label.label
+  return props.formField.label.value
 })
 const required = computed(() => {
   return props.formField.required

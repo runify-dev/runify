@@ -1,25 +1,32 @@
 <template>
-  <el-drawer
-    destroy-on-close
-    v-model="drawer"
-    title="模型参数"
-    direction="rtl"
-    :before-close="close"
+  <Drawer
+    v-model:visible="drawer"
+    header="模型参数"
+    position="right"
+    :pt="{
+      root: {
+        style: {
+          '--drawer-width-mobile': '80%',
+          '--drawer-width-tablet': '50%',
+          '--drawer-width-desktop': '500px'
+        },
+        class: 'responsive-drawer'
+      }
+    }"
   >
     <DynamicsFormConstructor ref="DynamicsFormConstructorRef"></DynamicsFormConstructor>
     <template #footer>
-      <div style="flex: auto">
-        <el-button @click="close">{{ $t('common.cancel') }}</el-button>
-        <el-button type="primary" @click="submit()">{{
-          edit ? $t('common.save') : $t('common.add')
-        }}</el-button>
-      </div>
+      <Button @click="close">{{ $t('common.cancel') }}</Button>
+      <Button type="primary" @click="submit()">{{
+        edit ? $t('common.save') : $t('common.add')
+      }}</Button>
     </template>
-  </el-drawer>
+  </Drawer>
 </template>
 <script setup lang="ts">
 import { nextTick, ref } from 'vue'
-import DynamicsFormConstructor from '@/components/dynamics-form/constructor/index.vue'
+import DynamicsFormConstructor from '@/components/dynamics-form-plus/constructor/index.vue'
+import type { style } from '@logicflow/extension/lib/bpmn-elements/presets/icons'
 const props = defineProps<{
   addParams: (data: any, index?: number) => boolean
 }>()
@@ -42,17 +49,35 @@ const open = (data?: any, index?: number) => {
 }
 
 const submit = () => {
-  DynamicsFormConstructorRef.value?.validate().then((valid) => {
-    if (valid) {
-      const ok = props.addParams(DynamicsFormConstructorRef.value?.getData(), currentIndex.value)
-      if (ok) {
-        drawer.value = false
-        edit.value = false
-        currentIndex.value = undefined
+  if (DynamicsFormConstructorRef.value) {
+    DynamicsFormConstructorRef.value?.validate().then(({ errors }) => {
+      if (Object.keys(errors).length === 0) {
+        const ok = props.addParams(DynamicsFormConstructorRef.value?.getData(), currentIndex.value)
+        if (ok) {
+          drawer.value = false
+          edit.value = false
+          currentIndex.value = undefined
+        }
       }
-    }
-  })
+    })
+  }
 }
 defineExpose({ open, close })
 </script>
-<style lang="scss"></style>
+<style lang="scss">
+.responsive-drawer {
+  width: var(--drawer-width-mobile) !important;
+}
+
+@media (min-width: 768px) {
+  .responsive-drawer {
+    width: var(--drawer-width-tablet) !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-drawer {
+    width: var(--drawer-width-desktop) !important;
+  }
+}
+</style>

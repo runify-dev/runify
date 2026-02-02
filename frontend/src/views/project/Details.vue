@@ -1,16 +1,9 @@
 <template>
-  <TopHeaderVue root-route-name="projectDetails"> </TopHeaderVue>
-  <div style="height: calc(100vh - 40px)">
-    <router-view></router-view>
+  <div class="flex flex-col">
+    <div class="card overflow-auto" style="height: calc(100vh - 8rem)">
+      <router-view></router-view>
+    </div>
   </div>
 </template>
-<script setup lang="ts">
-import { useRoute } from 'vue-router'
-import Editor from '@/editor/index.vue'
-const route = useRoute()
-import TopHeaderVue from '@/layout/top-header/index.vue'
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { TreeCommonAPI } from '@/api/tree'
-const treeCommonAPI = new TreeCommonAPI('note')
-</script>
+<script setup lang="ts"></script>
 <style lang="scss" scoped></style>

@@ -1,23 +1,24 @@
 <template>
   <div class="radio_content" :style="radioContentStyle">
-    <el-row :gutter="12" class="w-full">
-      <template v-for="(item, index) in optionList" :key="index">
-        <el-col :xs="12" :sm="8" :md="6" :lg="4" :xl="2">
-          <el-card
-            :key="item.value"
-            v-bind="$attrs"
-            shadow="never"
-            :class="[
-              inputDisabled ? 'is-disabled' : '',
-              modelValue == item[valueField] ? 'active' : ''
-            ]"
-            @click="inputDisabled ? () => {} : selected(item[valueField])"
-          >
-            <slot v-bind="item"></slot>
-          </el-card>
-        </el-col>
-      </template>
-    </el-row>
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mt-5">
+      <Card
+        v-for="item in optionList"
+        :key="item.value"
+        v-bind="$attrs"
+        shadow="never"
+        :class="[
+          inputDisabled ? 'is-disabled' : '',
+          modelValue == item[valueField] ? 'active' : ''
+        ]"
+        @click="inputDisabled ? () => {} : selected(item[valueField])"
+      >
+        <template #content>
+          <slot v-bind="item">
+            {{ item.label }}
+          </slot>
+        </template>
+      </Card>
+    </div>
   </div>
 </template>
 <script lang="ts" setup>

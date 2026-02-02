@@ -19,8 +19,8 @@
   "dependencies": {
     "@codemirror/theme-one-dark": "^6.1.2",
     "@floating-ui/vue": "^1.1.9",
-    "@logicflow/core": "^2.0.13",
-    "@logicflow/extension": "^2.0.18",
+    "@logicflow/core": "^2.2.0-alpha.6",
+    "@logicflow/extension": "^2.2.0-alpha.6",
     "@primeuix/themes": "^2.0.2",
     "@primevue/forms": "^4.5.4",
     "@tiptap/extension-bubble-menu": "^3.13.0",

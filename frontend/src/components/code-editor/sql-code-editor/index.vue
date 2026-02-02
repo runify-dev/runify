@@ -12,11 +12,9 @@
       />
     </form>
     <div class="codemirror-editor__footer">
-      <el-button text type="info" @click="open" class="magnify">
-        <el-icon><FullScreen /></el-icon>
-      </el-button>
+      <Button icon="pi pi-expand" variant="text" @click="open" rounded aria-label="Filter" />
     </div>
-    <el-dialog v-model="dialogVisible" :title="title" append-to-body fullscreen destroy-on-close>
+    <Dialog v-model:visible="dialogVisible" :header="title" style="width: 50rem">
       <form @submit.prevent>
         <Codemirror
           v-model="cloneContent"
@@ -32,9 +30,9 @@
         />
       </form>
       <template #footer>
-        <el-button type="primary" @click="submit">确定</el-button>
+        <Button @click="submit">确定</Button>
       </template>
-    </el-dialog>
+    </Dialog>
   </div>
 </template>
 

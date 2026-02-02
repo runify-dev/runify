@@ -10,6 +10,7 @@ import Content from './content/index.vue'
 import { inject, ref } from 'vue'
 const WorkflowType = inject('WorkflowType')
 const details = (inject('getDetails') as any)()
+
 const getModel = inject('getModel') as () => BaseNodeModel
 const model = getModel()
 const contentRef = ref<InstanceType<typeof Content>>()

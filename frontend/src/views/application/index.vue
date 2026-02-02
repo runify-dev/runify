@@ -47,7 +47,12 @@
                                         openCreateApplicationDialog()
                                       }
                                     },
-                                    { label: '文件夹' }
+                                    {
+                                      label: '文件夹',
+                                      command: () => {
+                                        openCreateFolderDialog()
+                                      }
+                                    }
                                   ]
                                 }
                               ]"
@@ -86,7 +91,13 @@
                                   openCreateApplicationDialog(node)
                                 }
                               },
-                              { label: '文件夹', visible: node.data.type == 'folder' }
+                              {
+                                label: '文件夹',
+                                visible: node.data.type == 'folder',
+                                command: () => {
+                                  openCreateFolderDialog(node)
+                                }
+                              }
                             ]
                           },
                           {
@@ -157,21 +168,29 @@
             </Menu>
           </template>
         </FlipCard>
-
-        <CreateApplicationDialog
-          ref="createApplicationDialogRef"
-          @create:application:success="createResourceSuccess"
-        ></CreateApplicationDialog>
       </div>
+      <CreateResourceDialog
+        ref="createResourceDialogRef"
+        :api="treeCommonAPI"
+        name="应用"
+        @create:resource:success="createResourceSuccess"
+      ></CreateResourceDialog>
+      <CreateFolderDialog
+        @create:folder:success="createFolderSuccess"
+        ref="createFolderDialogRef"
+        :api="treeCommonAPI"
+      ></CreateFolderDialog>
     </template>
+
     <RouterView></RouterView>
   </AppMenuContent>
 </template>
 <script setup lang="ts">
 import AppMenuContent from '@/layout-plus/app-menu-content/index.vue'
-import CreateApplicationDialog from '@/views/application/components/create-application-dialog/index.vue'
+import CreateResourceDialog from '@/components/create-resource-dialog/index.vue'
+import CreateFolderDialog from '@/components/create-folder-dialog/index.vue'
 import DropdownMenu from '@/components/dropdown-menu/index.vue'
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, ref, computed, onBeforeUnmount } from 'vue'
 import 'md-editor-v3/lib/style.css'
 import Tree, { type TreeSelectionKeys } from 'primevue/tree'
 import { toTree, toTreeNode } from '@/components/tree/index'
@@ -180,6 +199,7 @@ import { TreeManager } from '@/components/tree/index'
 import { TreeCommonAPI } from '@/api/tree'
 import FlipCard from '@/components/flip-card/index.vue'
 import type { TreeNode } from 'primevue/treenode'
+import bus from '@/bus/index'
 const route = useRoute()
 const to = (routeName: string) => {
   router.push({ name: routeName })
@@ -238,35 +258,54 @@ const nodeSelect = (treeNode?: TreeNode) => {
       )
     ) {
       router.push({ name: 'applicationDetails', params: { id: treeNode.key } })
+    } else {
+      router.push({ name: route.name, params: { id: treeNode.key } })
     }
   }
 }
 const createResourceSuccess = (key: string, node: any) => {
-  const treeNode = toTreeNode(node)
-  treeManage.value.addChild(key, treeNode)
-  expandedKeys.value = { [key]: true }
+  const treeNode = toTreeNode({ ...node, type: 'application' })
+  treeManage.value?.addChild(key, treeNode)
+  expandedKeys.value = { ...expandedKeys.value, [key]: true }
   router.push({ name: 'applicationDetails', params: { id: node.id } })
 }
-const createApplicationDialogRef = ref<InstanceType<typeof CreateApplicationDialog>>()
+const createFolderSuccess = (key: string, node: any) => {
+  const treeNode = toTreeNode({ ...node, type: 'folder' })
+  treeManage.value?.addChild(key, treeNode)
+  expandedKeys.value = { [key]: true }
+  router.push({ name: 'applicationFolders', params: { id: node.id } })
+}
+const createResourceDialogRef = ref<InstanceType<typeof CreateResourceDialog>>()
+const createFolderDialogRef = ref<InstanceType<typeof CreateFolderDialog>>()
 const openCreateApplicationDialog = (node?: TreeNode) => {
-  createApplicationDialogRef.value?.open(node)
+  createResourceDialogRef.value?.open(node)
+}
+const openCreateFolderDialog = (node?: TreeNode) => {
+  createFolderDialogRef.value?.open(node)
 }
 const removeTreeNode = (node: TreeNode) => {
   ;(node.data.type === 'folder'
     ? treeCommonAPI.removeFolder(node.key)
     : treeCommonAPI.removeResource(node.key)
   ).then(() => {
-    treeManage.value.remove(node.key)
+    treeManage.value?.remove(node.key)
   })
 }
 
 const nodes = ref<Array<any>>([])
-const treeManage = ref()
+const treeManage = ref<TreeManager>()
 onMounted(() => {
+  bus.on('open:create:application:dialog', (id: string) => {
+    const treeNode = treeManage.value?.findNodeByKey(id)
+    openCreateApplicationDialog(treeNode ? treeNode : undefined)
+  })
   treeCommonAPI.listTree('root').then((ok) => {
     nodes.value = toTree(ok.data)
     treeManage.value = new TreeManager(nodes.value)
   })
+})
+onBeforeUnmount(() => {
+  bus.off('open:create:application:dialog')
 })
 </script>
 <style lang="scss">

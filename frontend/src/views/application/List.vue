@@ -19,7 +19,7 @@
             </InputGroupAddon>
           </InputGroup>
         </template>
-        <template #end> <Button label="新建应用"></Button></template>
+        <template #end> <Button @click="openCreateApplication" label="新建应用"></Button></template>
       </Toolbar>
       <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mt-5">
         <template v-for="item in nodeList" :key="item.id">
@@ -44,6 +44,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { type Node } from '@/api/type/node'
 import { useRouter } from 'vue-router'
 import { Search } from '@element-plus/icons-vue'
+import bus from '@/bus/index'
 import { TreeCommonAPI } from '@/api/tree'
 const treeCommonAPI = new TreeCommonAPI('application')
 const router = useRouter()
@@ -51,6 +52,9 @@ const nodeList = ref<Array<Node>>([])
 const folder = ref<Node>()
 const route = useRoute()
 const searchText = ref<string>('')
+const openCreateApplication = () => {
+  bus.emit('open:create:application:dialog', folderId.value)
+}
 const lisResource = () => {
   treeCommonAPI.listResource(folderId.value).then((ok) => {
     nodeList.value = ok.data

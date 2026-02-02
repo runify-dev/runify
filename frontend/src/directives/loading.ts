@@ -26,7 +26,7 @@ const loadingDirective = {
     el._loadingOverlay = overlay;
   },
   updated(el: any, binding: any) {
-    if (el._loadingInstance) {
+    if (el._loadingInstance && el._loadingInstance.component.proxy) {
       el._loadingInstance.component.proxy.visible = binding.value;
     }
   },

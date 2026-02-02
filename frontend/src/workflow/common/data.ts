@@ -1,6 +1,6 @@
 import edge from './edge'
 
-const startNode = {
+export const startNode = {
   id: "start-node",
   type: 'start-node',
   text: "",
@@ -20,7 +20,7 @@ const startNode = {
     ]
   }
 }
-const aiChatNode = {
+export const aiChatNode = {
   type: 'ai-chat-node',
   text: "",
   x: 0,
@@ -28,7 +28,7 @@ const aiChatNode = {
   label: "ai对话",
   properties: {
     width: 200,
-    height: 50,
+    height: 100,
     name: "ai对话",
     isHovered: false,
     field_list: [
@@ -37,16 +37,16 @@ const aiChatNode = {
   }
 }
 
-const toolNode = {
-  type: 'tool-node',
+export const javaScriptNode = {
+  type: 'java-script-node',
   text: "",
   x: 0,
   y: 0,
-  label: "工具",
+  label: "javaScript执行",
   properties: {
     width: 200,
     height: 50,
-    name: "工具",
+    name: "javaScript执行",
     isHovered: false,
     field_list: [
       {
@@ -57,7 +57,7 @@ const toolNode = {
   }
 }
 
-const databaseSearchNode = {
+export const databaseSearchNode = {
   type: 'database-search-node',
   text: "",
   x: 0,
@@ -73,7 +73,7 @@ const databaseSearchNode = {
 }
 
 
-const jsonResponseNode = {
+export const jsonResponseNode = {
   type: 'json-response-node',
   text: "",
   x: 0,
@@ -98,36 +98,7 @@ export enum WorkflowType {
   PROCESSOR = 'PROCESSOR'
 }
 
-class NodeMeta {
-  node: any
-  group: string
-  supportWorkflowTypeList: Array<WorkflowType>
-  imgSrc: string
-  constructor(node: any, group: string, supportWorkflowTypeList: Array<WorkflowType>,
-    imgSrc: string) {
-    this.node = node
-    this.group = group
-    this.supportWorkflowTypeList = supportWorkflowTypeList
-    this.imgSrc = imgSrc
-  }
-}
-const nodeMetaList = [
-  new NodeMeta(aiChatNode, '基本节点', [WorkflowType.APPLICATION], `${window.RUNIFY_APP.baseURL}/login.jpg`),
-  new NodeMeta(toolNode, '基本节点', [WorkflowType.APPLICATION], `${window.RUNIFY_APP.baseURL}/login.jpg`),
-  new NodeMeta(databaseSearchNode, '基本节点', [WorkflowType.APPLICATION], `${window.RUNIFY_APP.baseURL}/login.jpg`),
-  new NodeMeta(jsonResponseNode, '基本节点', [WorkflowType.APPLICATION], `${window.RUNIFY_APP.baseURL}/login.jpg`)
-]
 
-export const getNodeMenuList = (workflowType: WorkflowType) => {
-  return nodeMetaList.filter(item => item.supportWorkflowTypeList.includes(workflowType))
-    .reduce((result: any, item) => {
-      if (!result[item.group]) {
-        result[item.group] = [];
-      }
-      result[item.group].push(item);
-      return result
-    }, {})
-}
 
 export const iconMap = {
   'connected': (color: string) => `<svg width="100%" height="100%" viewBox="0 0 42 42" fill="none" xmlns="http://www.w3.org/2000/svg">
