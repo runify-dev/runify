@@ -76,6 +76,7 @@ public class HttpProcessorExecutor extends ProcessorExecutor {
                     }
                     context.end();
                 }
+                return;
 
             }
             for (AnswerContent c : chunk.content()) {
