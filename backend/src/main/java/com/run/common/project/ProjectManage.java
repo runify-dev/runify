@@ -11,9 +11,12 @@ import com.run.dao.entity.DatabaseConnectionPool;
 import com.run.dao.entity.Processor;
 import com.run.dao.entity.Project;
 import com.run.dao.mapper.DatabaseConnectionPoolMapper;
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.Router;
 import io.vertx.sqlclient.Pool;
+import io.vertx.sqlclient.Row;
+import io.vertx.sqlclient.RowSet;
 import lombok.Getter;
 
 import java.util.Map;
@@ -54,6 +57,14 @@ public class ProjectManage {
         return projectExecutor.generateProcessorExecutor(processor.getId(), processor);
     }
 
+    public static Boolean updatePool(UUID projectId, DatabaseConnectionPool pool) {
+        ProjectExecutor projectExecutor = processorMap.get(projectId);
+        if (projectExecutor == null) {
+            return Boolean.FALSE;
+        }
+        return projectExecutor.updatePool(pool);
+    }
+
     public static ProcessorExecutor getProcessorExecutor(UUID projectId, UUID processorId) {
         ProjectExecutor projectExecutor = processorMap.get(projectId);
         if (projectExecutor == null) {
@@ -82,6 +93,12 @@ public class ProjectManage {
         private Router router;
         private final ConcurrentMap<String, Pool> pools = new ConcurrentHashMap<>();
         private final ConcurrentMap<UUID, ProcessorExecutor> processorMap = new ConcurrentHashMap<>();
+
+        public Boolean updatePool(DatabaseConnectionPool pool) {
+            Pool p = poolNewInstance.get(pool.getProtocol()).apply(pool, vertx);
+            pools.put(pool.getId().toString(), p);
+            return Boolean.TRUE;
+        }
 
         public ProjectExecutor(UUID id, Project project) {
             this.id = id;

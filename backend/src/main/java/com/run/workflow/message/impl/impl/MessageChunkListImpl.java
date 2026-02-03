@@ -18,7 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class MessageChunkListImpl {
     private final static MethodHandles.Lookup lookup = MethodHandles.lookup();
-    private final static List<Class<?>> contentImpl = List.of(TextContentChunkListImpl.class, ReasoningChunkListImpl.class);
+    private final static List<Class<?>> contentImpl = List.of(TextContentChunkListImpl.class, ReasoningChunkListImpl.class, JsonChunkListImpl.class);
     private final static List<DefaultKeyValue<MethodHandle, MethodHandle>> handle;
 
     static {

@@ -1,10 +1,13 @@
 package com.run.workflow.nodes.databasesearch;
 
 
+import com.run.common.constants.MessageConstants;
 import com.run.common.keyvalue.DefaultKeyValue;
 import com.run.workflow.*;
 import com.run.workflow.entity.Node;
 import com.run.workflow.entity.NodeResult;
+import com.run.workflow.message.struct.chunk.FailureContentChunk;
+import com.run.workflow.message.struct.chunk.MessageChunk;
 import com.run.workflow.nodes.databasesearch.pojo.DatabaseSearchNodeData;
 import com.run.workflow.nodes.jsonresponse.pojo.JsonResponseNodeData;
 import io.vertx.core.json.JsonObject;
@@ -79,7 +82,10 @@ public class DatabaseSearchNode extends INode<DatabaseSearchNode, DatabaseSearch
                                 .map(DefaultKeyValue::getValue)
                                 .toList());
                     }).onFailure(e -> {
-                     System.out.println(e);
+                        node.status = NodeStatus.FAIL;
+
+                        workFlowManage.write(node, new MessageChunk(MessageConstants.ASSISTANT, List.of(new FailureContentChunk(e.getMessage(), node, (String) workFlowManage.getParams().get("workflowRunId")))));
+                        workFlowManage.end();
                     });
             return null;
         }

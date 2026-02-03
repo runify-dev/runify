@@ -1,5 +1,7 @@
 package com.run.common.function;
 
+import java.io.IOException;
+
 /**
  * {@code @Author:张少虎}
  * {@code @Date: 2025/8/14  23:40}

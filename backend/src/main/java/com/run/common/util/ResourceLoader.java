@@ -8,7 +8,7 @@ package com.run.common.util;
  */
 
 import lombok.SneakyThrows;
-
+import lombok.extern.slf4j.Slf4j;
 import java.net.JarURLConnection;
 import java.net.URL;
 import java.util.ArrayList;

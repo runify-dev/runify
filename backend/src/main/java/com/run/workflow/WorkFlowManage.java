@@ -1,9 +1,11 @@
 package com.run.workflow;
 
+import com.run.common.constants.MessageConstants;
 import com.run.common.function.Write;
 import com.run.common.keyvalue.DefaultKeyValue;
 import com.run.common.util.TemplateUtils;
 import com.run.workflow.entity.*;
+import com.run.workflow.message.struct.chunk.FailureContentChunk;
 import com.run.workflow.message.struct.chunk.MessageChunk;
 import com.run.workflow.nodes.NodeManage;
 import io.vertx.core.json.JsonObject;
@@ -12,6 +14,7 @@ import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
 import lombok.Getter;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -32,6 +35,7 @@ import java.util.function.Supplier;
  * {@code @Version 1.0}
  * {@code @注释: }
  */
+@Slf4j
 public class WorkFlowManage {
     /**
      * 工作流对象,存储了工作流相关信息
@@ -129,13 +133,8 @@ public class WorkFlowManage {
             }
         } else {
             // 如果没有下一个运行节点,那么就判断是否所有正在运行的节点都执行结束,如果都执行结束那么工作流就结束
-            List<NodeStatus> running = List.of(NodeStatus.RUNNING, NodeStatus.BEFORE_RUNNING);
-            boolean b = this.nodes.stream().anyMatch(iNode -> running.contains(iNode.status));
-            if (!b) {
-                this.write.write(this, null, null, true);
-            }
+            this.assertionEnd();
         }
-
     }
 
     /**
@@ -153,14 +152,21 @@ public class WorkFlowManage {
         }
         NewNodeParamsInstance instance = NewNodeParamsInstance.of(node, new JsonObject(params), upNodeIdList, this.validator, upINode, workFlow.getWorkflowType());
         INode<?, ?> iNode = this.nodeNewInstance.apply(instance);
-        // 添加方便管理
-        this.nodes.add(iNode);
-        // 执行节点
-        NodeResult<?> invoke = iNode.invoke();
-        Supplier<List<Node>> handle = invoke.handle(this);
-        if (handle != null) {
-            nextInvoke(iNode, handle);
+        try {
+            // 添加方便管理
+            this.nodes.add(iNode);
+            // 执行节点
+            NodeResult<?> invoke = iNode.invoke();
+            Supplier<List<Node>> handle = invoke.handle(this);
+            if (handle != null) {
+                nextInvoke(iNode, handle);
+            }
+        } catch (Exception e) {
+            log.error("执行工作流中发生异常:", e);
+            write(iNode, new MessageChunk(MessageConstants.ASSISTANT, List.of(new FailureContentChunk(e.toString(), iNode, (String) this.getParams().get("workflowRunId")))));
+            this.assertionEnd();
         }
+
     }
 
     /**
@@ -184,6 +190,18 @@ public class WorkFlowManage {
     public void write(INode<?, ?> node, MessageChunk chunk) {
         messageChunks.add(chunk);
         this.write.write(this, node, chunk, false);
+    }
+
+    public void end() {
+        this.write.write(this, null, null, true);
+    }
+
+    public void assertionEnd() {
+        List<NodeStatus> running = List.of(NodeStatus.RUNNING, NodeStatus.BEFORE_RUNNING);
+        boolean b = this.nodes.stream().anyMatch(iNode -> running.contains(iNode.status));
+        if (!b) {
+            this.write.write(this, null, null, true);
+        }
     }
 
     /**

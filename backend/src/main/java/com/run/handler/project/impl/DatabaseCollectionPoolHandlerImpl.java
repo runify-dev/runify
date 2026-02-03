@@ -1,6 +1,7 @@
 package com.run.handler.project.impl;
 
 import com.run.common.constants.DatabaseConnectionProtocolConstants;
+import com.run.common.project.ProjectManage;
 import com.run.common.query.Query;
 import com.run.common.result.Result;
 import com.run.dao.common.F;
@@ -17,6 +18,7 @@ import org.jooq.Condition;
 import javax.inject.Inject;
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -50,7 +52,10 @@ public class DatabaseCollectionPoolHandlerImpl implements IDatabaseCollectionPoo
                 LocalDateTime.now()
         );
         databaseConnectionPoolMapper.save(databaseConnectionPool)
-                .onSuccess(_ -> context.end(Result.success(databaseConnectionPool).toBuffer()))
+                .onSuccess(_ -> {
+                    ProjectManage.updatePool(UUID.fromString(projectId), databaseConnectionPool);
+                    context.end(Result.success(databaseConnectionPool).toBuffer());
+                })
                 .onFailure(context::fail);
     }
 
@@ -116,7 +121,7 @@ public class DatabaseCollectionPoolHandlerImpl implements IDatabaseCollectionPoo
         databaseConnectionPool.setMeta(createDatabaseCollectionPoolVO.getMeta());
         databaseConnectionPool.setDesc(createDatabaseCollectionPoolVO.getDesc());
         databaseConnectionPool.setProtocol(DatabaseConnectionProtocolConstants.valueOf(createDatabaseCollectionPoolVO.getProtocol()));
-        databaseConnectionPoolMapper.update(databaseConnectionPool).onSuccess(ok->{
+        databaseConnectionPoolMapper.update(databaseConnectionPool).onSuccess(ok -> {
             context.end(Result.success(databaseConnectionPool).toBuffer());
         }).onFailure(context::fail);
     }

@@ -13,4 +13,12 @@ public enum ContentTypeConstants {
      *
      */
     QUESTION,
+    /**
+     * JSON
+     */
+    JSON,
+    /**
+     * 失败
+     */
+    FAILURE
 }

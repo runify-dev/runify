@@ -4,6 +4,7 @@ package com.run.workflow.message.impl.impl;
 import com.run.common.constants.ContentTypeConstants;
 import com.run.common.util.CommonUtils;
 import com.run.workflow.message.struct.Content;
+import com.run.workflow.message.struct.TextContent;
 import com.run.workflow.message.struct.chunk.TextContentChunk;
 
 import java.util.*;
@@ -21,10 +22,10 @@ public class TextContentChunkListImpl {
             List<TextContentChunk> value = stringListEntry.getValue();
             TextContentChunk first = value.getFirst();
             String collect = value.stream().map(TextContentChunk::getContent).collect(Collectors.joining());
-            TextContentChunk textContentChunk = new TextContentChunk();
-            CommonUtils.copyProperties(first, textContentChunk);
-            textContentChunk.setContent(collect);
-            result.add(textContentChunk);
+            TextContent content = new TextContent();
+            CommonUtils.copyProperties(first, content);
+            content.setContent(collect);
+            result.add(content);
         }
         return result;
     }

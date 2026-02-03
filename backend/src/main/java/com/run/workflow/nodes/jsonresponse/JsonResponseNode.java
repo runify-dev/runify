@@ -2,11 +2,14 @@ package com.run.workflow.nodes.jsonresponse;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.run.common.constants.MessageConstants;
 import com.run.common.keyvalue.DefaultKeyValue;
 import com.run.common.util.JacksonUtils;
 import com.run.workflow.*;
 import com.run.workflow.entity.Node;
 import com.run.workflow.entity.NodeResult;
+import com.run.workflow.message.struct.chunk.JsonContentChunk;
+import com.run.workflow.message.struct.chunk.MessageChunk;
 import com.run.workflow.nodes.jsonresponse.pojo.JsonResponseNodeData;
 import com.run.workflow.nodes.start.entity.HttpMeta;
 import io.vertx.core.json.JsonObject;
@@ -61,7 +64,6 @@ public class JsonResponseNode extends INode<JsonResponseNode, JsonResponseNodeDa
         @Override
         public Supplier<List<Node>> apply(WorkFlowManage workFlowManage, JsonResponseNode node) {
             JsonResponseNodeData jsonResponseNodeData = node.params;
-            RoutingContext context = (RoutingContext) workFlowManage.getParams().get("context");
             Boolean chunk = jsonResponseNodeData.getChunk();
             JsonObject params = new JsonObject();
             for (JsonResponseNodeData.Parameter parameter : jsonResponseNodeData.getParameters()) {
@@ -82,14 +84,12 @@ public class JsonResponseNode extends INode<JsonResponseNode, JsonResponseNodeDa
                 jsonGenerator.flush();
             } else {
                 if (chunk) {
-                    context.response().setChunked(true);
-                    context.response().putHeader("Content-Type", "application/json; charset=utf-8");
                     JsonFactory factory = new JsonFactory();
                     JsonGenerator generator = factory.createGenerator(new Writer() {
                         @Override
                         public void write(@NotNull char[] cbuf, int off, int len) throws IOException {
                             String s = new String(cbuf, off, len);
-                            context.response().write(s);
+                            workFlowManage.write(node, new MessageChunk(MessageConstants.ASSISTANT, List.of(new JsonContentChunk(s, node, (String) workFlowManage.getParams().get("workflowRunId")))));
                         }
 
                         @Override
@@ -105,7 +105,7 @@ public class JsonResponseNode extends INode<JsonResponseNode, JsonResponseNodeDa
                     generator.writeStartObject();
                     workFlowManage.getParams().put("jsonGenerator", generator);
                 } else {
-                    context.end(params.toBuffer());
+                    workFlowManage.write(node, new MessageChunk(MessageConstants.ASSISTANT, List.of(new JsonContentChunk(params.toString(), node, (String) workFlowManage.getParams().get("workflowRunId")))));
                 }
             }
             node.status = NodeStatus.SUCCESS;

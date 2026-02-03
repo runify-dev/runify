@@ -4,6 +4,7 @@ package com.run.workflow.message.impl.impl;
 import com.run.common.constants.ContentTypeConstants;
 import com.run.common.util.CommonUtils;
 import com.run.workflow.message.struct.Content;
+import com.run.workflow.message.struct.ReasoningContent;
 import com.run.workflow.message.struct.chunk.ReasoningChunk;
 
 import java.util.ArrayList;
@@ -24,10 +25,10 @@ public class ReasoningChunkListImpl {
             List<ReasoningChunk> value = stringListEntry.getValue();
             ReasoningChunk first = value.getFirst();
             String collect = value.stream().map(ReasoningChunk::getContent).collect(Collectors.joining());
-            ReasoningChunk reasoningChunk = new ReasoningChunk();
-            CommonUtils.copyProperties(first, reasoningChunk);
-            reasoningChunk.setContent(collect);
-            result.add(reasoningChunk);
+            ReasoningContent content = new ReasoningContent();
+            CommonUtils.copyProperties(first, content);
+            content.setContent(collect);
+            result.add(content);
         }
         return result;
     }

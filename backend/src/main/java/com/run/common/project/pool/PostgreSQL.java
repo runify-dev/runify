@@ -2,6 +2,7 @@ package com.run.common.project.pool;
 
 import com.run.common.config.DataBase;
 import com.run.dao.entity.DatabaseConnectionPool;
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.pgclient.PgBuilder;
@@ -34,6 +35,13 @@ public class PostgreSQL {
                 .connectingTo(connectOptions)
                 .using(vertx)
                 .build();
+    }
+
+    public static Future<Boolean> validate(DatabaseConnectionPool pool, Vertx vertx) {
+        Pool p = toPool(pool, vertx);
+        return p.query("SELECT 1;")
+                .execute()
+                .compose(_ -> Future.succeededFuture(true));
     }
 
 }
