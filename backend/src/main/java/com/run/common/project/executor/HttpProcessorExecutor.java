@@ -1,6 +1,8 @@
 package com.run.common.project.executor;
 
+import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.run.common.constants.MessageConstants;
 import com.run.common.constants.ProcessorProtocolConstants;
 import com.run.common.project.ProjectManage;
 import com.run.common.util.JacksonUtils;
@@ -8,21 +10,22 @@ import com.run.dao.entity.Processor;
 import com.run.workflow.WorkFlowManage;
 import com.run.workflow.WorkflowType;
 import com.run.workflow.entity.WorkFlow;
-import com.run.workflow.message.struct.AnswerContent;
+import com.run.workflow.message.struct.*;
 import com.run.workflow.message.struct.chunk.FailureContentChunk;
 import com.run.workflow.message.struct.chunk.JsonContentChunk;
+import com.run.workflow.message.struct.chunk.MessageChunk;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
+import java.io.Writer;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * {@code @Author:张少虎}
@@ -32,6 +35,7 @@ import java.util.UUID;
  */
 public class HttpProcessorExecutor extends ProcessorExecutor {
     private Route route;
+    private ConcurrentHashMap<UUID, JsonGenerator> jsonGeneratorMap = new ConcurrentHashMap<>();
 
     public HttpProcessorExecutor(Processor processor, ProjectManage.ProjectExecutor projectExecutor) {
         super(processor, projectExecutor);
@@ -55,9 +59,36 @@ public class HttpProcessorExecutor extends ProcessorExecutor {
         return Boolean.TRUE;
     }
 
+    public JsonGenerator newJsonGenerator(RoutingContext context) {
+        JsonFactory factory = new JsonFactory();
+        try {
+            JsonGenerator generator = factory.createGenerator(new Writer() {
+                @Override
+                public void write(@NotNull char[] cbuf, int off, int len) {
+                    context.response().write(new String(cbuf, off, len));
+                }
+
+                @Override
+                public void flush() throws IOException {
+
+                }
+
+                @Override
+                public void close() throws IOException {
+
+                }
+            });
+            generator.writeStartObject();
+            return generator;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public void handler(RoutingContext context) {
         JsonObject workflow = processor.getWorkflow();
         context.response().setChunked(true);
+        UUID requestId = UUID.randomUUID();
         WorkFlowManage workFlowManage = new WorkFlowManage(WorkFlow.of(workflow, WorkflowType.PROCESSOR_HTTP),
                 new HashMap<String, Object>() {{
                     put("pools", projectExecutor.getPools());
@@ -65,36 +96,63 @@ public class HttpProcessorExecutor extends ProcessorExecutor {
                 }},
                 new HashMap<>(), (wm, node, chunk, aBoolean) -> {
             if (aBoolean) {
-                boolean isJsonGenerator = wm.getParams().containsKey("jsonGenerator");
-                if (isJsonGenerator) {
-                    JsonGenerator jsonGenerator = (JsonGenerator) wm.getParams().get("jsonGenerator");
+                boolean contains = jsonGeneratorMap.containsKey(requestId);
+                if (contains) {
+                    JsonGenerator jsonGenerator = jsonGeneratorMap.get(requestId);
                     try {
                         jsonGenerator.writeEndObject();
                         jsonGenerator.flush();
+                        jsonGenerator.close();
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
+                    jsonGeneratorMap.remove(requestId, jsonGenerator);
                     context.end();
                 }
                 return;
-
             }
             for (AnswerContent c : chunk.content()) {
-
-                if (!context.response().headWritten()) {
-                    context.response().setStatusCode(200);
-                    context.response().putHeader("Content-Type", "application/json; charset=utf-8");
-                }
                 if (c instanceof JsonContentChunk contentChunk) {
-                    String content = contentChunk.getContent();
-                    context.response().write(content);
+                    // 这里就直接响应
+                    context.end(contentChunk.getContent());
+                }
+                if (c instanceof StatusContent statusContent) {
+                    if (!context.response().headWritten()) {
+                        context.response().setStatusCode(statusContent.getContent());
+                    }
+                }
+                if (c instanceof HeadersContent headersContent) {
+                    if (!context.response().headWritten()) {
+                        Map<String, String> content = headersContent.getContent();
+                        for (Map.Entry<String, String> header : content.entrySet()) {
+                            context.response().putHeader(header.getKey(), header.getValue());
+                        }
+                    }
+
+                }
+                if (c instanceof TextContent textContent) {
+                    context.end(textContent.getContent());
+                }
+                if (c instanceof JsonFieldsContent jsonFieldsContent) {
+                    JsonGenerator jsonGenerator = jsonGeneratorMap.computeIfAbsent(requestId, key -> {
+                        JsonGenerator jsonGenerator1 = newJsonGenerator(context);
+                        return jsonGenerator1;
+                    });
+                    Map<String, Object> content = jsonFieldsContent.getContent();
+                    for (Map.Entry<String, Object> param : content.entrySet()) {
+                        try {
+                            jsonGenerator.writeFieldName(param.getKey());
+                            jsonGenerator.writeRawValue(JacksonUtils.toJson(param.getValue()));
+                        } catch (IOException e) {
+                            context.response().write(e.getMessage());
+                        }
+                    }
                 }
                 if (c instanceof FailureContentChunk failureContentChunk) {
-                    JsonGenerator jsonGenerator = (JsonGenerator) wm.getParams().get("jsonGenerator");
+                    boolean contains = jsonGeneratorMap.containsKey(requestId);
                     String content = failureContentChunk.getContent();
-                    MultiMap headers = context.response().headers();
-                    String contentType = headers.get("Content-Type");
-                    if (contentType.startsWith("application/json")) {
+                    if (contains) {
+                        JsonGenerator jsonGenerator = jsonGeneratorMap.get(requestId);
                         try {
                             jsonGenerator.writeFieldName("message");
                             jsonGenerator.writeRawValue(JacksonUtils.toJson(content));
@@ -104,7 +162,10 @@ public class HttpProcessorExecutor extends ProcessorExecutor {
                         } catch (IOException e) {
                             throw new RuntimeException(e);
                         }
+                    } else {
+                        context.response().write(content);
                     }
+
                 }
             }
 

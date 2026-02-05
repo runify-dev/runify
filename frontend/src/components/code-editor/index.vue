@@ -4,6 +4,7 @@
 <script setup lang="ts">
 import JavaScriptCodeEditor from './javascript-code-editor/index.vue'
 import SqlCodeEditor from './sql-code-editor/index.vue'
+import JsonCodeEditor from './sql-code-editor/index.vue'
 withDefaults(
   defineProps<{
     lang: string
@@ -12,7 +13,8 @@ withDefaults(
 )
 const kw: any = {
   SQL: SqlCodeEditor,
-  JAVASCRIPT: JavaScriptCodeEditor
+  JAVASCRIPT: JavaScriptCodeEditor,
+  JSON: JsonCodeEditor
 }
 </script>
 <style lang="scss" scoped></style>

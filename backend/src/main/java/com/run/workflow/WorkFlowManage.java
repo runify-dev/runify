@@ -75,7 +75,7 @@ public class WorkFlowManage {
      * 线程生产工厂:默认的线程工厂,
      * 拒绝策略:当线程超过最大线程+阻塞队列后会抛出错误RejectedExecutionException
      */
-    private static ThreadPoolExecutor threadPool = new ThreadPoolExecutor(4, 100, 30, TimeUnit.SECONDS, new LinkedBlockingQueue<>(10), Executors.defaultThreadFactory(), new ThreadPoolExecutor.AbortPolicy());
+    private static ThreadPoolExecutor threadPool = new ThreadPoolExecutor(4, 500, 30, TimeUnit.SECONDS, new LinkedBlockingQueue<>(10), Executors.defaultThreadFactory(), new ThreadPoolExecutor.AbortPolicy());
 
     /**
      * 节点实例化

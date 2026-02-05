@@ -74,15 +74,15 @@ export const databaseSearchNode = {
 
 
 export const jsonResponseNode = {
-  type: 'json-response-node',
+  type: 'response-node',
   text: "",
   x: 0,
   y: 0,
-  label: "json响应",
+  label: "数据响应",
   properties: {
     width: 200,
     height: 50,
-    name: "json响应",
+    name: "数据响应",
     isHovered: false,
     field_list: []
   }

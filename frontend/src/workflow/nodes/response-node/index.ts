@@ -8,7 +8,7 @@ class JSONResponseNodeView extends RootView {
   }
 }
 export default {
-  type: 'json-response-node',
+  type: 'response-node',
   model: RootModel,
   view: JSONResponseNodeView
 }

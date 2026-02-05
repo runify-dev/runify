@@ -36,10 +36,12 @@ const drawer = ref<boolean>(false)
 const name = ref<string>('')
 
 const confirm = () => {
-  props.validate().then(() => {
-    props.submit().then(() => {
-      close()
-    })
+  props.validate().then(({ errors }) => {
+    if (Object.keys(errors).length == 0) {
+      props.submit().then(() => {
+        close()
+      })
+    }
   })
 }
 const close = () => {

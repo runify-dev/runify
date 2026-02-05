@@ -1,28 +1,43 @@
 <template>
-  <Fieldset legend="响应数据">
+  <div>
     <Button variant="text" rounded aria-label="Filter" @click="open()"> 添加 </Button>
     <Form ref="formRef">
       <FormField
         class="mt-2"
-        v-slot="$field"
+        v-slot="$field: any"
         v-for="(value, index) in data"
         :key="value.field"
-        :name="`parameters.${index}.value`"
-        :initial-value="[]"
+        :name="value.location === 'reference' ? `${index}.reference` : `${index}.value`"
+        :initial-value="value.location === 'reference' ? value.reference : value.value"
+        :resolver="
+          value.required
+            ? zodResolver(
+                value.location === 'reference'
+                  ? z.array(z.string()).min(1, { error: '请输入' + value.field })
+                  : z.string().min(1, { error: '请输入' + value.field })
+              )
+            : undefined
+        "
       >
         <label> {{ value.field }}</label>
-        <div class="flex">
+        <div class="flex mt-2">
           <Cascader
             v-if="value.location === 'reference'"
             :config="{ labelKey: 'label', valueKey: 'value' }"
             :options="options"
-            v-model="value.value"
+            v-bind:model-value="value.reference"
+            @update:model-value="
+              (v) => {
+                $field.onChange({ value: v })
+                value.reference = v
+              }
+            "
             optionLabel="label"
             :optionGroupChildren="['children']"
             class="w-full"
             placeholder="请选择引用参数"
           />
-          <InputText v-else type="text" fluid />
+          <InputText v-else type="text" v-model="value.value" fluid />
           <Button
             icon="pi pi-trash"
             variant="text"
@@ -39,15 +54,18 @@
     </Form>
 
     <CreateParameter ref="createParameterRef" @submit="submit"></CreateParameter>
-  </Fieldset>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { ref, inject } from 'vue'
 import CreateParameter from './CreateParameter.vue'
-import { ElMessage } from 'element-plus'
 import { computed } from 'vue'
 import Cascader from '@/components/cascader/index.vue'
+import { zodResolver } from '@primevue/forms/resolvers/zod'
+import { z } from 'zod'
+import type { FormInstance } from '@primevue/forms'
+import bus from '@/bus'
 const props = defineProps<{
   parameters: Array<any>
 }>()
@@ -80,11 +98,10 @@ const submit = (event: any) => {
     }
   } else {
     if (data.value.some((row: any) => row.field == event.row.field)) {
-      ElMessage.warning('字段已存在')
+      bus.emit('message:warn', '字段已存在')
       return
     }
     data.value.push(event.row)
-    console.log(data.value)
   }
   createParameterRef.value?.close()
 }
@@ -92,9 +109,9 @@ const submit = (event: any) => {
 const deleteParameter = (row: any) => {
   data.value = data.value.filter((item: any) => item.field != row.field)
 }
-const parameterFormRef = ref()
+const formRef = ref<FormInstance>()
 const validate = () => {
-  return parameterFormRef.value.validate()
+  return formRef.value?.validate()
 }
 defineExpose({ validate })
 </script>
