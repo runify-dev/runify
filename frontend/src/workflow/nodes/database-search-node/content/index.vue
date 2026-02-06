@@ -49,10 +49,10 @@ const getNodeFieldOptions = inject('getNodeFieldOptions') as any
 const options = getNodeFieldOptions()
 
 const validate = () => {
-  return formRef.value ? formRef.value.validate() : Promise.resolve(false)
+  return formRef.value ? formRef.value.validate() : Promise.reject({ values: [], errors: [] })
 }
 const submit = () => {
-  return formRef.value?.validate().then(({ values, errors }) => {
+  return validate().then(({ values, errors }) => {
     if (Object.keys(errors).length == 0) {
       model.properties.nodeData = values
       return Promise.resolve(values)

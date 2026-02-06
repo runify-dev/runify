@@ -12,7 +12,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import Password from 'primevue/password'
-import type { FormField } from '@/components/dynamics-form/type'
+import type { FormField } from '@/components/dynamics-form-plus/type'
 const props = defineProps<{
   // 表单Item
   formField: FormField

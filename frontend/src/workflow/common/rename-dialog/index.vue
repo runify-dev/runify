@@ -60,7 +60,7 @@ const submit = ({ valid, values }: any) => {
         .then(() => {
           close()
         })
-        .catch((e) => {
+        .catch((e: any) => {
           bus.emit('message:error', e.message)
         })
     }

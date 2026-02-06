@@ -1,5 +1,5 @@
 <template>
-  <AppSubLayout :left="0" :compute-aside-width="(x) => x - 142">
+  <AppSubLayout :left="0" :compute-aside-width="(x: any) => x - 142">
     <template #aside>
       <el-tree
         ref="treeRef"
@@ -29,8 +29,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import NodeVue from '@/components/tree/node/index.vue'
-import AppSubLayout from '@/layout/AppSubLayout.vue'
-import 'md-editor-v3/lib/style.css'
 import NodeApi from '@/api/node'
 import { toTree } from '@/utils/common'
 import { type Tree } from '@/api/type/node'

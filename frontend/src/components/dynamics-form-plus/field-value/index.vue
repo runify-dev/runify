@@ -9,7 +9,7 @@
   ></component>
 </template>
 <script setup lang="ts">
-import type { FormField } from '@/components/dynamics-form/type'
+import type { FormField } from '@/components/dynamics-form-plus/type'
 import type { VueModule } from '@/api/type/common'
 import { computed } from 'vue'
 const impl: Record<string, any> = Object.fromEntries(

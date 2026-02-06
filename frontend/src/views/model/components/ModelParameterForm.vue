@@ -17,9 +17,7 @@
     <DynamicsFormConstructor ref="DynamicsFormConstructorRef"></DynamicsFormConstructor>
     <template #footer>
       <Button @click="close">{{ $t('common.cancel') }}</Button>
-      <Button type="primary" @click="submit()">{{
-        edit ? $t('common.save') : $t('common.add')
-      }}</Button>
+      <Button @click="submit()">{{ edit ? $t('common.save') : $t('common.add') }}</Button>
     </template>
   </Drawer>
 </template>

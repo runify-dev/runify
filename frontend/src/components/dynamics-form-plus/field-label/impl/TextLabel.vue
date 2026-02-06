@@ -2,7 +2,7 @@
   <label for="username"> {{ label }} <span v-if="required" class="text-red-500">*</span> </label>
 </template>
 <script setup lang="ts">
-import type { FormField } from '@/components/dynamics-form/type'
+import type { FormField } from '@/components/dynamics-form-plus/type'
 import { computed } from 'vue'
 const props = defineProps<{
   // 表单Item

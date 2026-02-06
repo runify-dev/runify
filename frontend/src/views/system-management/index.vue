@@ -4,7 +4,5 @@
     <router-view></router-view>
   </div>
 </template>
-<script setup lang="ts">
-import TopHeaderVue from '@/layout/top-header/index.vue'
-</script>
+<script setup lang="ts"></script>
 <style lang="scss"></style>

@@ -72,7 +72,7 @@
 <script setup lang="ts">
 import { onMounted, ref, nextTick, computed } from 'vue'
 import _ from 'lodash'
-import { input_type_list as input_type_list_data } from '@/components/dynamics-form/constructor/data'
+import { input_type_list as input_type_list_data } from './data'
 import { t } from '@/locales'
 import { zodResolver } from '@primevue/forms/resolvers/zod'
 import { z } from 'zod'

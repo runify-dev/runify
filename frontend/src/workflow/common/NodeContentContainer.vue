@@ -7,7 +7,7 @@
     :style="{ width: '25rem' }"
   >
     <template #default>
-      <NodeContent v-if="drawer" :validate="validate" :life-cycle="lifeCycle">
+      <NodeContent v-if="drawer" :validate="validate">
         <template v-if="$slots.content" #content>
           <slot name="content"> </slot>
         </template>
@@ -25,12 +25,10 @@
 import { ref } from 'vue'
 import Drawer from 'primevue/drawer'
 import type { BaseNodeModel } from '@logicflow/core'
-import type { LifeCycle } from '@/workflow/common/type'
 import NodeContent from '@/workflow/common/NodeContent.vue'
 const props = defineProps<{
   validate: () => Promise<any>
   submit: () => Promise<any>
-  lifeCycle?: LifeCycle
 }>()
 const drawer = ref<boolean>(false)
 const name = ref<string>('')

@@ -22,7 +22,7 @@
 </template>
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import type { FormField } from '@/components/dynamics-form/type'
+import type { FormField } from '@/components/dynamics-form-plus/type'
 import FieldLabel from '@/components/dynamics-form-plus/field-label/index.vue'
 import FieldValue from '@/components/dynamics-form-plus/field-value/index.vue'
 import bus from '@/bus'

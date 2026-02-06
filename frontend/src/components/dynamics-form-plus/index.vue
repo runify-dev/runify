@@ -19,7 +19,7 @@
 <script lang="ts" setup>
 import type { Dict } from '@/api/type/common'
 import FormFieldItem from './form-field-item/index.vue'
-import type { FormField } from '@/components/dynamics-form/type'
+import type { FormField } from './type'
 import { nextTick, ref } from 'vue'
 import { Form, type FormInstance } from '@primevue/forms'
 import type Result from '@/request/Result'
@@ -86,16 +86,14 @@ const render = (
     formFieldList.value = render_data
   }
   data = data ? data : {}
-  const values: any = {}
 
-  console.log(values)
   nextTick(() => {
-    formFieldList.value.forEach((item) => {
+    formFieldList.value.forEach((item: any) => {
       const _v = _.get(data, item.field)
       if (_v !== undefined) {
         if (item.valueField && item.optionList && item.optionList.length > 0) {
           const value_field = item.valueField
-          const find = item.optionList?.find((i) => {
+          const find = item.optionList?.find((i: any) => {
             if (typeof data[item.field] === 'string') {
               return i[value_field] === data[item.field]
             } else {

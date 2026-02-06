@@ -16,7 +16,6 @@
   </el-collapse>
 </template>
 <script setup lang="ts">
-import { MdPreview } from 'md-editor-v3'
 import { computed, ref } from 'vue'
 const activeNames = ref<Array<string>>(['reasoning'])
 const props = defineProps<{ chunk: any }>()

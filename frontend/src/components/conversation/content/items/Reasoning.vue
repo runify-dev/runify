@@ -5,23 +5,22 @@
       name="reasoning"
       style="--el-collapse-content-text-color: #8b8b8b"
     >
-      <MdPreview
-        v-bind:model-value="content"
-        ref="editorRef"
-        editorId="preview-only"
-        style="color: #8b8b8b"
-        class="reasoning-md"
-      />
+      <editor-content :editor="editor" />
     </el-collapse-item>
   </el-collapse>
 </template>
 <script setup lang="ts">
-import { MdPreview } from 'md-editor-v3'
-import { computed, ref } from 'vue'
+import newInstance from '@/editor/editor/index'
+import { computed, ref, reactive, watch } from 'vue'
+import { EditorContent, Editor } from '@tiptap/vue-3'
 const activeNames = ref<Array<string>>(['content'])
 const props = defineProps<{ content: any }>()
+const editor: Editor = reactive(newInstance('')) as Editor
 const content = computed(() => {
   return props.content.content
+})
+watch(content, () => {
+  editor.commands.setContent(content.value, { contentType: 'markdown' })
 })
 </script>
 <style lang="scss" scoped>

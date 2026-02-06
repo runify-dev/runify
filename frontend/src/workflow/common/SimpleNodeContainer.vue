@@ -38,12 +38,7 @@
         </template>
       </DropdownMenu>
     </div>
-    <NodeContentContainer
-      :life-cycle="nodeContentLifeCycle"
-      :validate="validate"
-      :submit="submit"
-      ref="nodeContentContainerRef"
-    >
+    <NodeContentContainer :validate="validate" :submit="submit" ref="nodeContentContainerRef">
       <template #content v-if="$slots.default">
         <slot></slot>
       </template>
@@ -94,7 +89,6 @@ const appendNode = (node: any, anchorData: any) => {
 defineProps<{
   validate: () => Promise<any>
   submit: () => Promise<any>
-  nodeContentLifeCycle?: LifeCycle
 }>()
 
 const nodeContentContainerRef = ref<InstanceType<typeof NodeContentContainer>>()

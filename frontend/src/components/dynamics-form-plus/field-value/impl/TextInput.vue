@@ -4,7 +4,7 @@
 <script setup lang="ts">
 import InputText from 'primevue/inputtext'
 import { computed } from 'vue'
-import type { FormField } from '@/components/dynamics-form/type'
+import type { FormField } from '@/components/dynamics-form-plus/type'
 const props = defineProps<{
   // 表单Item
   formField: FormField

@@ -32,7 +32,7 @@
 </template>
 <script setup lang="ts">
 import LoginContainer from '@/views/login/LoginContainer.vue'
-import LoginLayout from '@/layout/LoginLayout.vue'
+import LoginLayout from '@/layout-plus/login-layout/index.vue'
 import { zodResolver } from '@primevue/forms/resolvers/zod'
 import { z } from 'zod'
 import FloatLabel from 'primevue/floatlabel'

@@ -39,7 +39,6 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
 import CardBox from '@/components/card-box/index.vue'
-import { MdPreview } from 'md-editor-v3'
 import { computed, onMounted, ref, watch } from 'vue'
 import { type Node } from '@/api/type/node'
 import { useRouter } from 'vue-router'
