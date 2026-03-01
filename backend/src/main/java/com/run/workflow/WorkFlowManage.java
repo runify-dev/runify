@@ -11,7 +11,6 @@ import com.run.workflow.nodes.NodeManage;
 import io.vertx.core.json.JsonObject;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
-import jakarta.validation.ValidatorFactory;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -50,10 +49,10 @@ public class WorkFlowManage {
     /**
      * 运行开始时间
      */
-    private LocalDateTime startTime;
+    private final LocalDateTime startTime;
 
     @Getter
-    private List<MessageChunk> messageChunks;
+    private final List<MessageChunk> messageChunks;
 
     /**
      * 用于存储上下文
@@ -66,7 +65,12 @@ public class WorkFlowManage {
     /**
      * 校验器,用于校验对象值是否正确
      */
-    private final Validator validator;
+    private final static Validator validator;
+
+    static {
+        validator = Validation.buildDefaultValidatorFactory().getValidator();
+    }
+
     /**
      * 核心线程4个,
      * 最大线程16个,
@@ -75,7 +79,7 @@ public class WorkFlowManage {
      * 线程生产工厂:默认的线程工厂,
      * 拒绝策略:当线程超过最大线程+阻塞队列后会抛出错误RejectedExecutionException
      */
-    private static ThreadPoolExecutor threadPool = new ThreadPoolExecutor(4, 500, 30, TimeUnit.SECONDS, new LinkedBlockingQueue<>(10), Executors.defaultThreadFactory(), new ThreadPoolExecutor.AbortPolicy());
+    private final static ThreadPoolExecutor threadPool = new ThreadPoolExecutor(4, 500, 30, TimeUnit.SECONDS, new LinkedBlockingQueue<>(10), Executors.defaultThreadFactory(), new ThreadPoolExecutor.AbortPolicy());
 
     /**
      * 节点实例化
@@ -98,8 +102,6 @@ public class WorkFlowManage {
         this.workFlow = workFlow;
         this.getStartNode = () -> workFlow.getNode("start-node");
         this.nodeNewInstance = NodeManage.of();
-        ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
-        this.validator = factory.getValidator();
         this.write = write;
         this.params = params;
         this.context = context;
@@ -124,15 +126,20 @@ public class WorkFlowManage {
      * @param getNextNode 获取下一个节点的函数
      */
     public void nextInvoke(INode<?, ?> upINode, Supplier<List<Node>> getNextNode) {
-        List<Node> nodes = getNextNode.get();
-        if (nodes.size() == 1) {
-            threadPool.execute(() -> invoke(nodes.getFirst(), upINode));
-        } else if (nodes.size() > 1) {
-            for (Node node : nodes) {
-                threadPool.execute(() -> invoke(node, upINode));
+        try {
+            List<Node> nodes = getNextNode.get();
+            if (nodes.size() == 1) {
+                threadPool.execute(() -> invoke(nodes.getFirst(), upINode));
+            } else if (nodes.size() > 1) {
+                for (Node node : nodes) {
+                    threadPool.execute(() -> invoke(node, upINode));
+                }
+            } else {
+                // 如果没有下一个运行节点,那么就判断是否所有正在运行的节点都执行结束,如果都执行结束那么工作流就结束
+                this.assertionEnd();
             }
-        } else {
-            // 如果没有下一个运行节点,那么就判断是否所有正在运行的节点都执行结束,如果都执行结束那么工作流就结束
+        } catch (Exception e) {
+            write(upINode, new MessageChunk(MessageConstants.ASSISTANT, List.of(new FailureContentChunk(e.toString(), upINode, (String) this.getParams().get("workflowRunId")))));
             this.assertionEnd();
         }
     }
@@ -210,6 +217,7 @@ public class WorkFlowManage {
      * @param contextRef 上下文地址
      * @return 上下文数据
      */
+    @SuppressWarnings("all")
     public Object getContextVariable(List<String> contextRef) {
         Map<String, ?> context = this.context;
         for (int i = 0; i < contextRef.size(); i++) {

@@ -28,7 +28,7 @@
         dataKey="id"
         tableStyle="min-width: 50rem"
       >
-        <Column expander style="width: 5rem"></Column>
+        <Column expander style="width: 5rem"> </Column>
         <Column field="name" header="处理器名称"></Column>
         <Column field="desc" header="处理器描述"></Column>
         <Column field="protocol" header="处理器协议"></Column>
@@ -53,7 +53,7 @@
           </template>
         </Column>
         <template #expansion="slotProps">
-          <TableColumnExpand :row="slotProps.data"></TableColumnExpand>
+          <Expansion :protocol="slotProps.data.protocol" :meta="slotProps.data.meta"></Expansion>
         </template>
       </DataTable>
     </template>
@@ -67,7 +67,7 @@
   ></Pagination>
 </template>
 <script setup lang="ts">
-import { ref, computed, inject, onMounted } from 'vue'
+import { ref, computed, inject, onMounted, provide } from 'vue'
 import Pagination from '@/components/table/Pagination.vue'
 import { useRoute, useRouter } from 'vue-router'
 import CreareProcessor from '../components/CreareProcessor.vue'
@@ -75,6 +75,7 @@ import type { TreeCommonAPI } from '@/api/tree'
 import processorAPI from '@/api/processor'
 import { type QueryProcessorVO } from '@/api/type/processor'
 import AdaptiveHeight from '@/components/adaptive-height/index.vue'
+import Expansion from './expansion/index.vue'
 const router = useRouter()
 const creareProcessorRef = ref<InstanceType<typeof CreareProcessor>>()
 const route = useRoute()
@@ -98,6 +99,7 @@ const openCreateProcessor = () => {
   creareProcessorRef.value?.open(projectId.value)
 }
 const project = ref()
+provide('project', project)
 const total = ref<number>(0)
 const query = ref<QueryProcessorVO>({
   currentPage: 1,

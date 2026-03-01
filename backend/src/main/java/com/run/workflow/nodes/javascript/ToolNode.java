@@ -1,21 +1,24 @@
-package com.run.workflow.nodes.tool;
+package com.run.workflow.nodes.javascript;
 
 
 import com.run.common.keyvalue.DefaultKeyValue;
-import com.run.common.result.Result;
+import com.run.common.safeapi.CommonAPI;
 import com.run.common.util.ConvertValueUtil;
+import com.run.common.util.JacksonUtils;
 import com.run.workflow.*;
 import com.run.workflow.entity.Node;
 import com.run.workflow.entity.NodeResult;
-import com.run.workflow.nodes.tool.pojo.ToolNodeData;
+import com.run.workflow.nodes.javascript.pojo.ToolNodeData;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.RoutingContext;
 import jakarta.validation.Validator;
 import org.apache.commons.lang3.Strings;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.HostAccess;
 import org.graalvm.polyglot.Value;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
@@ -29,7 +32,7 @@ public class ToolNode extends INode<ToolNode, ToolNodeData> {
     /**
      * 节点类型
      */
-    public final static String type = "tool-node";
+    public final static String type = "java-script-node";
     /**
      * 节点支持在什么工作流中运行
      */
@@ -55,19 +58,23 @@ public class ToolNode extends INode<ToolNode, ToolNodeData> {
         public Supplier<List<Node>> apply(WorkFlowManage workFlowManage, ToolNode node) {
 
             ToolNodeData toolNodeData = node.params;
-            try (Context context = Context.create()) {
+            try (Context context = Context.newBuilder("js").allowHostAccess(HostAccess.EXPLICIT).build()) {
+                context.getBindings("js").putMember("api", new CommonAPI());
                 context.eval("js", toolNodeData.getCode());
-                Value greetFunc = context.getBindings("js").getMember(toolNodeData.getFunctionName());
-                Value input = context.eval("js", "({})");
+                Value greetFunc = context.getBindings("js")
+                        .getMember(toolNodeData.getFunctionName());
+                Map<String, Object> input = new HashMap<>();
                 for (ToolNodeData.Parameter parameter : toolNodeData.getParameters()) {
                     String location = parameter.getLocation();
                     if (Strings.CS.equals(location, "reference")) {
-                        input.putMember(parameter.getField(), workFlowManage.getContextVariable((List<String>) parameter.getValue()));
+                        input.put(parameter.getField(), workFlowManage.getContextVariable((List<String>) parameter.getValue()));
                     } else {
-                        input.putMember(parameter.getField(), parameter.getValue());
+                        input.put(parameter.getField(), parameter.getValue());
                     }
                 }
-                Value value = greetFunc.execute(input);
+                String json = JacksonUtils.toJson(input);
+                Value param = context.eval("js", "(" + json + ")");
+                Value value = greetFunc.execute(param);
                 Object o = ConvertValueUtil.convertValue(value);
                 workFlowManage.writeContext(node, "result", o);
                 node.status = NodeStatus.SUCCESS;

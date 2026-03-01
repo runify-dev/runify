@@ -1,4 +1,4 @@
-package com.run.workflow.nodes.AIChat.entity;
+package com.run.workflow.nodes.aichat.entity;
 
 import lombok.Getter;
 import lombok.Setter;

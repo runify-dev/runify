@@ -11,7 +11,7 @@
       v-if="data.location === 'reference'"
       :config="{ labelKey: 'label', valueKey: 'value' }"
       :options="options"
-      v-model="data.value"
+      v-model="data.reference"
       optionLabel="label"
       :optionGroupChildren="['children']"
       class="w-full"

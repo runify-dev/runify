@@ -2,8 +2,6 @@ package com.run.common.project.executor;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.run.common.constants.MessageConstants;
-import com.run.common.constants.ProcessorProtocolConstants;
 import com.run.common.project.ProjectManage;
 import com.run.common.util.JacksonUtils;
 import com.run.dao.entity.Processor;
@@ -13,18 +11,22 @@ import com.run.workflow.entity.WorkFlow;
 import com.run.workflow.message.struct.*;
 import com.run.workflow.message.struct.chunk.FailureContentChunk;
 import com.run.workflow.message.struct.chunk.JsonContentChunk;
-import com.run.workflow.message.struct.chunk.MessageChunk;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.BodyHandler;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.io.Writer;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -36,9 +38,11 @@ import java.util.concurrent.ConcurrentHashMap;
 public class HttpProcessorExecutor extends ProcessorExecutor {
     private Route route;
     private ConcurrentHashMap<UUID, JsonGenerator> jsonGeneratorMap = new ConcurrentHashMap<>();
+    private WorkFlow workFlowInstance;
 
     public HttpProcessorExecutor(Processor processor, ProjectManage.ProjectExecutor projectExecutor) {
         super(processor, projectExecutor);
+        this.workFlowInstance = WorkFlow.of(processor.getWorkflow(), WorkflowType.PROCESSOR_HTTP);
     }
 
 
@@ -55,6 +59,8 @@ public class HttpProcessorExecutor extends ProcessorExecutor {
         JsonObject meta = processor.getMeta();
         String method = meta.getString("method");
         this.route = router.route(HttpMethod.valueOf(method), meta.getString("path"))
+                .handler(BodyHandler.create().setBodyLimit(Long.MAX_VALUE)
+                        .setDeleteUploadedFilesOnEnd(true))
                 .handler(this::handler);
         return Boolean.TRUE;
     }
@@ -86,11 +92,10 @@ public class HttpProcessorExecutor extends ProcessorExecutor {
     }
 
     public void handler(RoutingContext context) {
-        JsonObject workflow = processor.getWorkflow();
         context.response().setChunked(true);
         UUID requestId = UUID.randomUUID();
-        WorkFlowManage workFlowManage = new WorkFlowManage(WorkFlow.of(workflow, WorkflowType.PROCESSOR_HTTP),
-                new HashMap<String, Object>() {{
+        WorkFlowManage workFlowManage = new WorkFlowManage(workFlowInstance,
+                new HashMap<>() {{
                     put("pools", projectExecutor.getPools());
                     put("context", context);
                 }},
@@ -107,6 +112,8 @@ public class HttpProcessorExecutor extends ProcessorExecutor {
                         throw new RuntimeException(e);
                     }
                     jsonGeneratorMap.remove(requestId, jsonGenerator);
+                    context.end();
+                } else {
                     context.end();
                 }
                 return;
@@ -134,10 +141,7 @@ public class HttpProcessorExecutor extends ProcessorExecutor {
                     context.end(textContent.getContent());
                 }
                 if (c instanceof JsonFieldsContent jsonFieldsContent) {
-                    JsonGenerator jsonGenerator = jsonGeneratorMap.computeIfAbsent(requestId, key -> {
-                        JsonGenerator jsonGenerator1 = newJsonGenerator(context);
-                        return jsonGenerator1;
-                    });
+                    JsonGenerator jsonGenerator = jsonGeneratorMap.computeIfAbsent(requestId, key -> newJsonGenerator(context));
                     Map<String, Object> content = jsonFieldsContent.getContent();
                     for (Map.Entry<String, Object> param : content.entrySet()) {
                         try {

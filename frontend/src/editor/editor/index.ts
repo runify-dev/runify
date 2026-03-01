@@ -20,7 +20,7 @@ import {
 // @ts-expect-error
 import { BubbleMenu } from '@tiptap/vue-3/menus'
 import type { Ref } from 'vue'
-const newInstance = (content?: string, onUpdate?: (editor: any) => void) => {
+const newInstance = (content?: string, onUpdate?: (editor: any) => void, editable?: boolean,) => {
   const editor: Editor = new Editor({
     editorProps: {
       attributes: {
@@ -28,6 +28,7 @@ const newInstance = (content?: string, onUpdate?: (editor: any) => void) => {
         class: 'simple-editor',
       },
     },
+    editable: editable !== undefined ? editable : true,
     extensions: [
       StarterKit.configure({ codeBlock: false }),
       HorizontalRule,

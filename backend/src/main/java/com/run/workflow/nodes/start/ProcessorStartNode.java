@@ -10,13 +10,16 @@ import com.run.workflow.nodes.start.entity.HttpMeta;
 import com.run.workflow.nodes.start.entity.ProcessorStartNodeData;
 import io.vertx.core.MultiMap;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.RoutingContext;
 import jakarta.validation.Validator;
 import org.apache.commons.lang3.Strings;
 
 import java.util.List;
+import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 /**
  * {@code @Author:张少虎}
@@ -85,6 +88,20 @@ public class ProcessorStartNode extends INode<ProcessorStartNode, ProcessorStart
         List<HttpMeta.Parameter> parameters = meta.getParameters();
         RoutingContext routingContext = (RoutingContext) workFlowManage.getParams().get("context");
         workFlowManage.writeContext(this, "pools", workFlowManage.getParams().get("pools"));
+
+        if ("application/json".equals(meta.getContentType())) {
+            JsonObject body = routingContext.body().asJsonObject();
+            workFlowManage.writeContext(this, "body", body.getMap());
+        } else {
+            MultiMap formAttributes = routingContext.request().formAttributes();
+            List<FileUpload> fileUploads = routingContext.fileUploads();
+            for (FileUpload fileUpload : fileUploads) {
+                workFlowManage.writeContext(this, fileUpload.name(), fileUpload);
+            }
+            Map<String, String> collect = formAttributes.entries().stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+            workFlowManage.writeContext(this, "formAttributes", collect);
+        }
         for (HttpMeta.Parameter parameter : parameters) {
             String field = parameter.getField();
             if (Strings.CS.equals(parameter.getLocation(), "query")) {

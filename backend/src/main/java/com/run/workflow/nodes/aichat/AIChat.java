@@ -1,4 +1,4 @@
-package com.run.workflow.nodes.AIChat;
+package com.run.workflow.nodes.aichat;
 
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -25,7 +25,7 @@ import com.run.workflow.entity.NodeResult;
 import com.run.workflow.message.struct.chunk.MessageChunk;
 import com.run.workflow.message.struct.chunk.ReasoningChunk;
 import com.run.workflow.message.struct.chunk.TextContentChunk;
-import com.run.workflow.nodes.AIChat.entity.AIChatNodeData;
+import com.run.workflow.nodes.aichat.entity.AIChatNodeData;
 import io.vertx.core.json.JsonObject;
 import jakarta.validation.Validator;
 import okhttp3.Call;

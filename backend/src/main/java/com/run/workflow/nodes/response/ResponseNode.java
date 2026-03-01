@@ -1,7 +1,5 @@
 package com.run.workflow.nodes.response;
 
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonGenerator;
 import com.run.common.constants.MessageConstants;
 import com.run.common.keyvalue.DefaultKeyValue;
 import com.run.common.util.JacksonUtils;
@@ -9,7 +7,6 @@ import com.run.workflow.*;
 import com.run.workflow.entity.Node;
 import com.run.workflow.entity.NodeResult;
 import com.run.workflow.message.struct.*;
-import com.run.workflow.message.struct.chunk.JsonContentChunk;
 import com.run.workflow.message.struct.chunk.MessageChunk;
 import com.run.workflow.nodes.response.pojo.ResponseNodeData;
 import io.vertx.core.json.JsonObject;
@@ -17,11 +14,7 @@ import jakarta.validation.Validator;
 import lombok.SneakyThrows;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.Strings;
-import org.jetbrains.annotations.NotNull;
 
-import java.io.IOException;
-import java.io.Writer;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

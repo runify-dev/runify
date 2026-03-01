@@ -1,4 +1,4 @@
-package com.run.workflow.nodes.tool.pojo;
+package com.run.workflow.nodes.javascript.pojo;
 
 import lombok.Data;
 

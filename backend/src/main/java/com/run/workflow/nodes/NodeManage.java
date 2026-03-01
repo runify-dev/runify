@@ -24,20 +24,30 @@ import java.util.function.Function;
  * {@code @注释: }
  */
 public class NodeManage implements Function<NewNodeParamsInstance, INode<?, ?>> {
+    private static final ConcurrentHashMap<String, ConcurrentHashMap<WorkflowType, ConcurrentMap<String, Class<? extends INode>>>> cache = new ConcurrentHashMap<>();
     private ConcurrentHashMap<WorkflowType, ConcurrentMap<String, Class<? extends INode>>> nodeInstanceMap;
 
     public static NodeManage of() {
-        List<Class<? extends INode>> classList = ClassScanUtil.getClassList("com.run.workflow.nodes", INode.class);
-        return new NodeManage(classList);
+        return of("com.run.workflow.nodes");
     }
 
     public static NodeManage of(String packageName) {
-        List<Class<? extends INode>> classList = ClassScanUtil.getClassList(packageName, INode.class);
-        return new NodeManage(classList);
+        ConcurrentHashMap<WorkflowType, ConcurrentMap<String, Class<? extends INode>>> workflowTypeConcurrentMapConcurrentHashMap = cache.computeIfAbsent(packageName, key -> {
+            List<Class<? extends INode>> classList = ClassScanUtil.getClassList(packageName, INode.class);
+            return getNodeInstanceMap(classList);
+        });
+        return new NodeManage(workflowTypeConcurrentMapConcurrentHashMap);
+
+    }
+
+    @SuppressWarnings("all")
+    public NodeManage(ConcurrentHashMap<WorkflowType, ConcurrentMap<String, Class<? extends INode>>> instanceMap) {
+        this.nodeInstanceMap = instanceMap;
     }
 
     @SneakyThrows
-    public NodeManage(List<Class<? extends INode>> nodeInstanceList) {
+    @SuppressWarnings("all")
+    public static ConcurrentHashMap<WorkflowType, ConcurrentMap<String, Class<? extends INode>>> getNodeInstanceMap(List<Class<? extends INode>> nodeInstanceList) {
         ConcurrentHashMap<WorkflowType, ConcurrentMap<String, Class<? extends INode>>> result = new ConcurrentHashMap<>();
         for (Class<? extends INode> iNodeClass : nodeInstanceList) {
             Field field = FieldUtils.getDeclaredField(iNodeClass, "type");
@@ -51,7 +61,7 @@ public class NodeManage implements Function<NewNodeParamsInstance, INode<?, ?>> 
                 inner.put(nodeType, iNodeClass);
             }
         }
-        this.nodeInstanceMap = result;
+        return result;
     }
 
 
@@ -60,7 +70,7 @@ public class NodeManage implements Function<NewNodeParamsInstance, INode<?, ?>> 
         /***
          * Node node, JsonObject params, List<String> upNodeIdList, String salt, JsonObject context, Validator validator
          */
-        if (!this.nodeInstanceMap.contains(newNodeParamsInstance.getWorkflowType()) &&   !this.nodeInstanceMap.get(newNodeParamsInstance.getWorkflowType()).containsKey(newNodeParamsInstance.getNode().getType())) {
+        if (!this.nodeInstanceMap.contains(newNodeParamsInstance.getWorkflowType()) && !this.nodeInstanceMap.get(newNodeParamsInstance.getWorkflowType()).containsKey(newNodeParamsInstance.getNode().getType())) {
             throw new RuntimeException("工作流不支持当前节点掉用");
         }
         Class<? extends INode> aClass = this.nodeInstanceMap.get(newNodeParamsInstance.getWorkflowType()).get(newNodeParamsInstance.getNode().getType());

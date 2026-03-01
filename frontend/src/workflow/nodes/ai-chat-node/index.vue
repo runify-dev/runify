@@ -5,6 +5,21 @@
     :submit="submit"
     :validate="validate"
   >
+    <Form ref="formRef">
+      <FormField name="modelId">
+        <label>模型</label>
+        <Select
+          :options="modelList"
+          optionLabel="name"
+          option-value="id"
+          placeholder="请选择模型"
+          class="mt-2"
+        />
+      </FormField>
+      <FormField name="system">
+        <MdInput title="系统提示词" v-model="form.system" style="height: 100px" />
+      </FormField>
+    </Form>
     <el-form
       ref="formRef"
       label-position="top"

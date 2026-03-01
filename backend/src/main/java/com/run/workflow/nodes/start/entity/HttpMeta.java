@@ -14,6 +14,7 @@ import java.util.List;
 public class HttpMeta {
     private String method;
     private String path;
+    private String contentType;
     private List<Parameter> parameters;
 
     @Data

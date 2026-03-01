@@ -30,9 +30,9 @@
   </Fieldset>
 </template>
 <script setup lang="ts">
-import { ElMessage } from 'element-plus'
 import { ref, computed } from 'vue'
 import CreateParameter from './CreateParameter.vue'
+import bus from '@/bus'
 const createParameterRef = ref<InstanceType<typeof CreateParameter>>()
 const props = defineProps<{ parameters: Array<any>; updateFieldList: () => void }>()
 const emit = defineEmits(['update:parameters'])
@@ -56,7 +56,7 @@ const submit = (event: any) => {
     tableData.value[event.index] = event.row
   } else {
     if (tableData.value.some((row: any) => row.field == event.row.field)) {
-      ElMessage.warning('字段已存在')
+      bus.emit('message:warn', '字段已存在')
       return
     }
     tableData.value.push(event.row)
