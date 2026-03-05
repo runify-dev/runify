@@ -16,7 +16,7 @@ const projectRouter = {
       name: 'projectDetails',
       meta: { title: 'common.fileUpload.document', activeMenu: 'project' },
       component: () => import("@/views/project/Details.vue"),
-      redirect: { name: 'projectPublic' },
+      redirect: { name: 'databaseCollectionPool' },
       children: [
         {
           path: "database-collection-pool",

@@ -11,13 +11,13 @@
     <template #start> </template>
     <template #center>
       <InputGroup>
-        <InputText v-model="searchText" placeholder="数据源" />
+        <InputText v-model="searchText" placeholder="搜索处理器" />
         <InputGroupAddon>
           <Button icon="pi pi-search" severity="secondary" variant="text" />
         </InputGroupAddon>
       </InputGroup>
     </template>
-    <template #end> <Button @click="openCreateProcessor" label="新建数据源"></Button></template>
+    <template #end> <Button @click="openCreateProcessor" label="新建数处理器"></Button></template>
   </Toolbar>
   <CreareProcessor ref="creareProcessorRef"></CreareProcessor>
   <AdaptiveHeight :exclude-height="230">

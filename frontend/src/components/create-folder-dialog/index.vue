@@ -6,11 +6,12 @@
       :initial-values="{ name: '' }"
       :resolver="resolver"
       @submit="submit"
-      class="flex flex-col gap-4 w-full sm:w-56"
     >
-      <div class="flex flex-col gap-2">
-        <label>文件夹名称</label>
-        <InputText name="name" type="text" :placeholder="`请输入文件夹名称`" fluid />
+      <div>
+        <IftaLabel>
+          <label>文件夹名称</label>
+          <InputText name="name" type="text" fluid />
+        </IftaLabel>
         <Message v-if="$form.name?.invalid" severity="error" size="small" variant="simple">{{
           $form.name.error.message
         }}</Message>

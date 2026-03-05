@@ -49,6 +49,7 @@ declare module 'vue' {
     FormField: typeof import('@primevue/forms/formfield')['default']
     FormFieldItem: typeof import('./src/components/dynamics-form-plus/form-field-item/index.vue')['default']
     IftaLabel: typeof import('primevue/iftalabel')['default']
+    Image: typeof import('primevue/image')['default']
     InputGroup: typeof import('primevue/inputgroup')['default']
     InputGroupAddon: typeof import('primevue/inputgroupaddon')['default']
     InputNumber: typeof import('primevue/inputnumber')['default']

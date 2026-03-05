@@ -42,9 +42,9 @@
 
                                   items: [
                                     {
-                                      label: '应用',
+                                      label: '项目',
                                       command: () => {
-                                        openCreateApplicationDialog()
+                                        openCreateProjectDialog()
                                       }
                                     },
                                     {
@@ -85,10 +85,10 @@
                             visible: node.data.type == 'folder',
                             items: [
                               {
-                                label: '应用',
+                                label: '项目',
                                 visible: node.data.type == 'folder',
                                 command: () => {
-                                  openCreateApplicationDialog(node)
+                                  openCreateProjectDialog(node)
                                 }
                               },
                               {
@@ -169,12 +169,12 @@
           </template>
         </FlipCard>
       </div>
-      <CreateResourceDialog
-        ref="createResourceDialogRef"
+      <CreateProjectDialog
+        ref="createProjectDialogRef"
         :api="treeCommonAPI"
-        name="应用"
+        name="项目"
         @create:resource:success="createResourceSuccess"
-      ></CreateResourceDialog>
+      ></CreateProjectDialog>
       <CreateFolderDialog
         @create:folder:success="createFolderSuccess"
         ref="createFolderDialogRef"
@@ -186,7 +186,7 @@
 </template>
 <script setup lang="ts">
 import AppMenuContent from '@/layout-plus/app-menu-content/index.vue'
-import CreateResourceDialog from '@/components/create-resource-dialog/index.vue'
+import CreateProjectDialog from '@/views/project/components/CreateProjectDialog .vue'
 import CreateFolderDialog from '@/components/create-folder-dialog/index.vue'
 import DropdownMenu from '@/components/dropdown-menu/index.vue'
 import { onMounted, ref, computed, onBeforeUnmount, provide } from 'vue'
@@ -260,6 +260,7 @@ const createResourceSuccess = (key: string, node: any) => {
   const treeNode = toTreeNode({ ...node, type: 'project' })
   treeManage.value?.addChild(key, treeNode)
   expandedKeys.value = { ...expandedKeys.value, [key]: true }
+  flipCardRef.value?.flip()
   router.push({ name: 'projectDetails', params: { id: node.id } })
 }
 const createFolderSuccess = (key: string, node: any) => {
@@ -268,10 +269,10 @@ const createFolderSuccess = (key: string, node: any) => {
   expandedKeys.value = { [key]: true }
   router.push({ name: 'projectFolders', params: { id: node.id } })
 }
-const createResourceDialogRef = ref<InstanceType<typeof CreateResourceDialog>>()
+const createProjectDialogRef = ref<InstanceType<typeof CreateProjectDialog>>()
 const createFolderDialogRef = ref<InstanceType<typeof CreateFolderDialog>>()
-const openCreateApplicationDialog = (node?: TreeNode) => {
-  createResourceDialogRef.value?.open(node)
+const openCreateProjectDialog = (node?: TreeNode) => {
+  createProjectDialogRef.value?.open(node)
 }
 const openCreateFolderDialog = (node?: TreeNode) => {
   createFolderDialogRef.value?.open(node)
@@ -290,7 +291,7 @@ const treeManage = ref<TreeManager>()
 onMounted(() => {
   bus.on('open:create:project:dialog', (id: string) => {
     const treeNode = treeManage.value?.findNodeByKey(id)
-    openCreateApplicationDialog(treeNode ? treeNode : undefined)
+    openCreateProjectDialog(treeNode ? treeNode : undefined)
   })
   treeCommonAPI.listTree('root').then((ok) => {
     nodes.value = toTree(ok.data)

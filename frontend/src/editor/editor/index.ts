@@ -15,10 +15,12 @@ import {
   Markdown,
   Mathematics,
   TableKit,
+  CustomVideoBlock
 } from './nodes/index'
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-expect-error
 import { BubbleMenu } from '@tiptap/vue-3/menus'
+import FileAPI from '@/api/file'
 import type { Ref } from 'vue'
 const newInstance = (content?: string, onUpdate?: (editor: any) => void, editable?: boolean,) => {
   const editor: Editor = new Editor({
@@ -45,7 +47,16 @@ const newInstance = (content?: string, onUpdate?: (editor: any) => void, editabl
       CodeBlockLowlight,
       TableKit,
       Mathematics,
-      BubbleMenu
+      BubbleMenu,
+      CustomVideoBlock.configure({
+        upload: async (file) => {
+          const fd = new FormData()
+          fd.append('file', file)
+          return FileAPI.uploadFile(fd).then((ok) => {
+            return `./api/storage/file/${ok.data.id}`
+          })
+        }
+      })
     ],
     onUpdate: onUpdate,
     content: content ? content : null,

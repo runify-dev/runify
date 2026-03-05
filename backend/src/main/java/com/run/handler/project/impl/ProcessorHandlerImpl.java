@@ -22,7 +22,6 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
 import org.jooq.Condition;
-import org.jooq.impl.DSL;
 
 import javax.inject.Inject;
 import java.time.LocalDateTime;
@@ -64,7 +63,7 @@ public class ProcessorHandlerImpl implements IProcessorHandler {
     }
 
     public Condition getCondition(QueryProcessorVO query) {
-        Condition condition = DSL.noCondition();
+        Condition condition = F.field(Processor::getProjectId).eq(F.params(Processor::getProjectId));
         if (StringUtils.isNotEmpty(query.getName())) {
             condition = condition.and(F.field(Processor::getName).like(F.params(Processor::getName)));
         }
@@ -79,12 +78,14 @@ public class ProcessorHandlerImpl implements IProcessorHandler {
 
     @Override
     public void page(RoutingContext context) {
+        String projectId = context.pathParam("projectId");
         QueryProcessorVO query = Query.format(QueryProcessorVO.class, context);
         Condition condition = getCondition(query);
         processorMapper.page(condition, query.getCurrentPage(), query.getPageSize(), new HashMap<>() {{
             put("name", "%" + query.getName() + "%");
             put("desc", "%" + query.getDesc() + "%");
             put("protocol", query.getProtocol());
+            put("projectId", projectId);
         }}).onSuccess(ok -> {
             context.end(Result.success(ok).toBuffer());
         }).onFailure(context::fail);

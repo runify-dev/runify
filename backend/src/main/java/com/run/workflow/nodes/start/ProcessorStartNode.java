@@ -90,8 +90,10 @@ public class ProcessorStartNode extends INode<ProcessorStartNode, ProcessorStart
         workFlowManage.writeContext(this, "pools", workFlowManage.getParams().get("pools"));
 
         if ("application/json".equals(meta.getContentType())) {
-            JsonObject body = routingContext.body().asJsonObject();
-            workFlowManage.writeContext(this, "body", body.getMap());
+            if (List.of("POST", "PUT", "DELETE").contains(meta.getMethod())) {
+                JsonObject body = routingContext.body().asJsonObject();
+                workFlowManage.writeContext(this, "body", body.getMap());
+            }
         } else {
             MultiMap formAttributes = routingContext.request().formAttributes();
             List<FileUpload> fileUploads = routingContext.fileUploads();

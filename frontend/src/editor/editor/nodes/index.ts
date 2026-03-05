@@ -12,6 +12,7 @@ import { Mathematics } from './mathematics-node/index'
 import { Markdown } from '@tiptap/markdown'
 import { TableKit } from '@tiptap/extension-table'
 import { Selection } from '@tiptap/extensions'
+import { CustomVideoBlock } from "./custom-video-node/index"
 export {
   StarterKit,
   HorizontalRule,
@@ -27,5 +28,6 @@ export {
   CodeBlockLowlight,
   Markdown,
   TableKit,
-  Selection
+  Selection,
+  CustomVideoBlock
 }

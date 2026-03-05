@@ -22,9 +22,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -71,15 +68,6 @@ public class WorkFlowManage {
         validator = Validation.buildDefaultValidatorFactory().getValidator();
     }
 
-    /**
-     * 核心线程4个,
-     * 最大线程16个,
-     * 活跃时间30秒(当线程池已经到最大线程池后30秒后清除不活跃线程),活跃时间单位秒,
-     * 阻塞线程10个,
-     * 线程生产工厂:默认的线程工厂,
-     * 拒绝策略:当线程超过最大线程+阻塞队列后会抛出错误RejectedExecutionException
-     */
-    private final static ThreadPoolExecutor threadPool = new ThreadPoolExecutor(4, 500, 30, TimeUnit.SECONDS, new LinkedBlockingQueue<>(10), Executors.defaultThreadFactory(), new ThreadPoolExecutor.AbortPolicy());
 
     /**
      * 节点实例化
@@ -116,7 +104,10 @@ public class WorkFlowManage {
     }
 
     public void asyncInvoke(Node node, INode<?, ?> upINode) {
-        threadPool.execute(() -> invoke(node, upINode));
+        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            executor.execute(() -> invoke(node, upINode));
+        }
+
     }
 
     /**
@@ -129,10 +120,14 @@ public class WorkFlowManage {
         try {
             List<Node> nodes = getNextNode.get();
             if (nodes.size() == 1) {
-                threadPool.execute(() -> invoke(nodes.getFirst(), upINode));
+                try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+                    executor.execute(() -> invoke(nodes.getFirst(), upINode));
+                }
             } else if (nodes.size() > 1) {
                 for (Node node : nodes) {
-                    threadPool.execute(() -> invoke(node, upINode));
+                    try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+                        executor.execute(() -> invoke(node, upINode));
+                    }
                 }
             } else {
                 // 如果没有下一个运行节点,那么就判断是否所有正在运行的节点都执行结束,如果都执行结束那么工作流就结束

@@ -19,7 +19,9 @@
             </InputGroupAddon>
           </InputGroup>
         </template>
-        <template #end> <Button @click="openCreateNoteDialog" label="新建笔记"></Button></template>
+        <template #end>
+          <Button @click="openCreateProjectDialog" label="新建项目"></Button
+        ></template>
       </Toolbar>
       <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mt-5">
         <template v-for="item in nodeList" :key="item.id">
@@ -47,9 +49,8 @@ const treeCommonAPI = new TreeCommonAPI('project')
 const nodeList = ref<Array<Node>>([])
 const folder = ref<Node>()
 const route = useRoute()
-const searchText = ref<string>('')
-const openCreateNoteDialog = () => {
-  bus.emit('open:create:note:dialog', folderId.value)
+const openCreateProjectDialog = () => {
+  bus.emit('open:create:project:dialog', folderId.value)
 }
 const lisResource = () => {
   treeCommonAPI.listResource(folderId.value).then((ok) => {
