@@ -28,6 +28,8 @@ frontend/package-lock.json
 *.sw?
 backend/target
 backend/src/main/resources/ui
+backend/src/main/resources/admin
+frontend/components.d.ts
 frontend/target
 frontend/node
 target

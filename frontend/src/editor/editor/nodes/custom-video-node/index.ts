@@ -36,7 +36,7 @@ export const CustomVideoBlock = Node.create<VideoBlockOptions>({
   },
 
   markdownTokenName: "html_block",
-
+  // @ts-ignore
   parseMarkdown(token: any) {
     const html: string = token.content ?? ""
     if (!/^<video[\s>]/i.test(html.trim())) return null
@@ -115,12 +115,12 @@ export const CustomVideoBlock = Node.create<VideoBlockOptions>({
   addNodeView() {
     return VueNodeViewRenderer(VideoBlockView)
   },
-
-  addCommands() {
+  // @ts-ignore
+  addCommands(self: any) {
     return {
       setVideoBlock:
-        (options) =>
-          ({ commands }) => {
+        (options: any) =>
+          ({ commands }: any) => {
             return commands.insertContent({ type: this.name, attrs: options })
           },
     }
