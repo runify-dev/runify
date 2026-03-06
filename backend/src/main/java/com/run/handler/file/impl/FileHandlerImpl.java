@@ -7,6 +7,8 @@ import com.run.dao.common.entity.BaseReadStream;
 import com.run.dao.entity.FileEntity;
 import com.run.dao.mapper.FileMapper;
 import com.run.handler.file.IFileHandler;
+import io.netty.handler.codec.http.HttpHeaderNames;
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.MimeMapping;
@@ -103,19 +105,58 @@ public class FileHandlerImpl implements IFileHandler {
                     context.response().putHeader(HttpHeaders.CONTENT_TYPE, contentType);
                 }
             }
-            context.response().putHeader(HttpHeaders.ACCEPT_RANGES, "bytes");
-            context.response().putHeader(HttpHeaders.CONTENT_LENGTH, Long.toString(file.getSize()));
-            context.response().putHeader(HttpHeaders.CONTENT_DISPOSITION, "inline;filename=" + file.getFileName());
-            context.response().putHeader(HttpHeaders.CONTENT_RANGE, "bytes 0-" + file.getSize() + "/" + file.getSize());
-            BaseReadStream baseReadStream = fileMapper.downloadFile(vertx, file);
+
+            long fileSize = file.getSize();
+            String rangeHeader = context.request().getHeader(HttpHeaderNames.RANGE);
+
+            long start = 0;
+            long end = fileSize - 1;
+
+            if (rangeHeader != null && rangeHeader.startsWith("bytes=")) {
+                String[] parts = rangeHeader.substring(6).split("-");
+                try {
+                    if (!parts[0].isEmpty()) {
+                        start = Long.parseLong(parts[0]);
+                    }
+                    if (parts.length > 1 && !parts[1].isEmpty()) {
+                        end = Long.parseLong(parts[1]);
+                    }
+                } catch (NumberFormatException e) {
+                    context.response().setStatusCode(416).end("Range Not Satisfiable");
+                    return Future.succeededFuture();
+                }
+
+                // range 越界校验
+                if (start > end || end >= fileSize || start < 0) {
+                    context.response()
+                            .setStatusCode(416)
+                            .putHeader(HttpHeaders.CONTENT_RANGE, "bytes */" + fileSize)
+                            .end("Range Not Satisfiable");
+                    return Future.succeededFuture();
+                }
+            }
+
+            long contentLength = end - start + 1;
+            boolean isRange = rangeHeader != null;
+
+            context.response()
+                    .setStatusCode(isRange ? 206 : 200)
+                    .putHeader(HttpHeaders.ACCEPT_RANGES, "bytes")
+                    .putHeader(HttpHeaders.CONTENT_LENGTH, Long.toString(contentLength))
+                    .putHeader(HttpHeaders.CONTENT_RANGE, "bytes " + start + "-" + end + "/" + fileSize)
+                    .putHeader(HttpHeaders.CONTENT_DISPOSITION, "inline;filename=" + file.getFileName());
+
+            BaseReadStream baseReadStream = fileMapper.downloadFile(vertx, file, start, end + 1);
             baseReadStream.handler(buffer -> {
                 if (context.response().closed()) {
                     baseReadStream.close();
+                    return;
                 }
                 context.response().write(buffer);
             }).endHandler(v -> {
                 context.end();
             }).exceptionHandler(context::fail);
+
             return baseReadStream.read();
         }).onFailure(context::fail);
     }

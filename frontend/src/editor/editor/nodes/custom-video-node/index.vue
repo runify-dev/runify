@@ -2,7 +2,30 @@
   <node-view-wrapper class="video-block-wrapper" :class="{ selected }" contenteditable="false">
     <div class="video-player-shell" @click="onShellClick">
       <div class="video-ratio-box">
+        <!-- Upload progress overlay -->
+        <div v-if="uploadProgress !== null" class="video-upload-overlay">
+          <div class="video-upload-icon">
+            <svg viewBox="0 0 48 48" fill="none">
+              <circle cx="24" cy="24" r="20" stroke="rgba(255,255,255,0.15)" stroke-width="4" />
+              <circle
+                cx="24"
+                cy="24"
+                r="20"
+                stroke="#7db3e8"
+                stroke-width="4"
+                stroke-linecap="round"
+                :stroke-dasharray="`${uploadProgress * 1.257} 999`"
+                transform="rotate(-90 24 24)"
+                style="transition: stroke-dasharray 0.3s ease"
+              />
+            </svg>
+            <span class="video-upload-percent">{{ uploadProgress }}%</span>
+          </div>
+          <p class="video-upload-label">{{ node.attrs.title || '上传中…' }}</p>
+        </div>
+
         <video
+          v-else-if="src"
           ref="videoRef"
           class="video-el"
           :src="src"
@@ -19,14 +42,14 @@
         />
 
         <!-- Buffering spinner -->
-        <div v-if="buffering" class="video-spinner-overlay">
+        <div v-if="buffering && uploadProgress === null" class="video-spinner-overlay">
           <div class="video-spinner"></div>
         </div>
 
-        <!-- Big play button (shown when paused and not yet started) -->
+        <!-- Big play button -->
         <transition name="fade">
           <div
-            v-if="!playing && currentTime === 0 && !buffering"
+            v-if="!playing && currentTime === 0 && !buffering && src && uploadProgress === null"
             class="video-big-play"
             @click.stop="togglePlay"
           >
@@ -38,8 +61,8 @@
         </transition>
       </div>
 
-      <!-- ── Controls bar ── -->
-      <div class="video-controls" @click.stop>
+      <!-- Controls bar (hidden during upload) -->
+      <div v-if="uploadProgress === null && src" class="video-controls" @click.stop>
         <!-- Progress bar -->
         <div
           class="video-progress"
@@ -49,14 +72,11 @@
           @mouseleave="hoverTime = null"
         >
           <div class="video-progress-bg">
-            <!-- Buffered -->
             <div class="video-progress-buffer" :style="{ width: bufferedPercent + '%' }"></div>
-            <!-- Played -->
             <div class="video-progress-played" :style="{ width: playedPercent + '%' }">
               <div class="video-progress-thumb"></div>
             </div>
           </div>
-          <!-- Hover time tooltip -->
           <div
             v-if="hoverTime !== null"
             class="video-time-tooltip"
@@ -83,7 +103,6 @@
           <div class="video-volume-wrap">
             <button class="video-ctrl-btn" @click="toggleMute" :title="muted ? '取消静音' : '静音'">
               <svg v-if="!muted && volume > 0.5" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M10 3L5 7H2v6h3l5 4V3zM14.5 5.5a6 6 0 010 9M12.5 7.5a3.5 3.5 0 010 5" />
                 <path d="M10 3L5 7H2v6h3l5 4V3z" fill="currentColor" />
                 <path
                   d="M14.5 5.5a6 6 0 010 9M12.5 7.5a3.5 3.5 0 010 5"
@@ -128,10 +147,9 @@
           <!-- Time -->
           <span class="video-time">{{ formatTime(currentTime) }} / {{ formatTime(duration) }}</span>
 
-          <!-- Spacer -->
           <div style="flex: 1"></div>
 
-          <!-- Title (editable on click) -->
+          <!-- Title -->
           <div class="video-title-wrap">
             <span
               v-if="!editingTitle"
@@ -194,6 +212,18 @@
           </button>
         </div>
       </div>
+
+      <!-- Upload placeholder controls bar -->
+      <div
+        v-else-if="uploadProgress !== null"
+        class="video-controls video-controls-uploading"
+        @click.stop
+      >
+        <div class="video-controls-row">
+          <span class="video-time" style="opacity: 0.5">上传中…</span>
+          <div style="flex: 1"></div>
+        </div>
+      </div>
     </div>
   </node-view-wrapper>
 </template>
@@ -208,11 +238,9 @@ const props = defineProps<NodeViewProps>()
 // ── Refs ──
 const videoRef = ref<HTMLVideoElement | null>(null)
 const progressRef = ref<HTMLElement | null>(null)
-const urlInputRef = ref<HTMLInputElement | null>(null)
 const titleInputRef = ref<HTMLInputElement | null>(null)
 
 // ── State ──
-const urlInput = ref('')
 const playing = ref(false)
 const buffering = ref(false)
 const currentTime = ref(0)
@@ -228,22 +256,22 @@ const playbackRate = ref(1)
 const RATES = [0.5, 0.75, 1, 1.25, 1.5, 2]
 
 // ── Attrs ──
-const src = computed(() => props.node.attrs.src as string)
+const src = computed(() => props.node.attrs.src as string | null)
 const nodeTitle = computed(() => props.node.attrs.title as string)
+const uploadProgress = computed(() => props.node.attrs.uploadProgress as number | null)
 
 // ── Derived ──
 const playedPercent = computed(() =>
   duration.value ? (currentTime.value / duration.value) * 100 : 0
 )
 
-// Focus input when empty state mounts
-watch(
-  src,
-  (v) => {
-    if (!v) nextTick(() => urlInputRef.value?.focus())
-  },
-  { immediate: true }
-)
+// Reset player state when src changes (e.g. after upload completes)
+watch(src, () => {
+  playing.value = false
+  currentTime.value = 0
+  duration.value = 0
+  bufferedPercent.value = 0
+})
 
 // ── Playback ──
 function togglePlay() {
@@ -257,7 +285,6 @@ function onTimeUpdate() {
   const v = videoRef.value
   if (!v) return
   currentTime.value = v.currentTime
-  // buffered
   if (v.buffered.length) {
     bufferedPercent.value = (v.buffered.end(v.buffered.length - 1) / v.duration) * 100
   }
@@ -345,8 +372,7 @@ function cancelTitle() {
 
 // ── Replace ──
 function replaceVideo() {
-  props.updateAttributes({ src: null, currentTime: 0 })
-  nextTick(() => urlInputRef.value?.focus())
+  props.updateAttributes({ src: null, currentTime: 0, uploadProgress: null })
 }
 
 // ── Fullscreen ──
@@ -357,10 +383,8 @@ function toggleFullscreen() {
   else v.requestFullscreen()
 }
 
-// ── Shell click (deselect) ──
-function onShellClick() {
-  // clicking the wrapper outside controls does nothing special
-}
+// ── Shell click ──
+function onShellClick() {}
 
 // ── Helpers ──
 function formatTime(s: number): string {
@@ -391,66 +415,6 @@ function formatTime(s: number): string {
   box-shadow: 0 0 0 3px rgba(125, 179, 232, 0.25);
 }
 
-/* ── Empty state ── */
-.video-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 40px 24px;
-  background: #f6f8fa;
-  border-radius: 10px;
-  border: 2px dashed #d0d7de;
-}
-.video-empty-icon svg {
-  width: 48px;
-  height: 48px;
-}
-.video-empty-label {
-  margin: 0;
-  font-size: 14px;
-  color: #6a737d;
-  font-weight: 500;
-}
-.video-url-input-row {
-  display: flex;
-  gap: 8px;
-  width: 100%;
-  max-width: 480px;
-}
-.video-url-input {
-  flex: 1;
-  padding: 8px 12px;
-  border: 1px solid #d0d7de;
-  border-radius: 8px;
-  font-size: 13px;
-  font-family: inherit;
-  outline: none;
-  background: #fff;
-  color: #24292f;
-  transition: border-color 0.15s;
-}
-.video-url-input:focus {
-  border-color: #7db3e8;
-  box-shadow: 0 0 0 3px rgba(125, 179, 232, 0.2);
-}
-.video-url-confirm {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 8px;
-  background: #1a1a2e;
-  color: #fff;
-  font-size: 13px;
-  font-weight: 500;
-  font-family: inherit;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.video-url-confirm:hover {
-  background: #2d2d4e;
-}
-
 /* ── Player ── */
 .video-player-shell {
   position: relative;
@@ -468,6 +432,52 @@ function formatTime(s: number): string {
   height: 100%;
   object-fit: contain;
   display: block;
+}
+
+/* ── Upload overlay ── */
+.video-upload-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  z-index: 10;
+}
+
+.video-upload-icon {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.video-upload-icon svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.video-upload-percent {
+  position: relative;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: -0.5px;
+}
+.video-upload-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+  margin: 0;
+  max-width: 220px;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Spinner */
@@ -524,6 +534,10 @@ function formatTime(s: number): string {
 /* ── Controls ── */
 .video-controls {
   background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.4) 100%);
+  padding: 6px 10px 8px;
+}
+.video-controls-uploading {
+  background: rgba(0, 0, 0, 0.6);
   padding: 6px 10px 8px;
 }
 
@@ -641,7 +655,6 @@ function formatTime(s: number): string {
   border-radius: 2px;
   outline: none;
   cursor: pointer;
-  transition: width 0.2s;
 }
 .video-volume-slider::-webkit-slider-thumb {
   appearance: none;

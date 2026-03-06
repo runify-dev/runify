@@ -1,7 +1,6 @@
 package com.run.dao.mapper;
 
 import com.run.common.config.AppConfig;
-
 import com.run.common.util.CommonUtils;
 import com.run.dao.common.F;
 import com.run.dao.common.entity.BaseReadStream;
@@ -139,46 +138,100 @@ public class FileMapper extends BaseMapper<FileEntity> {
     class FileReadStream implements BaseReadStream {
         String path;
         Vertx vertx;
+        private Long offset;
+        private Long length;
+        private Long size;
         private Handler<Buffer> handler;
         private Handler<Throwable> exceptionHandler;
         private Handler<Void> endHandler;
+        private boolean isClose;
         private AsyncFile asyncFile;
 
         public FileReadStream(Vertx vertx, String path) {
             this.path = path;
             this.vertx = vertx;
+            this.isClose = false;
+        }
+
+        public FileReadStream(Vertx vertx, String path, Long offset, Long length, Long size) {
+            this.path = path;
+            this.vertx = vertx;
+            this.offset = offset;
+            this.length = length;
+            this.size = size;
+            this.isClose = false;
         }
 
         @Override
         public Future<Void> read() {
-            return vertx.fileSystem().open(path, new OpenOptions().setRead(true))
-                    .compose(h -> {
-                        if (this.asyncFile == null) {
-                            this.asyncFile = h;
-                        }
-                        h.handler(this.handler);
-                        h.endHandler(this.endHandler);
-                        h.exceptionHandler(this.exceptionHandler);
+            // 没有 range 参数，走原来的全量流式读取
+            if (offset == null || length == null || size == null) {
+                return vertx.fileSystem().open(path, new OpenOptions().setRead(true))
+                        .compose(h -> {
+                            if (this.asyncFile == null) {
+                                this.asyncFile = h;
+                            }
+                            h.handler(this.handler);
+                            h.endHandler(this.endHandler);
+                            h.exceptionHandler(this.exceptionHandler);
+                            return Future.succeededFuture();
+                        });
+            }
 
-                        return Future.succeededFuture();
-                    });
+            // 有 range 参数，走分片读取
+            if (asyncFile == null) {
+                return vertx.fileSystem().open(path, new OpenOptions().setRead(true))
+                        .compose(h -> {
+                            this.asyncFile = h;
+                            return doRangeRead();
+                        });
+            }
+            return doRangeRead();
+        }
+
+        private Future<Void> doRangeRead() {
+            if (isClose || this.offset >= size) {
+                return Future.succeededFuture();
+            }
+
+            // 当前块实际读取长度，不超过 size
+            long chunkSize = (offset + length > size) ? (size - offset) : length;
+            Buffer buf = Buffer.buffer((int) chunkSize);
+
+            return asyncFile.read(buf, 0, offset, (int) chunkSize)
+                    .compose(readBuf -> {
+                        if (isClose) {
+                            return Future.succeededFuture();
+                        }
+                        handler.handle(readBuf);
+                        this.offset += chunkSize;
+                        if (this.offset < size) {
+                            return doRangeRead(); // 递归读下一块
+                        } else {
+                            endHandler.handle(null);
+                            return Future.succeededFuture();
+                        }
+                    })
+                    .onFailure(throwable -> exceptionHandler.handle(throwable));
         }
 
         @Override
         public Future<Void> close() {
-            this.asyncFile.close();
+            this.isClose = true;
+            if (this.asyncFile != null) {
+                return this.asyncFile.close();
+            }
             return Future.succeededFuture();
         }
 
         @Override
-        public BaseReadStream exceptionHandler(@org.jetbrains.annotations.Nullable Handler<Throwable> var1) {
+        public BaseReadStream exceptionHandler(@Nullable Handler<Throwable> var1) {
             this.exceptionHandler = var1;
             return this;
         }
 
         @Override
-
-        public BaseReadStream handler(@org.jetbrains.annotations.Nullable Handler<Buffer> var1) {
+        public BaseReadStream handler(@Nullable Handler<Buffer> var1) {
             this.handler = var1;
             return this;
         }
@@ -217,10 +270,23 @@ public class FileMapper extends BaseMapper<FileEntity> {
         } else {
             return new FileReadStream(vertx, fileEntity.getPath());
         }
-
-
     }
 
+    /**
+     *
+     * @param vertx
+     * @param fileEntity
+     * @param offset 偏移量 start
+     * @param size   结束。end
+     * @return
+     */
+    public BaseReadStream downloadFile(Vertx vertx, FileEntity fileEntity, Long offset, Long size) {
+        if (dbType == SQLDialect.POSTGRES) {
+            return new PgsqlReadStream(fileEntity.getLoId(), offset, 1024 * 64L, Math.min(fileEntity.getSize(), size));
+        } else {
+            return new FileReadStream(vertx, fileEntity.getPath(), offset, 1024 * 64L, Math.min(fileEntity.getSize(), size));
+        }
+    }
 
     /**
      * 插入

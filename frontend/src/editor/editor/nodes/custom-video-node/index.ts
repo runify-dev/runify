@@ -1,30 +1,75 @@
-import { Node, mergeAttributes } from "@tiptap/core"
+import { createAtomBlockMarkdownSpec, Node, mergeAttributes, Extension } from "@tiptap/core"
 import { Plugin, PluginKey } from "@tiptap/pm/state"
 import { VueNodeViewRenderer } from "@tiptap/vue-3"
-import { splitBlock } from "@tiptap/pm/commands"
 import VideoBlockView from "./index.vue"
+
+export const VideoBlockBackspaceGuard = Extension.create({
+  name: 'videoBlockBackspaceGuard',
+
+  addKeyboardShortcuts() {
+    return {
+      Backspace: () => {
+        const { state, dispatch } = this.editor.view
+        const { selection } = state
+        const { $from, empty } = selection
+
+        if (!empty || $from.parentOffset !== 0) return false
+
+        const before = $from.before($from.depth)
+        const nodeBefore = state.doc.resolve(before).nodeBefore
+
+        if (nodeBefore?.type.name === 'videoBlock') {
+          if ($from.parent.content.size === 0) {
+            dispatch(state.tr.delete(before, before + $from.parent.nodeSize))
+          } else {
+            dispatch(state.tr.delete(before - nodeBefore.nodeSize, before))
+          }
+          return true
+        }
+
+        return false
+      },
+    }
+  },
+})
 
 export interface VideoBlockOptions {
   HTMLAttributes: Record<string, any>
-  upload?: (file: File) => Promise<string>
+  upload?: (file: File, onProgress?: (percent: number) => void) => Promise<string>
+  inline: boolean
+}
+
+declare module "@tiptap/core" {
+  interface Commands<ReturnType> {
+    videoBlock: {
+      setVideoBlock: (options: {
+        src: string
+        title?: string
+        poster?: string
+      }) => ReturnType
+    }
+  }
 }
 
 export const CustomVideoBlock = Node.create<VideoBlockOptions>({
   name: "videoBlock",
 
-  group: "block",
-
-  atom: true,
-  selectable: true,
-  draggable: true,
-  isolating: true,
-
   addOptions() {
     return {
       HTMLAttributes: {},
       upload: undefined,
+      inline: false,
     }
   },
+  group: "block",
+  inline: false,
+  atom: true,
+  selectable: true,
+  draggable: true,
+  isolating: true,
+  defining: true,
+
+  content: "",
 
   addAttributes() {
     return {
@@ -32,47 +77,73 @@ export const CustomVideoBlock = Node.create<VideoBlockOptions>({
       title: { default: "" },
       poster: { default: "" },
       currentTime: { default: 0 },
+      uploadProgress: { default: null },
+      uploadId: { default: null, rendered: false },
     }
   },
 
-  markdownTokenName: "html_block",
-  // @ts-ignore
+  // ★ 核心修复：使用自定义 block 级 tokenizer
+  // 让 MarkedJS 在词法分析阶段就把 <video> 识别为独立的 block token
+  // 完全绕开 html_block / html_inline 歧义问题
+  markdownTokenizer: {
+    name: 'videoBlock',
+    level: 'block',
+    // 快速预检，只有包含 <video 才进入 tokenize，提升性能
+    start: (src: string) => src.search(/<video[\s>]/i),
+    tokenize: (src: string) => {
+      // 匹配 <video ...></video> 或 <video .../> 形式
+      // 支持多行属性，使用非贪婪匹配
+      const match = /^[ \t]*<video([\s\S]*?)(?:\/>|><\/video>)/i.exec(src)
+      if (!match) return undefined
+
+      const attrs = match[1] ?? ''
+      const srcAttr = attrs.match(/\bsrc=["']([^"']+)["']/i)?.[1] ?? ''
+
+      // src 是必须的，没有就不处理
+      if (!srcAttr) return undefined
+
+      const titleAttr = attrs.match(/\btitle=["']([^"']*)["']/i)?.[1] ?? ''
+      const posterAttr = attrs.match(/\bposter=["']([^"']*)["']/i)?.[1] ?? ''
+
+      return {
+        type: 'videoBlock',
+        raw: match[0],
+        // 把解析好的属性挂在 token 上，parseMarkdown 直接取用
+        videoSrc: srcAttr,
+        videoTitle: titleAttr,
+        videoPoster: posterAttr,
+      }
+    },
+  },
+
+  // ★ 对应 markdownTokenizer 生成的 token，转换为 ProseMirror 节点
   parseMarkdown(token: any) {
-    const html: string = token.content ?? ""
-    if (!/^<video[\s>]/i.test(html.trim())) return null
-
-    let src = ""
-    let title = ""
-    let poster = ""
-
-    try {
-      const doc = new DOMParser().parseFromString(html, "text/html")
-      const v = doc.querySelector("video")
-      if (!v) return null
-      src = v.getAttribute("src") ?? v.querySelector("source")?.getAttribute("src") ?? ""
-      title = v.getAttribute("title") ?? ""
-      poster = v.getAttribute("poster") ?? ""
-    } catch {
-      src = html.match(/\bsrc=["']([^"']+)["']/i)?.[1] ?? ""
-      title = html.match(/\btitle=["']([^"']*)["']/i)?.[1] ?? ""
-      poster = html.match(/\bposter=["']([^"']*)["']/i)?.[1] ?? ""
+    if (!token.videoSrc) return null
+    return {
+      type: 'videoBlock',
+      attrs: {
+        src: token.videoSrc,
+        title: token.videoTitle ?? '',
+        poster: token.videoPoster ?? '',
+      },
     }
-
-    if (!src) return null
-    return { type: "videoBlock", attrs: { src, title, poster } }
   },
 
+  // ★ 确保序列化输出干净，前后双换行，不产生 &nbsp;
   renderMarkdown(node: any) {
     const { src = "", title = "", poster = "" } = node.attrs ?? {}
-    const posterAttr = poster ? ` poster="${poster}"` : ""
-    const titleAttr = title ? ` title="${title}"` : ""
-    return `<video src="${src}"${posterAttr}${titleAttr}></video>\n\n`
+    if (!src) return ""
+    const t = title ? ` title="${title}"` : ""
+    const p = poster ? ` poster="${poster}"` : ""
+    return `<video src="${src}"${t}${p}></video>\n\n`
   },
 
   parseHTML() {
     return [
       {
         tag: 'div[data-type="video-block"]',
+        isBlock: true,
+        ignoreDom: false,
         getAttrs: (el) => {
           const div = el as HTMLElement
           return {
@@ -84,16 +155,14 @@ export const CustomVideoBlock = Node.create<VideoBlockOptions>({
       },
       {
         tag: "video",
+        isBlock: true,
+        ignoreDom: false,
         getAttrs: (el) => {
-          const video = el as HTMLVideoElement
-          const src =
-            video.getAttribute("src") ||
-            video.querySelector("source")?.getAttribute("src") ||
-            ""
+          const v = el as HTMLVideoElement
           return {
-            src,
-            title: video.getAttribute("title") ?? "",
-            poster: video.getAttribute("poster") ?? "",
+            src: v.getAttribute("src") || v.querySelector("source")?.getAttribute("src") || "",
+            title: v.getAttribute("title") ?? "",
+            poster: v.getAttribute("poster") ?? "",
           }
         },
       },
@@ -115,95 +184,183 @@ export const CustomVideoBlock = Node.create<VideoBlockOptions>({
   addNodeView() {
     return VueNodeViewRenderer(VideoBlockView)
   },
-  // @ts-ignore
-  addCommands(self: any) {
+
+  addCommands() {
     return {
       setVideoBlock:
-        (options: any) =>
-          ({ commands }: any) => {
-            return commands.insertContent({ type: this.name, attrs: options })
-          },
+        (options) =>
+          ({ commands }) =>
+            commands.insertContent({
+              type: this.name,
+              attrs: options,
+            }),
     }
   },
 
   addProseMirrorPlugins() {
-    const upload = this.options.upload
+    const self = this
 
-    const handleFile = (file: File, view: any) => {
-      if (!file.type.startsWith("video/")) return false
+    const cleanupPlugin = new Plugin({
+      key: new PluginKey("videoBlockCleanup"),
 
-      const insertVideoNode = (url: string) => {
-        const { state, dispatch } = view
-        const { $from } = state.selection
+      appendTransaction(transactions, oldState, newState) {
+        if (transactions.some(tr => tr.getMeta("videoBlockCleanup"))) {
+          return null
+        }
 
-        const node = state.schema.nodes.videoBlock.create({
-          src: url,
-          title: file.name,
-        })
+        if (!transactions.some(tr => tr.docChanged)) {
+          return null
+        }
 
-        // 使用 splitBlock 的返回值 tr 而不是立即 dispatch
-        splitBlock(state, (tr) => {
-          tr.replaceSelectionWith(node).scrollIntoView()
-          dispatch(tr)
-          return true
-        })
-      }
+        const tr = newState.tr
+        let modified = false
 
-      if (upload) {
-        upload(file)
-          .then(insertVideoNode)
-          .catch((err) => {
-            console.error("视频上传失败:", err)
-            alert("视频上传失败")
+        transactions.forEach(transaction => {
+          transaction.steps.forEach((step: any) => {
+            const map = step.getMap()
+            map.forEach((_oldStart: number, _oldEnd: number, newStart: number, newEnd: number) => {
+              newState.doc.nodesBetween(newStart, newEnd, (node, pos) => {
+                if (node.type.name !== "videoBlock") return
+
+                const nextPos = pos + node.nodeSize
+                const nextNode = newState.doc.nodeAt(nextPos)
+
+                if (
+                  nextNode &&
+                  nextNode.type.name === "paragraph" &&
+                  nextNode.content.size === 0
+                ) {
+                  tr.delete(nextPos, nextPos + nextNode.nodeSize)
+                  modified = true
+                }
+              })
+            })
           })
-      } else {
-        insertVideoNode(URL.createObjectURL(file))
+        })
+
+        if (!modified) return null
+
+        tr.setMeta("videoBlockCleanup", true)
+        tr.setMeta("addToHistory", false)
+
+        return tr
+      },
+    })
+
+    const insertVideoNode = (file: File) => {
+      const upload = self.options.upload
+      const uploadId = `upload_${Date.now()}_${Math.random().toString(36).slice(2)}`
+
+      const { state, dispatch } = self.editor.view
+      const nodeType = state.schema.nodes.videoBlock
+      if (!nodeType) return
+
+      const videoNode = nodeType.create({
+        src: null,
+        title: file.name,
+        uploadProgress: 0,
+        uploadId,
+      })
+
+      const insertPos = state.selection.to
+      const insertTr = state.tr.insert(insertPos, videoNode)
+      insertTr.setMeta('addToHistory', false)
+      dispatch(insertTr)
+
+      const findByUploadId = (): number => {
+        let pos = -1
+        self.editor.state.doc.descendants((node, p) => {
+          if (node.type.name === 'videoBlock' && node.attrs.uploadId === uploadId) {
+            pos = p
+            return false
+          }
+        })
+        return pos
       }
 
-      return true
+      const patchAttrs = (patch: Record<string, any>) => {
+        const s = self.editor.state
+        const pos = findByUploadId()
+        if (pos === -1) return
+        const n = s.doc.nodeAt(pos)
+        if (!n) return
+        const patchTr = s.tr.setNodeMarkup(pos, undefined, { ...n.attrs, ...patch })
+        patchTr.setMeta('addToHistory', false)
+        self.editor.view.dispatch(patchTr)
+      }
+
+      const doUpload = upload
+        ? upload(file, (pct) => patchAttrs({ uploadProgress: Math.min(Math.round(pct), 99) }))
+        : Promise.resolve(URL.createObjectURL(file))
+
+      doUpload
+        .then((url) => patchAttrs({ src: url, uploadProgress: null, uploadId: null }))
+        .catch((err) => {
+          console.error("视频上传失败:", err)
+          const s = self.editor.state
+          const pos = findByUploadId()
+          if (pos === -1) return
+          const n = s.doc.nodeAt(pos)
+          if (n) {
+            const delTr = s.tr.delete(pos, pos + n.nodeSize)
+            delTr.setMeta('addToHistory', false)
+            self.editor.view.dispatch(delTr)
+          }
+        })
     }
 
-    return [
-      new Plugin({
-        key: new PluginKey("videoBlockFile"),
+    const filePlugin = new Plugin({
+      key: new PluginKey("videoBlockFile"),
+      props: {
+        handlePaste(view, event) {
+          const items = event.clipboardData?.items
+          if (!items) return false
 
-        props: {
-          handlePaste(view, event) {
-            const items = event.clipboardData?.items
-            if (!items) return false
-            for (const item of items) {
-              if (item.kind === "file") {
-                const file = item.getAsFile()
-                if (file && handleFile(file, view)) return true
-              }
+          const videoFiles: File[] = []
+          for (const item of Array.from(items)) {
+            if (item.kind === "file" && item.type.startsWith("video/")) {
+              const file = item.getAsFile()
+              if (file) videoFiles.push(file)
             }
-            return false
-          },
+          }
 
-          handleDrop(view, event) {
-            const files = event.dataTransfer?.files
-            if (!files?.length) return false
-            for (const file of files) {
-              if (handleFile(file, view)) return true
-            }
-            return false
-          },
+          if (videoFiles.length === 0) return false
 
-          handleKeyDown(view, event) {
-            if (event.key !== "Backspace") return false
-            const { state } = view
-            const { $from } = state.selection
-            const nodeBefore = $from.nodeBefore
-            if (nodeBefore?.type.name === "videoBlock") {
-              view.dispatch(
-                state.tr.delete($from.pos - nodeBefore.nodeSize, $from.pos)
-              )
-              return true
+          event.preventDefault()
+
+          setTimeout(() => {
+            for (const file of videoFiles) {
+              insertVideoNode(file)
             }
-            return false
-          },
+          }, 0)
+
+          return true
         },
-      }),
-    ]
+
+        handleDrop(view, event) {
+          const files = event.dataTransfer?.files
+          if (!files?.length) return false
+
+          const videoFiles: File[] = []
+          for (const file of Array.from(files)) {
+            if (file.type.startsWith("video/")) videoFiles.push(file)
+          }
+
+          if (videoFiles.length === 0) return false
+
+          event.preventDefault()
+
+          setTimeout(() => {
+            for (const file of videoFiles) {
+              insertVideoNode(file)
+            }
+          }, 0)
+
+          return true
+        },
+      },
+    })
+
+    return [cleanupPlugin, filePlugin]
   },
 })
