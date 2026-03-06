@@ -13,6 +13,8 @@ import { Markdown } from '@tiptap/markdown'
 import { TableKit } from '@tiptap/extension-table'
 import { Selection } from '@tiptap/extensions'
 import { CustomVideoBlock } from "./custom-video-node/index"
+import { CustomAudioBlock } from "./custom-audio-node/index"
+import { CustomFileBlock } from "./custom-file-node"
 export {
   StarterKit,
   HorizontalRule,
@@ -29,5 +31,7 @@ export {
   Markdown,
   TableKit,
   Selection,
-  CustomVideoBlock
+  CustomVideoBlock,
+  CustomAudioBlock,
+  CustomFileBlock
 }

@@ -22,6 +22,7 @@
     "@codemirror/lang-json": "^6.0.2",
     "@codemirror/lang-sql": "^6.10.0",
     "@codemirror/language-data": "^6.5.2",
+    "@codemirror/legacy-modes": "^6.5.2",
     "@codemirror/theme-one-dark": "^6.1.2",
     "@floating-ui/vue": "^1.1.9",
     "@logicflow/core": "^2.2.0-alpha.6",

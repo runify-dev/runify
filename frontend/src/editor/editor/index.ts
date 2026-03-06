@@ -15,7 +15,10 @@ import {
   Markdown,
   Mathematics,
   TableKit,
-  CustomVideoBlock
+  CustomVideoBlock,
+  CustomAudioBlock,
+  CustomFileBlock
+
 } from './nodes/index'
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-expect-error
@@ -49,6 +52,24 @@ const newInstance = (content?: string, onUpdate?: (editor: any) => void, editabl
       TableKit,
       Mathematics,
       BubbleMenu,
+      CustomFileBlock.configure({
+        upload: async (file, onProgress) => {
+          const fd = new FormData()
+          fd.append('file', file)
+          return FileAPI.uploadFile(fd, onProgress).then((ok) => {
+            return `./api/storage/file/${ok.data.id}`
+          })
+        }
+      }),
+      CustomAudioBlock.configure({
+        upload: async (file, onProgress) => {
+          const fd = new FormData()
+          fd.append('file', file)
+          return FileAPI.uploadFile(fd, onProgress).then((ok) => {
+            return `./api/storage/file/${ok.data.id}`
+          })
+        }
+      }),
       CustomVideoBlock.configure({
         upload: async (file, onProgress) => {
           const fd = new FormData()
