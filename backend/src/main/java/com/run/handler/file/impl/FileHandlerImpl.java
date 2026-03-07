@@ -16,6 +16,7 @@ import io.vertx.core.http.MimeMapping;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.lang3.StringUtils;
 import org.jooq.SQLDialect;
 
 import javax.inject.Inject;
@@ -79,17 +80,25 @@ public class FileHandlerImpl implements IFileHandler {
                         }, false)
                         .compose(sha256 -> fileMapper.search(
                                 F.field(FileEntity::getSha256Hash).eq(F.params(FileEntity::getSha256Hash)),
-                                Map.of("sha256_hash", sha256)))
+                                Map.of("sha256Hash", sha256)))
                         .compose(rows -> vertx.executeBlocking(() -> {
                             if (rows.size() == 0) {
                                 Path ossPath = CommonUtils.getOssPath();
-                                if (!Files.exists(ossPath.getParent())) {
-                                    Files.createDirectories(ossPath.getParent());
-                                }
-                                fileEntity.setPath(ossPath.toString());
-                                Files.copy(Paths.get(s), ossPath);
+                                copyToOss(fileEntity, s, ossPath);
                             } else {
-                                fileEntity.setPath(rows.iterator().next().getPath());
+                                String path = rows.iterator().next().getPath();
+                                if (StringUtils.isEmpty(path)) {
+                                    Path ossPath = CommonUtils.getOssPath();
+                                    copyToOss(fileEntity, s, ossPath);
+                                } else {
+                                    Path target = Paths.get(path);
+                                    if (!Files.exists(target)) {
+                                        copyToOss(fileEntity, s, target);
+                                    } else {
+                                        fileEntity.setPath(path);
+                                    }
+
+                                }
                             }
                             return fileEntity;
                         }, false))
@@ -98,6 +107,14 @@ public class FileHandlerImpl implements IFileHandler {
                         .onFailure(context::fail);
             }
         }
+    }
+
+    private void copyToOss(FileEntity fileEntity, String sourcePath, Path targetPath) throws IOException {
+        if (!Files.exists(targetPath.getParent())) {
+            Files.createDirectories(targetPath.getParent());
+        }
+        fileEntity.setPath(targetPath.toString());
+        Files.copy(Paths.get(sourcePath), targetPath);
     }
 
     @Override
