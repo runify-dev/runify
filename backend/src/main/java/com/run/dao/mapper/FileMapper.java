@@ -205,8 +205,13 @@ public class FileMapper extends BaseMapper<FileEntity> {
         @Override
         public Future<Void> close() {
             this.isClose = true;
+            this.handler = null;
+            this.exceptionHandler = null;
+            this.endHandler = null;
             if (this.asyncFile != null) {
-                return this.asyncFile.close();
+                Future<Void> result = this.asyncFile.close();
+                this.asyncFile = null;
+                return result;
             }
             return Future.succeededFuture();
         }

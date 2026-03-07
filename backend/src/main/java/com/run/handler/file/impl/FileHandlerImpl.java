@@ -171,7 +171,6 @@ public class FileHandlerImpl implements IFileHandler {
 
             BaseReadStream baseReadStream = fileMapper.downloadFile(vertx, file, start, end + 1);
 
-            // 用 AtomicBoolean 防止 close() 被重复调用
             AtomicBoolean streamClosed = new AtomicBoolean(false);
             Runnable closeStream = () -> {
                 if (streamClosed.compareAndSet(false, true)) {
@@ -179,17 +178,23 @@ public class FileHandlerImpl implements IFileHandler {
                 }
             };
 
-            // 前端主动断开连接时，立即关闭 stream
-            context.response().closeHandler(v -> closeStream.run());
+            Runnable clearHandlers = () -> {
+                context.response().closeHandler(null);
+                context.response().exceptionHandler(null);
+            };
 
-            // response 发生异常时，关闭 stream
+            context.response().closeHandler(v -> {
+                clearHandlers.run();
+                closeStream.run();
+            });
+
             context.response().exceptionHandler(e -> {
+                clearHandlers.run();
                 closeStream.run();
                 context.fail(e);
             });
 
             baseReadStream.handler(buffer -> {
-                // 二次保险：如果 response 已关闭则停止读取
                 if (context.response().closed()) {
                     closeStream.run();
                     return;
@@ -197,12 +202,17 @@ public class FileHandlerImpl implements IFileHandler {
                 context.response().write(buffer);
                 if (context.response().writeQueueFull()) {
                     baseReadStream.pause();
-                    context.response().drainHandler(v -> baseReadStream.resume());
+                    context.response().drainHandler(v -> {
+                        context.response().drainHandler(null);
+                        baseReadStream.resume();
+                    });
                 }
             }).endHandler(v -> {
+                clearHandlers.run();
                 closeStream.run();
                 context.end();
             }).exceptionHandler(e -> {
+                clearHandlers.run();
                 closeStream.run();
                 context.fail(e);
             });
