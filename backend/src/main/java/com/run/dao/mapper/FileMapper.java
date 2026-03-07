@@ -36,9 +36,13 @@ import java.util.function.Function;
  * {@code @注释: }
  */
 public class FileMapper extends BaseMapper<FileEntity> {
+    private Vertx vertx;
+
     @Inject
-    public FileMapper(Pool client, AppConfig appConfig) {
+    public FileMapper(Pool client, AppConfig appConfig, Vertx vertx) {
         super(client, appConfig);
+        this.vertx = vertx;
+
     }
 
     /**
@@ -116,6 +120,16 @@ public class FileMapper extends BaseMapper<FileEntity> {
         }
 
         @Override
+        public void pause() {
+
+        }
+
+        @Override
+        public void resume() {
+
+        }
+
+        @Override
         public BaseReadStream exceptionHandler(@org.jetbrains.annotations.Nullable Handler<Throwable> var1) {
             this.exceptionHandler = var1;
             return this;
@@ -164,55 +178,28 @@ public class FileMapper extends BaseMapper<FileEntity> {
 
         @Override
         public Future<Void> read() {
-            // 没有 range 参数，走原来的全量流式读取
-            if (offset == null || length == null || size == null) {
-                return vertx.fileSystem().open(path, new OpenOptions().setRead(true))
-                        .compose(h -> {
-                            if (this.asyncFile == null) {
-                                this.asyncFile = h;
-                            }
-                            h.handler(this.handler);
-                            h.endHandler(this.endHandler);
-                            h.exceptionHandler(this.exceptionHandler);
-                            return Future.succeededFuture();
-                        });
-            }
+            return vertx.fileSystem().open(path, new OpenOptions().setRead(true))
+                    .compose(h -> {
+                        this.asyncFile = h;
 
-            // 有 range 参数，走分片读取
-            if (asyncFile == null) {
-                return vertx.fileSystem().open(path, new OpenOptions().setRead(true))
-                        .compose(h -> {
-                            this.asyncFile = h;
-                            return doRangeRead();
-                        });
-            }
-            return doRangeRead();
-        }
-
-        private Future<Void> doRangeRead() {
-            if (isClose || this.offset >= size) {
-                return Future.succeededFuture();
-            }
-
-            // 当前块实际读取长度，不超过 size
-            long chunkSize = (offset + length > size) ? (size - offset) : length;
-            Buffer buf = Buffer.buffer((int) chunkSize);
-
-            return asyncFile.read(buf, 0, offset, (int) chunkSize)
-                    .compose(readBuf -> {
-                        if (isClose) {
-                            return Future.succeededFuture();
+                        if (offset != null && size != null) {
+                            // range 读取：设置起始位置和读取总长度
+                            h.setReadPos(offset);
+                            h.setReadLength(size - offset); // size是结束位置，所以总长= size - offset
                         }
-                        handler.handle(readBuf);
-                        this.offset += chunkSize;
-                        if (this.offset < size) {
-                            return doRangeRead(); // 递归读下一块
-                        } else {
-                            endHandler.handle(null);
-                            return Future.succeededFuture();
+
+                        // length 作为每次读取的 chunk size
+                        if (length != null) {
+                            h.setReadBufferSize(length.intValue());
                         }
-                    })
-                    .onFailure(throwable -> exceptionHandler.handle(throwable));
+
+                        h.handler(this.handler);
+                        h.endHandler(this.endHandler);
+                        h.exceptionHandler(this.exceptionHandler);
+                        // AsyncFile 默认是 paused 状态，需要 resume 触发读取
+                        h.resume();
+                        return Future.succeededFuture();
+                    });
         }
 
         @Override
@@ -222,6 +209,20 @@ public class FileMapper extends BaseMapper<FileEntity> {
                 return this.asyncFile.close();
             }
             return Future.succeededFuture();
+        }
+
+        @Override
+        public void pause() {
+            if (this.asyncFile != null) {
+                this.asyncFile.pause();
+            }
+        }
+
+        @Override
+        public void resume() {
+            if (this.asyncFile != null) {
+                this.asyncFile.resume();
+            }
         }
 
         @Override
@@ -273,11 +274,10 @@ public class FileMapper extends BaseMapper<FileEntity> {
     }
 
     /**
-     *
      * @param vertx
      * @param fileEntity
-     * @param offset 偏移量 start
-     * @param size   结束。end
+     * @param offset     偏移量 start
+     * @param size       结束。end
      * @return
      */
     public BaseReadStream downloadFile(Vertx vertx, FileEntity fileEntity, Long offset, Long size) {
@@ -308,26 +308,32 @@ public class FileMapper extends BaseMapper<FileEntity> {
      * @return 异步任务
      */
     public Future<SqlResult<Void>> save(FileEntity fileEntity, File file, int capacity) {
-        String sha256 = CommonUtils.getSHA256(file);
-        fileEntity.setSha256Hash(sha256);
+        return vertx.executeBlocking(() -> {
+            String sha256 = CommonUtils.getSHA256(file);
+            fileEntity.setSha256Hash(sha256);
+            return sha256;
+        }, false).compose(sha256 -> {
+            return search(F.field(FileEntity::getSha256Hash).eq(F.params(FileEntity::getSha256Hash))
+                    , Map.of("sha256_hash", sha256))
+                    .compose(rows -> {
+                        if (rows.size() == 0) {
+                            return SqlTemplate.forQuery(client, "SELECT lo_creat(-1)::int8 as lo_id;").execute(Map.of()).compose(loId -> {
+                                Row next = loId.iterator().next();
+                                Long lo_id = next.getLong("lo_id");
+                                fileEntity.setLoId(lo_id);
+                                return uploadLargeObject(file, lo_id, capacity);
+                            }).compose(ok -> save(fileEntity));
 
-        return search(F.field(FileEntity::getSha256Hash).eq(F.params(FileEntity::getSha256Hash))
-                , Map.of("sha256_hash", sha256))
-                .compose(rows -> {
-                    if (rows.size() == 0) {
-                        return SqlTemplate.forQuery(client, "SELECT lo_creat(-1)::int8 as lo_id;").execute(Map.of()).compose(loId -> {
-                            Row next = loId.iterator().next();
-                            Long lo_id = next.getLong("lo_id");
-                            fileEntity.setLoId(lo_id);
-                            return uploadLargeObject(file, lo_id, capacity);
-                        }).compose(ok -> save(fileEntity));
+                        } else {
+                            FileEntity next = rows.iterator().next();
+                            fileEntity.setLoId(next.getLoId());
+                            return save(fileEntity);
+                        }
+                    });
+        });
+    }
 
-                    } else {
-                        FileEntity next = rows.iterator().next();
-                        fileEntity.setLoId(next.getLoId());
-                        return save(fileEntity);
-                    }
-                });
+    record ChunkResult(int length, Buffer data) {
     }
 
     /**
@@ -340,19 +346,21 @@ public class FileMapper extends BaseMapper<FileEntity> {
      * @return 异步任务
      */
     public Future<RowSet<Void>> uploadLargeObjectChunk(FileChannel channel, ByteBuffer buffer, Long loId, Long offset) {
-        try {
-            int length;
-            if ((length = channel.read(buffer)) != -1) {
-                buffer.flip();
-                Buffer data = Buffer.buffer(buffer.array());
-                buffer.clear();
-                return SqlTemplate.forUpdate(client, "SELECT lo_put(" + loId + "::oid," + offset + "::bigint,#{data})::VARCHAR;").execute(Map.of("data", data)).compose(r -> uploadLargeObjectChunk(channel, buffer, loId, offset + length));
-            } else {
-                return Future.succeededFuture();
-            }
-        } catch (IOException e) {
-            return Future.failedFuture(e);
-        }
+        return vertx.<ChunkResult>executeBlocking(() -> {
+                    int length = channel.read(buffer);
+                    if (length == -1) return new ChunkResult(-1, null);
+                    buffer.flip();
+                    Buffer data = Buffer.buffer(buffer.array());
+                    buffer.clear();
+                    return new ChunkResult(length, data);
+                }, false)
+                .compose(chunk -> {
+                    if (chunk.length() == -1) return Future.succeededFuture();
+                    return SqlTemplate.forUpdate(client,
+                                    "SELECT lo_put(" + loId + "::oid," + offset + "::bigint,#{data})::VARCHAR;")
+                            .execute(Map.of("data", chunk.data()))
+                            .compose(r -> uploadLargeObjectChunk(channel, buffer, loId, offset + chunk.length()));
+                });
 
     }
 
@@ -365,19 +373,14 @@ public class FileMapper extends BaseMapper<FileEntity> {
      * @return 异步任务
      */
     public Future<RowSet<Void>> uploadLargeObject(File file, Long lo_id, Integer capacity) {
-        try {
-            FileChannel channel = FileChannel.open(Path.of(file.toURI()));
-            ByteBuffer buffer = ByteBuffer.allocate(capacity);
-            return uploadLargeObjectChunk(channel, buffer, lo_id, 0L).compose(e -> {
-                try {
-                    channel.close();
-                    return Future.succeededFuture();
-                } catch (IOException ex) {
-                    return Future.failedFuture(ex);
-                }
-            });
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        return vertx.executeBlocking(() ->
+                        FileChannel.open(Path.of(file.toURI())), false)
+                .compose(channel ->
+                        uploadLargeObjectChunk(channel, ByteBuffer.allocate(capacity), lo_id, 0L)
+                                .compose(e -> vertx.executeBlocking(() -> {
+                                    channel.close();
+                                    return null;
+                                }, false))
+                );
     }
 }

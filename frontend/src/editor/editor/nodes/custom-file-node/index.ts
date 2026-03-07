@@ -193,12 +193,17 @@ export const CustomFileBlock = Node.create<FileBlockOptions>({
           }
         }
 
+        const docSize = newState.doc.content.size
         const tr = newState.tr
         let modified = false
         for (const [start, end] of merged) {
-          newState.doc.nodesBetween(start, end, (node, pos) => {
-            if (node.type.name !== "fileBlock") return true
+          const clampedStart = Math.max(0, Math.min(start, docSize))
+          const clampedEnd = Math.max(0, Math.min(end, docSize))
+          if (clampedStart >= clampedEnd) continue
+          newState.doc.nodesBetween(clampedStart, clampedEnd, (node, pos) => {
+            if (node.type.name !== "audioBlock") return true
             const nextPos = pos + node.nodeSize
+            if (nextPos > docSize) return true   // ← 额外守卫
             const nextNode = newState.doc.nodeAt(nextPos)
             if (nextNode?.type.name === "paragraph" && nextNode.content.size === 0) {
               tr.delete(nextPos, nextPos + nextNode.nodeSize)

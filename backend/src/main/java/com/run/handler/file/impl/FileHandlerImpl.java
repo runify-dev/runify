@@ -3,6 +3,7 @@ package com.run.handler.file.impl;
 
 import com.run.common.result.Result;
 import com.run.common.util.CommonUtils;
+import com.run.dao.common.F;
 import com.run.dao.common.entity.BaseReadStream;
 import com.run.dao.entity.FileEntity;
 import com.run.dao.mapper.FileMapper;
@@ -25,7 +26,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * {@code @Author:张少虎}
@@ -69,27 +72,31 @@ public class FileHandlerImpl implements IFileHandler {
                     context.end(Result.success(fileEntity).toBuffer());
                 }).onFailure(context::fail);
             } else {
-                String sha256 = CommonUtils.getSHA256(file);
-                fileEntity.setSha256Hash(sha256);
-                Path ossPath = CommonUtils.getOssPath();
-                if (!Files.exists(ossPath.getParent())) {
-                    try {
-                        Files.createDirectories(ossPath.getParent());
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-                fileEntity.setPath(ossPath.toString());
-                try {
-                    Files.copy(Paths.get(s), ossPath);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-                fileMapper.save(fileEntity).onSuccess(ok -> {
-                    context.end(Result.success(fileEntity).toBuffer());
-                }).onFailure(context::fail);
+                vertx.executeBlocking(() -> {
+                            String sha256 = CommonUtils.getSHA256(file);
+                            fileEntity.setSha256Hash(sha256);
+                            return sha256;
+                        }, false)
+                        .compose(sha256 -> fileMapper.search(
+                                F.field(FileEntity::getSha256Hash).eq(F.params(FileEntity::getSha256Hash)),
+                                Map.of("sha256_hash", sha256)))
+                        .compose(rows -> vertx.executeBlocking(() -> {
+                            if (rows.size() == 0) {
+                                Path ossPath = CommonUtils.getOssPath();
+                                if (!Files.exists(ossPath.getParent())) {
+                                    Files.createDirectories(ossPath.getParent());
+                                }
+                                fileEntity.setPath(ossPath.toString());
+                                Files.copy(Paths.get(s), ossPath);
+                            } else {
+                                fileEntity.setPath(rows.iterator().next().getPath());
+                            }
+                            return fileEntity;
+                        }, false))
+                        .compose(fileMapper::save)
+                        .onSuccess(ok -> context.end(Result.success(fileEntity).toBuffer()))
+                        .onFailure(context::fail);
             }
-
         }
     }
 
@@ -126,7 +133,6 @@ public class FileHandlerImpl implements IFileHandler {
                     return Future.succeededFuture();
                 }
 
-                // range 越界校验
                 if (start > end || end >= fileSize || start < 0) {
                     context.response()
                             .setStatusCode(416)
@@ -147,15 +153,42 @@ public class FileHandlerImpl implements IFileHandler {
                     .putHeader(HttpHeaders.CONTENT_DISPOSITION, "inline;filename=" + file.getFileName());
 
             BaseReadStream baseReadStream = fileMapper.downloadFile(vertx, file, start, end + 1);
-            baseReadStream.handler(buffer -> {
-                if (context.response().closed()) {
+
+            // 用 AtomicBoolean 防止 close() 被重复调用
+            AtomicBoolean streamClosed = new AtomicBoolean(false);
+            Runnable closeStream = () -> {
+                if (streamClosed.compareAndSet(false, true)) {
                     baseReadStream.close();
+                }
+            };
+
+            // 前端主动断开连接时，立即关闭 stream
+            context.response().closeHandler(v -> closeStream.run());
+
+            // response 发生异常时，关闭 stream
+            context.response().exceptionHandler(e -> {
+                closeStream.run();
+                context.fail(e);
+            });
+
+            baseReadStream.handler(buffer -> {
+                // 二次保险：如果 response 已关闭则停止读取
+                if (context.response().closed()) {
+                    closeStream.run();
                     return;
                 }
                 context.response().write(buffer);
+                if (context.response().writeQueueFull()) {
+                    baseReadStream.pause();
+                    context.response().drainHandler(v -> baseReadStream.resume());
+                }
             }).endHandler(v -> {
+                closeStream.run();
                 context.end();
-            }).exceptionHandler(context::fail);
+            }).exceptionHandler(e -> {
+                closeStream.run();
+                context.fail(e);
+            });
 
             return baseReadStream.read();
         }).onFailure(context::fail);

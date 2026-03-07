@@ -74,7 +74,7 @@ public class CommonUtils {
                 buffer.flip();
                 // 处理数据
                 byte[] array = buffer.array();
-                md.update(array);
+                md.update(array, 0, buffer.limit());
                 buffer.clear();
             }
             // 获取密文（即散列值）

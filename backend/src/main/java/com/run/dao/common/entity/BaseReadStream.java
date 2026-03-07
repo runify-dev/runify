@@ -18,6 +18,10 @@ public interface BaseReadStream {
 
     Future<Void> close();
 
+    void pause();
+
+    void resume();
+
     BaseReadStream exceptionHandler(@org.jetbrains.annotations.Nullable Handler<Throwable> var1);
 
 
