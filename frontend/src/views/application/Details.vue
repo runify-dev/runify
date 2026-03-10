@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-col">
-    <div class="card" style="height: calc(100vh - 8rem)">
+    <div class="card" style="height: calc(100dvh - 8rem)">
       <router-view></router-view>
     </div>
   </div>

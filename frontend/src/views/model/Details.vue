@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-col">
-    <div class="card overflow-auto" style="height: calc(100vh - 8rem)">
+    <div class="card overflow-auto layout-content-container">
       <Button class="float-right" label="保存" @click="edit" />
       <DynamicsForm
         class="pr-10 pl-10 pb-10"

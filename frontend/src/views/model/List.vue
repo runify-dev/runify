@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="card" style="height: calc(100vh - 8rem)">
+    <div class="card layout-content-container">
       <Toolbar
         :pt="{
           root: {

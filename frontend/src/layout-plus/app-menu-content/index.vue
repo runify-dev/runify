@@ -2,7 +2,7 @@
   <div class="layout-main-container">
     <div class="layout-main">
       <AppSidebar> <slot name="menu"></slot></AppSidebar>
-      <div class="w-full overflow-hidden">
+      <div class="w-full">
         <slot></slot>
       </div>
     </div>
@@ -14,10 +14,11 @@ import AppSidebar from '@/layout-plus/app-sidebar/index.vue'
 <style lang="scss" scoped>
 .layout-main-container {
   display: flex;
+
   flex-direction: column;
-  min-height: 100vh;
+  min-height: 100dvh;
   justify-content: space-between;
-  padding: 6rem 0 0 0;
+  padding: 5rem 0 0 0;
   transition: margin-left var(--layout-section-transition-duration);
   .layout-main {
     padding: 0;

@@ -8,26 +8,17 @@ export interface OperationMenu {
   options: () => any
 }
 
-export const getListVirtualElement = (
-  editor: Editor,
-  nodeName: string,
-  findParentNodeCall?: (node: any) => boolean,
-) => {
-  if (!findParentNodeCall) {
-    findParentNodeCall = (node: any) => node.type.name === nodeName
+export const getListVirtualElement = (editor: Editor, nodeName: string) => {
+  const finder = (node: any) => node.type.name === nodeName
+  // 返回稳定的对象引用，不每次创建新对象
+  return {
+    getBoundingClientRect: () => {
+      const parentNode = findParentNode(finder)(editor.state.selection)
+      if (parentNode) {
+        return posToDOMRect(editor.view, parentNode.start, parentNode.start + parentNode.node.nodeSize)
+      }
+      return new DOMRect()
+    },
+    getClientRects: () => [],
   }
-  const parentNode = findParentNode(findParentNodeCall)(editor.state.selection)
-
-  if (parentNode) {
-    const domRect = posToDOMRect(
-      editor.view,
-      parentNode.start,
-      parentNode.start + parentNode.node.nodeSize,
-    )
-    return {
-      getBoundingClientRect: () => domRect,
-      getClientRects: () => [domRect],
-    }
-  }
-  return null
 }

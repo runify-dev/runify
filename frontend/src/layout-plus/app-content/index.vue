@@ -10,7 +10,7 @@
 .layout-main-container {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  min-height: 100dvh;
   justify-content: space-between;
   padding: 6rem 2rem 0 2rem;
   margin-left: 0 !important;

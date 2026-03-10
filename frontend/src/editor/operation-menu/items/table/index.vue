@@ -1,6 +1,6 @@
 <template>
   <div class="bubble-menu">
-    <el-dropdown>
+    <dropdown-menu :items="buttons">
       <button class="tiptap-button" type="button" data-style="ghost" role="button">
         <svg
           width="24"
@@ -30,35 +30,52 @@
           ></path>
         </svg>
       </button>
-      <template #dropdown>
-        <el-dropdown-menu>
-          <el-dropdown-item @click="addRowAfter">添加行</el-dropdown-item>
-          <el-dropdown-item @click="addColumnAfter">添加列</el-dropdown-item>
-          <el-dropdown-item @click="deleteRow">删除行</el-dropdown-item>
-          <el-dropdown-item @click="deleteColumn">删除列</el-dropdown-item>
-          <el-dropdown-item @click="deleteTable">删除</el-dropdown-item>
-        </el-dropdown-menu>
+      <template #item="scope">
+        <div class="cursor-pointer w-full" @click="scope.item.handle()">{{ scope.item.label }}</div>
       </template>
-    </el-dropdown>
+    </dropdown-menu>
   </div>
 </template>
 <script setup lang="ts">
 import { type Editor } from '@tiptap/vue-3'
+
+const buttons = [
+  {
+    value: 'addRowAfter',
+    label: '添加行',
+    handle: () => {
+      props.editor.chain().focus().addRowAfter().run()
+    }
+  },
+  {
+    value: 'addColumnAfter',
+    label: '添加列',
+    handle: () => {
+      props.editor.chain()?.focus().addColumnAfter().run()
+    }
+  },
+  {
+    value: 'deleteRow',
+    label: '删除行',
+    handle: () => {
+      props.editor.chain().focus().deleteColumn().run()
+    }
+  },
+  {
+    value: 'deleteColumn',
+    label: '删除列',
+    handle: () => {
+      props.editor.chain().focus().deleteRow().run()
+    }
+  },
+  {
+    value: 'deleteTable',
+    label: '删除',
+    handle: () => {
+      props.editor.chain().focus().deleteTable().run()
+    }
+  }
+]
 const props = defineProps<{ editor: Editor }>()
-const addRowAfter = () => {
-  props.editor.chain().focus().addRowAfter().run()
-}
-const addColumnAfter = () => {
-  props.editor.chain()?.focus().addColumnAfter().run()
-}
-const deleteColumn = () => {
-  props.editor.chain().focus().deleteColumn().run()
-}
-const deleteRow = () => {
-  props.editor.chain().focus().deleteRow().run()
-}
-const deleteTable = () => {
-  props.editor.chain().focus().deleteTable().run()
-}
 </script>
 <style lang="scss" scoped></style>

@@ -1,5 +1,5 @@
 <template>
-  <el-dropdown trigger="click">
+  <dropdown-menu :items="buttons">
     <button
       data-tooltip-state="closed"
       class="tiptap-button"
@@ -33,36 +33,29 @@
         ></path>
       </svg>
     </button>
-    <template #dropdown>
-      <el-dropdown-menu>
-        <el-dropdown-item
-          v-for="(button, index) in buttons"
-          @click="focus(button.value)"
-          :key="index"
-        >
-          <button
-            data-tooltip-state="closed"
-            class="tiptap-button"
-            aria-label="Format text as heading"
-            type="button"
-            data-style="ghost"
-            :data-active-state="isActive ? (current == button.value ? 'on' : 'off') : 'off'"
-            role="button"
-            tabindex="-1"
-            data-disabled="false"
-            aria-pressed="false"
-            id="radix-_R_kanpfiv5ubrb_"
-            aria-haspopup="menu"
-            aria-expanded="false"
-            data-state="closed"
-          >
-            <component :is="iconComponent(button.value)"></component>
-            {{ button.label }}
-          </button>
-        </el-dropdown-item>
-      </el-dropdown-menu>
+    <template #item="scope">
+      <button
+        @click="focus(scope.item.value)"
+        data-tooltip-state="closed"
+        class="tiptap-button"
+        aria-label="Format text as heading"
+        type="button"
+        data-style="ghost"
+        :data-active-state="isActive ? (current == scope.item.value ? 'on' : 'off') : 'off'"
+        role="button"
+        tabindex="-1"
+        data-disabled="false"
+        aria-pressed="false"
+        id="radix-_R_kanpfiv5ubrb_"
+        aria-haspopup="menu"
+        aria-expanded="false"
+        data-state="closed"
+      >
+        <component :is="iconComponent(scope.item.value)"></component>
+        {{ scope.item.label }}
+      </button>
     </template>
-  </el-dropdown>
+  </dropdown-menu>
 </template>
 <script setup lang="ts">
 import { computed } from 'vue'

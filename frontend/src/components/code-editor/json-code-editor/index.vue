@@ -23,7 +23,7 @@
           :tab-size="4"
           :autofocus="true"
           style="
-            height: calc(100vh - 160px) !important;
+            height: calc(100dvh - 160px) !important;
             border: 1px solid #bbbfc4;
             border-radius: 4px;
           "

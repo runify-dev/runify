@@ -26,13 +26,13 @@
         p-id="4640"
       ></path>
     </svg>
-    <Dialog ref="dialogRef"></Dialog>
+    <MathematicsDialog ref="dialogRef"></MathematicsDialog>
   </button>
 </template>
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { type Editor } from '@tiptap/vue-3'
-import Dialog from './Dialog.vue'
+import MathematicsDialog from './MathematicsDialog.vue'
 import bus from '@/bus'
 const props = defineProps<{ editor: Editor }>()
 const isActive = computed(() => {

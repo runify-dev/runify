@@ -19,7 +19,7 @@
   }
 }
 
-/* Ensure each top-level node has relative positioning 
+/* Ensure each top-level node has relative positioning
    so absolutely positioned placeholders work correctly */
 .tiptap.ProseMirror > * {
   position: relative;
@@ -38,7 +38,7 @@
     font-size: 1rem;
     line-height: 1.6;
     font-weight: normal;
-    margin-top: 20px;
+    margin-top: 10px;
   }
 
   // Selection styles

@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-col">
-    <div class="card overflow-auto" style="height: calc(100vh - 8rem)">
+    <div class="card overflow-auto layout-content-container">
       <router-view></router-view>
     </div>
   </div>

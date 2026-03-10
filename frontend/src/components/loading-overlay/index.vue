@@ -46,7 +46,7 @@ const overlayStyle = computed(() => ({
   top: 0;
   left: 0;
   width: 100vw;
-  height: 100vh;
+  height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;

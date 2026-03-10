@@ -1,44 +1,39 @@
 <template>
-  <bubble-menu
-    v-for="(m, index) in menus"
-    :key="index"
-    :editor="editor"
-    :should-show="() => m.shouldShow(editor)"
-    :get-referenced-virtual-element="() => m.getReferencedVirtualElement(editor)"
-    :options="m.options()"
-  >
-    <component :is="m.compoent" :editor="editor"></component>
-  </bubble-menu>
+  <template>
+    <bubble-menu
+      v-for="(m, index) in menus"
+      :key="index"
+      :editor="editor"
+      :should-show="() => m.shouldShow(editor)"
+      :get-referenced-virtual-element="() => m.getReferencedVirtualElement(editor)"
+      :options="{ ...m.options() }"
+    >
+      <component :is="m.compoent" :editor="editor"></component>
+    </bubble-menu>
+  </template>
 </template>
+
 <script setup lang="ts">
-import { findParentNode, posToDOMRect } from '@tiptap/core'
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-expect-error
 import { BubbleMenu } from '@tiptap/vue-3/menus'
 import { type Editor } from '@tiptap/vue-3'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import menus from './index.ts'
-const props = defineProps<{
-  editor: Editor
-}>()
 
-const getListVirtualElement = () => {
-  const editor = props.editor
-  const parentNode = findParentNode((node) => node.type.name === 'table')(editor.state.selection)
-  if (parentNode) {
-    const domRect = posToDOMRect(
-      editor.view,
-      parentNode.start,
-      parentNode.start + parentNode.node.nodeSize
-    )
-    return {
-      getBoundingClientRect: () => domRect,
-      getClientRects: () => [domRect]
-    }
-  }
-  return null
+const props = defineProps<{ editor: Editor }>()
+
+const scrollEl = ref<HTMLElement | null>(null)
+
+const handleScroll = () => {
+  props.editor.commands.setMeta('bubbleMenu', 'updatePosition')
 }
-const appendRow = () => {
-  props.editor.chain().focus().addRowAfter().run()
-}
+
+onMounted(() => {
+  scrollEl.value = document.querySelector('.layout-content-container')
+  scrollEl.value?.addEventListener('scroll', handleScroll, { passive: true })
+})
+
+onBeforeUnmount(() => {
+  scrollEl.value?.removeEventListener('scroll', handleScroll)
+})
 </script>
-<style lang="scss"></style>

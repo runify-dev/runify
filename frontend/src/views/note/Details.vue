@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-col">
-    <div class="card overflow-auto" style="height: calc(100vh - 8rem); padding-top: 0">
+    <div class="card layout-content-container overflow-auto pt-0" style="padding-top: 0">
       <Editor ref="editorRef" @change="change"></Editor>
     </div>
   </div>

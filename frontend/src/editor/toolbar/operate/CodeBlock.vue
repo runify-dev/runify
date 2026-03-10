@@ -49,7 +49,7 @@ const activeState = computed(() => {
 })
 
 const focus = () => {
-  props.editor.chain().focus().toggleCodeBlock().run()
+  props.editor.chain().focus().setNode('customCodeBlock', { language: '' }).run()
 }
 </script>
 <style lang="scss" scoped></style>
