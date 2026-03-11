@@ -1,32 +1,17 @@
 <template>
-  <div class="tt-trigger-wrap">
+  <div class="tt-trigger-wrap" ref="wrapRef">
     <button
       class="tt-toolbar-btn"
       :class="{ 'tt-toolbar-btn--active': grid.isOpen.value }"
-      @click="toggle"
+      @click="grid.toggle()"
       title="插入表格"
-      ref="btnRef"
     >
-      <svg
-        width="24"
-        height="24"
-        class="tiptap-button-icon"
-        viewBox="0 0 24 24"
-        fill="currentColor"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <path
-          fill-rule="evenodd"
-          clip-rule="evenodd"
-          d="M2 5C2 3.34315 3.34315 2 5 2H19C20.6569 2 22 3.34315 22 5V19C22 20.6569 20.6569 22 19 22H5C3.34315 22 2 20.6569 2 19V5ZM4 5C4 4.44772 4.44772 4 5 4H11V8H4V5ZM4 10H11V14H4V10ZM20 14V10H13V14H20ZM13 16H20V19C20 19.5523 19.5523 20 19 20H13V16ZM11 16V20H5C4.44772 20 4 19.5523 4 19V16H11ZM13 8H20V5C20 4.44772 19.5523 4 19 4H13V8Z"
-          fill="currentColor"
-        ></path>
-      </svg>
+      <TableIcon />
+      <span>表格</span>
+      <ChevronIcon />
     </button>
-
-    <!-- Popover 会 Teleport 到 body，不受父容器 overflow/z-index 影响 -->
-    <Popover ref="popoverRef">
-      <div class="tt-grid-popup" @mouseleave="grid.hover(0, 0)">
+    <Transition name="tt-grid-pop">
+      <div v-if="grid.isOpen.value" class="tt-grid-popup" @mouseleave="grid.hover(0, 0)">
         <div class="tt-grid-label">
           {{
             grid.hoveredRow.value && grid.hoveredCol.value
@@ -50,15 +35,14 @@
           </template>
         </div>
       </div>
-    </Popover>
+    </Transition>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import type { Editor } from '@tiptap/vue-3'
-import Popover from 'primevue/popover'
-import { useTableGrid } from '@/editor/components/composables/useTableGrid'
+import { useTableGrid } from '@/editor/composables/useTableGrid'
 import TableIcon from '@/editor/components/ui/TableIcon.vue'
 import ChevronIcon from '@/editor/components/ui/ChevronIcon.vue'
 
@@ -69,20 +53,14 @@ const editorRef = {
     return props.editor
   }
 }
+const grid = useTableGrid(editorRef, { maxRows: 8, maxCols: 8 })
+const wrapRef = ref<HTMLElement | null>(null)
 
-// 让 grid.pick 执行后自动关闭 Popover
-const popoverRef = ref<InstanceType<typeof Popover> | null>(null)
-const btnRef = ref<HTMLElement | null>(null)
-
-const grid = useTableGrid(editorRef, {
-  maxRows: 8,
-  maxCols: 8,
-  onInserted: () => popoverRef.value?.hide()
-})
-
-function toggle(e: MouseEvent): void {
-  popoverRef.value?.toggle(e)
+function onClickOutside(e: MouseEvent): void {
+  if (wrapRef.value && !wrapRef.value.contains(e.target as Node)) grid.close()
 }
+onMounted(() => document.addEventListener('mousedown', onClickOutside))
+onUnmounted(() => document.removeEventListener('mousedown', onClickOutside))
 </script>
 
 <style lang="scss">
@@ -121,7 +99,15 @@ function toggle(e: MouseEvent): void {
   }
 }
 .tt-grid-popup {
-  padding: 4px;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  padding: 10px;
+  background: var(--tt-color-bg);
+  border: 1px solid var(--tt-color-border);
+  border-radius: var(--tt-radius-md);
+  box-shadow: var(--tt-shadow-lg);
+  z-index: 200;
 }
 .tt-grid-label {
   font-size: var(--tt-font-size-sm);
@@ -150,5 +136,16 @@ function toggle(e: MouseEvent): void {
     background: var(--tt-color-accent-light);
     border-color: var(--tt-color-accent);
   }
+}
+.tt-grid-pop-enter-active,
+.tt-grid-pop-leave-active {
+  transition:
+    opacity 0.15s,
+    transform 0.15s;
+}
+.tt-grid-pop-enter-from,
+.tt-grid-pop-leave-to {
+  opacity: 0;
+  transform: translateY(-4px) scale(0.98);
 }
 </style>

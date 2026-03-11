@@ -309,3 +309,40 @@
   --tt-color-highlight-orange-contrast: rgba(233, 126, 37, 0.2);
   --tt-color-highlight-pink-contrast: rgba(220, 76, 145, 0.22);
 }
+// ── Design Tokens (mirrors official Tiptap UI vars) ──────────────────
+:root {
+  --tt-color-bg: #ffffff;
+  --tt-color-bg-secondary: #f9fafb;
+  --tt-color-bg-hover: #f3f4f6;
+  --tt-color-bg-active: #ede9fe;
+  --tt-color-border: #e5e7eb;
+  --tt-color-border-strong: #d1d5db;
+  --tt-color-text: #111827;
+  --tt-color-text-secondary: #6b7280;
+  --tt-color-accent: #7c3aed;
+  --tt-color-accent-hover: #6d28d9;
+  --tt-color-accent-light: #ede9fe;
+  --tt-color-danger: #dc2626;
+  --tt-color-danger-bg: #fee2e2;
+  --tt-color-selected: rgba(124, 58, 237, 0.13);
+  --tt-color-selected-border: rgba(124, 58, 237, 0.55);
+
+  --tt-radius-sm: 4px;
+  --tt-radius-md: 8px;
+  --tt-radius-lg: 12px;
+
+  --tt-shadow-sm: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.05);
+  --tt-shadow-md: 0 4px 16px rgba(0,0,0,.10), 0 2px 6px rgba(0,0,0,.06);
+  --tt-shadow-lg: 0 10px 40px rgba(0,0,0,.14), 0 4px 12px rgba(0,0,0,.07);
+
+  --tt-font-size-xs: 11px;
+  --tt-font-size-sm: 12px;
+  --tt-font-size-md: 13px;
+  --tt-font-size-base: 15px;
+
+  // Table specific
+  --tt-table-handle-size: 22px;
+  --tt-table-handle-offset: -28px;
+  --tt-table-cell-min-width: 80px;
+  --tt-table-border: 1px solid var(--tt-color-border);
+}
