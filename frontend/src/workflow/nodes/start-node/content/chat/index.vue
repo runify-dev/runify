@@ -1,4 +1,4 @@
-<template lang="scss">
+<template>
   <div></div>
 </template>
 <script setup lang="ts">
@@ -9,10 +9,10 @@ const model = getModel()
 onMounted(() => {
   model.properties.field_list = [
     {
-      label: '回答',
-      value: 'content'
+      label: '问题',
+      value: 'question'
     }
   ]
 })
 </script>
-<style lang="scss"></style>
+<style lang="scss" scoped></style>

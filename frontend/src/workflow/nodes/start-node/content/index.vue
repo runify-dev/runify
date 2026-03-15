@@ -4,12 +4,14 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import Processor from './processor/index.vue'
+import Chat from './chat/index.vue'
 defineProps<{
   details: any
   WorkflowType: any
 }>()
 const kw: any = {
-  PROCESSOR: Processor
+  PROCESSOR: Processor,
+  APPLICATION: Chat
 }
 const contentRef = ref()
 const validate = () => {

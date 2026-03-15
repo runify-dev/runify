@@ -6,19 +6,19 @@
       data-style="ghost"
       class="tiptap-button"
       :class="{ 'is-active': popoverVisible }"
-      title="插入视频"
+      title="插入文件"
       @click="togglePopover"
     >
-      <span class="pi pi-video" />
+      <span class="pi pi-file" />
     </button>
 
     <Popover ref="popoverRef" @show="popoverVisible = true" @hide="onPopoverHide">
       <div class="flex w-72 flex-col overflow-hidden rounded-xl">
         <!-- Header -->
         <div class="flex items-center gap-2 border-b border-white/6 px-4 py-2.5">
-          <span class="h-1.5 w-1.5 rounded-full bg-[#a78bfa]" style="box-shadow: 0 0 6px #a78bfa" />
+          <span class="h-1.5 w-1.5 rounded-full bg-[#00c8ff]" style="box-shadow: 0 0 6px #00c8ff" />
           <span class="font-mono text-[10px] uppercase tracking-widest text-white/35"
-            >插入视频</span
+            >插入文件</span
           >
         </div>
 
@@ -40,8 +40,8 @@
             <!-- 空闲：drop zone -->
             <label
               v-if="uploadStatus === 'idle'"
-              class="flex cursor-pointer flex-col items-center gap-3 rounded-lg border border-dashed border-white/12 px-4 py-5 transition-all duration-150 hover:border-[#a78bfa]/30 hover:bg-[#a78bfa]/4"
-              :class="dragOver ? '!border-[#a78bfa]/50 !bg-[#a78bfa]/6' : ''"
+              class="flex cursor-pointer flex-col items-center gap-3 rounded-lg border border-dashed border-white/12 px-4 py-5 transition-all duration-150 hover:border-[#00c8ff]/30 hover:bg-[#00c8ff]/4"
+              :class="dragOver ? '!border-[#00c8ff]/50 !bg-[#00c8ff]/6' : ''"
               @dragover.prevent="dragOver = true"
               @dragleave="dragOver = false"
               @drop.prevent="onDrop"
@@ -61,16 +61,10 @@
                 </svg>
               </div>
               <div class="text-center">
-                <div class="text-xs font-medium">点击选择或拖拽视频</div>
-                <div class="mt-0.5 font-mono text-[10px] text-white/30">MP4 · MOV · WebM · AVI</div>
+                <div class="text-xs font-medium">点击选择或拖拽文件</div>
+                <div class="mt-0.5 font-mono text-[10px] text-white/30">支持任意文件类型</div>
               </div>
-              <input
-                ref="fileInputRef"
-                type="file"
-                accept="video/*"
-                class="hidden"
-                @change="onFileChange"
-              />
+              <input ref="fileInputRef" type="file" class="hidden" @change="onFileChange" />
             </label>
 
             <!-- 上传中 / 完成 / 失败 -->
@@ -84,7 +78,7 @@
                 >
                   <span
                     v-if="uploadStatus === 'uploading'"
-                    class="pi pi-spin pi-spinner text-xs text-[#a78bfa]"
+                    class="pi pi-spin pi-spinner text-xs text-[#00c8ff]"
                   />
                   <span
                     v-else-if="uploadStatus === 'done'"
@@ -101,7 +95,7 @@
                 </div>
                 <span
                   v-if="uploadStatus === 'uploading'"
-                  class="font-mono text-[10px] tabular-nums text-[#a78bfa]"
+                  class="font-mono text-[10px] tabular-nums text-[#00c8ff]"
                 >
                   {{ progress }}%
                 </span>
@@ -116,7 +110,7 @@
                     background:
                       uploadStatus === 'error'
                         ? '#f87171'
-                        : 'linear-gradient(90deg,#a78bfa,#00ffc8)'
+                        : 'linear-gradient(90deg,#00c8ff,#00ffc8)'
                   }"
                 />
               </div>
@@ -155,8 +149,15 @@
           <TabPanel value="url" class="p-4">
             <div class="flex flex-col gap-2.5">
               <InputText
+                v-model="urlName"
+                placeholder="文件名称（可选）"
+                size="small"
+                fluid
+                @keydown.esc="closePopover"
+              />
+              <InputText
                 v-model="urlDraft"
-                placeholder="https://example.com/video.mp4"
+                placeholder="https://example.com/file.pdf"
                 size="small"
                 fluid
                 @keydown.enter="insertFromUrl"
@@ -264,7 +265,7 @@ const statusLabel = computed(() => {
 const statusColor = computed(() => {
   if (uploadStatus.value === 'done') return 'text-[#00ffc8]'
   if (uploadStatus.value === 'error') return 'text-red-400'
-  return 'text-[#a78bfa]'
+  return 'text-[#00c8ff]'
 })
 
 function onFileChange(e: Event) {
@@ -299,8 +300,11 @@ async function upload(file: File) {
     props.editor
       .chain()
       .focus()
-      .setVideoBlock({
-        src: `./api/storage/file/${result.data.id}`
+      .setFileBlock({
+        src: result.data.url, // 根据 FileEntity 实际字段调整
+        name: file.name,
+        size: file.size,
+        mime: file.type
       })
       .run()
   } catch (err) {
@@ -319,11 +323,18 @@ function reset() {
 
 // ── URL ──
 const urlDraft = ref('')
+const urlName = ref('')
 
 function insertFromUrl() {
   const url = urlDraft.value.trim()
   if (!url) return
-  props.editor.chain().focus().setVideoBlock({ src: url, title: '' }).run()
+  const name = urlName.value.trim() || url.split('/').pop() || url
+  const ext = name.split('.').pop()?.toLowerCase() ?? ''
+  props.editor
+    .chain()
+    .focus()
+    .setFileBlock({ src: url, name, size: 0, mime: mimeFromExt(ext) })
+    .run()
   closePopover()
 }
 
@@ -331,6 +342,25 @@ function insertFromUrl() {
 function resetAll() {
   reset()
   urlDraft.value = ''
+  urlName.value = ''
   dragOver.value = false
+}
+
+function mimeFromExt(ext: string): string {
+  const map: Record<string, string> = {
+    pdf: 'application/pdf',
+    doc: 'application/msword',
+    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    xls: 'application/vnd.ms-excel',
+    xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    ppt: 'application/vnd.ms-powerpoint',
+    pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    zip: 'application/zip',
+    rar: 'application/x-rar-compressed',
+    txt: 'text/plain',
+    csv: 'text/csv',
+    json: 'application/json'
+  }
+  return map[ext] ?? 'application/octet-stream'
 }
 </script>

@@ -1,16 +1,16 @@
 import edge from './edge'
 
 export const startNode = {
-  id: "start-node",
+  id: 'start-node',
   type: 'start-node',
-  text: "",
+  text: '',
   x: 0,
   y: 0,
-  label: "开始节点",
+  label: '开始节点',
   properties: {
     width: 200,
     height: 50,
-    name: "开始节点",
+    name: '开始节点',
     isHovered: false,
     field_list: [
       {
@@ -22,31 +22,29 @@ export const startNode = {
 }
 export const aiChatNode = {
   type: 'ai-chat-node',
-  text: "",
+  text: '',
   x: 0,
   y: 0,
-  label: "ai对话",
+  label: 'ai对话',
   properties: {
     width: 200,
-    height: 100,
-    name: "ai对话",
+    height: 50,
+    name: 'ai对话',
     isHovered: false,
-    field_list: [
-
-    ]
+    field_list: []
   }
 }
 
 export const javaScriptNode = {
   type: 'java-script-node',
-  text: "",
+  text: '',
   x: 0,
   y: 0,
-  label: "javaScript执行",
+  label: 'javaScript执行',
   properties: {
     width: 200,
     height: 50,
-    name: "javaScript执行",
+    name: 'javaScript执行',
     isHovered: false,
     field_list: [
       {
@@ -59,30 +57,29 @@ export const javaScriptNode = {
 
 export const databaseSearchNode = {
   type: 'database-search-node',
-  text: "",
+  text: '',
   x: 0,
   y: 0,
-  label: "数据库检索",
+  label: '数据库检索',
   properties: {
     width: 200,
     height: 50,
-    name: "数据库检索",
+    name: '数据库检索',
     isHovered: false,
     field_list: []
   }
 }
 
-
 export const jsonResponseNode = {
   type: 'response-node',
-  text: "",
+  text: '',
   x: 0,
   y: 0,
-  label: "数据响应",
+  label: '数据响应',
   properties: {
     width: 200,
     height: 50,
-    name: "数据响应",
+    name: '数据响应',
     isHovered: false,
     field_list: []
   }
@@ -92,16 +89,15 @@ export const baseWorkflow = {
   edges: []
 }
 
-
 export enum WorkflowType {
   APPLICATION = 'APPLICATION',
   PROCESSOR = 'PROCESSOR'
 }
 
-
-
 export const iconMap = {
-  'connected': (color: string) => `<svg width="100%" height="100%" viewBox="0 0 42 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+  connected: (
+    color: string
+  ) => `<svg width="100%" height="100%" viewBox="0 0 42 42" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <g filter="url(#filter0_d_5119_232585)">
                   <path d="M20.9998 29.8333C28.0875 29.8333 33.8332 24.0876 33.8332 17C33.8332 9.91231 28.0875 4.16663 20.9998 4.16663C13.9122 4.16663 8.1665 9.91231 8.1665 17C8.1665 24.0876 13.9122 29.8333 20.9998 29.8333Z" fill="white"/>
                   <path fill-rule="evenodd" clip-rule="evenodd" d="M20.9998 27.5C26.7988 27.5 31.4998 22.799 31.4998 17C31.4998 11.201 26.7988 6.49996 20.9998 6.49996C15.2008 6.49996 10.4998 11.201 10.4998 17C10.4998 22.799 15.2008 27.5 20.9998 27.5ZM33.8332 17C33.8332 24.0876 28.0875 29.8333 20.9998 29.8333C13.9122 29.8333 8.1665 24.0876 8.1665 17C8.1665 9.91231 13.9122 4.16663 20.9998 4.16663C28.0875 4.16663 33.8332 9.91231 33.8332 17Z" fill="${color}"/>
@@ -119,7 +115,9 @@ export const iconMap = {
                   </filter>
                   </defs>
                   </svg>`,
-  'not_connected': (color: string) => `<svg width="100%" height="100%" viewBox="0 0 42 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+  not_connected: (
+    color: string
+  ) => `<svg width="100%" height="100%" viewBox="0 0 42 42" fill="none" xmlns="http://www.w3.org/2000/svg">
             <g filter="url(#filter0_d_5199_166905)">
             <path d="M20.9998 29.8333C28.0875 29.8333 33.8332 24.0876 33.8332 17C33.8332 9.91231 28.0875 4.16663 20.9998 4.16663C13.9122 4.16663 8.1665 9.91231 8.1665 17C8.1665 24.0876 13.9122 29.8333 20.9998 29.8333Z" fill="${color}"/>
             <path d="M19.8332 11.75C19.8332 11.4278 20.0943 11.1666 20.4165 11.1666H21.5832C21.9053 11.1666 22.1665 11.4278 22.1665 11.75V15.8333H26.2498C26.572 15.8333 26.8332 16.0945 26.8332 16.4166V17.5833C26.8332 17.9055 26.572 18.1666 26.2498 18.1666H22.1665V22.25C22.1665 22.5721 21.9053 22.8333 21.5832 22.8333H20.4165C20.0943 22.8333 19.8332 22.5721 19.8332 22.25V18.1666H15.7498C15.4277 18.1666 15.1665 17.9055 15.1665 17.5833V16.4166C15.1665 16.0945 15.4277 15.8333 15.7498 15.8333H19.8332V11.75Z" fill="white"/>
@@ -140,22 +138,22 @@ export const iconMap = {
 }
 
 export const anchorIconMap: any = {
-  'left': {
-    'success': {
+  left: {
+    success: {
       connected: iconMap.connected('var(--el-color-primary)'),
       not_connected: iconMap.not_connected('var(--el-color-primary)')
     },
-    'fail': {
+    fail: {
       connected: iconMap.connected('var(--el-color-error)'),
       not_connected: iconMap.not_connected('var(--el-color-error)')
     }
   },
-  'right': {
-    'success': {
+  right: {
+    success: {
       connected: iconMap.connected('var(--el-color-primary)'),
       not_connected: iconMap.not_connected('var(--el-color-primary)')
     },
-    'fail': {
+    fail: {
       connected: iconMap.connected('var(--el-color-error)'),
       not_connected: iconMap.not_connected('var(--el-color-error)')
     }

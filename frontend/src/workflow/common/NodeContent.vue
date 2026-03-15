@@ -54,7 +54,8 @@ provide('getOptions', () => {
     })
     .reduce((x: Array<any>, y: Array<any>) => [...x, ...y], [])
 })
-provide('getNodeFieldOptions', () => {
+
+const getNodeFieldOptions = () => {
   const getUpNode = (id: string, result: Array<any>) => {
     const upNodes = model.graphModel.getNodeIncomingNode(id)
     upNodes.forEach((node: any) => {
@@ -76,6 +77,26 @@ provide('getNodeFieldOptions', () => {
       }))
     }
   })
+}
+const flattenVariables = (nodes: any[], parentLabel = '', parentValue = ''): any[] => {
+  const result: any[] = []
+
+  for (const node of nodes) {
+    if (node.disabled) {
+      // 分组节点，递归子级，传递当前 label 作为前缀
+      result.push(...flattenVariables(node.children ?? [], node.label, node.label))
+    } else {
+      const name = parentValue ? `${parentValue}.${node.value}` : node.value
+      const label = parentLabel ? `${parentLabel} / ${node.label}` : node.label
+      result.push({ name, label })
+    }
+  }
+
+  return result
+}
+provide('getNodeFieldOptions', getNodeFieldOptions)
+provide('getTemplateVariables', () => {
+  return flattenVariables(getNodeFieldOptions())
 })
 
 const props = defineProps<{

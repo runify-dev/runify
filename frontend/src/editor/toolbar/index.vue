@@ -18,6 +18,7 @@
     <Image :editor="editor"></Image>
     <Audio :editor="editor"></Audio>
     <Video :editor="editor"></Video>
+    <File :editor="editor"></File>
     <div style="flex: 1"></div>
   </div>
 </template>
@@ -38,6 +39,7 @@ import Table from './operate/table/index.vue'
 import Image from './operate/image/index.vue'
 import Audio from './operate/audio/index.vue'
 import Video from './operate/video/index.vue'
+import File from './operate/file/index.vue'
 import './style/index.scss'
 
 const props = defineProps<{ editor: Editor }>()
