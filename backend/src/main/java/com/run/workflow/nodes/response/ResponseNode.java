@@ -2,6 +2,7 @@ package com.run.workflow.nodes.response;
 
 import com.run.common.constants.MessageConstants;
 import com.run.common.keyvalue.DefaultKeyValue;
+import com.run.common.util.CommonUtils;
 import com.run.common.util.JacksonUtils;
 import com.run.workflow.*;
 import com.run.workflow.entity.Node;
@@ -60,7 +61,8 @@ public class ResponseNode extends INode<ResponseNode, ResponseNodeData> {
         public Supplier<List<Node>> apply(WorkFlowManage workFlowManage, ResponseNode node) {
             ResponseNodeData jsonResponseNodeData = node.params;
             if (jsonResponseNodeData.getStatus() != null) {
-                workFlowManage.write(node, new MessageChunk(MessageConstants.ASSISTANT, List.of(new StatusContent(jsonResponseNodeData.getStatus(), node, (String) workFlowManage.getParams().get("workflowRunId")))));
+                workFlowManage.write(node, new MessageChunk(MessageConstants.ASSISTANT, List.of(new StatusContent(jsonResponseNodeData.getStatus(), node, (String) workFlowManage.getParams().get("workflowRunId"),
+                        CommonUtils.uuid7().toString()))));
             }
             List<ResponseNodeData.Header> headers = jsonResponseNodeData.getHeaders();
             if (CollectionUtils.isNotEmpty(headers)) {
@@ -74,7 +76,8 @@ public class ResponseNode extends INode<ResponseNode, ResponseNodeData> {
                         params.put(header.getField(), header.getValue());
                     }
                 }
-                workFlowManage.write(node, new MessageChunk(MessageConstants.ASSISTANT, List.of(new HeadersContent(params, node, (String) workFlowManage.getParams().get("workflowRunId")))));
+                workFlowManage.write(node, new MessageChunk(MessageConstants.ASSISTANT, List.of(new HeadersContent(params, node, (String) workFlowManage.getParams().get("workflowRunId"),
+                        CommonUtils.uuid7().toString()))));
             }
 
             ResponseNodeData.ContentType contentType = jsonResponseNodeData.getContentType();
@@ -89,7 +92,8 @@ public class ResponseNode extends INode<ResponseNode, ResponseNodeData> {
                         params.put(parameter.getField(), parameter.getValue());
                     }
                 }
-                workFlowManage.write(node, new MessageChunk(MessageConstants.ASSISTANT, List.of(new JsonFieldsContent(params.getMap(), node, (String) workFlowManage.getParams().get("workflowRunId")))));
+                workFlowManage.write(node, new MessageChunk(MessageConstants.ASSISTANT, List.of(new JsonFieldsContent(params.getMap(), node, (String) workFlowManage.getParams().get("workflowRunId"),
+                        CommonUtils.uuid7().toString()))));
 
             }
             if (contentType == jsonObject) {
@@ -101,7 +105,8 @@ public class ResponseNode extends INode<ResponseNode, ResponseNodeData> {
                 } else {
                     json = jsonObject.getValue();
                 }
-                workFlowManage.write(node, new MessageChunk(MessageConstants.ASSISTANT, List.of(new JsonContent(json, node, (String) workFlowManage.getParams().get("workflowRunId")))));
+                workFlowManage.write(node, new MessageChunk(MessageConstants.ASSISTANT, List.of(new JsonContent(json, node, (String) workFlowManage.getParams().get("workflowRunId"),
+                        CommonUtils.uuid7().toString()))));
             }
             if (contentType == ResponseNodeData.ContentType.plainText) {
                 ResponseNodeData.PlainText plainText = jsonResponseNodeData.getPlainText();
@@ -112,7 +117,9 @@ public class ResponseNode extends INode<ResponseNode, ResponseNodeData> {
                 } else {
                     text = plainText.getValue();
                 }
-                workFlowManage.write(node, new MessageChunk(MessageConstants.ASSISTANT, List.of(new TextContent(text, node, (String) workFlowManage.getParams().get("workflowRunId")))));
+                workFlowManage.write(node, new MessageChunk(MessageConstants.ASSISTANT,
+                        List.of(new TextContent(text, node, (String) workFlowManage.getParams().get("workflowRunId"),
+                                CommonUtils.uuid7().toString()))));
             }
 
             node.status = NodeStatus.SUCCESS;

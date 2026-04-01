@@ -48,6 +48,7 @@ export { Scroll }
 const TEXT = (prev: any = {}, chunk: any) => {
   return {
     type: 'TEXT',
+    id: chunk.id ?? prev.id,
     content: (prev.content || '') + (chunk.content || ''),
     workflowRunId: chunk.workflowRunId ?? prev.workflowRunId,
     extra: chunk.extra ?? prev.extra
@@ -55,21 +56,24 @@ const TEXT = (prev: any = {}, chunk: any) => {
 }
 const REASONING = (prev: any, chunk: any) => {
   return {
-    type: 'TEXT',
+    type: 'REASONING',
+    id: chunk.id ?? prev.id,
     content: (prev.content || '') + (chunk.content || ''),
     workflowRunId: chunk.workflowRunId ?? prev.workflowRunId,
-    extra: chunk.extra ?? prev.extra
+    extra: chunk.extra ?? prev.extra,
+    status: chunk.status ?? prev.status,
   }
 }
 const FAILURE = (prev: any, chunk: any) => {
   return {
-    type: 'TEXT',
+    type: 'FAILURE',
+    id: chunk.id ?? prev.id,
     content: (prev.content || '') + (chunk.content || ''),
     workflowRunId: chunk.workflowRunId ?? prev.workflowRunId,
     extra: chunk.extra ?? prev.extra
   }
 }
-export const aggregators = {
+export const aggregators: any = {
   TEXT: TEXT,
   REASONING: REASONING,
   FAILURE: FAILURE

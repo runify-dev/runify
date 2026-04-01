@@ -17,7 +17,7 @@ const chat: (
   conversationId: string,
   conversation: any,
 ) => Promise<any> = (applicationId, conversationId, conversation,) => {
-  return postStream(`/api/application/${applicationId}/conversation/${conversationId}`, conversation)
+  return postStream(`/admin/api/application/${applicationId}/conversation/${conversationId}`, conversation)
 }
 
 const pageConversation: (

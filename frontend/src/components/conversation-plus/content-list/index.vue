@@ -1,0 +1,26 @@
+<template>
+  <template v-for="(content, index) in contents" :key="index">
+    <Content :type="content.type" :content="content"></Content>
+  </template>
+</template>
+<script setup lang="ts">
+import { computed } from 'vue'
+import Content from '@/components/conversation-plus/content/index.vue'
+const props = defineProps<{ contentList: Array<any> }>()
+const contents = computed(() => {
+  return props.contentList
+    .map((item, index) => ({ item, index }))
+    .sort((a, b) => {
+      const idA = a.item.id || ''
+      const idB = b.item.id || ''
+
+      if (idA !== idB) {
+        return idA.localeCompare(idB)
+      }
+
+      return a.index - b.index
+    })
+    .map(({ item }) => item)
+})
+</script>
+<style lang="scss"></style>

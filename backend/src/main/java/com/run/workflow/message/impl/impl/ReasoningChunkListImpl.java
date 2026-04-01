@@ -20,7 +20,7 @@ public class ReasoningChunkListImpl {
 
     public static List<Content> toBlock(List<ReasoningChunk> self) {
         List<Content> result = new ArrayList<>();
-        LinkedHashMap<String, List<ReasoningChunk>> r = self.stream().collect(Collectors.groupingBy(ReasoningChunk::getRealNodeId, LinkedHashMap::new, Collectors.toList()));
+        LinkedHashMap<String, List<ReasoningChunk>> r = self.stream().collect(Collectors.groupingBy(ReasoningChunk::getId, LinkedHashMap::new, Collectors.toList()));
         for (Map.Entry<String, List<ReasoningChunk>> stringListEntry : r.entrySet()) {
             List<ReasoningChunk> value = stringListEntry.getValue();
             ReasoningChunk first = value.getFirst();

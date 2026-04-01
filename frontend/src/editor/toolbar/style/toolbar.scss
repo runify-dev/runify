@@ -49,7 +49,7 @@
       display: none;
     }
 
-    @media screen and (max-width: 480px) {
+    @media screen and (max-width: 991px) {
       position: fixed;
       top: auto;
       bottom: var(--tt-safe-area-bottom);

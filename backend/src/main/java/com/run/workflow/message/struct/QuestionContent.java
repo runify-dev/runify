@@ -1,9 +1,12 @@
 package com.run.workflow.message.struct;
 
 import com.run.common.constants.ContentTypeConstants;
+import com.run.workflow.NodeStatus;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import java.util.Map;
 
 /**
  * {@code @Author:张少虎}

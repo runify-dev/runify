@@ -49,7 +49,6 @@
 <script setup lang="ts">
 import { BaseNodeModel } from '@logicflow/core'
 import { inject, ref, onMounted } from 'vue'
-import type { LifeCycle } from '@/workflow/common/type'
 import { generateAnchor } from '@/utils/common'
 import NodeContentContainer from '@/workflow/common/NodeContentContainer.vue'
 import DropdownMenu from '@/components/dropdown-menu/index.vue'

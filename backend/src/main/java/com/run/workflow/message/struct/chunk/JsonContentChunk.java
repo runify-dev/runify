@@ -19,8 +19,8 @@ import lombok.Setter;
 public class JsonContentChunk extends AnswerContent {
     private String content;
 
-    public JsonContentChunk(String content, INode<?, ?> node, String workflowRunId) {
-        super(ContentTypeConstants.REASONING, node, workflowRunId);
+    public JsonContentChunk(String content, INode<?, ?> node, String workflowRunId, String id) {
+        super(ContentTypeConstants.JSON, node, workflowRunId, id);
         this.content = content;
     }
 

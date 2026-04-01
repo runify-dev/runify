@@ -1,5 +1,6 @@
 package com.run.common.util;
 
+import com.github.f4b6a3.uuid.UuidCreator;
 import io.vertx.sqlclient.RowSet;
 import lombok.SneakyThrows;
 import org.apache.commons.beanutils.BeanUtils;
@@ -161,5 +162,10 @@ public class CommonUtils {
 
     public static Path getOssPath() {
         return Paths.get("data/oss" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("/yyyy/MM/dd/HH/")) + UUID.randomUUID()).toAbsolutePath();
+    }
+
+    public static UUID uuid7() {
+        return UuidCreator.getTimeOrderedEpoch();
+
     }
 }

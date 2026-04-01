@@ -188,7 +188,7 @@ function onPopKeydown(e: KeyboardEvent) {
 function commitVariable(v: VariableItem) {
   const view = activeView
   if (!view) return
-  // 插入格式为 ${var}，$ 只是触发字符，会被替换掉
+  // 插入格式改为 ${var}，@ 只是触发字符，会被替换掉
   const insert = `\${${v.name}}`
   view.dispatch({
     changes: { from: pop.from, to: pop.to, insert },
@@ -262,17 +262,17 @@ function buildExtensions(onChange?: (v: string) => void) {
           closePop()
           return true
         }
-        // 触发字符为 $
-        if (e.key !== '$') return false
+        // 触发字符改为 @
+        if (e.key !== '@') return false
         setTimeout(() => {
           const cursor = view.state.selection.main.head
-          // 确认刚插入的字符是 $
+          // 确认刚插入的字符是 @
           const ch = view.state.doc.sliceString(cursor - 1, cursor)
-          if (ch !== '$') return
+          if (ch !== '@') return
           const c = view.coordsAtPos(cursor)
           if (!c) return
           activeView = view
-          // from = $ 的位置（cursor-1），to = cursor
+          // from = @ 的位置（cursor-1），to = cursor
           openPop(c.left, c.bottom, cursor - 1, cursor)
         }, 0)
         return false
@@ -286,10 +286,10 @@ function buildExtensions(onChange?: (v: string) => void) {
         const cursor = update.state.selection.main.head
         pop.to = cursor
         const before = update.state.doc.sliceString(0, cursor)
-        // $ 还在且没有换行就继续，否则关闭
+        // @ 还在且没有换行就继续，否则关闭
         if (
           before.length < pop.from + 1 ||
-          before[pop.from] !== '$' ||
+          before[pop.from] !== '@' ||
           before.slice(pop.from + 1).includes('\n')
         ) {
           closePop()

@@ -49,9 +49,9 @@ public class MessageChunkListImpl {
             MessageConstants messageConstants = chunk.type();
             List<AnswerContent> contents = chunk.content();
             for (AnswerContent content : contents) {
-                String id = content.getRealNodeId();
+                String id = content.getId();
                 ContentTypeConstants type = content.getType();
-                String v = id + "_" + type;
+                String v = id;
                 int i = index.indexOf(v);
                 if (i < 0) {
                     i = index.size();

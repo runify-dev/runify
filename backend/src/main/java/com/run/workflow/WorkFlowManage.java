@@ -3,6 +3,7 @@ package com.run.workflow;
 import com.run.common.constants.MessageConstants;
 import com.run.common.function.Write;
 import com.run.common.keyvalue.DefaultKeyValue;
+import com.run.common.util.CommonUtils;
 import com.run.common.util.TemplateUtils;
 import com.run.workflow.entity.*;
 import com.run.workflow.message.struct.chunk.FailureContentChunk;
@@ -134,7 +135,11 @@ public class WorkFlowManage {
                 this.assertionEnd();
             }
         } catch (Exception e) {
-            write(upINode, new MessageChunk(MessageConstants.ASSISTANT, List.of(new FailureContentChunk(e.toString(), upINode, (String) this.getParams().get("workflowRunId")))));
+            write(upINode, new MessageChunk(MessageConstants.ASSISTANT,
+                    List.of(new FailureContentChunk(e.toString(),
+                            upINode,
+                            (String) this.getParams().get("workflowRunId"),
+                            CommonUtils.uuid7().toString()))));
             this.assertionEnd();
         }
     }
@@ -165,7 +170,8 @@ public class WorkFlowManage {
             }
         } catch (Exception e) {
             log.error("执行工作流中发生异常:", e);
-            write(iNode, new MessageChunk(MessageConstants.ASSISTANT, List.of(new FailureContentChunk(e.toString(), iNode, (String) this.getParams().get("workflowRunId")))));
+            write(iNode, new MessageChunk(MessageConstants.ASSISTANT,
+                    List.of(new FailureContentChunk(e.toString(), iNode, (String) this.getParams().get("workflowRunId"), CommonUtils.uuid7().toString()))));
             this.assertionEnd();
         }
 

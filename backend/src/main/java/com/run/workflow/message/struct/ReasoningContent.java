@@ -2,9 +2,12 @@ package com.run.workflow.message.struct;
 
 import com.run.common.constants.ContentTypeConstants;
 import com.run.workflow.INode;
+import com.run.workflow.NodeStatus;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import java.util.Map;
 
 /**
  * {@code @Author:张少虎}
@@ -18,8 +21,22 @@ import lombok.Setter;
 public class ReasoningContent extends AnswerContent {
     private String content;
 
-    public ReasoningContent(String content, INode<?, ?> node, String workflowRunId) {
-        super(ContentTypeConstants.REASONING, node, workflowRunId);
+    public ReasoningContent(String content, INode<?, ?> node, String workflowRunId, String id) {
+        super(ContentTypeConstants.REASONING, node, workflowRunId, id);
+        this.content = content;
+    }
+
+    public ReasoningContent(String content, String workflowRunId,
+                            String id,
+                            NodeStatus status,
+                            String nodeId,
+                            String nodeName) {
+        super(ContentTypeConstants.REASONING, workflowRunId, id, nodeId, status, nodeName);
+        this.content = content;
+    }
+
+    public ReasoningContent(String content, String workflowRunId, String id, Map<String, Object> extra) {
+        super(ContentTypeConstants.REASONING, workflowRunId, id, extra);
         this.content = content;
     }
 

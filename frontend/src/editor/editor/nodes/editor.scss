@@ -8,22 +8,14 @@
   overflow: auto;
 }
 
-.simple-editor-content {
-  max-width: 648px;
-  width: 100%;
-  margin: 0 auto;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-}
+
 
 .simple-editor-content .tiptap.ProseMirror.simple-editor {
   flex: 1;
-  padding: 3rem 3rem 30vh;
+  padding: 2rem 2rem 30vh;
 }
 
-@media screen and (max-width: 480px) {
+@media screen and (max-width: 991px) {
   .simple-editor-content .tiptap.ProseMirror.simple-editor {
     padding: 1rem 1.5rem 30vh;
   }

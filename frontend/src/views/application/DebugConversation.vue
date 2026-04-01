@@ -1,65 +1,16 @@
 <template>
-  <div class="absolute z-99999 bottom-8 right-6 bg-white rounded-xl overflow-hidden">
-    <div class="flex h-full">
-      <ConversationList
-        class="absolute left-0 top-0 h-full w-64 bg-gray-100 z-10 drawer-transition"
-        v-model:drawer-open="drawerOpen"
-        :handle-touch-end="handleTouchEnd"
-        :handle-touch-move="handleTouchMove"
-        :handle-touch-start="handleTouchStart"
-        ref="ConversationListRef"
-        :class="{ 'transform -translate-x-full': !drawerOpen }"
-      ></ConversationList>
-      <div
-        :class="{ 'transform  translate-x-64': drawerOpen }"
-        class="overflow-auto content-transition relative z-0 flex-1 h-full"
-      >
-        <div
-          class="flex justify-between content-center items-center"
-          style="
-            background: linear-gradient(135deg, rgba(29, 43, 100, 0.79), rgb(248, 205, 218));
-            height: 50px;
-          "
-        >
-          <div class="pl-4">
-            <el-icon class="cursor-pointer" @click="ConversationListRef?.open()"
-              ><Operation
-            /></el-icon>
-          </div>
-
-          <div class="pl-4 text-white">
-            {{ application.name }}
-          </div>
-          <div class="pr-4">
-            <el-icon @click="emit('close')" class="cursor-pointer"><Close /></el-icon>
-          </div>
-        </div>
-
-        <div
-          ref="scrollRef"
-          @touchstart="handleTouchStart"
-          @touchmove="handleTouchMove"
-          @touchend="handleTouchEnd"
-          class="overflow-auto pt-4 content-transition relative z-0 flex-1 h-full"
-          style="height: 520px; width: 450px"
-        >
-          <Conversation @chanage="scrollBottom"></Conversation>
-        </div>
-      </div>
-    </div>
-    <!-- 遮罩层 -->
-    <div
-      v-if="drawerOpen"
-      class="absolute inset-0 overlay z-5"
-      @click="ConversationListRef?.close()"
-    ></div>
+  <div
+    class="absolute z-99999 bottom-8 right-6 bg-white rounded-xl overflow-hidden"
+    style="height: 450px; width: 400px"
+  >
+    <Conversation></Conversation>
   </div>
 </template>
 <script setup lang="ts">
-import Conversation from '@/components/conversation/index.vue'
 import { onMounted, provide, ref } from 'vue'
 import applicationAPI from '@/api/application'
 import { v4 as uuidv4 } from 'uuid'
+import Conversation from '@/components/conversation-plus/index.vue'
 import { Scroll } from '@/components/conversation/index'
 import ConversationList from './ConversationList.vue'
 const drawerOpen = ref<boolean>(false)
@@ -127,6 +78,7 @@ const scrollBottom = () => {
 
 provide('conversationAPI', (question: any) => {
   if (!conversationId.value) {
+    console.log(conversationId.value)
     return applicationAPI
       .createConversation(props.application.id, question.content)
       .then((ok) => {
@@ -148,7 +100,6 @@ provide('conversationAPI', (question: any) => {
 })
 onMounted(() => {
   const element = scrollRef.value
-  scroll = new Scroll(element)
 })
 </script>
 <style lang="scss"></style>

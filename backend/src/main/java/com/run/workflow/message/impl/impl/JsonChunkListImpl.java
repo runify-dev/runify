@@ -20,7 +20,7 @@ public class JsonChunkListImpl {
 
     public static List<Content> toBlock(List<JsonContentChunk> self) {
         List<Content> result = new ArrayList<>();
-        LinkedHashMap<String, List<JsonContentChunk>> r = self.stream().collect(Collectors.groupingBy(JsonContentChunk::getRealNodeId, LinkedHashMap::new, Collectors.toList()));
+        LinkedHashMap<String, List<JsonContentChunk>> r = self.stream().collect(Collectors.groupingBy(JsonContentChunk::getId, LinkedHashMap::new, Collectors.toList()));
         for (Map.Entry<String, List<JsonContentChunk>> stringListEntry : r.entrySet()) {
             List<JsonContentChunk> value = stringListEntry.getValue();
             JsonContentChunk first = value.getFirst();

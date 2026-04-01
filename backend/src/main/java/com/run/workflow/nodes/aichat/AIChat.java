@@ -11,6 +11,7 @@ import com.run.common.openai.request.message.UserMessage;
 import com.run.common.openai.response.ChatCompletion;
 import com.run.common.openai.response.Choice;
 import com.run.common.openai.response.chunk.ChatCompletionChunk;
+import com.run.common.util.CommonUtils;
 import com.run.common.util.JacksonUtils;
 import com.run.common.util.RSAUtil;
 import com.run.dao.mapper.ModelMapper;
@@ -33,10 +34,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
@@ -92,6 +90,8 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
                 String user = workFlowManage.generatePrompt(node.params.getUser());
                 userMessage.setContent(user);
             }
+
+
             ModelMapper modelMapper = RunApplication.appComponent.modelMapper();
             modelMapper.getById(node.params.getModelId()).onSuccess(model -> {
                 IProvider provider = ModelProvideConstants.valueOf(model.getProvider()).getProvider();
@@ -101,26 +101,42 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
                 BaseOpenaiChatModel llm = provider.getModel(model.getModelType(), model.getModelName(), map, Map.of(), LLM.class);
                 llm.invoke(messages, true, new Callback<>() {
                     private final StringBuilder reasoningContent = new StringBuilder();
+                    String chunkId = null;
 
                     @Override
                     public void onResponse(@NotNull Call call, @NotNull ChatCompletion chatCompletion) {
+                        if (StringUtils.isEmpty(chunkId)) {
+                            chunkId = CommonUtils.uuid7().toString();
+                        }
                         for (Choice choice : chatCompletion.getChoices()) {
                             String content = choice.getMessage().getContent();
-                            workFlowManage.write(node, new MessageChunk(MessageConstants.ASSISTANT, List.of(new TextContentChunk(content, node, (String) workFlowManage.getParams().get("workflowRunId")))));
+                            workFlowManage.write(node, new MessageChunk(MessageConstants.ASSISTANT,
+                                    List.of(new TextContentChunk(content, node, (String) workFlowManage.getParams().get("workflowRunId"),
+                                            chunkId))));
                         }
                     }
 
                     @Override
                     public void onStream(@NotNull Call call, @NotNull ChatCompletionChunk chatCompletion) {
+                        if (StringUtils.isEmpty(chunkId)) {
+                            chunkId = CommonUtils.uuid7().toString();
+                        }
                         chatCompletion.getChoices().forEach(c -> {
                             String r = c.getDelta().getString("reasoning_content");
                             if (StringUtils.isNotEmpty(r)) {
                                 reasoningContent.append(r);
-                                workFlowManage.write(node, new MessageChunk(MessageConstants.ASSISTANT, List.of(new ReasoningChunk(r, node, (String) workFlowManage.getParams().get("workflowRunId")))));
+                                workFlowManage.write(node, new MessageChunk(MessageConstants.ASSISTANT,
+                                        List.of(new ReasoningChunk(r, NodeStatus.RUNNING, node, (String) workFlowManage.getParams().get("workflowRunId"), chunkId))));
                             }
                             String content = c.getDelta().getContent();
                             if (StringUtils.isNotEmpty(content)) {
-                                workFlowManage.write(node, new MessageChunk(MessageConstants.ASSISTANT, List.of(new TextContentChunk(content, node, (String) workFlowManage.getParams().get("workflowRunId")))));
+                                if (!reasoningContent.isEmpty()) {
+                                    workFlowManage.write(node, new MessageChunk(MessageConstants.ASSISTANT,
+                                            List.of(new ReasoningChunk(r, NodeStatus.SUCCESS, node, (String) workFlowManage.getParams().get("workflowRunId"),
+                                                    chunkId))));
+                                }
+                                workFlowManage.write(node, new MessageChunk(MessageConstants.ASSISTANT, List.of(new TextContentChunk(content, node, (String) workFlowManage.getParams().get("workflowRunId"),
+                                        chunkId))));
                             }
                         });
                     }

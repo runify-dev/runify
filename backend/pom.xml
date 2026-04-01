@@ -82,6 +82,12 @@
             <artifactId>vertx-core</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.openai</groupId>
+            <artifactId>openai-java</artifactId>
+            <version>4.30.0</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
             <version>11.10.3</version>

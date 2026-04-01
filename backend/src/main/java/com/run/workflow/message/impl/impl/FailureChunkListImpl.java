@@ -20,7 +20,7 @@ public class FailureChunkListImpl {
 
     public static List<Content> toBlock(List<FailureContentChunk> self) {
         List<Content> result = new ArrayList<>();
-        LinkedHashMap<String, List<FailureContentChunk>> r = self.stream().collect(Collectors.groupingBy(FailureContentChunk::getRealNodeId, LinkedHashMap::new, Collectors.toList()));
+        LinkedHashMap<String, List<FailureContentChunk>> r = self.stream().collect(Collectors.groupingBy(FailureContentChunk::getId, LinkedHashMap::new, Collectors.toList()));
         for (Map.Entry<String, List<FailureContentChunk>> stringListEntry : r.entrySet()) {
             List<FailureContentChunk> value = stringListEntry.getValue();
             FailureContentChunk first = value.getFirst();
