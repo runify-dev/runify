@@ -1,13 +1,13 @@
 package com.run.workflow;
 
-import com.run.common.constants.MessageConstants;
 import com.run.common.function.Write;
 import com.run.common.keyvalue.DefaultKeyValue;
 import com.run.common.util.CommonUtils;
 import com.run.common.util.TemplateUtils;
 import com.run.workflow.entity.*;
-import com.run.workflow.message.struct.chunk.FailureContentChunk;
-import com.run.workflow.message.struct.chunk.MessageChunk;
+import com.run.workflow.message.aggregator.AggregationManager;
+import com.run.workflow.message.struct.Content;
+import com.run.workflow.message.struct.FailureContent;
 import com.run.workflow.nodes.NodeManage;
 import io.vertx.core.json.JsonObject;
 import jakarta.validation.Validation;
@@ -49,8 +49,7 @@ public class WorkFlowManage {
      */
     private final LocalDateTime startTime;
 
-    @Getter
-    private final List<MessageChunk> messageChunks;
+    private final AggregationManager aggregationManager = new AggregationManager();
 
     /**
      * 用于存储上下文
@@ -77,7 +76,7 @@ public class WorkFlowManage {
     /**
      * 工作流写出
      */
-    private final Write<WorkFlowManage, INode<?, ?>, MessageChunk, Boolean> write;
+    private final Write<WorkFlowManage, INode<?, ?>, Content, Boolean> write;
     /**
      * 已运行的节点信息
      */
@@ -87,7 +86,7 @@ public class WorkFlowManage {
     public WorkFlowManage(WorkFlow workFlow,
                           Map<String, Object> params,
                           Map<String, Map<String, Object>> context,
-                          Write<WorkFlowManage, INode<?, ?>, MessageChunk, Boolean> write) {
+                          Write<WorkFlowManage, INode<?, ?>, Content, Boolean> write) {
         this.workFlow = workFlow;
         this.getStartNode = () -> workFlow.getNode("start-node");
         this.nodeNewInstance = NodeManage.of();
@@ -95,7 +94,6 @@ public class WorkFlowManage {
         this.params = params;
         this.context = context;
         this.nodes = new ArrayList<>();
-        this.messageChunks = new ArrayList<>();
         this.startTime = LocalDateTime.now();
     }
 
@@ -135,11 +133,10 @@ public class WorkFlowManage {
                 this.assertionEnd();
             }
         } catch (Exception e) {
-            write(upINode, new MessageChunk(MessageConstants.ASSISTANT,
-                    List.of(new FailureContentChunk(e.toString(),
-                            upINode,
-                            (String) this.getParams().get("workflowRunId"),
-                            CommonUtils.uuid7().toString()))));
+            write(upINode, new FailureContent(e.toString(),
+                    upINode,
+                    (String) this.getParams().get("workflowRunId"),
+                    CommonUtils.uuid7().toString()));
             this.assertionEnd();
         }
     }
@@ -170,8 +167,7 @@ public class WorkFlowManage {
             }
         } catch (Exception e) {
             log.error("执行工作流中发生异常:", e);
-            write(iNode, new MessageChunk(MessageConstants.ASSISTANT,
-                    List.of(new FailureContentChunk(e.toString(), iNode, (String) this.getParams().get("workflowRunId"), CommonUtils.uuid7().toString()))));
+            write(iNode, new FailureContent(e.toString(), iNode, (String) this.getParams().get("workflowRunId"), CommonUtils.uuid7().toString()));
             this.assertionEnd();
         }
 
@@ -195,8 +191,8 @@ public class WorkFlowManage {
      *
      * @param chunk 需要输出的chunk
      */
-    public void write(INode<?, ?> node, MessageChunk chunk) {
-        messageChunks.add(chunk);
+    public void write(INode<?, ?> node, Content chunk) {
+        aggregationManager.aggregate(chunk);
         this.write.write(this, node, chunk, false);
     }
 
@@ -264,6 +260,10 @@ public class WorkFlowManage {
     public String generatePrompt(String prompt) {
         String s = this.workFlow.resetPrompt(prompt);
         return TemplateUtils.format(s, Map.of("context", this.context));
+    }
+
+    public List<Content> getChunks() {
+        return aggregationManager.getContents();
     }
 
     /**

@@ -18,11 +18,13 @@ import java.util.Map;
 @Getter
 @Setter
 @NoArgsConstructor
-public class ReasoningContent extends AnswerContent {
+public class ReasoningContent extends Content {
     private String content;
+    private NodeStatus status;
 
-    public ReasoningContent(String content, INode<?, ?> node, String workflowRunId, String id) {
+    public ReasoningContent(String content, NodeStatus status, INode<?, ?> node, String workflowRunId, String id) {
         super(ContentTypeConstants.REASONING, node, workflowRunId, id);
+        this.status = status;
         this.content = content;
     }
 

@@ -2,39 +2,34 @@ package com.run.workflow.nodes.aichat;
 
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.openai.core.JsonValue;
+import com.openai.core.http.AsyncStreamResponse;
+import com.openai.models.chat.completions.ChatCompletionMessageParam;
 import com.run.RunApplication;
-import com.run.common.constants.MessageConstants;
 import com.run.common.keyvalue.DefaultKeyValue;
-import com.run.common.openai.request.message.Message;
-import com.run.common.openai.request.message.SystemMessage;
-import com.run.common.openai.request.message.UserMessage;
-import com.run.common.openai.response.ChatCompletion;
-import com.run.common.openai.response.Choice;
-import com.run.common.openai.response.chunk.ChatCompletionChunk;
+import com.run.common.util.ChatCompletionAccumulator;
 import com.run.common.util.CommonUtils;
 import com.run.common.util.JacksonUtils;
 import com.run.common.util.RSAUtil;
+import com.run.dao.entity.ConversationMessage;
 import com.run.dao.mapper.ModelMapper;
-import com.run.models.BaseOpenaiChatModel;
+import com.run.models.ChatModel;
 import com.run.models.IProvider;
 import com.run.models.ModelProvideConstants;
-import com.run.models.callback.Callback;
-import com.run.models.impl.openai.model.LLM;
 import com.run.workflow.*;
+import com.run.workflow.converter.ConversationMessageConverter;
 import com.run.workflow.entity.Node;
 import com.run.workflow.entity.NodeResult;
-import com.run.workflow.message.struct.chunk.MessageChunk;
-import com.run.workflow.message.struct.chunk.ReasoningChunk;
-import com.run.workflow.message.struct.chunk.TextContentChunk;
+import com.run.workflow.message.struct.ReasoningContent;
+import com.run.workflow.message.struct.TextContent;
 import com.run.workflow.nodes.aichat.entity.AIChatNodeData;
 import io.vertx.core.json.JsonObject;
 import jakarta.validation.Validator;
-import okhttp3.Call;
-import org.apache.commons.lang3.StringUtils;
-import org.jetbrains.annotations.NotNull;
 
-import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
@@ -73,24 +68,9 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
 
         @Override
         public Supplier<List<Node>> apply(WorkFlowManage workFlowManage, AIChat node) {
-            List<Message> messages = new ArrayList<>((List<Message>) workFlowManage.getContextVariable(List.of("start-node", "messages")));
-            UserMessage userMessage = (UserMessage) messages.get(messages.size() - 1);
-            if (StringUtils.isNotEmpty(node.params.getSystem())) {
-                Optional<Message> systemMessage = messages.stream().filter(message -> message.getRole().equals("system")).findFirst();
-                String systemContent = workFlowManage.generatePrompt(node.params.getSystem());
-                if (systemMessage.isPresent()) {
-                    ((SystemMessage) systemMessage.get()).setContent(systemContent);
-                } else {
-                    SystemMessage message = new SystemMessage();
-                    message.setContent(systemContent);
-                    messages.add(0, message);
-                }
-            }
-            if (StringUtils.isNotEmpty(node.params.getUser())) {
-                String user = workFlowManage.generatePrompt(node.params.getUser());
-                userMessage.setContent(user);
-            }
-
+            ChatCompletionAccumulator chatCompletionAccumulator = new ChatCompletionAccumulator(List.of("reasoning_content", "reasoning"));
+            List<ConversationMessage> conversationMessages = new ArrayList<>((List<ConversationMessage>) workFlowManage.getContextVariable(List.of("start-node", "messages")));
+            List<ChatCompletionMessageParam> messages = ConversationMessageConverter.toOpenAiMessages(conversationMessages);
 
             ModelMapper modelMapper = RunApplication.appComponent.modelMapper();
             modelMapper.getById(node.params.getModelId()).onSuccess(model -> {
@@ -98,62 +78,74 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
                 String decrypt = RSAUtil.decrypt(model.getCredential());
                 Map<String, Object> map = JacksonUtils.fromJson(decrypt, new TypeReference<Map<String, Object>>() {
                 });
-                BaseOpenaiChatModel llm = provider.getModel(model.getModelType(), model.getModelName(), map, Map.of(), LLM.class);
-                llm.invoke(messages, true, new Callback<>() {
-                    private final StringBuilder reasoningContent = new StringBuilder();
-                    String chunkId = null;
+                Boolean stream = Optional.ofNullable(map.get("stream")).map(v -> (Boolean) v).orElse(true);
+                ChatModel llm = provider.getModel(model.getModelType(), model.getModelName(), map, Map.of(), ChatModel.class);
+                if (stream) {
+                    String chunkId = CommonUtils.uuid7().toString();
 
-                    @Override
-                    public void onResponse(@NotNull Call call, @NotNull ChatCompletion chatCompletion) {
-                        if (StringUtils.isEmpty(chunkId)) {
-                            chunkId = CommonUtils.uuid7().toString();
-                        }
-                        for (Choice choice : chatCompletion.getChoices()) {
-                            String content = choice.getMessage().getContent();
-                            workFlowManage.write(node, new MessageChunk(MessageConstants.ASSISTANT,
-                                    List.of(new TextContentChunk(content, node, (String) workFlowManage.getParams().get("workflowRunId"),
-                                            chunkId))));
-                        }
-                    }
+                    llm.stream(messages, new JsonObject(map))
+                            .subscribe(new AsyncStreamResponse.Handler<>() {
+                                Boolean isReasoning = false;
+                                Boolean reasoningEnd = false;
 
-                    @Override
-                    public void onStream(@NotNull Call call, @NotNull ChatCompletionChunk chatCompletion) {
-                        if (StringUtils.isEmpty(chunkId)) {
-                            chunkId = CommonUtils.uuid7().toString();
-                        }
-                        chatCompletion.getChoices().forEach(c -> {
-                            String r = c.getDelta().getString("reasoning_content");
-                            if (StringUtils.isNotEmpty(r)) {
-                                reasoningContent.append(r);
-                                workFlowManage.write(node, new MessageChunk(MessageConstants.ASSISTANT,
-                                        List.of(new ReasoningChunk(r, NodeStatus.RUNNING, node, (String) workFlowManage.getParams().get("workflowRunId"), chunkId))));
-                            }
-                            String content = c.getDelta().getContent();
-                            if (StringUtils.isNotEmpty(content)) {
-                                if (!reasoningContent.isEmpty()) {
-                                    workFlowManage.write(node, new MessageChunk(MessageConstants.ASSISTANT,
-                                            List.of(new ReasoningChunk(r, NodeStatus.SUCCESS, node, (String) workFlowManage.getParams().get("workflowRunId"),
-                                                    chunkId))));
+                                @Override
+                                public void onNext(com.openai.models.chat.completions.ChatCompletionChunk chatCompletionChunk) {
+                                    for (com.openai.models.chat.completions.ChatCompletionChunk.Choice choice : chatCompletionChunk.choices()) {
+                                        JsonValue reasoningContent = choice.delta()._additionalProperties().get("reasoning_content");
+                                        if (reasoningContent != null) {
+                                            isReasoning = true;
+                                            String reasoning = reasoningContent.convert(String.class);
+                                            workFlowManage.write(node, new ReasoningContent(reasoning, NodeStatus.RUNNING, node, (String) workFlowManage.getParams().get("workflowRunId"), chunkId));
+                                        }
+                                        choice.delta().content().ifPresent(content -> {
+                                            if (isReasoning && !reasoningEnd) {
+                                                reasoningEnd = true;
+                                                workFlowManage.write(node, new ReasoningContent("", NodeStatus.RUNNING, node, (String) workFlowManage.getParams().get("workflowRunId"), chunkId));
+                                            }
+                                            workFlowManage.write(node, new TextContent(content, node, (String) workFlowManage.getParams().get("workflowRunId"),
+                                                    chunkId));
+                                        });
+
+                                    }
+                                    chatCompletionAccumulator.append(chatCompletionChunk);
                                 }
-                                workFlowManage.write(node, new MessageChunk(MessageConstants.ASSISTANT, List.of(new TextContentChunk(content, node, (String) workFlowManage.getParams().get("workflowRunId"),
-                                        chunkId))));
-                            }
-                        });
-                    }
 
-                    @Override
-                    public void onFinish(@NotNull Call call) {
+                                @Override
+                                public void onComplete(Optional<Throwable> error) {
+                                    if (error.isPresent()) {
+                                        node.status = NodeStatus.FAIL;
+                                    } else {
+                                        node.status = NodeStatus.SUCCESS;
+                                        ChatCompletionAccumulator.AccumulatedResult complete = chatCompletionAccumulator.complete();
+                                        workFlowManage.writeContext(node, "content", complete.getContent());
+                                        workFlowManage.writeContext(node, "reasoningContent", complete.getAdditionalProperty("reasoning_content").orElse(null));
+                                        workFlowManage.writeContext(node, "refusal", complete.getRefusal());
+                                        workFlowManage.writeContext(node, "isRefusal", complete.isRefusal());
+                                        workFlowManage.writeContext(node, "toolCalls", complete.getToolCalls());
+                                        workFlowManage.writeContext(node, "finishReason", complete.getFinishReason());
+                                        workFlowManage.nextInvoke(node, () -> workFlowManage.getNextList(node.node.getId()).stream().map(DefaultKeyValue::getValue).toList());
+
+                                    }
+                                }
+                            }).onCompleteFuture();
+                } else {
+                    llm.invoke(messages, new JsonObject(map)).thenAcceptAsync(chatCompletion -> {
+                        chatCompletionAccumulator.append(chatCompletion);
                         node.status = NodeStatus.SUCCESS;
-                        workFlowManage.writeContext(node, "content", llm.getContent());
-                        workFlowManage.writeContext(node, "reasoning_content", reasoningContent.toString());
+                        ChatCompletionAccumulator.AccumulatedResult complete = chatCompletionAccumulator.complete();
+                        workFlowManage.writeContext(node, "content", complete.getContent());
+                        workFlowManage.writeContext(node, "reasoningContent", complete.getAdditionalProperty("reasoning_content").orElse(null));
+                        workFlowManage.writeContext(node, "refusal", complete.getRefusal());
+                        workFlowManage.writeContext(node, "isRefusal", complete.isRefusal());
+                        workFlowManage.writeContext(node, "toolCalls", complete.getToolCalls());
+                        workFlowManage.writeContext(node, "finishReason", complete.getFinishReason());
                         workFlowManage.nextInvoke(node, () -> workFlowManage.getNextList(node.node.getId()).stream().map(DefaultKeyValue::getValue).toList());
-                    }
 
-                    @Override
-                    public void onFailure(@NotNull Call call, @NotNull IOException e) {
-
-                    }
-                }, new JsonObject());
+                    }).exceptionallyAsync(err -> {
+                        node.status = NodeStatus.FAIL;
+                        return null;
+                    });
+                }
             });
             return null;
         }

@@ -125,19 +125,17 @@ const scrollBottom = () =>
 const getOnStream = (message: any) => {
   const index: any[] = []
   const onStream = (chunk: any) => {
-    chunk.content.forEach((content: any) => {
-      const id = content.id + '_' + content.type
-      let i = index.indexOf(id)
-      if (i < 0) {
-        i = index.length
-        index.push(id)
-      }
-      if (message.content.length <= i) {
-        message.content[i] = content
-      } else {
-        message.content[i] = aggregators[content.type](message.content[i], content)
-      }
-    })
+    const id = chunk.id + '_' + chunk.type
+    let i = index.indexOf(id)
+    if (i < 0) {
+      i = index.length
+      index.push(id)
+    }
+    if (message.content.length <= i) {
+      message.content[i] = chunk
+    } else {
+      message.content[i] = aggregators[chunk.type](message.content[i], chunk)
+    }
     emit('chanage')
   }
   return onStream

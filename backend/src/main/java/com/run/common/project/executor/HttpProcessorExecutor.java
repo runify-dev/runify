@@ -9,8 +9,7 @@ import com.run.workflow.WorkFlowManage;
 import com.run.workflow.WorkflowType;
 import com.run.workflow.entity.WorkFlow;
 import com.run.workflow.message.struct.*;
-import com.run.workflow.message.struct.chunk.FailureContentChunk;
-import com.run.workflow.message.struct.chunk.JsonContentChunk;
+
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
@@ -118,59 +117,59 @@ public class HttpProcessorExecutor extends ProcessorExecutor {
                 }
                 return;
             }
-            for (AnswerContent c : chunk.content()) {
-                if (c instanceof JsonContentChunk contentChunk) {
-                    // 这里就直接响应
-                    context.end(contentChunk.getContent());
-                }
-                if (c instanceof StatusContent statusContent) {
-                    if (!context.response().headWritten()) {
-                        context.response().setStatusCode(statusContent.getContent());
-                    }
-                }
-                if (c instanceof HeadersContent headersContent) {
-                    if (!context.response().headWritten()) {
-                        Map<String, String> content = headersContent.getContent();
-                        for (Map.Entry<String, String> header : content.entrySet()) {
-                            context.response().putHeader(header.getKey(), header.getValue());
-                        }
-                    }
 
+            Content c = chunk;
+            if (c instanceof JsonContent contentChunk) {
+                // 这里就直接响应
+                context.end(contentChunk.getContent());
+            }
+            if (c instanceof StatusContent statusContent) {
+                if (!context.response().headWritten()) {
+                    context.response().setStatusCode(statusContent.getContent());
                 }
-                if (c instanceof TextContent textContent) {
-                    context.end(textContent.getContent());
-                }
-                if (c instanceof JsonFieldsContent jsonFieldsContent) {
-                    JsonGenerator jsonGenerator = jsonGeneratorMap.computeIfAbsent(requestId, key -> newJsonGenerator(context));
-                    Map<String, Object> content = jsonFieldsContent.getContent();
-                    for (Map.Entry<String, Object> param : content.entrySet()) {
-                        try {
-                            jsonGenerator.writeFieldName(param.getKey());
-                            jsonGenerator.writeRawValue(JacksonUtils.toJson(param.getValue()));
-                        } catch (IOException e) {
-                            context.response().write(e.getMessage());
-                        }
+            }
+            if (c instanceof HeadersContent headersContent) {
+                if (!context.response().headWritten()) {
+                    Map<String, String> content = headersContent.getContent();
+                    for (Map.Entry<String, String> header : content.entrySet()) {
+                        context.response().putHeader(header.getKey(), header.getValue());
                     }
                 }
-                if (c instanceof FailureContentChunk failureContentChunk) {
-                    boolean contains = jsonGeneratorMap.containsKey(requestId);
-                    String content = failureContentChunk.getContent();
-                    if (contains) {
-                        JsonGenerator jsonGenerator = jsonGeneratorMap.get(requestId);
-                        try {
-                            jsonGenerator.writeFieldName("message");
-                            jsonGenerator.writeRawValue(JacksonUtils.toJson(content));
-                            jsonGenerator.writeFieldName("code");
-                            jsonGenerator.writeNumber(500);
-                            jsonGenerator.flush();
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
-                    } else {
-                        context.response().write(content);
-                    }
 
+            }
+            if (c instanceof TextContent textContent) {
+                context.end(textContent.getContent());
+            }
+            if (c instanceof JsonFieldsContent jsonFieldsContent) {
+                JsonGenerator jsonGenerator = jsonGeneratorMap.computeIfAbsent(requestId, key -> newJsonGenerator(context));
+                Map<String, Object> content = jsonFieldsContent.getContent();
+                for (Map.Entry<String, Object> param : content.entrySet()) {
+                    try {
+                        jsonGenerator.writeFieldName(param.getKey());
+                        jsonGenerator.writeRawValue(JacksonUtils.toJson(param.getValue()));
+                    } catch (IOException e) {
+                        context.response().write(e.getMessage());
+                    }
                 }
+            }
+            if (c instanceof FailureContent failureContent) {
+                boolean contains = jsonGeneratorMap.containsKey(requestId);
+                String content = failureContent.getContent();
+                if (contains) {
+                    JsonGenerator jsonGenerator = jsonGeneratorMap.get(requestId);
+                    try {
+                        jsonGenerator.writeFieldName("message");
+                        jsonGenerator.writeRawValue(JacksonUtils.toJson(content));
+                        jsonGenerator.writeFieldName("code");
+                        jsonGenerator.writeNumber(500);
+                        jsonGenerator.flush();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                } else {
+                    context.response().write(content);
+                }
+
             }
 
         });

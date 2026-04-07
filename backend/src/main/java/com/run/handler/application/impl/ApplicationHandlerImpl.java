@@ -21,10 +21,8 @@ import com.run.handler.common.pojo.SimpleNodePojo;
 import com.run.workflow.WorkFlowManage;
 import com.run.workflow.WorkflowType;
 import com.run.workflow.entity.WorkFlow;
-import com.run.workflow.message.impl.MessageImpl;
-import com.run.workflow.message.impl.impl.MessageChunkListImpl;
+import com.run.workflow.message.struct.Content;
 import com.run.workflow.message.struct.Message;
-import com.run.workflow.message.struct.chunk.MessageChunk;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
@@ -199,8 +197,6 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
                                         .orderBy(F.field(ConversationMessage::getCreateTime).desc())
                                         .limit(DSL.param("#{limit}", Integer.class)).getSQL(ParamType.NAMED),
                                 Map.of("conversationId", conversationId, "limit", 10)));
-
-
         Future.all(applicationFuture, conversationMessageFuture)
                 .onSuccess(ok -> extracted(context, ((Application) ok.resultAt(0)).getWorkflow(),
                         UUID.fromString(conversationId), UUID.fromString(applicationId),
@@ -209,26 +205,6 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
     }
 
 
-    public static Map<ConversationMessage, List<ConversationMessage>> groupMessages(List<ConversationMessage> conversationMessages) {
-        List<Integer> userIndices = IntStream.range(0, conversationMessages.size())
-                .filter(i -> List.of(MessageConstants.USER, MessageConstants.TOOL).contains(conversationMessages.get(i).getType()))
-                .boxed().toList();
-
-        Map<ConversationMessage, List<ConversationMessage>> result = new LinkedHashMap<>();
-        for (int i = 0; i < userIndices.size(); i++) {
-            int startIndex = userIndices.get(i);
-            int endIndex = (i < userIndices.size() - 1) ? userIndices.get(i + 1) : conversationMessages.size();
-
-            List<ConversationMessage> group = new ArrayList<>();
-            for (int j = startIndex + 1; j < endIndex; j++) {
-                group.add(conversationMessages.get(j));
-            }
-            result.put(conversationMessages.get(startIndex), group);
-        }
-
-        return result;
-    }
-
     private void extracted(RoutingContext context,
                            JsonObject workflow,
                            UUID conversationId,
@@ -236,37 +212,28 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
                            UUID workflowRunId,
                            List<ConversationMessage> conversationMessages) {
         List<ConversationMessage> list = conversationMessages.stream().sorted(Comparator.comparing(ConversationMessage::getCreateTime)).toList();
-        List<com.run.common.openai.request.message.Message> messages = new ArrayList<>();
-        for (Map.Entry<ConversationMessage, List<ConversationMessage>> kv : groupMessages(list).entrySet()) {
-            com.run.common.openai.request.message.Message chatMessage = MessageImpl.toChatMessage(kv.getKey());
-            List<com.run.common.openai.request.message.Message> chatMessage1 = MessageImpl.toChatMessage(kv.getValue());
-            messages.add(chatMessage);
-            messages.addAll(chatMessage1);
-        }
         context.response().setChunked(true);
         context.response().putHeader("Content-Type", "text/event-stream;charset=utf-8");
         context.response().putHeader("Cache-Control", "no-cache");
         context.response().putHeader("Character-Encoding", "utf-8");
         context.response().write(Buffer.buffer("", "utf-8"));
         WorkFlowManage workFlowManage = new WorkFlowManage(WorkFlow.of(workflow, WorkflowType.CHAT_WORKFLOW),
-                new HashMap<>(Map.of("messages", messages,
+                new HashMap<>(Map.of(
+                        "messages", list,
                         "conversationId", conversationId,
                         "applicationId", applicationId)),
                 new HashMap<>(), (wm, node, chunk, isEnd) -> {
             if (isEnd) {
-                List<MessageChunk> messageChunks = wm.getMessageChunks();
-                List<Message> block = MessageChunkListImpl.toBlock(messageChunks);
+                List<Content> chunks = wm.getChunks();
                 List<ConversationMessage> messageArrayList = new ArrayList<>();
-                for (Message message : block) {
-                    ConversationMessage conversationMessage = new ConversationMessage(UUID.randomUUID(),
-                            conversationId,
-                            applicationId, workflowRunId,
-                            message.type(),
-                            new JsonArray(message.content()),
-                            LocalDateTime.now(),
-                            LocalDateTime.now());
-                    messageArrayList.add(conversationMessage);
-                }
+                ConversationMessage conversationMessage = new ConversationMessage(UUID.randomUUID(),
+                        conversationId,
+                        applicationId, workflowRunId,
+                        MessageConstants.ASSISTANT,
+                        new JsonArray(chunks),
+                        LocalDateTime.now(),
+                        LocalDateTime.now());
+                messageArrayList.add(conversationMessage);
                 conversationMessageMapper.batch_save(messageArrayList).onSuccess(_ -> {
                             context.response().end();
                         })

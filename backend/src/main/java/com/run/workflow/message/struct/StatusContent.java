@@ -18,7 +18,7 @@ import java.util.Map;
 @Getter
 @Setter
 @NoArgsConstructor
-public class StatusContent extends AnswerContent {
+public class StatusContent extends Content {
     private Integer content;
 
     public StatusContent(Integer content, INode<?, ?> node, String workflowRunId, String id) {

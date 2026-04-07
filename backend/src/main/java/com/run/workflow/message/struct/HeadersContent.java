@@ -18,7 +18,7 @@ import java.util.Map;
 @Getter
 @Setter
 @NoArgsConstructor
-public class HeadersContent extends AnswerContent {
+public class HeadersContent extends Content {
     private Map<String, String> content;
 
     public HeadersContent(Map<String, String> content, INode<?, ?> node, String workflowRunId, String id) {

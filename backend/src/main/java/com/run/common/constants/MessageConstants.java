@@ -9,5 +9,4 @@ package com.run.common.constants;
 public enum MessageConstants {
     USER,
     ASSISTANT,
-    TOOL,
 }

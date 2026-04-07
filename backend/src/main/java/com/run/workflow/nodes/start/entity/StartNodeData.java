@@ -1,6 +1,6 @@
 package com.run.workflow.nodes.start.entity;
 
-import com.run.common.openai.request.message.Message;
+import com.run.dao.entity.ConversationMessage;
 import jakarta.validation.constraints.NotEmpty;
 import lombok.Getter;
 import lombok.Setter;
@@ -17,5 +17,5 @@ import java.util.List;
 @Setter
 public class StartNodeData {
     @NotEmpty(message = "列表不能为空且至少包含一个元素")
-    public List<? extends Message> messages;
+    public List<ConversationMessage> messages;
 }

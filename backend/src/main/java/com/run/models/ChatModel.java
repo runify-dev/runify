@@ -1,14 +1,17 @@
 package com.run.models;
 
+import com.openai.core.http.AsyncStreamResponse;
+import com.openai.models.chat.completions.ChatCompletion;
+import com.openai.models.chat.completions.ChatCompletionChunk;
+import com.openai.models.chat.completions.ChatCompletionMessageParam;
 import com.run.common.openai.request.message.Message;
-import com.run.common.openai.response.ChatCompletion;
 import com.run.common.openai.response.ChatCompletionMessageToolCall;
 import com.run.common.openai.response.CompletionUsage;
-import com.run.common.openai.response.chunk.ChatCompletionChunk;
 import com.run.models.callback.Callback;
 import io.vertx.core.json.JsonObject;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * {@code @Author:张少虎}¬
@@ -17,45 +20,23 @@ import java.util.List;
  * {@code @注释: }
  */
 public interface ChatModel extends BaseModel {
-    /**
-     * 模型执行
-     *
-     * @param messages message
-     * @param callback 回调
-     * @param other    其他参数
-     */
-    void invoke(List<Message> messages,
-                boolean stream,
-                Callback<ChatCompletion, ChatCompletionChunk> callback,
-                JsonObject other);
 
     /**
-     * @return Tokens详情
+     * 非流式调用
+     *
+     * @param messages message上下文
+     * @param extra    额外参数
+     * @return 响应
      */
-    CompletionUsage getCompletionUsage();
+    CompletableFuture<ChatCompletion> invoke(List<ChatCompletionMessageParam> messages, JsonObject extra);
 
     /**
-     * 模型停止生成
-     * 如果模型达到自然停止点或提供的停止序列，则为 `stop`；如果达到请求中指定的最大 token 数量，则为 `length`；
-     * 如果由于内容过滤器中的标志而省略内容，则为 `content_filter`；如果模型调用了工具，则为 `tool_calls`；
-     * 如果模型调用了函数，则为 `function_call`（已弃用）。
+     * 流式调用
      *
-     * @return 模型停止生成原因
+     * @param messages message上下文
+     * @param extra    额外参数
+     * @return 响应
      */
-    String getFinishReason();
-
-    /**
-     * 获取ToolCall
-     *
-     * @return 函数调用详情
-     */
-    List<ChatCompletionMessageToolCall> getChoiceDeltaToolCall();
-
-    /**
-     * 模型响应正文
-     *
-     * @return 正文
-     */
-    String getContent();
+    AsyncStreamResponse<ChatCompletionChunk> stream(List<ChatCompletionMessageParam> messages, JsonObject extra);
 
 }

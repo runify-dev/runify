@@ -18,6 +18,4 @@ public class LLM extends BaseOpenaiChatModel {
     public LLM(String modelType, String modelName, Map<String, Object> modelCredential, Map<String, Object> other) {
         super((String) modelCredential.get("baseUrl"), (String) modelCredential.get("apiKey"), modelName);
     }
-
-
 }

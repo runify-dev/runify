@@ -12,7 +12,7 @@ import java.util.Map;
 @Getter
 @Setter
 @NoArgsConstructor
-public class TextContent extends AnswerContent {
+public class TextContent extends Content {
     private String content;
 
     public TextContent(String content, INode<?, ?> node, String workflowRunId, String id) {

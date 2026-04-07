@@ -32,5 +32,11 @@ public enum ContentTypeConstants {
     /**
      * 失败
      */
-    FAILURE;
+    FAILURE,
+
+    SYSTEM,
+    /**
+     * 工具调用
+     */
+    TOOL;
 }

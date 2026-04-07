@@ -18,7 +18,7 @@ import java.util.Map;
 @Getter
 @Setter
 @NoArgsConstructor
-public class JsonFieldsContent extends AnswerContent {
+public class JsonFieldsContent extends Content {
     private Map<String, Object> content;
 
     public JsonFieldsContent(Map<String, Object> content, INode<?, ?> node, String workflowRunId, String id) {

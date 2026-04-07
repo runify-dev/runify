@@ -12,7 +12,7 @@ import java.util.Map;
 @Getter
 @Setter
 @NoArgsConstructor
-public class FailureContent extends AnswerContent {
+public class FailureContent extends Content {
     private String content;
 
     public FailureContent(String content, INode<?, ?> node, String workflowRunId, String id) {

@@ -2,6 +2,7 @@ package com.run.workflow.nodes.start;
 
 import com.run.common.keyvalue.DefaultKeyValue;
 import com.run.common.openai.request.message.Message;
+import com.run.dao.entity.ConversationMessage;
 import com.run.workflow.*;
 import com.run.workflow.entity.Node;
 import com.run.workflow.entity.NodeResult;
@@ -58,7 +59,7 @@ public class ChatStartNode extends INode<ChatStartNode, StartNodeData> {
 
     @Override
     public StartNodeData getNodeData(JsonObject params) {
-        List<Message> messages = (List<Message>) params.getMap().get("messages");
+        List<ConversationMessage> messages = (List<ConversationMessage>) params.getMap().get("messages");
         StartNodeData startNodeData = new StartNodeData();
         startNodeData.setMessages(messages);
         return startNodeData;
