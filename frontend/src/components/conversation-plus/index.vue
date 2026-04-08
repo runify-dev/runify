@@ -4,7 +4,13 @@
     <div v-if="open" class="mask" @click="open = false" />
 
     <SideBar v-model:open="open" v-model:mode="mode" v-model:isDark="isDark" />
-    <ChatPanel @toggle="open = !open" />
+    <ChatPanel @toggle="open = !open" :type="type" @close="$emit('close')">
+      <template #header>
+        <template v-if="$slots.header">
+          <slot name="header"></slot>
+        </template>
+      </template>
+    </ChatPanel>
   </div>
 </template>
 
@@ -12,11 +18,13 @@
 import { ref } from 'vue'
 import SideBar from './sidebar/index.vue'
 import ChatPanel from './chat-panel/index.vue'
+defineEmits(['close'])
 
 const props = withDefaults(
   defineProps<{
     defaultOpen?: boolean
     defaultMode?: 'push' | 'drawer'
+    type: 'DEBUG' | 'CONVERSATION'
   }>(),
   {
     defaultOpen: false,

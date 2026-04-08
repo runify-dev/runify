@@ -100,7 +100,7 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
                                         choice.delta().content().ifPresent(content -> {
                                             if (isReasoning && !reasoningEnd) {
                                                 reasoningEnd = true;
-                                                workFlowManage.write(node, new ReasoningContent("", NodeStatus.RUNNING, node, (String) workFlowManage.getParams().get("workflowRunId"), chunkId));
+                                                workFlowManage.write(node, new ReasoningContent("", NodeStatus.SUCCESS, node, (String) workFlowManage.getParams().get("workflowRunId"), chunkId));
                                             }
                                             workFlowManage.write(node, new TextContent(content, node, (String) workFlowManage.getParams().get("workflowRunId"),
                                                     chunkId));

@@ -13,18 +13,7 @@
         </svg>
       </button>
       <span class="bar-title">{{ current?.title || '新建对话' }}</span>
-      <button v-if="messages.length" class="hbtn">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <path
-            d="M2 3h10M5 3V2h4v1M5.5 5v5M8.5 5v5M2.5 3l.5 9h8l.5-9"
-            stroke="currentColor"
-            stroke-width="1.3"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-        </svg>
-      </button>
-      <span v-else style="width: 28px; display: inline-block" />
+      <slot name="header"></slot>
     </header>
 
     <!-- 消息列表 -->
@@ -94,17 +83,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, reactive, inject } from 'vue'
+import { ref, nextTick, reactive, inject, onMounted } from 'vue'
 import { useChatStore } from '../common/use-chat-store/index'
 import { ConversationStream } from '@/api/common'
-import Content from '@/components/conversation-plus/content/index.vue'
-import { aggregators } from '@/components/conversation-plus/index'
+import { aggregators, Scroll } from '@/components/conversation-plus/index'
 import ContentList from '@/components/conversation-plus/content-list/index.vue'
 const conversationAPI = inject('conversationAPI') as any
+const props = defineProps<{ type: 'DEBUG' | 'CONVERSATION' }>()
+const emit = defineEmits<{ toggle: []; chanage: []; close: [] }>()
 
-const emit = defineEmits<{ toggle: []; chanage: [] }>()
-
-const { messages, current, pushMessage, newChat } = useChatStore('DEBUG')
+const { messages, current, pushMessage, newChat } = useChatStore(props.type)
 
 const text = ref('')
 const focused = ref(false)
@@ -136,6 +124,7 @@ const getOnStream = (message: any) => {
     } else {
       message.content[i] = aggregators[chunk.type](message.content[i], chunk)
     }
+    scroll.value?.scrollBottom()
     emit('chanage')
   }
   return onStream
@@ -185,6 +174,11 @@ const fmt = (d: Date) => {
     ? d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })
     : d.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' })
 }
+const scroll = ref<Scroll>()
+onMounted(() => {
+  const element = msgBox.value
+  scroll.value = new Scroll(element)
+})
 </script>
 
 <style scoped>
@@ -221,26 +215,6 @@ const fmt = (d: Date) => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-.hbtn {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  border-radius: 7px;
-  background: transparent;
-  color: var(--t3);
-  cursor: pointer;
-  flex-shrink: 0;
-  transition:
-    background 0.12s,
-    color 0.12s;
-}
-.hbtn:hover {
-  background: var(--hv);
-  color: var(--t1);
 }
 
 /* 消息区 */

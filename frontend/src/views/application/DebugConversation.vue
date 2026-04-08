@@ -1,84 +1,59 @@
 <template>
   <div
     class="absolute z-99999 bottom-8 right-6 bg-white rounded-xl overflow-hidden"
-    style="height: 450px; width: 400px"
+    :style="toggleStyle"
   >
-    <Conversation></Conversation>
+    <Conversation @close="$emit('close')" type="DEBUG">
+      <template #header>
+        <button class="hbtn" @click="toggle">
+          <i class="pi pi-arrow-up-right-and-arrow-down-left-from-center"></i>
+        </button>
+        <button class="hbtn" @click="$emit('close')">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path
+              d="M2 3h10M5 3V2h4v1M5.5 5v5M8.5 5v5M2.5 3l.5 9h8l.5-9"
+              stroke="currentColor"
+              stroke-width="1.3"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </button>
+      </template>
+    </Conversation>
   </div>
 </template>
 <script setup lang="ts">
-import { onMounted, provide, ref } from 'vue'
+import { computed, provide, ref } from 'vue'
 import applicationAPI from '@/api/application'
 import { v4 as uuidv4 } from 'uuid'
 import Conversation from '@/components/conversation-plus/index.vue'
-import { Scroll } from '@/components/conversation/index'
-import ConversationList from './ConversationList.vue'
-const drawerOpen = ref<boolean>(false)
-const ConversationListRef = ref<InstanceType<typeof ConversationList>>()
-const emit = defineEmits(['close'])
-const touchStartX = ref<number>(0)
-const touchStartY = ref<number>(0)
-const isSwiping = ref(false)
-const swipeDirection = ref<string | null>(null)
-const handleTouchStart = (e: any) => {
-  touchStartX.value = e.touches[0].clientX
-  touchStartY.value = e.touches[0].clientY
-  isSwiping.value = true
-  swipeDirection.value = null
+defineEmits(['close'])
+const expanded = ref<boolean>(false)
+const toggle = () => {
+  expanded.value = !expanded.value
 }
-
-const handleTouchMove = (e: any) => {
-  if (!isSwiping.value) return
-
-  const touchX = e.touches[0].clientX
-  const touchY = e.touches[0].clientY
-
-  const deltaX = touchX - touchStartX.value
-  const deltaY = touchY - touchStartY.value
-
-  // 确定滑动方向（水平或垂直）
-  if (!swipeDirection.value) {
-    if (Math.abs(deltaX) > Math.abs(deltaY)) {
-      swipeDirection.value = 'horizontal'
-    } else {
-      swipeDirection.value = 'vertical'
-    }
-  }
-
-  // 如果是水平滑动且从左侧边缘开始
-  if (swipeDirection.value === 'horizontal' && touchStartX.value < 50) {
-    e.preventDefault()
-
-    // 向右滑动打开抽屉
-    if (deltaX > 0 && !drawerOpen.value) {
-      open()
-    }
-    // 向左滑动关闭抽屉
-    else if (deltaX < 0 && drawerOpen.value) {
-      close()
-    }
-  }
-}
-
-const handleTouchEnd = () => {
-  isSwiping.value = false
-  swipeDirection.value = null
-}
-const scrollRef = ref<any>()
+const toggleStyle = computed(() => {
+  return expanded.value
+    ? {
+        height: '100vh',
+        width: '50%',
+        bottom: 0,
+        right: 0
+      }
+    : {
+        height: '450px',
+        width: '400px'
+      }
+})
 const props = defineProps<{
   forderId: string
   application: any
 }>()
 const conversationId = ref<string>()
-let scroll: any
-
-const scrollBottom = () => {
-  scroll.scrollBottom()
-}
 
 provide('conversationAPI', (question: any) => {
   if (!conversationId.value) {
-    console.log(conversationId.value)
     return applicationAPI
       .createConversation(props.application.id, question.content)
       .then((ok) => {
@@ -98,8 +73,26 @@ provide('conversationAPI', (question: any) => {
     })
   }
 })
-onMounted(() => {
-  const element = scrollRef.value
-})
 </script>
-<style lang="scss"></style>
+<style lang="scss">
+.hbtn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--t3);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    background 0.12s,
+    color 0.12s;
+}
+.hbtn:hover {
+  background: var(--hv);
+  color: var(--t1);
+}
+</style>

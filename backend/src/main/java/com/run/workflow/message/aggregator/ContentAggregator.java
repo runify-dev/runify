@@ -26,5 +26,7 @@ public interface ContentAggregator<T extends Content> extends BinaryOperator<T> 
 
         // extra: 优先使用 chunk 的，否则使用 prev 的
         result.setExtra(chunk.getExtra() != null ? chunk.getExtra() : prev.getExtra());
+
+        result.setType(chunk.getType() != null ? chunk.getType() : prev.getType());
     }
 }
