@@ -45,6 +45,16 @@ export default defineConfig(({ mode }) => {
     },
   }
 
+  proxyConf['/conversation/api'] = {
+    target: 'http://127.0.0.1:8080',
+    changeOrigin: true,
+    configure: (proxy, options) => {
+      proxy.on("proxyRes", (proxyRes, request, response) => {
+        delete proxyRes.headers['content-length']
+      });
+    },
+  }
+
   proxyConf[`^${ENV.VITE_BASE_PATH}.+\/storage\/file\/.*$`] = {
     target: `http://127.0.0.1:8080`,
     changeOrigin: true,
@@ -58,12 +68,7 @@ export default defineConfig(({ mode }) => {
     target: `http://127.0.0.1:8080`,
     changeOrigin: true,
   }
-  // 前端静态资源转发到本身
-  proxyConf[ENV.VITE_BASE_PATH] = {
-    target: `http://127.0.0.1:${ENV.VITE_APP_PORT}`,
-    changeOrigin: true,
-    rewrite: (path: string) => path.replace(ENV.VITE_BASE_PATH, '/'),
-  }
+
   return {
     preflight: false,
     lintOnSave: false,

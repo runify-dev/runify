@@ -5,6 +5,7 @@ import com.run.auth.provider.TokenProvider;
 import com.run.common.result.Result;
 import io.vertx.core.Future;
 import io.vertx.ext.auth.User;
+import io.vertx.ext.auth.authentication.AuthenticationProvider;
 import io.vertx.ext.auth.authentication.TokenCredentials;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HTTPAuthorizationHandler;
@@ -17,13 +18,13 @@ import org.jooq.SQLDialect;
  * {@code @Version 1.0}
  * {@code @注释: }
  */
-public class TokenBasicAuthHandler extends HTTPAuthorizationHandler<TokenProvider> {
+public class TokenBasicAuthHandler extends HTTPAuthorizationHandler<AuthenticationProvider> {
 
     public TokenBasicAuthHandler(Pool pool, SQLDialect databaseType) {
         super(new TokenProvider(pool, databaseType), Type.BEARER, null);
     }
 
-    public TokenBasicAuthHandler(TokenProvider authProvider) {
+    public TokenBasicAuthHandler(AuthenticationProvider authProvider) {
         super(authProvider, Type.BEARER, null);
     }
 

@@ -24,7 +24,7 @@ public class JWTUtil {
     /**
      * 密钥不要随意改动
      */
-    private static final String key = "123123123";
+    public static final String key = "123123123";
 
     /**
      * 生成token
@@ -39,7 +39,6 @@ public class JWTUtil {
         map.forEach(builder::withClaim);
         builder.withExpiresAt(instance.getTime());
         return builder.sign(Algorithm.HMAC256(key));
-
     }
 
     /**

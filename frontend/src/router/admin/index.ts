@@ -7,7 +7,6 @@ import {
   type RouteRecordName
 } from 'vue-router'
 import { routes } from '@/router/admin/routes'
-console.log(window.RUNIFY_APP.admin.baseURL ? window.RUNIFY_APP.admin.baseURL : import.meta.env.BASE_URL)
 const router = createRouter({
   history: createWebHistory(window.RUNIFY_APP.admin.baseURL ? window.RUNIFY_APP.admin.baseURL : import.meta.env.BASE_URL),
   routes: routes

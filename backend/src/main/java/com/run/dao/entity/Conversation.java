@@ -42,7 +42,7 @@ public class Conversation implements BaseEntity<Conversation> {
     private JsonObject meta;
 
     @Column(name = "conversation_user_id")
-    private UUID conversationUserId;
+    private String conversationUserId;
 
     @Column(name = "conversation_user_type")
     private ConversationUserConstants conversationUserType;

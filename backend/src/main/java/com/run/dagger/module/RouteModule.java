@@ -21,6 +21,31 @@ import javax.inject.Singleton;
 @Module
 public class RouteModule {
 
+    @Singleton
+    @Named("conversationAPIRoute")
+    @Provides
+    @Inject
+    public Router conversationAPIRoute(Vertx vertx, @Named("mainRoute") Router router) {
+        ProjectManage.setRouter(router);
+        ProjectManage.setVertx(vertx);
+        ProjectManage.setGetChildRouter(() -> Router.router(vertx));
+        Router restAPI = Router.router(vertx);
+        router.route("/conversation/api/*").subRouter(restAPI);
+        restAPI.route()
+                .failureHandler(new RestFailureHandler())
+                .handler(new ResultHandler());
+        return restAPI;
+    }
+
+    @Singleton
+    @Named("conversationUIRoute")
+    @Provides
+    @Inject
+    public Router conversationUIRoute(Vertx vertx, @Named("mainRoute") Router router) {
+        Router uiRoute = Router.router(vertx);
+        router.route("/conversation/*").subRouter(uiRoute);
+        return uiRoute;
+    }
 
     @Singleton
     @Named("apiRoute")

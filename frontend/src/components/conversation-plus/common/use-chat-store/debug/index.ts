@@ -12,14 +12,12 @@ const chats = reactive<Conversation[]>([
 ])
 
 
-const activeId = ref<string>()
-
+const conversationId = ref<string>()
+const messages = reactive<Msg[]>([])
 export function useChatStore() {
   const route = useRoute();
   const applicationId: string = route.params.id as string
-  const current = computed(() => chats.find(c => c.id === activeId.value) ?? chats[0])
-
-  const messages = reactive<Msg[]>([])
+  const current = computed(() => chats.find(c => c.id === conversationId.value) ?? chats[0])
 
   const grouped = computed<ConversationGroup[]>(() => {
     const now = dayjs()
@@ -51,21 +49,23 @@ export function useChatStore() {
   })
 
   const newChat = (name?: string) => {
-    if (!chats.some((chat: any) => chat.id == null)) {
-      chats.unshift({
-        id: undefined,
-        applicationId: applicationId,
-        name: name ? name : '新建对话',
-        executeType: 'DEBUG',
-        updateTime: formatDateTime(),
-        createTime: formatDateTime()
-      })
+    const chat: any = {
+      id: undefined,
+      applicationId: applicationId,
+      name: name ? name : '新建对话',
+      executeType: 'DEBUG',
+      updateTime: formatDateTime(),
+      createTime: formatDateTime()
     }
+    if (!chats.some((chat: any) => chat.id == null)) {
+      chats.unshift(chat)
+    }
+    return Promise.resolve(chat)
 
   }
 
   const switchChat = (id: number) => {
-    activeId.value = id
+    conversationId.value = id
   }
 
   const deleteChat = (id: string) => {
@@ -73,7 +73,7 @@ export function useChatStore() {
     if (i < 0) return
     chats.splice(i, 1)
     if (!chats.length) { newChat(); return }
-    if (id === activeId.value) activeId.value = chats[0].id
+    if (id === conversationId.value) conversationId.value = chats[0].id
   }
 
   const renameChat = (id: number, title: string) => {
@@ -93,7 +93,7 @@ export function useChatStore() {
   return {
     chats,
     messages,
-    activeId,
+    conversationId,
     current,
     grouped,
     newChat,

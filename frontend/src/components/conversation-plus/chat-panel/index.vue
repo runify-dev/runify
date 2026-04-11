@@ -139,26 +139,26 @@ const conversation = (q: any) => {
     return
   }
   if (!current.value) {
-    newChat()
+    newChat().then(() => {
+      pushMessage({
+        type: 'USER',
+        content: [{ ...q, type: 'QUESTION' }]
+      })
+      const answerMessage = reactive({
+        type: 'LOADING',
+        content: []
+      })
+      pushMessage(answerMessage)
+
+      new ConversationStream(
+        conversationAPI({ ...q }),
+        getOnStream(answerMessage),
+        () => {},
+        () => {}
+      ).stream()
+      question.value.content = ''
+    })
   }
-  pushMessage({
-    type: 'USER',
-    content: [{ ...q, type: 'QUESTION' }]
-  })
-
-  const answerMessage = reactive({
-    type: 'LOADING',
-    content: []
-  })
-  pushMessage(answerMessage)
-
-  new ConversationStream(
-    conversationAPI({ ...q }),
-    getOnStream(answerMessage),
-    () => {},
-    () => {}
-  ).stream()
-  question.value.content = ''
 }
 
 const resize = () => {

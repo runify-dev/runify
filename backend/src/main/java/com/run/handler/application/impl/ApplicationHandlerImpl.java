@@ -161,7 +161,10 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
                 UUID.fromString(applicationId),
                 conversationVO.name(),
                 ConversationExecuteConstants.DEBUG, new JsonObject(),
-                user.getId(), ConversationUserConstants.ADMIN_USER, 0, 0, 0, 0, Boolean.FALSE, LocalDateTime.now(), LocalDateTime.now());
+                user.getId().toString(),
+                ConversationUserConstants.ADMIN_USER,
+                0, 0, 0, 0,
+                Boolean.FALSE, LocalDateTime.now(), LocalDateTime.now());
         conversationMapper.save(conversation).onSuccess(ok -> {
             ConversationDTO result = new ConversationDTO(conversation.getId(),
                     conversation.getApplicationId(),

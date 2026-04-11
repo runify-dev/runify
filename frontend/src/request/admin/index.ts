@@ -4,8 +4,6 @@ import type { NProgress } from 'nprogress'
 import type { Ref } from 'vue'
 import type { Result } from '@/request/Result'
 import useStore from '@/stores'
-import router from '@/router/admin'
-
 import { ref, type WritableComputedRef } from 'vue'
 
 const axiosConfig = {

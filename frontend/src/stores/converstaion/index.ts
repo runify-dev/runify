@@ -1,11 +1,10 @@
 import { createPinia } from 'pinia'
 const store = createPinia()
 export { store }
-import useUserStore from './modules/user'
+import useConversationTokenStore from './modules/conversation-token'
 
 const useStore = () => ({
-  user: useUserStore(),
-
+  conversationToken: useConversationTokenStore()
 })
 
 export default useStore

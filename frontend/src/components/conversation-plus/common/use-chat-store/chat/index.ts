@@ -1,21 +1,20 @@
 import { ref, reactive, computed, inject } from 'vue'
-import type { Conversation, Msg, ConversationGroup } from './types'
-import { formatDateTime } from "@/utils/common"
+import type { Conversation, Msg, ConversationGroup } from '../../types'
+import conversationAPI from '@/api/conversation'
 import dayjs from 'dayjs'
-const createConversation = inject('createConversation') as any
+import { formatDateTime } from "@/utils/common"
 
-let uid = 1
+
 
 // 单例：所有组件共享同一份状态
 const chats = reactive<Conversation[]>([
 ])
+const messages = reactive<Msg[]>([])
 
-
-const activeId = ref(1)
+const conversationId = ref<string>()
 
 export function useChatStore() {
-  const current = computed(() => chats.find(c => c.id === activeId.value) ?? chats[0])
-  const messages = reactive<Msg[]>([]);
+  const current = computed(() => chats.find(c => c.id === conversationId.value) ?? chats[0])
   const grouped = computed<ConversationGroup[]>(() => {
     const now = dayjs()
     const m: Record<string, Conversation[]> = {
@@ -47,24 +46,23 @@ export function useChatStore() {
   })
 
   const newChat = (name?: string) => {
-    createConversation(name ? name : '新建对话').then((ok: any) => {
+    return conversationAPI.createConversation(name ? name : '新建对话').then((ok: any) => {
       chats.unshift(ok.data)
-      activeId.value = c.id
+      conversationId.value = ok.data.id
+      return ok.data
     })
-
-
   }
 
-  const switchChat = (id: number) => {
-    activeId.value = id
+  const switchChat = (id: string) => {
+    conversationId.value = id
   }
 
-  const deleteChat = (id: number) => {
+  const deleteChat = (id: string) => {
     const i = chats.findIndex(c => c.id === id)
     if (i < 0) return
     chats.splice(i, 1)
     if (!chats.length) { newChat(); return }
-    if (activeId.value === id) activeId.value = chats[0].id
+    if (conversationId.value === id) conversationId.value = chats[0].id
   }
 
   const renameChat = (id: number, title: string) => {
@@ -73,23 +71,27 @@ export function useChatStore() {
   }
 
 
-  const conversation = (msg: Msg) => {
+
+  const pushMessage = (msg: Msg) => {
     messages?.push(msg)
     if (messages && messages.length === 1) {
-      current.value.title = msg.content.slice(0, 24) + (msg.content.length > 24 ? '…' : '')
-      current.value.ts = new Date()
+      const content = msg.content.find(item => item.type == 'QUESTION').content
+      current.value.name = content.slice(0, 24) + (content.length > 24 ? '…' : '')
+      current.value.createTime = formatDateTime()
     }
   }
 
+
   return {
     chats,
-    activeId,
+    conversationId,
     current,
     grouped,
     newChat,
     switchChat,
     deleteChat,
     renameChat,
-    conversation,
+    pushMessage,
+    messages
   }
 }

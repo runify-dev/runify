@@ -1,15 +1,13 @@
 import axios, { type InternalAxiosRequestConfig, AxiosHeaders } from 'axios'
-import { MsgError } from '@/utils/message'
 import type { NProgress } from 'nprogress'
 import type { Ref } from 'vue'
 import type { Result } from '@/request/Result'
-import useStore from '@/stores'
-import router from '@/router/admin'
+import useStore from '@/stores/converstaion/index'
+import router from '@/router/chat'
 
 import { ref, type WritableComputedRef } from 'vue'
-
 const axiosConfig = {
-  baseURL: window.RUNIFY_APP.admin + '/api',
+  baseURL: window.RUNIFY_APP.chat.baseURL + '/api',
   withCredentials: false,
   timeout: 600000,
   headers: {}
@@ -23,8 +21,10 @@ instance.interceptors.request.use(
     if (config.headers === undefined) {
       config.headers = new AxiosHeaders()
     }
-    const { user } = useStore()
-    const token = user.getToken()
+    const { conversationToken } = useStore()
+
+    const token = conversationToken.getToken()
+
     if (token) {
       config.headers['AUTHORIZATION'] = `Bearer ${token}`
     }
@@ -38,28 +38,12 @@ instance.interceptors.request.use(
 //设置响应拦截器
 instance.interceptors.response.use(
   (response: any) => {
-    if (response.data) {
-
-      if (response.data.code !== 200 && !(response.data instanceof Blob)) {
-        if (response.config.url.includes('/application/authentication')) {
-          return Promise.reject(response.data)
-        }
-        if (
-          !response.config.url.includes('/valid') &&
-          !response.config.url.includes('/function_lib/debug')
-        ) {
-          MsgError(response.data.message)
-          return Promise.reject(response.data)
-        }
-      }
-    }
     return response
   },
   (err: any) => {
     if (err.response?.status === 401) {
       router.push({ name: 'login' })
     }
-
 
     return Promise.reject(err)
   }
@@ -184,8 +168,8 @@ export const postStream: (url: string, data?: unknown) => Promise<Result<any> | 
   url,
   data
 ) => {
-  const { user } = useStore()
-  const token = user.getToken()
+  const { conversationToken } = useStore()
+  const token = conversationToken.getToken()
   const headers: HeadersInit = { 'Content-Type': 'application/json' }
   if (token) {
     headers['AUTHORIZATION'] = `Bearer ${token}`

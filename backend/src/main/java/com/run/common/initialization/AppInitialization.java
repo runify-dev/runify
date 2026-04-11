@@ -32,6 +32,7 @@ public class AppInitialization {
                              ProjectRoute projectRoute,
                              ProcessorRoute processorRoute,
                              DatabaseCollectionPoolRoute databaseCollectionPoolRoute,
+                             ConversationRoute conversationRoute,
                              UIInitialization uiInitialization,
                              MigrationInitialization migrationInitialization,
                              SystemSettingMapper systemSettingMapper,
@@ -49,6 +50,7 @@ public class AppInitialization {
         projectRoute.init();
         databaseCollectionPoolRoute.init();
         processorRoute.init();
+        conversationRoute.init();
         ProjectManage.setDatabaseConnectionPoolMapper(databaseConnectionPoolMapper);
         systemSettingMapper.getById("RSA").onSuccess(systemSetting -> {
             if (systemSetting == null) {

@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "chat": "vite --mode chat",
+    "chat": "vite --mode conversation",
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",
     "test:unit": "vitest",
@@ -24,6 +24,7 @@
     "@codemirror/language-data": "^6.5.2",
     "@codemirror/legacy-modes": "^6.5.2",
     "@codemirror/theme-one-dark": "^6.1.2",
+    "@fingerprintjs/fingerprintjs": "^5.2.0",
     "@floating-ui/vue": "^1.1.9",
     "@logicflow/core": "^2.2.0-alpha.6",
     "@logicflow/extension": "^2.2.0-alpha.6",
