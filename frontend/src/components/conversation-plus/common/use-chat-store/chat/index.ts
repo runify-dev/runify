@@ -82,7 +82,7 @@ export function useChatStore() {
     messages.value = []
     msgCurrentPage.value = 1
     msgTotal.value = 0
-    router.push({ name: 'newConversation' })
+    router.push({ name: 'conversation-new' })
   }
   // ─── 会话分页 ─────────────────────────────────────────────────
   const pageConversation = async (

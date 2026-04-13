@@ -25,6 +25,7 @@ import com.run.workflow.message.struct.TextContent;
 import com.run.workflow.nodes.aichat.entity.AIChatNodeData;
 import io.vertx.core.json.JsonObject;
 import jakarta.validation.Validator;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -92,10 +93,12 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
                                 public void onNext(com.openai.models.chat.completions.ChatCompletionChunk chatCompletionChunk) {
                                     for (com.openai.models.chat.completions.ChatCompletionChunk.Choice choice : chatCompletionChunk.choices()) {
                                         JsonValue reasoningContent = choice.delta()._additionalProperties().get("reasoning_content");
-                                        if (reasoningContent != null) {
+                                        if (reasoningContent != null && !reasoningEnd) {
                                             isReasoning = true;
                                             String reasoning = reasoningContent.convert(String.class);
-                                            workFlowManage.write(node, new ReasoningContent(reasoning, NodeStatus.RUNNING, node, (String) workFlowManage.getParams().get("workflowRunId"), chunkId));
+                                            if (StringUtils.isNotEmpty(reasoning)) {
+                                                workFlowManage.write(node, new ReasoningContent(reasoning, NodeStatus.RUNNING, node, (String) workFlowManage.getParams().get("workflowRunId"), chunkId));
+                                            }
                                         }
                                         choice.delta().content().ifPresent(content -> {
                                             if (isReasoning && !reasoningEnd) {
