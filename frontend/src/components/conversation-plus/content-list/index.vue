@@ -1,6 +1,6 @@
 <template>
   <template v-for="(content, index) in contents" :key="index">
-    <Content :type="content.type" :content="content"></Content>
+    <Content class="w-full" :type="content.type" :content="content"></Content>
   </template>
 </template>
 <script setup lang="ts">

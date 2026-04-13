@@ -52,6 +52,14 @@ public class ConversationRoute implements IRoute {
                 .handler(tokenBasicAuthHandler)
                 .handler(conversationHandler::createConversation);
 
+        apiRoute.get("/conversation")
+                .handler(tokenBasicAuthHandler)
+                .handler(conversationHandler::pageConversation);
+
+        apiRoute.get("/conversation/:conversationId/message")
+                .handler(tokenBasicAuthHandler)
+                .handler(conversationHandler::pageMessage);
+
         apiRoute.post("/conversation/:conversationId/chat")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
@@ -62,10 +70,10 @@ public class ConversationRoute implements IRoute {
                 .handler(tokenBasicAuthHandler)
                 .handler(conversationHandler::delConversation);
 
-        apiRoute.post("/conversation/:conversationId/rename")
+        apiRoute.post("/conversation/:conversationId/modify-name")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
-                .handler(conversationHandler::rename);
+                .handler(conversationHandler::modifyName);
     }
 
     @Override

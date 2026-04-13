@@ -261,26 +261,46 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
             condition = condition.and(DSL.field("create_time").ge(startTime));
         }
         if (StringUtils.isNotEmpty(query.getName())) {
-            condition = condition.and(DSL.field("name").like(query.getName()));
+            condition = condition.and(DSL.field("name").like(F.params(Conversation::getName)));
+        }
+        if (StringUtils.isNotEmpty(query.getExecuteType())) {
+            condition = condition.and(DSL.field("execute_type").eq(DSL.param("#{execute_type}")));
         }
         return condition;
     }
 
     @Override
     public void pageConversation(RoutingContext context) {
-        String currentPage = context.pathParam("currentPage");
-        String pageSize = context.pathParam("pageSize");
+        String currentPage = context.queryParams().get("currentPage");
+        String pageSize = context.queryParams().get("pageSize");
         MultiMap entries = context.queryParams().copy();
         entries.addAll(context.pathParams());
         ConversationQuery conversation = new ConversationQuery(entries);
         Condition conversationQuery = getConversationQuery(conversation);
-        conversationMapper.page(conversationQuery, Long.parseLong(currentPage), Long.parseLong(pageSize), Map.of("application_id", conversation.getApplicationId()))
+        conversationMapper.page(conversationQuery,
+                        List.of(F.field(Conversation::getUpdateTime).desc()),
+                        Long.parseLong(currentPage), Long.parseLong(pageSize),
+                        Map.of("application_id", conversation.getApplicationId(),
+                                "name", StringUtils.isEmpty(conversation.getName()) ? "" : conversation.getName(),
+                                "execute_type", StringUtils.isEmpty(conversation.getExecuteType()) ? "" : conversation.getExecuteType()))
                 .onSuccess(result -> context.end(Result.success(result).toBuffer()))
                 .onFailure(context::fail);
     }
 
     @Override
-    public void pageConversationRecord(RoutingContext context) {
+    public void pageConversationMessage(RoutingContext context) {
+        String applicationId = context.pathParam("applicationId");
+        String conversationId = context.pathParam("conversationId");
+        String currentPage = context.queryParams().get("currentPage");
+        String pageSize = context.queryParams().get("pageSize");
+        conversationMessageMapper.page(F.field(ConversationMessage::getApplicationId).eq(F.params(ConversationMessage::getApplicationId))
+                                .and(F.field(ConversationMessage::getConversationId).eq(F.params(ConversationMessage::getConversationId))),
+                        List.of(F.field(Conversation::getUpdateTime).desc()),
+                        Long.parseLong(currentPage),
+                        Long.parseLong(pageSize),
+                        Map.of("conversationId", conversationId, "applicationId", applicationId)
+                ).onSuccess(result -> context.end(Result.success(result).toBuffer()))
+                .onFailure(context::fail);
 
     }
 }

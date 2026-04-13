@@ -138,7 +138,7 @@ public class ResponseNode extends INode<ResponseNode, ResponseNodeData> {
 
     @Override
     public NodeResult<ResponseNode> _invoke() {
-        return new NodeResult<>(new ResponseNode.Handle(), this);
+        return new NodeResult<>(new Handle(), this);
     }
 
 }

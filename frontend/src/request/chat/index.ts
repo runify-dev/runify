@@ -42,7 +42,21 @@ instance.interceptors.response.use(
   },
   (err: any) => {
     if (err.response?.status === 401) {
-      router.push({ name: 'login' })
+      const currentRoute = router.currentRoute.value
+      const applicationId = currentRoute.params.applicationId
+      const conversationId = currentRoute.params.conversationId
+
+      if (conversationId) {
+        router.push({
+          name: 'login',
+          params: { applicationId, conversationId }
+        })
+      } else {
+        router.push({
+          name: 'login-new',
+          params: { applicationId }
+        })
+      }
     }
 
     return Promise.reject(err)

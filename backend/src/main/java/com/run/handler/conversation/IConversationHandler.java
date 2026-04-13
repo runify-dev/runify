@@ -14,7 +14,7 @@ public interface IConversationHandler {
      *
      * @param context
      */
-    void rename(RoutingContext context);
+    void modifyName(RoutingContext context);
 
     /**
      * 获取当前对话信息
@@ -50,4 +50,17 @@ public interface IConversationHandler {
      * @param context
      */
     void delConversation(RoutingContext context);
+
+    /**
+     * 分页获取对话列表
+     *
+     * @param context
+     */
+    void pageConversation(RoutingContext context);
+
+    /**
+     * 分页获取 Message
+     * @param context
+     */
+    void pageMessage(RoutingContext context);
 }

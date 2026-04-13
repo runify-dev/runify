@@ -22,10 +22,10 @@ public interface BaseReadStream {
 
     void resume();
 
-    BaseReadStream exceptionHandler(@org.jetbrains.annotations.Nullable Handler<Throwable> var1);
+    BaseReadStream exceptionHandler(@Nullable Handler<Throwable> var1);
 
 
-    BaseReadStream handler(@org.jetbrains.annotations.Nullable Handler<Buffer> var1);
+    BaseReadStream handler(@Nullable Handler<Buffer> var1);
 
 
     BaseReadStream endHandler(@Nullable Handler<Void> var1);

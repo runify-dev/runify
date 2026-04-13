@@ -3,7 +3,7 @@
     <!-- 遮罩：统一在这里管理，点击关闭侧边栏 -->
     <div v-if="open" class="mask" @click="open = false" />
 
-    <SideBar v-model:open="open" v-model:mode="mode" v-model:isDark="isDark" />
+    <SideBar :type="type" v-model:open="open" v-model:mode="mode" v-model:isDark="isDark" />
     <ChatPanel @toggle="open = !open" :type="type" @close="$emit('close')">
       <template #header>
         <template v-if="$slots.header">

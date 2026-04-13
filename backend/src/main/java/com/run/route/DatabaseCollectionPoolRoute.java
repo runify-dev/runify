@@ -31,7 +31,7 @@ public class DatabaseCollectionPoolRoute implements IRoute {
     @Inject
     public DatabaseCollectionPoolRoute(@Named("apiRoute") Router apiRoute,
                                        OpenAPI openAPI,
-                                       TokenBasicAuthHandler tokenBasicAuthHandler,
+                                       @Named("tokenBasicAuthHandler") TokenBasicAuthHandler tokenBasicAuthHandler,
                                        DatabaseCollectionPoolHandlerImpl databaseCollectionPoolHandler) {
         this.apiRoute = apiRoute;
         this.openAPI = openAPI;

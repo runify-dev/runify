@@ -20,7 +20,13 @@ onMounted(() => {
       conversationAPI.anonymousLogin(applicationId, result.visitorId).then((ok) => {
         const { conversationToken } = useStore()
         conversationToken.setToken(applicationId, ok.data)
-        router.push({ name: 'conversation' })
+
+        const { applicationId: appId, conversationId } = router.currentRoute.value.params
+
+        router.push({
+          name: conversationId ? 'conversation-detail' : 'conversation-new',
+          params: { applicationId: appId, ...(conversationId && { conversationId }) }
+        })
       })
     })
 })

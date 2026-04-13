@@ -1,6 +1,6 @@
 <template>
   <div class="h-full">
-    <Conversation type="CONVERSATION"></Conversation>
+    <Conversation :defaultOpen="true" type="CONVERSATION"></Conversation>
   </div>
 </template>
 <script setup lang="ts">

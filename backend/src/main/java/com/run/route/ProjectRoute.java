@@ -32,7 +32,7 @@ public class ProjectRoute implements IRoute {
 
     @Inject
     public ProjectRoute(@Named("apiRoute") Router apiRoute, OpenAPI openAPI,
-                        TokenBasicAuthHandler tokenBasicAuthHandler,
+                        @Named("tokenBasicAuthHandler")TokenBasicAuthHandler tokenBasicAuthHandler,
                         ProjectHandlerImpl iProjectHandler,
                         ProjectFolderHandlerImpl iProjectFolderHandler) {
         this.apiRoute = apiRoute;

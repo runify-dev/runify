@@ -36,7 +36,8 @@ public class UserRoute implements IRoute {
     private final IUserHandler iUserHandler;
 
     @Inject
-    public UserRoute(@Named("apiRoute") Router apiRoute, OpenAPI openAPI, TokenBasicAuthHandler tokenBasicAuthHandler, UserHandlerImpl iUserHandler) {
+    public UserRoute(@Named("apiRoute") Router apiRoute, OpenAPI openAPI,
+                     @Named("tokenBasicAuthHandler") TokenBasicAuthHandler tokenBasicAuthHandler, UserHandlerImpl iUserHandler) {
         this.apiRoute = apiRoute;
         this.openAPI = openAPI;
         this.tokenBasicAuthHandler = tokenBasicAuthHandler;

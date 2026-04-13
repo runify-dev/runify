@@ -43,7 +43,7 @@ public class NoteRoute implements IRoute {
 
     @Inject
     public NoteRoute(@Named("apiRoute") Router apiRoute, OpenAPI openAPI,
-                     TokenBasicAuthHandler tokenBasicAuthHandler,
+                     @Named("tokenBasicAuthHandler") TokenBasicAuthHandler tokenBasicAuthHandler,
                      NoteHandlerImpl noteHandler,
                      NoteFolderHandlerImpl noteFolderHandler) {
         this.apiRoute = apiRoute;

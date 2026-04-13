@@ -16,10 +16,15 @@
       <slot name="header"></slot>
     </header>
 
-    <!-- 消息列表 -->
-    <div ref="msgBox" class="msgs">
+    <!-- 消息区 -->
+    <div ref="msgBox" class="msgs" @scroll="onScroll">
+      <!-- 顶部加载指示 -->
+      <div class="top-loader" :class="{ visible: msgLoading && messages.length > 0 }">
+        <span class="typing"><span /><span /><span /></span>
+      </div>
+
       <!-- 欢迎页 -->
-      <div v-if="messages.length == 0" class="welcome">
+      <div v-if="messages.length === 0 && !msgLoading" class="welcome">
         <p class="wt">今天有什么可以帮你？</p>
         <p class="ws">选择快捷提示或直接输入</p>
         <div class="qgrid">
@@ -35,13 +40,23 @@
         </div>
       </div>
 
-      <!-- 消息 -->
+      <!-- 初始加载中 -->
+      <div v-else-if="messages.length === 0 && msgLoading" class="init-loading">
+        <span class="typing"><span /><span /><span /></span>
+      </div>
+
+      <!-- 消息列表 -->
       <template v-else>
-        <div v-for="(m, i) in messages" :key="i" :class="m.role">
-          <ContentList :content-list="m.content"></ContentList>
+        <div
+          v-for="(m, i) in messages"
+          :key="i"
+          :class="['mrow', m.type === 'USER' ? 'user' : 'assistant']"
+        >
+          <ContentList :content-list="m.content" />
         </div>
-        <div v-if="loading" class="mrow assistant">
-          <span class="av assistant">AI</span>
+
+        <!-- 流式回复 loading -->
+        <div v-if="streamLoading" class="mrow assistant">
           <div class="bub assistant typing"><span /><span /><span /></div>
         </div>
       </template>
@@ -55,7 +70,7 @@
           v-model="question.content"
           rows="1"
           placeholder="发送消息…"
-          :disabled="loading"
+          :disabled="streamLoading"
           @focus="focused = true"
           @blur="focused = false"
           @keydown.enter.exact.prevent="conversation(question)"
@@ -63,8 +78,8 @@
         />
         <button
           class="sbtn"
-          :class="{ on: text.trim() && !loading }"
-          :disabled="!text.trim() || loading"
+          :class="{ on: question.content.trim() && !streamLoading }"
+          :disabled="!question.content.trim() || streamLoading"
           @click="conversation(question)"
         >
           <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
@@ -83,22 +98,32 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, reactive, inject, onMounted } from 'vue'
+import { ref, nextTick, reactive, inject, onMounted, watch } from 'vue'
 import { useChatStore } from '../common/use-chat-store/index'
 import { ConversationStream } from '@/api/common'
 import { aggregators, Scroll } from '@/components/conversation-plus/index'
 import ContentList from '@/components/conversation-plus/content-list/index.vue'
+
 const conversationAPI = inject('conversationAPI') as any
 const props = defineProps<{ type: 'DEBUG' | 'CONVERSATION' }>()
 const emit = defineEmits<{ toggle: []; chanage: []; close: [] }>()
 
-const { messages, current, pushMessage, newChat } = useChatStore(props.type)
+const {
+  messages,
+  current,
+  msgLoading,
+  hasMoreMsg,
+  loadMessages,
+  loadMoreMessages,
+  pushMessage,
+  newChat
+} = useChatStore(props.type)
 
-const text = ref('')
 const focused = ref(false)
-const loading = ref(false)
+const streamLoading = ref(false)
 const msgBox = ref<HTMLElement | null>(null)
 const ta = ref<HTMLTextAreaElement | null>(null)
+const question = ref<any>({ content: '' })
 
 const prompts = [
   { icon: '✦', text: '帮我写一篇关于 AI 的技术文章' },
@@ -106,13 +131,46 @@ const prompts = [
   { icon: '◉', text: '如何学习 Vue3 + Vite？' },
   { icon: '◇', text: '推荐健康的晚餐食谱' }
 ]
+let scroll: any
+// ─── 滚动到底部 ───────────────────────────────────────────────────
+const scrollToBottom = async () => {
+  await nextTick()
+  scroll.scrollBottom()
+}
 
-const scrollBottom = () =>
-  nextTick(() => msgBox.value?.scrollTo({ top: msgBox.value.scrollHeight, behavior: 'smooth' }))
+// ─── 切换会话时加载消息并滚到底 ──────────────────────────────────
+watch(
+  () => current.value?.id,
+  async (id) => {
+    if (!id) return
+    if (streamLoading.value) return
+    await loadMessages(id)
+    setTimeout(() => {
+      scrollToBottom()
+    }, 100)
+  },
+  { immediate: true }
+)
 
+// ─── 向上滚动懒加载 ───────────────────────────────────────────────
+const onScroll = async () => {
+  const el = msgBox.value
+  if (!el) return
+  // 滚到顶部附近 60px 时触发
+  if (el.scrollTop > 60) return
+  if (!hasMoreMsg.value || msgLoading.value) return
+
+  // 记住加载前高度，加载后恢复位置防跳动
+  const prevScrollHeight = el.scrollHeight
+  await loadMoreMessages()
+  await nextTick()
+  el.scrollTop = el.scrollHeight - prevScrollHeight
+}
+
+// ─── 流式回复 ─────────────────────────────────────────────────────
 const getOnStream = (message: any) => {
   const index: any[] = []
-  const onStream = (chunk: any) => {
+  return (chunk: any) => {
     const id = chunk.id + '_' + chunk.type
     let i = index.indexOf(id)
     if (i < 0) {
@@ -124,60 +182,55 @@ const getOnStream = (message: any) => {
     } else {
       message.content[i] = aggregators[chunk.type](message.content[i], chunk)
     }
-    scroll.value?.scrollBottom()
+    scrollToBottom()
     emit('chanage')
   }
-  return onStream
 }
-const isConversation = ref<boolean>(false)
 
-const question = ref<any>({
-  content: ''
-})
-const conversation = (q: any) => {
-  if (isConversation.value) {
-    return
-  }
+const conversation = async (q: any) => {
+  if (!q.content.trim()) return
+  streamLoading.value = true
+  console.log('sss', current.value)
   if (!current.value) {
-    newChat().then(() => {
-      pushMessage({
-        type: 'USER',
-        content: [{ ...q, type: 'QUESTION' }]
-      })
-      const answerMessage = reactive({
-        type: 'LOADING',
-        content: []
-      })
-      pushMessage(answerMessage)
-
-      new ConversationStream(
-        conversationAPI({ ...q }),
-        getOnStream(answerMessage),
-        () => {},
-        () => {}
-      ).stream()
-      question.value.content = ''
-    })
+    await newChat(q.content)
+    await nextTick()
   }
+
+  pushMessage({
+    type: 'USER',
+    content: [{ ...q, type: 'QUESTION' }]
+  })
+
+  const answerMessage = reactive({ type: 'LOADING', content: [] })
+  pushMessage(answerMessage)
+
+  await scrollToBottom()
+
+  new ConversationStream(
+    conversationAPI({ ...q }),
+    getOnStream(answerMessage),
+    () => {
+      streamLoading.value = false
+      scrollToBottom()
+    },
+    () => {
+      streamLoading.value = false
+    }
+  ).stream()
+
+  question.value.content = ''
+  resize()
 }
 
+// ─── textarea 自适应高度 ──────────────────────────────────────────
 const resize = () => {
   const el = ta.value
   if (!el) return
   el.style.height = 'auto'
   el.style.height = Math.min(el.scrollHeight, 120) + 'px'
 }
-
-const fmt = (d: Date) => {
-  const now = new Date()
-  return d.toDateString() === now.toDateString()
-    ? d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })
-    : d.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' })
-}
-const scroll = ref<Scroll>()
 onMounted(() => {
-  const element = msgBox.value
-  scroll.value = new Scroll(element)
+  scroll = new Scroll(msgBox.value)
 })
 </script>
 
@@ -194,7 +247,6 @@ onMounted(() => {
   z-index: 1;
 }
 
-/* Topbar：z-index 高于 drawer(40) */
 .bar {
   display: flex;
   align-items: center;
@@ -224,10 +276,37 @@ onMounted(() => {
   padding: 14px 12px;
   scrollbar-width: thin;
   scrollbar-color: var(--bd) transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* ← 加这个 */
+}
+/* 顶部懒加载指示器 */
+.top-loader {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0 8px;
+  opacity: 0;
+  height: 0;
+  overflow: hidden;
+  transition:
+    opacity 0.2s,
+    height 0.2s;
+}
+.top-loader.visible {
+  opacity: 1;
+  height: 28px;
+}
+
+/* 初始加载居中 */
+.init-loading {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .welcome {
-  height: 100%;
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -280,6 +359,7 @@ onMounted(() => {
 
 .mrow {
   display: flex;
+  flex-direction: column;
   align-items: flex-end;
   gap: 6px;
   margin-bottom: 10px;
@@ -290,26 +370,6 @@ onMounted(() => {
 }
 .mrow.user {
   flex-direction: row-reverse;
-}
-
-.av {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  font-weight: 600;
-}
-.av.assistant {
-  background: var(--ab);
-  color: var(--t2);
-}
-.av.user {
-  background: #e8f0fe;
-  color: #3b5bdb;
 }
 
 .bub {
@@ -332,21 +392,6 @@ onMounted(() => {
   white-space: pre-wrap;
   margin: 0 0 3px;
 }
-.bub.user p {
-  color: #f0f0f0;
-}
-.bub.assistant p {
-  color: var(--t1);
-}
-.bub time {
-  display: block;
-  font-size: 10px;
-  text-align: right;
-  color: rgba(255, 255, 255, 0.3);
-}
-.bub.assistant time {
-  color: var(--t3);
-}
 
 .typing {
   display: flex;
@@ -367,6 +412,7 @@ onMounted(() => {
 .typing span:nth-child(3) {
   animation-delay: 0.36s;
 }
+
 @keyframes dot {
   0%,
   80%,
@@ -380,14 +426,18 @@ onMounted(() => {
   }
 }
 
-/* 输入框 */
 .ibar {
   flex-shrink: 0;
   padding: 8px 10px;
-  border-top: 1px solid var(--bd);
+
   background: var(--bg);
+  display: flex; /* ← 加 */
+  justify-content: center; /* ← 加 */
 }
+
 .iwrap {
+  width: 100%;
+  max-width: 680px; /* ← 和 .mrow 保持一致 */
   display: flex;
   align-items: flex-end;
   gap: 6px;
@@ -421,6 +471,7 @@ textarea::placeholder {
 textarea:disabled {
   opacity: 0.5;
 }
+
 .sbtn {
   width: 30px;
   height: 30px;

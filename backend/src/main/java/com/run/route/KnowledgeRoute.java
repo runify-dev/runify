@@ -43,7 +43,7 @@ public class KnowledgeRoute implements IRoute {
 
     @Inject
     public KnowledgeRoute(@Named("apiRoute") Router apiRoute, OpenAPI openAPI,
-                          TokenBasicAuthHandler tokenBasicAuthHandler,
+                          @Named("tokenBasicAuthHandler")TokenBasicAuthHandler tokenBasicAuthHandler,
                           KnowledgeHandlerImpl knowledgeHandler,
                           KnowledgeFolderHandlerImpl knowledgeFolderHandler) {
         this.apiRoute = apiRoute;

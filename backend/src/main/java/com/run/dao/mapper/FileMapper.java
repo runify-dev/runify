@@ -130,14 +130,14 @@ public class FileMapper extends BaseMapper<FileEntity> {
         }
 
         @Override
-        public BaseReadStream exceptionHandler(@org.jetbrains.annotations.Nullable Handler<Throwable> var1) {
+        public BaseReadStream exceptionHandler(@Nullable Handler<Throwable> var1) {
             this.exceptionHandler = var1;
             return this;
         }
 
         @Override
 
-        public BaseReadStream handler(@org.jetbrains.annotations.Nullable Handler<Buffer> var1) {
+        public BaseReadStream handler(@Nullable Handler<Buffer> var1) {
             this.handler = var1;
             return this;
         }

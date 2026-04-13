@@ -33,7 +33,7 @@ public class ApplicationRoute implements IRoute {
 
     @Inject
     public ApplicationRoute(@Named("apiRoute") Router apiRoute, Pool pool,
-                            TokenBasicAuthHandler tokenBasicAuthHandler,
+                            @Named("tokenBasicAuthHandler") TokenBasicAuthHandler tokenBasicAuthHandler,
                             ApplicationHandlerImpl applicationHandler,
                             ApplicationFolderHandlerImpl applicationFolderHandler) {
         this.apiRoute = apiRoute;

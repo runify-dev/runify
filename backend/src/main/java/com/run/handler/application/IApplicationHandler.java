@@ -45,5 +45,6 @@ public interface IApplicationHandler extends IResourceHandler<Application> {
      *
      * @param context 上下文
      */
-    void pageConversationRecord(RoutingContext context);
+    void pageConversationMessage(RoutingContext context);
+
 }

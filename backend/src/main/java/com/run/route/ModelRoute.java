@@ -31,7 +31,7 @@ public class ModelRoute implements IRoute {
 
     @Inject
     public ModelRoute(@Named("apiRoute") Router apiRoute, OpenAPI openAPI,
-                      TokenBasicAuthHandler tokenBasicAuthHandler,
+                      @Named("tokenBasicAuthHandler") TokenBasicAuthHandler tokenBasicAuthHandler,
                       ModelHandlerImpl modelHandler,
                       ModelFolderHandlerImpl modelFolderHandler) {
         this.apiRoute = apiRoute;

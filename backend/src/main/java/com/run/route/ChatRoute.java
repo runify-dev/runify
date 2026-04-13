@@ -29,7 +29,7 @@ public class ChatRoute implements IRoute {
 
     @Inject
     public ChatRoute(@Named("apiRoute") Router apiRoute, Pool pool, ApplicationHandlerImpl applicationHandler,
-                     TokenBasicAuthHandler tokenBasicAuthHandler) {
+                     @Named("tokenBasicAuthHandler") TokenBasicAuthHandler tokenBasicAuthHandler) {
         this.apiRoute = apiRoute;
         this.pool = pool;
         this.applicationHandler = applicationHandler;
@@ -48,10 +48,12 @@ public class ChatRoute implements IRoute {
                 .handler(tokenBasicAuthHandler)
                 .handler(applicationHandler::chat);
 
-        apiRoute.get("/application/folder/:folderId/resource/:applicationId/conversation/:currentPage/:pageSize")
-                .handler(BodyHandler.create())
+        apiRoute.get("/application/:applicationId/conversation")
                 .handler(tokenBasicAuthHandler)
                 .handler(applicationHandler::pageConversation);
+        apiRoute.get("/application/:applicationId/conversation/:conversationId/message")
+                .handler(tokenBasicAuthHandler)
+                .handler(applicationHandler::pageConversationMessage);
     }
 
 

@@ -3,7 +3,7 @@
     class="absolute z-99999 bottom-8 right-6 bg-white rounded-xl overflow-hidden"
     :style="toggleStyle"
   >
-    <Conversation @close="$emit('close')" type="DEBUG">
+    <Conversation defaultMode="drawer" @close="$emit('close')" type="DEBUG">
       <template #header>
         <button class="hbtn" @click="toggle">
           <i class="pi pi-arrow-up-right-and-arrow-down-left-from-center"></i>
@@ -28,6 +28,8 @@ import { computed, provide, ref } from 'vue'
 import applicationAPI from '@/api/application'
 import { v4 as uuidv4 } from 'uuid'
 import Conversation from '@/components/conversation-plus/index.vue'
+import { useChatStore } from '@/components/conversation-plus/common/use-chat-store/index'
+const { conversationId } = useChatStore('DEBUG')
 defineEmits(['close'])
 const expanded = ref<boolean>(false)
 const toggle = () => {
@@ -50,23 +52,9 @@ const props = defineProps<{
   forderId: string
   application: any
 }>()
-const conversationId = ref<string>()
 
 provide('conversationAPI', (question: any) => {
-  if (!conversationId.value) {
-    return applicationAPI
-      .createConversation(props.application.id, question.content)
-      .then((ok) => {
-        conversationId.value = ok.data.id
-        return ok
-      })
-      .then((ok: any) => {
-        return applicationAPI.chat(props.application.id, ok.data.id, {
-          content: question,
-          workflowRunId: uuidv4()
-        })
-      })
-  } else {
+  if (conversationId.value) {
     return applicationAPI.chat(props.application.id, conversationId.value, {
       content: question,
       workflowRunId: uuidv4()

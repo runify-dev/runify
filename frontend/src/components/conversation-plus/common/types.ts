@@ -1,11 +1,11 @@
 export interface Msg {
-  id: string,
-  conversationId: string,
-  applicationId: string,
+  id: string
+  conversationId: string
+  applicationId: string
   role: 'USER' | 'ASSISTANT' | 'TOOL'
   content: Array<any>
   // yyyy-MM-dd HH:mm:ss
-  createTime: string,
+  createTime: string
   // yyyy-MM-dd HH:mm:ss
   updateTime: string
 }
@@ -13,7 +13,7 @@ export interface Msg {
 export interface Conversation {
   id?: string
   applicationId: string
-  name: string,
+  name: string
   executeType: 'DEBUG' | 'CONVERSATION'
   // yyyy-MM-dd HH:mm:ss
   createTime: string
@@ -21,8 +21,18 @@ export interface Conversation {
   updateTime: string
 }
 
-
 export interface ConversationGroup {
   label: string
   items: Conversation[]
+}
+// ─── 类型 ─────────────────────────────────────────────────────────
+export type FlatLabel = { type: 'label'; label: string }
+export type FlatItem = { type: 'item' } & Conversation
+export type FlatRow = FlatLabel | FlatItem
+
+export enum GroupKey {
+  Today = 'Today',
+  Yesterday = 'Yesterday',
+  ThisWeek = 'ThisWeek',
+  Earlier = 'Earlier'
 }

@@ -6,6 +6,7 @@ import com.run.common.constants.ConversationExecuteConstants;
 import com.run.common.constants.ConversationUserConstants;
 import com.run.common.constants.MessageConstants;
 import com.run.common.query.Query;
+import com.run.common.result.Page;
 import com.run.common.result.Result;
 import com.run.common.util.CommonUtils;
 import com.run.common.util.JacksonUtils;
@@ -21,6 +22,8 @@ import com.run.handler.conversation.IConversationHandler;
 import com.run.handler.conversation.dto.ConversationProfileDTO;
 import com.run.handler.conversation.vo.AnonymousLoginVO;
 import com.run.handler.conversation.vo.ModifyConversationNameVO;
+import com.run.handler.conversation.vo.QueryConversationMessageVO;
+import com.run.handler.conversation.vo.QueryConversationVO;
 import com.run.workflow.WorkFlowManage;
 import com.run.workflow.WorkflowType;
 import com.run.workflow.entity.WorkFlow;
@@ -63,9 +66,9 @@ public class ConversationHandlerImpl implements IConversationHandler {
     }
 
     @Override
-    public void rename(RoutingContext context) {
-        String conversationId = context.get("conversationId");
-        ModifyConversationNameVO modifyConversationNameVO = Query.format(ModifyConversationNameVO.class, context);
+    public void modifyName(RoutingContext context) {
+        String conversationId = context.pathParams().get("conversationId");
+        ModifyConversationNameVO modifyConversationNameVO = context.body().asPojo(ModifyConversationNameVO.class);
         if (StringUtils.isEmpty(modifyConversationNameVO.getName())) {
             context.end(Result.error("名称必填").toBuffer());
         }
@@ -195,12 +198,43 @@ public class ConversationHandlerImpl implements IConversationHandler {
 
     @Override
     public void delConversation(RoutingContext context) {
-        String conversationId = context.get("conversationId");
+        String conversationId = context.pathParams().get("conversationId");
         conversationMapper.update(Map.of(F.field(Conversation::getIsDeleted), F.params(Conversation::getIsDeleted)),
                         F.field(Conversation::getId).eq(F.params(Conversation::getId)),
                         Map.of("id", conversationId, "isDeleted", true))
                 .onSuccess(ok -> {
                     context.end(Result.success(true).toBuffer());
                 }).onFailure(context::fail);
+    }
+
+    @Override
+    public void pageConversation(RoutingContext context) {
+        User user = context.user();
+        String conversationUserId = user.get("conversationUserId");
+        QueryConversationVO queryConversationVO = Query.format(QueryConversationVO.class, context);
+        conversationMapper.page(
+                        F.field(Conversation::getConversationUserId).eq(F.params(Conversation::getConversationUserId))
+                                .and(F.field(Conversation::getIsDeleted).eq(F.params(Conversation::getIsDeleted))),
+                        List.of(F.field(Conversation::getUpdateTime)),
+                        queryConversationVO.getCurrentPage(),
+                        queryConversationVO.getPageSize(),
+                        Map.of("conversationUserId", conversationUserId,
+                                "isDeleted", Boolean.FALSE))
+                .onSuccess(result -> context.end(Result.success(result).toBuffer()))
+                .onFailure(context::fail);
+    }
+
+    @Override
+    public void pageMessage(RoutingContext context) {
+        String conversationId = context.pathParams().get("conversationId");
+        QueryConversationMessageVO queryConversationMessageVO = Query.format(QueryConversationMessageVO.class, context);
+        conversationMessageMapper.page(
+                        F.field(ConversationMessage::getConversationId).eq(F.params(ConversationMessage::getConversationId)),
+                        List.of(F.field(Conversation::getUpdateTime).desc()),
+                        queryConversationMessageVO.getCurrentPage(),
+                        queryConversationMessageVO.getPageSize(),
+                        Map.of("conversationId", conversationId)
+                ).onSuccess(result -> context.end(Result.success(result).toBuffer()))
+                .onFailure(context::fail);
     }
 }
