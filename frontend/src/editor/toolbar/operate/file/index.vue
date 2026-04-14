@@ -296,12 +296,11 @@ async function upload(file: File) {
 
     progress.value = 100
     uploadStatus.value = 'done'
-
     props.editor
       .chain()
       .focus()
       .setFileBlock({
-        src: result.data.url, // 根据 FileEntity 实际字段调整
+        src: './api/storage/file/' + result.data.id, // 根据 FileEntity 实际字段调整
         name: file.name,
         size: file.size,
         mime: file.type

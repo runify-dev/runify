@@ -42,7 +42,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import type { Editor } from '@tiptap/vue-3'
-import { useTableGrid } from '@/editor/composables/useTableGrid'
+import { useTableGrid } from '@/editor/components/composables/useTableGrid'
 import TableIcon from '@/editor/components/ui/TableIcon.vue'
 import ChevronIcon from '@/editor/components/ui/ChevronIcon.vue'
 

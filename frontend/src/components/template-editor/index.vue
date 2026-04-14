@@ -92,7 +92,13 @@ import Dialog from 'primevue/dialog'
 import Button from 'primevue/button'
 
 import { basicSetup } from 'codemirror'
-import { EditorView, Decoration, DecorationSet, ViewPlugin, ViewUpdate } from '@codemirror/view'
+import {
+  EditorView,
+  Decoration,
+  type DecorationSet,
+  ViewPlugin,
+  ViewUpdate
+} from '@codemirror/view'
 import { EditorState, RangeSetBuilder } from '@codemirror/state'
 import { markdown } from '@codemirror/lang-markdown'
 import { oneDark } from '@codemirror/theme-one-dark'

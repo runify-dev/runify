@@ -97,7 +97,6 @@ export function useChatStore() {
     query: Omit<QueryConversationVO, 'currentPage' | 'pageSize'>,
     loading?: Ref<boolean>
   ) => {
-    console.log('ss')
     currentPage.value = 1
     const res = await pageConversationProxy(
       { ...query, currentPage: 1, pageSize: PAGE_SIZE },
@@ -210,9 +209,12 @@ export function useChatStore() {
   }
 
   const init = async (
-    query: Omit<QueryConversationVO, 'currentPage' | 'pageSize'>,
+    query?: Omit<QueryConversationVO, 'currentPage' | 'pageSize'>,
     loading?: Ref<boolean>
   ) => {
+    if (!query) {
+      query = { currentPage: 1, pageSize: PAGE_SIZE }
+    }
     await pageConversation(query, loading)
     if (conversationId.value) {
       await loadMessages(conversationId.value)

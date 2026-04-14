@@ -76,9 +76,8 @@ export function useTableHandle(
     if (!ed) return
     const cellPos = getCellPos(hoveredCellEl)
     if (cellPos !== null) {
-      ed.chain().focus().setTextSelection(cellPos + 1)[name as keyof typeof ed.chain]?.()
-        // Use a type-safe workaround for dynamic command names
-        ; (ed.chain().focus().setTextSelection(cellPos + 1) as any)[name]().run()
+      // Use a type-safe workaround for dynamic command names
+      ; (ed.chain().focus().setTextSelection(cellPos + 1) as any)[name]().run()
     } else {
       ; (ed.chain().focus() as any)[name]().run()
     }

@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="simple-editor-content relative">
-      <EditorContent :editor="editor" />
+      <EditorContent v-if="editor" :editor="editor" />
     </div>
   </div>
 </template>

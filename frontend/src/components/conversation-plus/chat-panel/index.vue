@@ -12,7 +12,7 @@
           />
         </svg>
       </button>
-      <span class="bar-title">{{ current?.title || '新建对话' }}</span>
+      <span class="bar-title">{{ current?.name || '新建对话' }}</span>
       <slot name="header"></slot>
     </header>
 
@@ -50,7 +50,7 @@
         <div
           v-for="(m, i) in messages"
           :key="i"
-          :class="['mrow', m.type === 'USER' ? 'user' : 'assistant']"
+          :class="['mrow', m.role === 'USER' ? 'user' : 'assistant']"
         >
           <ContentList :content-list="m.content" />
         </div>
@@ -197,11 +197,25 @@ const conversation = async (q: any) => {
   }
 
   pushMessage({
-    type: 'USER',
-    content: [{ ...q, type: 'QUESTION' }]
+    role: 'USER',
+    content: [{ ...q, type: 'QUESTION' }],
+    id: '',
+    conversationId: '',
+    applicationId: '',
+    createTime: '',
+    updateTime: ''
   })
 
-  const answerMessage = reactive({ type: 'LOADING', content: [] })
+  const answerMessage = reactive({
+    type: 'LOADING',
+    role: 'ASSISTANT' as 'ASSISTANT',
+    content: [],
+    id: '',
+    conversationId: '',
+    applicationId: '',
+    createTime: '',
+    updateTime: ''
+  })
   pushMessage(answerMessage)
 
   await scrollToBottom()

@@ -38,7 +38,7 @@ const props = defineProps<{ editor: Editor }>()
 const isActive = computed(() => {
   return props.editor?.isActive('blockMath')
 })
-const dialogRef = ref<InstanceType<typeof Dialog>>()
+const dialogRef = ref<InstanceType<typeof MathematicsDialog>>()
 const activeState = computed(() => {
   return isActive.value ? 'on' : 'off'
 })

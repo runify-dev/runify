@@ -325,7 +325,8 @@
     <Drawer
       v-model:visible="previewOpen"
       position="right"
-      :style="{ '--tc': typeColor, '--tc-a': typeColorAlpha, width: '42rem' }"
+      :style="{ '--tc': typeColor, '--tc-a': typeColorAlpha }"
+      class="!w-screen md:!w-[40rem] lg:!w-[60%] xl:!w-[50rem] max-w-[70rem] h-full"
       :pt="{
         root: { class: 'file-preview-drawer' },
         header: { class: 'file-preview-drawer__header' },
@@ -504,7 +505,7 @@ import { EditorState } from '@codemirror/state'
 import type { Extension } from '@codemirror/state'
 import { oneDark } from '@codemirror/theme-one-dark'
 import { StreamLanguage } from '@codemirror/language'
-
+import { copyContent as cp } from '@/utils/common'
 const props = defineProps<NodeViewProps>()
 
 // ── Tiny inline stat component ──
@@ -889,7 +890,7 @@ function togglePreview() {
 async function copyContent() {
   if (!previewContent.value) return
   try {
-    await navigator.clipboard.writeText(previewContent.value)
+    await cp(previewContent.value)
     contentCopied.value = true
     setTimeout(() => {
       contentCopied.value = false

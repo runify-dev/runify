@@ -139,7 +139,7 @@ const handleSwitch = (id: string) => {
 }
 
 // ─── 重命名 ─────────────────────────────────────────────────────────
-const renamingId = ref<string | null>(null)
+const renamingId = ref<string | null | undefined>(null)
 const renVal = ref('')
 const renRef = ref<HTMLInputElement | null>(null)
 

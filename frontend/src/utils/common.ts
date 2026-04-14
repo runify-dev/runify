@@ -1,6 +1,7 @@
 import { type Node, type Tree } from '@/api/type/node'
 import { cloneDeep } from 'lodash'
 import { type DataTableFilterMeta } from 'primevue/datatable'
+import Clipboard from 'vue-clipboard3'
 export const toTree = (nodeList: Array<Tree>) => {
   nodeList = cloneDeep(nodeList)
   const nodeMap = Object.fromEntries(nodeList.map((item) => [item.id, item]))
@@ -83,4 +84,13 @@ export const resetUrl = (url: string, defaultUrl?: string) => {
     return `${window.RUNIFY_APP.baseURL}/${url.substring(2)}`
   }
   return url ? url : defaultUrl ? defaultUrl : ''
+}
+
+export async function copyContent(content: string) {
+  const { toClipboard } = Clipboard()
+  try {
+    return await toClipboard(content)
+  } catch (e) {
+    console.error(e)
+  }
 }

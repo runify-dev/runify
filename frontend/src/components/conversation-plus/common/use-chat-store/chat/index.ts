@@ -208,9 +208,12 @@ export function useChatStore() {
   }
 
   const init = async (
-    query: Omit<QueryConversationVO, 'currentPage' | 'pageSize'>,
+    query?: QueryConversationVO,
     loading?: Ref<boolean>
   ) => {
+    if (!query) {
+      query = { currentPage: 1, pageSize: PAGE_SIZE }
+    }
     await pageConversation(query, loading)
     if (conversationId.value) {
       await loadMessages(conversationId.value)
