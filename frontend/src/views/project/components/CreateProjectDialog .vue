@@ -89,7 +89,9 @@ const resolver = ref(
       path: z
         .string()
         .startsWith('/', { message: '必须已/开头' })
-        .regex(/^\/[a-zA-Z0-9_\-]+$/, { message: '必须字母或者数字组合' })
+        .regex(/^\/[a-zA-Z0-9_\-]+$/, { message: '必须字母或者数字组合' }),
+      desc: z.string(),
+      icon: z.string().min(1, { message: `图标必选` })
     })
   )
 )
@@ -98,7 +100,6 @@ const treeCommonAPI = new TreeCommonAPI('project')
 const formRef = ref<FormInstance>()
 
 const uploadIcon = (uploadFile: FileUploadSelectEvent) => {
-  console.log('sss', uploadFile)
   if (uploadFile.files) {
     let file
     if (Array.isArray(uploadFile.files)) {

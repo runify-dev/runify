@@ -1,5 +1,6 @@
 package com.run.dao.entity;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.run.dao.common.annotations.Column;
 import com.run.dao.common.annotations.Table;
 import com.run.dao.common.entity.BaseEntity;
@@ -73,9 +74,11 @@ public class Application implements BaseEntity<Application> {
     private Boolean share;
 
     @Column(name = "create_time")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createTime;
 
     @Column(name = "update_time")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime updateTime;
 
 }

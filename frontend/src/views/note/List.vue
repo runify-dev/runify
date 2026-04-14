@@ -65,11 +65,11 @@
             <span
               class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-primary-50 text-primary-600"
             >
-              应用
+              笔记
             </span>
             <span class="flex items-center gap-1 text-[11px] text-surface-400">
               <i class="pi pi-clock text-[10px]" />
-              最近更新
+              {{ item.updateTime }}
             </span>
           </div>
         </div>

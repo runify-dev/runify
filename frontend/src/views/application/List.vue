@@ -69,7 +69,7 @@
             </span>
             <span class="flex items-center gap-1 text-[11px] text-surface-400">
               <i class="pi pi-clock text-[10px]" />
-              最近更新
+              {{ item.updateTime }}
             </span>
           </div>
         </div>

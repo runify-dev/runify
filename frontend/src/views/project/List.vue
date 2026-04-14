@@ -35,7 +35,13 @@
             <div
               class="w-10 h-10 rounded-xl bg-primary-50 flex items-center justify-center text-primary-500 text-lg shrink-0"
             >
-              <i class="pi pi-th-large" />
+              <Avatar v-if="item.icon" :image="resetUrl(item.icon)" shape="circle" size="normal" />
+              <Avatar
+                v-else
+                :label="item.name?.charAt(0) ?? item.name?.charAt(0)"
+                shape="circle"
+                size="normal"
+              />
             </div>
 
             <div @click.stop>
@@ -101,7 +107,7 @@ import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
 import bus from '@/bus/index'
 import { TreeCommonAPI } from '@/api/tree'
-
+import { resetUrl } from '@/utils/common'
 const treeCommonAPI = new TreeCommonAPI('project')
 const router = useRouter()
 const route = useRoute()
