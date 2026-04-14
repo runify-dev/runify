@@ -46,9 +46,10 @@ public class UserRoute implements IRoute {
 
     @Override
     public void initRoute() {
-        apiRoute.get("/user")
+        apiRoute.get("/profile")
                 .handler(tokenBasicAuthHandler)
                 .handler(iUserHandler.profile());
+
         apiRoute.post("/user").handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
                 .handler(iUserHandler::createUser);
@@ -63,8 +64,10 @@ public class UserRoute implements IRoute {
         apiRoute.get("/logout")
                 .handler(tokenBasicAuthHandler)
                 .handler(iUserHandler.logout());
-        apiRoute.get("/user/:currentPage/:pageSize")
-                .handler(iUserHandler::page);
+
+        apiRoute.get("/user")
+                .handler(tokenBasicAuthHandler)
+                .handler(iUserHandler::query);
     }
 
     @Override

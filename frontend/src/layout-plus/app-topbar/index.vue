@@ -44,9 +44,12 @@
       <template #end>
         <div class="flex items-center gap-2">
           <Avatar
+            class="cursor-pointer"
+            @click="toggle"
             image="https://primefaces.org/cdn/primevue/images/avatar/amyelsner.png"
             shape="circle"
           />
+          <Menu ref="menuRef" :model="buttons" :popup="true"></Menu>
         </div>
       </template>
     </Menubar>
@@ -56,7 +59,30 @@
 import { useLayout } from '@/layout-plus/index'
 import { ref } from 'vue'
 import AppIcon from '@/assets/app.svg'
+import useStore from '@/stores'
 import { useRoute, useRouter } from 'vue-router'
+const { user } = useStore()
+const menuRef = ref()
+const toggle = (event: any) => {
+  menuRef.value.toggle(event)
+}
+const buttons = ref([
+  {
+    label: '系统设置',
+    icon: 'pi pi-cog',
+    command: () => {
+      router.push({ name: 'system-management' })
+    }
+  },
+  {
+    label: '退出登录',
+    icon: 'pi pi-sign-out',
+    command: () => {
+      user.logout()
+      router.push({ name: 'login' })
+    }
+  }
+])
 const route = useRoute()
 const router = useRouter()
 

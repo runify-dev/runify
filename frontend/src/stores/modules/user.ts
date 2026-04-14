@@ -2,11 +2,10 @@ import { defineStore } from 'pinia'
 import type { User } from '@/api/type/user'
 import UserApi from '@/api/user'
 export interface userStateTypes {
-  user?: User,
+  user?: User
   token?: string
-
 }
-const useUserStore = defineStore("user", {
+const useUserStore = defineStore('user', {
   state: (): userStateTypes => ({
     user: undefined,
     token: undefined
@@ -18,7 +17,7 @@ const useUserStore = defineStore("user", {
       }
       const token = localStorage.getItem('token')
       if (token) {
-        this.token = token;
+        this.token = token
       }
       return token ? token : undefined
     },
@@ -45,10 +44,7 @@ const useUserStore = defineStore("user", {
       this.token = undefined
       localStorage.removeItem('token')
     }
-
   }
 })
-
-
 
 export default useUserStore

@@ -3,7 +3,7 @@ export interface Msg {
   conversationId: string
   applicationId: string
   role: 'USER' | 'ASSISTANT' | 'TOOL'
-  content: Array<any>
+  content: any
   // yyyy-MM-dd HH:mm:ss
   createTime: string
   // yyyy-MM-dd HH:mm:ss

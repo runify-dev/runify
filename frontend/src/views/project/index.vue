@@ -22,6 +22,9 @@
                   }
                 }"
               >
+                <template #empty>
+                  <TreeEmpty></TreeEmpty>
+                </template>
                 <template #nodeicon="scope">
                   <i class="pi pi-folder" v-if="scope.node.type == 'folder'"></i>
                 </template>
@@ -196,6 +199,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { TreeManager } from '@/components/tree/index'
 import { TreeCommonAPI } from '@/api/tree'
 import FlipCard from '@/components/flip-card/index.vue'
+import TreeEmpty from '@/components/tree-empty/index.vue'
 import type { TreeNode } from 'primevue/treenode'
 import bus from '@/bus/index'
 const route = useRoute()
@@ -237,6 +241,13 @@ provide('treeCommonAPI', treeCommonAPI)
 const router = useRouter()
 const flipCardRef = ref<InstanceType<typeof FlipCard>>()
 const back = () => {
+  const id = route.params.id as string
+  const parent = treeManage.value?.findParentNode(id)
+  if (parent) {
+    router.push({ name: 'projectFolders', params: { id: parent?.key } })
+  } else {
+    router.push({ name: 'projectFolders', params: { id: 'root' } })
+  }
   flipCardRef.value?.unflip()
 }
 
@@ -293,12 +304,21 @@ onMounted(() => {
     const treeNode = treeManage.value?.findNodeByKey(id)
     openCreateProjectDialog(treeNode ? treeNode : undefined)
   })
+  bus.on('tree:remove', (id: string) => {
+    treeManage.value?.remove(id)
+  })
+
+  bus.on('sidebar:flip', () => {
+    flipCardRef.value?.flip()
+  })
   treeCommonAPI.listTree('root').then((ok) => {
     nodes.value = toTree(ok.data)
     treeManage.value = new TreeManager(nodes.value)
   })
 })
 onBeforeUnmount(() => {
+  bus.off('tree:remove')
+  bus.off('sidebar:flip')
   bus.off('open:create:project:dialog')
 })
 </script>

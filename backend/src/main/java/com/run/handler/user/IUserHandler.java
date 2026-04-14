@@ -39,5 +39,10 @@ public interface IUserHandler {
      */
     Handler<RoutingContext> logout();
 
-    void page(RoutingContext context);
+    /**
+     * 查询
+     *
+     * @param context
+     */
+    void query(RoutingContext context);
 }

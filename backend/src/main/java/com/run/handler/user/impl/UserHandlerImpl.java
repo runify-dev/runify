@@ -1,6 +1,8 @@
 package com.run.handler.user.impl;
 
 
+import com.run.common.exception.ApiException;
+import com.run.common.query.Query;
 import com.run.common.result.Page;
 import com.run.common.result.Result;
 import com.run.common.util.CommonUtils;
@@ -11,16 +13,16 @@ import com.run.dao.common.F;
 import com.run.dao.entity.User;
 import com.run.dao.mapper.UserMapper;
 import com.run.handler.user.IUserHandler;
+import com.run.handler.user.dto.UserDTO;
 import com.run.handler.user.pojo.LoginPojo;
-import com.run.handler.user.pojo.UserPojo;
-import com.run.handler.user.pojo.UserQueryPojo;
+import com.run.handler.user.vo.UserQueryVO;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-import io.vertx.core.MultiMap;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.sqlclient.Pool;
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.jooq.Condition;
 import org.jooq.Field;
 import org.jooq.Param;
@@ -57,7 +59,7 @@ public class UserHandlerImpl implements IUserHandler {
         user.setId(UUID.randomUUID());
         user.setCreateTime(LocalDateTime.now());
         user.setUpdateTime(LocalDateTime.now());
-        user.setIcon("/ui/user.jpeg");
+        user.setIcon("./user.jpeg");
         user.setPassword(CommonUtils.getSHA256(user.getPassword()));
         user.setRole("USER");
         ValidatorUtil.validate(user, Group.Create.class);
@@ -77,6 +79,10 @@ public class UserHandlerImpl implements IUserHandler {
     @Override
     public void deleteUser(RoutingContext context) {
         String userId = context.pathParam("id");
+        if (Strings.CS.equals(userId, "22d90f6c-2092-43b8-aa14-d1f9731522ac")) {
+            context.fail(new ApiException(500, "内置用户不允许删除"));
+            return;
+        }
         userMapper.deleteById(userId).onSuccess(ok -> {
             context.end(Result.success(true).toBuffer());
         }).onFailure(context::fail);
@@ -111,15 +117,16 @@ public class UserHandlerImpl implements IUserHandler {
         };
     }
 
-    public UserPojo to(User user) {
-        UserPojo userPojo = new UserPojo();
+    public UserDTO to(User user) {
+        UserDTO userDto = new UserDTO();
         try {
-            BeanUtils.copyProperties(userPojo, user);
+            BeanUtils.copyProperties(userDto, user);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        return userPojo;
+        return userDto;
     }
+
 
     @Override
     public Handler<RoutingContext> profile() {
@@ -138,39 +145,39 @@ public class UserHandlerImpl implements IUserHandler {
         };
     }
 
-    public Condition getCondition(UserQueryPojo queryPojo) {
-        String mixing = queryPojo.getMixing();
+    public Condition getCondition(UserQueryVO query) {
+        String mixing = query.getGlobal();
         Condition condition = DSL.noCondition();
         Field<String> username = F.field(User::getUsername);
         Field<String> nikiName = F.field(User::getNickname);
         if (StringUtils.isNotEmpty(mixing)) {
             Field<String> phone = F.field(User::getPhone);
             Field<String> email = F.field(User::getEmail);
-            Param<String> mixingParams = F.params(UserQueryPojo::getMixing);
+            Param<String> mixingParams = DSL.param("global", String.class);
             condition = condition.and(username.like(mixingParams)
                     .or(nikiName.like(mixingParams)
                             .or(phone.like(mixingParams))
                             .or(email.like(mixingParams))));
         }
-        if (StringUtils.isNotEmpty(queryPojo.getNickname())) {
+        if (StringUtils.isNotEmpty(query.getUsername())) {
             condition = condition.and(username.like(F.params(User::getUsername)));
         }
-        if (StringUtils.isNotEmpty(queryPojo.getNickname())) {
-            condition = condition.and(username.like(F.params(User::getNickname)));
+        if (StringUtils.isNotEmpty(query.getNickname())) {
+            condition = condition.and(nikiName.like(F.params(User::getNickname)));
         }
         return condition;
     }
 
     @Override
-    public void page(RoutingContext context) {
-        MultiMap entries = context.queryParams();
-        String currentPage = context.pathParam("currentPage");
-        String pageSize = context.pathParam("pageSize");
-        UserQueryPojo userQueryPojo = new UserQueryPojo(entries);
-        userMapper.page(getCondition(userQueryPojo), Long.parseLong(currentPage), Long.parseLong(pageSize), userQueryPojo.toMap())
+    public void query(RoutingContext context) {
+        UserQueryVO query = Query.format(UserQueryVO.class, context);
+        userMapper.page(getCondition(query), query.getCurrentPage(), query.getPageSize(),
+                        CommonUtils.ofNullable("global", "%" + query.getGlobal() + "%",
+                                "username", "%" + query.getUsername() + "%",
+                                "nickname", "%" + query.getNickname() + "%"))
                 .onSuccess(userPage -> {
-                    List<UserPojo> list = userPage.getRecords().stream().map(this::to).toList();
-                    Page<UserPojo> result = new Page<>();
+                    List<UserDTO> list = userPage.getRecords().stream().map(this::to).toList();
+                    Page<UserDTO> result = new Page<>();
                     result.setRecords(list);
                     result.setSize(userPage.getSize());
                     result.setCurrent(userPage.getCurrent());

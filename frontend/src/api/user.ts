@@ -13,13 +13,13 @@ const login: (
   return post(`/login`, loginPojo, undefined, loading)
 }
 const page: (query: UserQueryPojo, currentPage: number, pageSize: number, loading?: Ref<boolean>) => Promise<Result<Page<User>>> = (query, currentPage, pageSize, loading) => {
-  return get(`/user/${currentPage}/${pageSize}`, query, loading)
+  return get(`/user`, { ...query, currentPage, pageSize }, loading)
 }
 
 const profile: (
   loading?: Ref<boolean>
 ) => Promise<Result<User>> = (loading) => {
-  return get(`/user`, undefined, loading)
+  return get(`/profile`, undefined, loading)
 }
 
 const logout: (

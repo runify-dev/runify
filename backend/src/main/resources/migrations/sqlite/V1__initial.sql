@@ -12,7 +12,7 @@ CREATE TABLE "user" (
   PRIMARY KEY ("id")
 );
 
-INSERT INTO "user" ("id", "email", "phone", "nick_name", "username","role", "password", "create_time", "update_time", "icon") VALUES ('22d90f6c-2092-43b8-aa14-d1f9731522ac', 'shaohuzhang1@163.com', NULL, '管理员', 'admin', 'ADMIN','32d991775d14e9fa31a3633eb3cd253d5c1ecfae8b64dc6d7391a29ccc6fd824', '2022-04-17 00:59:01', '2025-04-05 00:00:00', '/ui/user.jpeg');
+INSERT INTO "user" ("id", "email", "phone", "nick_name", "username","role", "password", "create_time", "update_time", "icon") VALUES ('22d90f6c-2092-43b8-aa14-d1f9731522ac', 'shaohuzhang1@163.com', NULL, '管理员', 'admin', 'ADMIN','32d991775d14e9fa31a3633eb3cd253d5c1ecfae8b64dc6d7391a29ccc6fd824', '2022-04-17 00:59:01', '2025-04-05 00:00:00', './user.jpeg');
 
 CREATE TABLE "file" (
                         "id" text(32) NOT NULL,

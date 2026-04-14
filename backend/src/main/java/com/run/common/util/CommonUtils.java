@@ -18,9 +18,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * {@code @Author:张少虎}
@@ -167,5 +165,12 @@ public class CommonUtils {
     public static UUID uuid7() {
         return UuidCreator.getTimeOrderedEpoch();
 
+    }
+    public static <K, V> Map<K, V> ofNullable(Object... kv) {
+        Map<K, V> map = new HashMap<>();
+        for (int i = 0; i < kv.length; i += 2) {
+            map.put((K) kv[i], (V) kv[i + 1]);
+        }
+        return Collections.unmodifiableMap(map);
     }
 }

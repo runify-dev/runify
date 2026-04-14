@@ -281,7 +281,7 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
                         List.of(F.field(Conversation::getUpdateTime).desc()),
                         Long.parseLong(currentPage), Long.parseLong(pageSize),
                         Map.of("application_id", conversation.getApplicationId(),
-                                "name", StringUtils.isEmpty(conversation.getName()) ? "" : conversation.getName(),
+                                "name", StringUtils.isEmpty(conversation.getName()) ? "" : "%" + conversation.getName() + "%",
                                 "execute_type", StringUtils.isEmpty(conversation.getExecuteType()) ? "" : conversation.getExecuteType()))
                 .onSuccess(result -> context.end(Result.success(result).toBuffer()))
                 .onFailure(context::fail);

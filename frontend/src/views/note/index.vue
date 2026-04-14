@@ -19,6 +19,9 @@
             }
           }"
         >
+          <template #empty>
+            <TreeEmpty></TreeEmpty>
+          </template>
           <template #nodeicon="scope">
             <i class="pi pi-folder" v-if="scope.node.type == 'folder'"></i>
           </template>
@@ -157,6 +160,7 @@ import { TreeCommonAPI } from '@/api/tree'
 import bus from '@/bus/index'
 const route = useRoute()
 import type { TreeNode } from 'primevue/treenode'
+import TreeEmpty from '@/components/tree-empty/index.vue'
 
 const expandedKeys = ref<TreeSelectionKeys>()
 const selectedKeys = computed(() => {
@@ -218,12 +222,16 @@ onMounted(() => {
     const treeNode = treeManage.value?.findNodeByKey(id)
     openCreateNoteDialog(treeNode ? treeNode : undefined)
   })
+  bus.on('tree:remove', (id: string) => {
+    treeManage.value?.remove(id)
+  })
   treeCommonAPI.listTree('root').then((ok) => {
     nodes.value = toTree(ok.data)
     treeManage.value = new TreeManager(nodes.value)
   })
 })
 onBeforeUnmount(() => {
+  bus.off('tree:remove')
   bus.off('open:create:note:dialog')
 })
 </script>

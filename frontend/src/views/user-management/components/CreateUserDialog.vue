@@ -1,118 +1,126 @@
 <template>
-  <el-drawer v-model="dialogVisible" title="创建用户" direction="rtl" :before-close="close">
-    <el-form
-      ref="createUserFormRef"
-      :rules="rules"
-      label-position="top"
-      :model="userFrom"
-      label-width="auto"
-      style="max-width: 600px"
-    >
-      <el-form-item label="用户名" prop="username">
-        <el-input v-model="userFrom.username" />
-      </el-form-item>
-      <el-form-item label="昵称" prop="nickname">
-        <el-input v-model="userFrom.nickname" />
-      </el-form-item>
-      <el-form-item label="邮箱" prop="email">
-        <el-input v-model="userFrom.email" />
-      </el-form-item>
-      <el-form-item label="手机号" prop="phone">
-        <el-input v-model="userFrom.phone" />
-      </el-form-item>
-      <el-form-item label="密码" prop="password">
-        <el-input v-model="userFrom.password" />
-      </el-form-item>
-    </el-form>
+  <Drawer v-model:visible="visible" header="创建用户" position="right" :style="{ width: '26rem' }">
+    <Form ref="formRef" :initial-values="initialValues" :resolver="resolver" @submit="submit">
+      <FormField v-slot="$field" name="username" class="flex flex-col gap-1 mt-4">
+        <label>用户名</label>
+        <InputText class="mt-1" type="text" placeholder="请输入用户名（3-20位）" fluid />
+        <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">
+          {{ $field.error?.message }}
+        </Message>
+      </FormField>
+
+      <FormField v-slot="$field" name="nickname" class="flex flex-col gap-1 mt-4">
+        <label>昵称</label>
+        <InputText class="mt-1" type="text" placeholder="请输入昵称（3-20位）" fluid />
+        <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">
+          {{ $field.error?.message }}
+        </Message>
+      </FormField>
+
+      <FormField v-slot="$field" name="email" class="flex flex-col gap-1 mt-4">
+        <label>邮箱</label>
+        <InputText class="mt-1" type="email" placeholder="请输入邮箱地址" fluid />
+        <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">
+          {{ $field.error?.message }}
+        </Message>
+      </FormField>
+
+      <FormField v-slot="$field" name="phone" class="flex flex-col gap-1 mt-4">
+        <label>手机号</label>
+        <InputText class="mt-1" type="text" placeholder="请输入手机号" fluid />
+        <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">
+          {{ $field.error?.message }}
+        </Message>
+      </FormField>
+
+      <FormField v-slot="$field" name="password" class="flex flex-col gap-1 mt-4">
+        <label>密码</label>
+        <Password
+          class="mt-1"
+          placeholder="请输入密码（6-20位）"
+          :feedback="false"
+          toggleMask
+          fluid
+        />
+        <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">
+          {{ $field.error?.message }}
+        </Message>
+      </FormField>
+    </Form>
+
     <template #footer>
-      <div class="dialog-footer">
-        <el-button @click="close">取消</el-button>
-        <el-button type="primary" @click="createUser"> 确定 </el-button>
+      <div class="flex justify-end gap-2">
+        <Button label="取消" severity="secondary" @click="close" />
+        <Button label="创建" @click="submit" />
       </div>
     </template>
-  </el-drawer>
+  </Drawer>
 </template>
+
 <script setup lang="ts">
-import type { FormInstance, FormRules } from 'element-plus'
-import { ref, reactive } from 'vue'
-import { t } from '@/locales'
+import { ref } from 'vue'
+import { zodResolver } from '@primevue/forms/resolvers/zod'
+import { z } from 'zod'
+import type { FormInstance } from '@primevue/forms'
 import UserAPI from '@/api/user'
-const dialogVisible = ref<boolean>()
-const userFrom = ref<any>({
+
+const emit = defineEmits(['success'])
+
+const visible = ref<boolean>(false)
+
+const initialValues = {
   username: '',
   nickname: '',
   email: '',
   phone: '',
-  password: '',
-  rePassword: ''
-})
-const rules = reactive<FormRules<any>>({
-  username: [
-    {
-      required: true,
-      message: t('user.form.username.requiredMessage', '用户名为必填参数'),
-      trigger: 'blur'
-    },
-    {
-      min: 3,
-      max: 20,
-      message: t('user.form.username.ruleMessage', '用户名长度为 3 - 20 之间'),
-      trigger: 'blur'
-    }
-  ],
-  nickname: [
-    {
-      required: true,
-      message: t('user.form.nickname.requiredMessage', '昵称为必填参数'),
-      trigger: 'blur'
-    },
-    {
-      min: 3,
-      max: 20,
-      message: t('user.form.nickname.ruleMessage', '用户名长度为 3 - 20 之间'),
-      trigger: 'blur'
-    }
-  ],
-  email: [
-    {
-      required: true,
-      message: t('user.form.email.requiredMessage', '邮箱为必填参数'),
-      trigger: 'blur'
-    },
-    {
-      type: 'email',
-      message: t('user.form.email.ruleMessage', '请输入正确的邮箱地址'),
-      trigger: ['blur', 'change']
-    }
-  ],
-  password: [
-    {
-      required: true,
-      message: t('user.form.password.requiredMessage', '密码为必填参数'),
-      trigger: 'blur'
-    },
-    {
-      min: 3,
-      max: 20,
-      message: t('user.form.password.ruleMessage', '密码长度为 6 - 20 之间'),
-      trigger: 'blur'
-    }
-  ]
-})
-const createUserFormRef = ref<FormInstance>()
-const createUser = () => {
-  createUserFormRef.value?.validate().then(() => {
-    UserAPI.createUser(userFrom.value).then(() => {
-      close()
+  password: ''
+}
+
+const resolver = ref(
+  zodResolver(
+    z.object({
+      username: z
+        .string()
+        .min(3, { message: '用户名长度为 3 - 20 之间' })
+        .max(20, { message: '用户名长度为 3 - 20 之间' }),
+      nickname: z
+        .string()
+        .min(3, { message: '昵称长度为 3 - 20 之间' })
+        .max(20, { message: '昵称长度为 3 - 20 之间' }),
+      email: z
+        .string()
+        .min(1, { message: '邮箱为必填参数' })
+        .email({ message: '请输入正确的邮箱地址' }),
+      phone: z.string().optional(),
+      password: z
+        .string()
+        .min(6, { message: '密码长度为 6 - 20 之间' })
+        .max(20, { message: '密码长度为 6 - 20 之间' })
     })
+  )
+)
+
+const formRef = ref<FormInstance>()
+
+const submit = () => {
+  formRef.value?.validate().then(({ errors, values }) => {
+    if (Object.keys(errors).length === 0) {
+      UserAPI.createUser(values).then(() => {
+        emit('success')
+        close()
+      })
+    }
   })
 }
+
 const open = () => {
-  dialogVisible.value = true
+  visible.value = true
 }
+
 const close = () => {
-  dialogVisible.value = false
+  formRef.value?.reset()
+  visible.value = false
 }
+
 defineExpose({ open, close })
 </script>
-<style lang="scss"></style>

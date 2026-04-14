@@ -22,6 +22,9 @@
                   }
                 }"
               >
+                <template #empty>
+                  <TreeEmpty></TreeEmpty>
+                </template>
                 <template #nodeicon="scope">
                   <i class="pi pi-folder" v-if="scope.node.type == 'folder'"></i>
                 </template>
@@ -199,6 +202,7 @@ import { TreeCommonAPI } from '@/api/tree'
 import FlipCard from '@/components/flip-card/index.vue'
 import type { TreeNode } from 'primevue/treenode'
 import bus from '@/bus/index'
+import TreeEmpty from '@/components/tree-empty/index.vue'
 const route = useRoute()
 const to = (routeName: string) => {
   router.push({ name: routeName })
@@ -239,6 +243,13 @@ const treeCommonAPI = new TreeCommonAPI('application')
 const router = useRouter()
 const flipCardRef = ref<InstanceType<typeof FlipCard>>()
 const back = () => {
+  const id = route.params.id as string
+  const parent = treeManage.value?.findParentNode(id)
+  if (parent) {
+    router.push({ name: 'applicationFolders', params: { id: parent?.key } })
+  } else {
+    router.push({ name: 'applicationFolders', params: { id: 'root' } })
+  }
   flipCardRef.value?.unflip()
 }
 
@@ -266,7 +277,7 @@ const createResourceSuccess = (key: string, node: any) => {
   const treeNode = toTreeNode({ ...node, type: 'application' })
   treeManage.value?.addChild(key, treeNode)
   expandedKeys.value = { ...expandedKeys.value, [key]: true }
-  router.push({ name: 'applicationDetails', params: { id: node.id } })
+  nodeSelect(treeNode)
 }
 const createFolderSuccess = (key: string, node: any) => {
   const treeNode = toTreeNode({ ...node, type: 'folder' })
@@ -298,18 +309,24 @@ onMounted(() => {
     const treeNode = treeManage.value?.findNodeByKey(id)
     openCreateApplicationDialog(treeNode ? treeNode : undefined)
   })
+
+  bus.on('tree:remove', (id: string) => {
+    treeManage.value?.remove(id)
+  })
+
+  bus.on('sidebar:flip', () => {
+    flipCardRef.value?.flip()
+  })
+
   treeCommonAPI.listTree('root').then((ok) => {
     nodes.value = toTree(ok.data)
     treeManage.value = new TreeManager(nodes.value)
   })
 })
 onBeforeUnmount(() => {
+  bus.off('tree:remove')
+  bus.off('sidebar:flip')
   bus.off('open:create:application:dialog')
 })
 </script>
-<style lang="scss">
-.p-menu-item-selected {
-  background: var(--p-tree-node-selected-background);
-  color: var(--p-tree-node-selected-color);
-}
-</style>
+<style lang="scss"></style>
