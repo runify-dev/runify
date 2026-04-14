@@ -20,7 +20,7 @@ import java.util.Map;
  */
 public class LLMCredential extends BaseForm implements BaseModelCredential {
 
-    private final TextInputField baseUrl = new TextInputField(new TextLabel("API 域名"), true, "https://api.deepseek.com/chat/completions");
+    private final TextInputField baseUrl = new TextInputField(new TextLabel("API 域名"), true, "https://api.deepseek.com");
 
     private final PasswordInputField apiKey = new PasswordInputField(new TextLabel("API KEY"), true, "");
 
