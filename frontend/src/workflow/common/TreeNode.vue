@@ -16,7 +16,7 @@
           >▶</span
         >
         <span v-else class="w-3 text-[10px] text-gray-300 flex-shrink-0">─</span>
-        <span class="text-sm flex-shrink-0">{{ node.label }}</span>
+        <span class="text-sm flex-shrink-0">{{ node?.label }}</span>
         <span class="text-[11px] text-gray-400 truncate">
           {{ [name, ...currentPath].join('.') }}
         </span>
@@ -35,7 +35,7 @@
 
     <template v-if="hasChildren && open">
       <TreeNode
-        v-for="child in node.children"
+        v-for="child in node?.children"
         :key="child.value"
         :node="child"
         :name="name"
@@ -47,7 +47,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed } from 'vue'
 
 const props = defineProps({
@@ -59,10 +59,10 @@ const props = defineProps({
 
 const emit = defineEmits(['copy'])
 const open = ref(true)
-const hasChildren = computed(() => props.node.children?.length > 0)
+const hasChildren = computed(() => props.node?.children?.length > 0)
 
 // 当前节点完整路径
-const currentPath = computed(() => [...props.parentPath, props.node.value])
+const currentPath = computed(() => [...props.parentPath, props.node?.value])
 
 function handleCopy() {
   // 复制格式: ${name.user.name}
