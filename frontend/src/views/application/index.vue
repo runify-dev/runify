@@ -185,7 +185,7 @@
       ></CreateFolderDialog>
     </template>
 
-    <RouterView></RouterView>
+    <RouterView :key="route.name"></RouterView>
   </AppMenuContent>
 </template>
 <script setup lang="ts">

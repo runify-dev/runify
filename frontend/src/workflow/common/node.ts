@@ -1,10 +1,12 @@
 import { HtmlResize } from '@logicflow/extension'
 import { BaseNode, BaseNodeModel, GraphModel, Point, type Model, h as lh } from '@logicflow/core'
 import { isActive, connect, disconnect } from './teleport'
-import { generateAnchor } from "@/utils/common"
+import { generateAnchor } from '@/utils/common'
 import { anchorIconMap } from '@/workflow/common/data'
 const getNodeName = (model: BaseNodeModel) => {
-  const eqTypeNodes = model.graphModel.nodes.filter((node: any) => node.id != model.id && node.type == model.type)
+  const eqTypeNodes = model.graphModel.nodes.filter(
+    (node: any) => node.id != model.id && node.type == model.type
+  )
   const originalName = model.properties.name
   let i = 0
   while (true) {
@@ -15,7 +17,6 @@ const getNodeName = (model: BaseNodeModel) => {
     } else {
       return currentName
     }
-
   }
 }
 class RootView extends HtmlResize.view {
@@ -26,7 +27,6 @@ class RootView extends HtmlResize.view {
     if (!props.model.properties.nodeData) {
       props.model.properties.name = getNodeName(props.model)
     }
-
   }
   setHtml(rootEl: SVGForeignObjectElement): void {
     if (!rootEl.innerHTML) {
@@ -86,12 +86,17 @@ class RootView extends HtmlResize.view {
         })
       ]
     )
-
   }
-
 }
 class RootModel extends HtmlResize.model {
-
+  refreshDegrees() {
+    this.incoming.edges.forEach((edge: any) => {
+      edge.updatePathByAnchor()
+    })
+    this.outgoing.edges.forEach((edge: any) => {
+      edge.updatePathByAnchor()
+    })
+  }
   getResizeOutlineStyle() {
     const style = super.getResizeOutlineStyle()
     style.stroke = 'none'
@@ -120,16 +125,16 @@ class RootModel extends HtmlResize.model {
   getAnchorStyle(_anchorInfo: any) {
     if (_anchorInfo.type == 'right' && _anchorInfo.status == 'fail') {
       return {
-        "stroke": "var(--el-color-danger)",
-        "fill": "#fff",
-        "r": 4,
-      };
+        stroke: 'var(--el-color-danger)',
+        fill: '#fff',
+        r: 4
+      }
     }
     return {
-      "stroke": "var(--el-color-success)",
-      "fill": "#fff",
-      "r": 4,
-    };
+      stroke: 'var(--el-color-success)',
+      fill: '#fff',
+      r: 4
+    }
   }
   getDefaultAnchor() {
     const { id, x, y, width, type } = this
@@ -148,20 +153,22 @@ class RootModel extends HtmlResize.model {
       }
       anchors.push({
         x: x + width / 2,
-        y: y - 10,
+        y: this.properties.errorCaptureEnabled ? y - 10 : y,
         id: generateAnchor(id, 'right', 'main', 'success'),
         direction: 'right',
         branch: 'main',
         status: 'success'
       })
-      anchors.push({
-        x: x + width / 2,
-        y: y + 15,
-        id: generateAnchor(id, 'right', 'main', 'fail'),
-        direction: 'right',
-        branch: 'main',
-        status: 'fail'
-      })
+      if (this.properties.errorCaptureEnabled) {
+        anchors.push({
+          x: x + width / 2,
+          y: y + 15,
+          id: generateAnchor(id, 'right', 'main', 'fail'),
+          direction: 'right',
+          branch: 'main',
+          status: 'fail'
+        })
+      }
     }
 
     return anchors

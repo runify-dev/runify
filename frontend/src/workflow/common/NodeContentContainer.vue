@@ -49,7 +49,6 @@ const close = () => {
 const open = (model: BaseNodeModel) => {
   name.value = model.properties.name
   drawer.value = true
-  console.log('ss')
 }
 defineExpose({ open, close })
 </script>

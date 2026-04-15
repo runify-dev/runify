@@ -1,30 +1,27 @@
 <template>
   <slot name="content"> </slot>
-  <Fieldset legend="节点输出">
+  <Fieldset>
+    <template #legend>
+      <div class="flex items-center justify-between w-full gap-4">
+        <span class="text-sm font-medium">节点输出</span>
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-gray-500">异常捕捉</span>
+          <InputSwitch v-model="errorCaptureEnabled" />
+        </div>
+      </div>
+    </template>
+
     <template v-if="$slots.outputfield">
       <slot name="outputfield"></slot>
     </template>
     <template v-else>
-      <div
-        class="flex p-4 mt-2 rounded-xs h-5 bg-gray-100 font-normal text-[14px] items-center justify-between"
+      <TreeNode
         v-for="field in fieldList"
         :key="field.value"
-      >
-        <span>{{ `${field.label}\{\{ ${field.value} \}\}` }} </span>
-        <div
-          @click="copy(`{{${name}.${field.value}}}`)"
-          class="w-5 h-5 hover:bg-gray-100 hover:text-gray-900 hover:cursor-pointer flex rounded-xs justify-center items-center"
-        >
-          <Button
-            v-tooltip="'复制'"
-            icon="pi pi-copy"
-            variant="text"
-            aria-label="Filter"
-            severity="secondary"
-            size="small"
-          ></Button>
-        </div>
-      </div>
+        :node="field"
+        :name="name"
+        @copy="copy"
+      />
     </template>
   </Fieldset>
 </template>
@@ -32,9 +29,19 @@
 import { ref, onMounted, inject, provide, computed } from 'vue'
 import type { LifeCycle } from '@/workflow/common/type'
 import Clipboard from 'vue-clipboard3'
-import { ElMessage } from 'element-plus'
+import TreeNode from '@/workflow/common/TreeNode.vue'
+import bus from '@/bus'
 const getModel = inject('getModel') as any
 const model = getModel()
+const errorCaptureEnabled = computed({
+  get: () => {
+    return model.properties.errorCaptureEnabled || false
+  },
+  set: (event) => {
+    model.properties.errorCaptureEnabled = event
+    model.refreshDegrees()
+  }
+})
 provide('getOptions', () => {
   const getUpNode = (id: string, result: Array<any>) => {
     const upNodes = model.graphModel.getNodeIncomingNode(id)
@@ -104,17 +111,26 @@ const props = defineProps<{
   lifeCycle?: LifeCycle
 }>()
 const fieldList = computed(() => {
-  return model.properties.field_list
+  const result = [...model.properties.field_list]
+  if (errorCaptureEnabled.value) {
+    result.push({
+      label: '异常信息',
+      value: 'exception'
+    })
+  }
+  return result
 })
-const name = ref<string>('')
+const name = computed(() => {
+  return model.properties.name
+})
 const copy = (text: string) => {
   const { toClipboard } = Clipboard()
   toClipboard(text)
     .then(() => {
-      ElMessage.success({ message: '复制成功' })
+      bus.emit('message:success', '复制成功')
     })
     .catch(() => {
-      ElMessage.error({ message: '复制失败' })
+      bus.emit('message:error', '复制失败')
     })
 }
 
