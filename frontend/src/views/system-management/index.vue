@@ -5,6 +5,7 @@
     <AppMenuContent>
       <template #menu>
         <Menu
+          style="--p-menu-item-padding: var(--p-navigation-item-padding)"
           :model="menus"
           class="w-full application-menu"
           :pt="{ root: { style: { border: 0 } } }"
@@ -62,7 +63,12 @@ const menus = ref([
   {
     label: '用户管理',
     name: 'user-management',
-    icon: 'pi pi-cog'
+    icon: 'pi pi-fw  pi-cog p-1'
+  },
+  {
+    label: '角色管理',
+    name: 'role-management',
+    icon: 'pi pi-fw  pi-cog p-1'
   }
 ])
 </script>

@@ -1,5 +1,6 @@
 package com.run.dagger.module;
 
+import com.run.common.common_handler.LocaleHandler;
 import com.run.common.common_handler.ResultHandler;
 import com.run.common.failure_handler.RestFailureHandler;
 import com.run.common.project.ProjectManage;
@@ -32,6 +33,7 @@ public class RouteModule {
         Router restAPI = Router.router(vertx);
         router.route("/conversation/api/*").subRouter(restAPI);
         restAPI.route()
+                .handler(LocaleHandler::handle)
                 .failureHandler(new RestFailureHandler())
                 .handler(new ResultHandler());
         return restAPI;
@@ -58,6 +60,7 @@ public class RouteModule {
         Router restAPI = Router.router(vertx);
         router.route("/admin/api/*").subRouter(restAPI);
         restAPI.route()
+                .handler(LocaleHandler::handle)
                 .failureHandler(new RestFailureHandler())
                 .handler(new ResultHandler());
         return restAPI;

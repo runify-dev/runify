@@ -22,10 +22,10 @@ export const routes: Array<RouteRecordRaw> = [
         component: () => import('@/views/user-management/index.vue')
       },
       {
-        path: 'resource-authorization',
-        name: 'resource-authorization',
-        meta: { title: '资源授权', activeMenu: 'resource-authorization' },
-        component: () => import('@/views/resource-authorization/index.vue')
+        path: 'role-management',
+        name: 'role-management',
+        meta: { title: '角色管理', activeMenu: 'system-management' },
+        component: () => import('@/views/role-management/index.vue')
       }
     ]
   },

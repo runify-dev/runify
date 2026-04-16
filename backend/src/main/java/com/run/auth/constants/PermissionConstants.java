@@ -56,6 +56,9 @@ public enum PermissionConstants {
      * 对应菜单
      */
     public enum Group {
+        /**
+         * 应用
+         */
         APPLICATION,
         NOTE,
         PROJECT,
@@ -121,6 +124,7 @@ public enum PermissionConstants {
         AND
     }
 
+    @Getter
     public static class Permission {
         Group group;
         Group subGroup;
