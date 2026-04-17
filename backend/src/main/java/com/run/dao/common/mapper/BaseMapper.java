@@ -16,6 +16,7 @@ import io.vertx.sqlclient.templates.TupleMapper;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.reflect.FieldUtils;
+import org.jetbrains.annotations.NotNull;
 import org.jooq.*;
 import org.jooq.Record;
 import org.jooq.conf.ParamType;
@@ -364,16 +365,25 @@ public class BaseMapper<T extends BaseEntity<T>> {
         return delete(template, params, client);
     }
 
-    public Future<SqlResult<Void>> delete(Condition condition, Map<String, Object> params, List<String> listKey) {
-        params = new HashMap<>(params);
+    public Future<SqlResult<Void>> delete(Condition condition, Map<String, Object> params, List<String> expandInKeyList) {
         String template = dslContext.delete(table).where(condition).getSQL(ParamType.NAMED);
-        for (String key : listKey) {
+        Result result = getResult(params, expandInKeyList, template);
+        return delete(result.template(), result.params(), client);
+    }
+
+    @NotNull
+    private static Result getResult(Map<String, Object> params, List<String> expandInKeyList, String template) {
+        params = new HashMap<>(params);
+        for (String key : expandInKeyList) {
             List<?> lists = (List<?>) params.get(key);
             SqlTemplates.ExpandedSql expanded = SqlTemplates.expandIn(template, key, lists);
             template = expanded.sql();
             params.putAll(expanded.params());
         }
-        return delete(template, params, client);
+        return new Result(params, template);
+    }
+
+    private record Result(Map<String, Object> params, String template) {
     }
 
     public Future<SqlResult<Void>> update(String template, Map<String, Object> params) {
@@ -416,6 +426,11 @@ public class BaseMapper<T extends BaseEntity<T>> {
         return _list(condition, params).compose(BaseMapper::toListFuture);
     }
 
+    public Future<List<T>> list(Condition condition, Map<String, Object> params, List<String> expandInKeyList) {
+        return _list(condition, params, expandInKeyList).compose(BaseMapper::toListFuture);
+    }
+
+
     public Future<List<T>> list(String template, Map<String, Object> params) {
         return search(template, params).compose(BaseMapper::toListFuture);
     }
@@ -432,6 +447,14 @@ public class BaseMapper<T extends BaseEntity<T>> {
         return SqlTemplate.forQuery(client, sql)
                 .mapTo(this.getConvert()::mapTo)
                 .execute(params);
+    }
+
+    public Future<RowSet<T>> _list(Condition condition, Map<String, Object> params, List<String> expandInKeyList) {
+        String sql = dslContext.select(fields).from(table).where(condition).getSQL(ParamType.NAMED);
+        Result result = getResult(params, expandInKeyList, sql);
+        return SqlTemplate.forQuery(client, result.template)
+                .mapTo(this.getConvert()::mapTo)
+                .execute(result.params);
     }
 
     public SelectJoinStep<Record> select() {
