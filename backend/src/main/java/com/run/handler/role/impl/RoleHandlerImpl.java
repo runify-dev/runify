@@ -116,7 +116,6 @@ public class RoleHandlerImpl implements IRoleHandler {
             List<PermissionDTO> permissionList = getPermissionList(locale, roleId, Boolean.TRUE);
             context.end(Result.success(permissionList).toBuffer());
         } else {
-
             Future.all(roleMapper.getById(roleId),
                             rolePermissionRelationMapper.list(F.field(RolePermissionRelation::getRoleId).eq(F.params(RolePermissionRelation::getRoleId)),
                                     Map.of("roleId", roleId)))

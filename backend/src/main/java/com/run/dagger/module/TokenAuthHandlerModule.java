@@ -3,6 +3,8 @@ package com.run.dagger.module;
 
 import com.run.auth.TokenBasicAuthHandler;
 import com.run.auth.provider.ConversationTokenProvider;
+import com.run.auth.provider.TokenProvider;
+import com.run.dao.mapper.*;
 import dagger.Module;
 import dagger.Provides;
 import io.vertx.sqlclient.Pool;
@@ -24,8 +26,19 @@ public class TokenAuthHandlerModule {
     @Singleton
     @Provides
     @Named("tokenBasicAuthHandler")
-    public TokenBasicAuthHandler getTokenBasicAuthHandler(Pool pool, SQLDialect dbType) {
-        return new TokenBasicAuthHandler(pool, dbType);
+    public TokenBasicAuthHandler getTokenBasicAuthHandler(UserMapper userMapper, RoleUserRelationMapper roleUserRelationMapper,
+                                                          RolePermissionRelationMapper rolePermissionRelationMapper,
+                                                          RoleMapper roleBaseMapper,
+                                                          ApplicationPermissionMapper applicationPermissionBaseMapper,
+                                                          NotePermissionMapper notePermissionBaseMapper,
+                                                          ModelPermissionMapper modelPermissionBaseMapper,
+                                                          ProjectPermissionMapper projectPermissionBaseMapper) {
+        TokenProvider tokenProvider = new TokenProvider(userMapper,
+                roleUserRelationMapper,
+                rolePermissionRelationMapper, roleBaseMapper, applicationPermissionBaseMapper,
+                notePermissionBaseMapper
+                , modelPermissionBaseMapper, projectPermissionBaseMapper);
+        return new TokenBasicAuthHandler(tokenProvider);
     }
 
     @Inject

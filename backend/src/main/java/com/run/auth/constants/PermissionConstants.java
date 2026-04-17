@@ -144,6 +144,10 @@ public enum PermissionConstants {
             this.resourcePath = resourcePath;
         }
 
+        public String toString(String resourcePath) {
+            return this.group + ":" + (this.subGroup != this.group ? this.subGroup + ":" : "") + this.operate + ":" + resourcePath;
+        }
+
         @Override
         public String toString() {
             return this.group + ":" + (this.subGroup != this.group ? this.subGroup + ":" : "") + this.operate + (StringUtils.isNotEmpty(this.resourcePath) ? ":" + this.resourcePath : "");
