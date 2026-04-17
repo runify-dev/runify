@@ -34,4 +34,8 @@ public interface IRoleHandler {
     void permissions(RoutingContext context);
 
     void modifyPermissions(RoutingContext context);
+
+    void users(RoutingContext context);
+
+    void removeUser(RoutingContext context);
 }

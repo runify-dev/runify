@@ -94,7 +94,9 @@ public abstract class ResourceHandlerImpl<R extends BaseEntity<R>,
                         .notIn(relationMapper.getDslContext().select(DSL.field("descendant_id")).from(relationMapper.getTable())
                                 .where(DSL.field("ancestor_id").in(permissionMapper.getDslContext().select(DSL.field("target"))
                                         .from(permissionMapper.getTable())
-                                        .where(DSL.field("permission").in(DSL.param("#{permissionNotAuth}")).and(DSL.field("user_id").eq(DSL.param("#{userId}"))))))));
+                                        .where(DSL.field("permission")
+                                                .in(DSL.param("#{permissionNotAuth}"))
+                                                .and(DSL.field("user_id").eq(DSL.param("#{userId}"))))))));
     }
 
     @Override

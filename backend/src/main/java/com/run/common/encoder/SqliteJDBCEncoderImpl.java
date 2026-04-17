@@ -8,6 +8,7 @@ import io.vertx.sqlclient.Tuple;
 
 import java.sql.JDBCType;
 import java.sql.SQLException;
+import java.util.List;
 
 /**
  * {@code @Author:张少虎}
@@ -32,6 +33,8 @@ public class SqliteJDBCEncoderImpl extends JDBCEncoderImpl {
             return super.doEncode(JDBCColumnDescriptor.wrap(JDBCType.DOUBLE), value);
         } else if (value instanceof Float) {
             return super.doEncode(JDBCColumnDescriptor.wrap(JDBCType.FLOAT), value);
+        } else if (value instanceof List<?>) {
+            return super.doEncode(JDBCColumnDescriptor.wrap(JDBCType.ARRAY), value);
         }
         return super.encode(input, pos, provider);
     }

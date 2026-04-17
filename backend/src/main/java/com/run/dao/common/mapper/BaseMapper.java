@@ -3,6 +3,7 @@ package com.run.dao.common.mapper;
 
 import com.run.common.config.AppConfig;
 import com.run.common.result.Page;
+import com.run.common.util.SqlTemplates;
 import com.run.dao.common.F;
 import com.run.dao.common.convert.EntityConvert;
 import com.run.dao.common.entity.BaseEntity;
@@ -360,6 +361,18 @@ public class BaseMapper<T extends BaseEntity<T>> {
 
     public Future<SqlResult<Void>> delete(Condition condition, Map<String, Object> params) {
         String template = dslContext.delete(table).where(condition).getSQL(ParamType.NAMED);
+        return delete(template, params, client);
+    }
+
+    public Future<SqlResult<Void>> delete(Condition condition, Map<String, Object> params, List<String> listKey) {
+        params = new HashMap<>(params);
+        String template = dslContext.delete(table).where(condition).getSQL(ParamType.NAMED);
+        for (String key : listKey) {
+            List<?> lists = (List<?>) params.get(key);
+            SqlTemplates.ExpandedSql expanded = SqlTemplates.expandIn(template, key, lists);
+            template = expanded.sql();
+            params.putAll(expanded.params());
+        }
         return delete(template, params, client);
     }
 

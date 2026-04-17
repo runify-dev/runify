@@ -171,19 +171,30 @@ public class UserHandlerImpl implements IUserHandler {
     @Override
     public void query(RoutingContext context) {
         UserQueryVO query = Query.format(UserQueryVO.class, context);
-        userMapper.page(getCondition(query), query.getCurrentPage(), query.getPageSize(),
-                        CommonUtils.ofNullable("global", "%" + query.getGlobal() + "%",
-                                "username", "%" + query.getUsername() + "%",
-                                "nickname", "%" + query.getNickname() + "%"))
-                .onSuccess(userPage -> {
-                    List<UserDTO> list = userPage.getRecords().stream().map(this::to).toList();
-                    Page<UserDTO> result = new Page<>();
-                    result.setRecords(list);
-                    result.setSize(userPage.getSize());
-                    result.setCurrent(userPage.getCurrent());
-                    result.setTotal(userPage.getTotal());
-                    context.end(Result.success(result).toBuffer());
-                }).onFailure(context::fail);
+        if (query.getCurrentPage() != null && query.getPageSize() != null) {
+            userMapper.page(getCondition(query), query.getCurrentPage(), query.getPageSize(),
+                            CommonUtils.ofNullable("global", "%" + query.getGlobal() + "%",
+                                    "username", "%" + query.getUsername() + "%",
+                                    "nickname", "%" + query.getNickname() + "%"))
+                    .onSuccess(userPage -> {
+                        List<UserDTO> list = userPage.getRecords().stream().map(this::to).toList();
+                        Page<UserDTO> result = new Page<>();
+                        result.setRecords(list);
+                        result.setSize(userPage.getSize());
+                        result.setCurrent(userPage.getCurrent());
+                        result.setTotal(userPage.getTotal());
+                        context.end(Result.success(result).toBuffer());
+                    }).onFailure(context::fail);
+        } else {
+            userMapper.list(getCondition(query),
+                            CommonUtils.ofNullable("global", "%" + query.getGlobal() + "%",
+                                    "username", "%" + query.getUsername() + "%",
+                                    "nickname", "%" + query.getNickname() + "%"))
+                    .onSuccess(users -> {
+                        context.end(Result.success(users.stream().map(UserDTO::new).toList()).toBuffer());
+                    }).onFailure(context::fail);
+        }
+
     }
 
 

@@ -1,10 +1,12 @@
 package com.run.handler.user.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.run.dao.entity.User;
 import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.apache.commons.beanutils.BeanUtils;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -30,4 +32,13 @@ public class UserDTO {
     private LocalDateTime createTime;
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime updateTime;
+
+    public UserDTO(User user) {
+        try {
+            BeanUtils.copyProperties(this, user);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+    }
 }

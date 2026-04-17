@@ -52,6 +52,16 @@ public class RoleRoute implements IRoute {
                 .handler(tokenBasicAuthHandler)
                 .handler(roleHandler::addUser);
 
+        apiRoute.delete("/role/:roleId/user")
+                .handler(BodyHandler.create())
+                .handler(tokenBasicAuthHandler)
+                .handler(roleHandler::removeUser);
+
+
+        apiRoute.get("/role/:roleId/user")
+                .handler(tokenBasicAuthHandler)
+                .handler(roleHandler::users);
+
         apiRoute.get("/role/:roleId/permissions")
                 .handler(tokenBasicAuthHandler)
                 .handler(roleHandler::permissions);

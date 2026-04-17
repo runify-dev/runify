@@ -103,7 +103,8 @@ const getPermOptions = (row: any) => {
   const base = [
     { label: '不授权', value: 'NOT_AUTH' },
     { label: '查看', value: 'VIEW' },
-    { label: '管理', value: 'MANAGE' }
+    { label: '管理', value: 'MANAGE' },
+    { label: '按角色', value: 'ROLE' }
   ]
   return row.parentId ? [{ label: '继承', value: 'INHERIT' }, ...base] : base
 }
