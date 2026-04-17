@@ -1,5 +1,5 @@
 <template>
-  <div class="card layout-content-container">
+  <div class="card layout-content-container text-sm">
     <DataTable
       v-model:filters="filters"
       :value="userList"
@@ -119,7 +119,7 @@
         <template #body="{ data }">
           <div class="flex items-center gap-2">
             <Button
-              icon="pi pi-pencil"
+              icon="pi pi-share-alt"
               severity="secondary"
               text
               rounded

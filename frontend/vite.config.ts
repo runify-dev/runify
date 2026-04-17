@@ -55,12 +55,12 @@ export default defineConfig(({ mode }) => {
     },
   }
 
-  proxyConf[`^${ENV.VITE_BASE_PATH}.+\/storage\/file\/.*$`] = {
+  proxyConf[`^${ENV.VITE_BASE_PATH}.+/storage/file/.*$`] = {
     target: `http://127.0.0.1:8080`,
     changeOrigin: true,
   }
 
-  proxyConf[`^${ENV.VITE_BASE_PATH}storage\/file\/.*$`] = {
+  proxyConf[`^${ENV.VITE_BASE_PATH}storage/file/.*$`] = {
     target: `http://127.0.0.1:8080`,
     changeOrigin: true,
   }

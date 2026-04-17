@@ -1,6 +1,6 @@
 import type { RouteRecordRaw } from 'vue-router'
 const modules: any = import.meta.glob('./modules/*.ts', { eager: true })
-const routeList: any = [...Object.keys(modules).map((key) => modules[key].default)]
+const routeList: any = Object.keys(modules).map((key) => modules[key].default)
 export const routes: Array<RouteRecordRaw> = [
   {
     path: '/',

@@ -186,8 +186,8 @@ const {
 }
 
 :deep(.p-tab-active) {
-  background: rgb(239 246 255);
-  color: rgb(37 99 235);
+  background: #ecfdf5;
+  color: #10b981;
 }
 
 :deep(.p-checkbox) {

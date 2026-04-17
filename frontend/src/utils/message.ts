@@ -38,7 +38,7 @@ export const MsgError = (message: string) => {
 }
 
 export const MsgAlert = (title: string, description: string, options?: any) => {
-  const defaultOptions: Object = {
+  const defaultOptions: object = {
     confirmButtonText: "确认",
     ...options
   }
@@ -51,7 +51,7 @@ export const MsgAlert = (title: string, description: string, options?: any) => {
  */
 
 export const MsgConfirm = (title: string, description: string, options?: any) => {
-  const defaultOptions: Object = {
+  const defaultOptions: object = {
     showCancelButton: true,
     confirmButtonText: "确认",
     cancelButtonText: "取消",

@@ -37,7 +37,7 @@ export class Workflow {
                 strokeWidth: 1
             }
         })
-        this.lf.batchRegister([...Object.keys(nodes).map((key) => nodes[key].default)])
+        this.lf.batchRegister(Object.keys(nodes).map((key) => nodes[key].default))
 
 
     }

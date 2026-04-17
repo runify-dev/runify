@@ -3,14 +3,14 @@ import { get, post, put, del, postStream } from '@/request/admin/index'
 import type { Ref } from 'vue'
 
 const edit: (
-  applicationId: String,
+  applicationId: string,
   workflow: any,
   loading?: Ref<boolean>
 ) => Promise<Result<any>> = (applicationId, workflow, loading) => {
   return put(`/application/resources/${applicationId}`, { workflow: workflow }, undefined, loading)
 }
 
-const chat: (applicationId: String, conversationId: string, conversation: any) => Promise<any> = (
+const chat: (applicationId: string, conversationId: string, conversation: any) => Promise<any> = (
   applicationId,
   conversationId,
   conversation
@@ -22,7 +22,7 @@ const chat: (applicationId: String, conversationId: string, conversation: any) =
 }
 
 const pageConversation: (
-  applicationId: String,
+  applicationId: string,
   currentPage: number,
   pageSize: number,
   query: any,
@@ -37,8 +37,8 @@ const pageConversation: (
 }
 
 const pageConversationMessage: (
-  applicationId: String,
-  conversationId: String,
+  applicationId: string,
+  conversationId: string,
   currentPage: number,
   pageSize: number,
   query: any,
@@ -57,7 +57,7 @@ const pageConversationMessage: (
     loading
   )
 }
-const createConversation = (applicationId: String, name: string) => {
+const createConversation = (applicationId: string, name: string) => {
   return post(`/application/${applicationId}/conversation`, { name }, {})
 }
 

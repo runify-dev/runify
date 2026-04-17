@@ -17,8 +17,8 @@ const config = (applicationId: string) => {
 }
 
 const anonymousLogin: (
-  applicationId: String,
-  visitorId: String,
+  applicationId: string,
+  visitorId: string,
   loading?: Ref<boolean>
 ) => Promise<Result<any>> = (applicationId, visitorId, loading) => {
   return post(

@@ -12,15 +12,15 @@ import { type Node, type EditNodePojo } from '@/api/type/node'
  * @returns
  */
 const getById: (
-    node_id: String,
+    node_id: string,
     loading?: Ref<boolean>
 ) => Promise<Result<MarkdownNode>> = (node_id, loading) => {
     return get(`/knowledge/markdown/${node_id}`, undefined, loading)
 }
 
 const edit: (
-    node_id: String,
-    content: String,
+    node_id: string,
+    content: string,
     loading?: Ref<boolean>
 ) => Promise<Result<MarkdownNode>> = (node_id, content, loading) => {
     return put(`/knowledge/markdown/${node_id}`, { 'content': content }, undefined, loading)

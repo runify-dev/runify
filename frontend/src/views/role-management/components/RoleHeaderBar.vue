@@ -24,10 +24,10 @@
       </div>
     </div>
 
-    <Tabs :value="activeTab" class="w-auto" @update:value="emit('update:activeTab', $event)">
-      <TabList>
-        <Tab value="permission">权限配置</Tab>
-        <Tab value="member">成员</Tab>
+    <Tabs :value="activeTab" class="w-auto" @update:value="emit('update:activeTab', $event as 'permission' | 'member')">
+      <TabList class="bg-slate-100 rounded-lg p-1">
+        <Tab value="permission" :class="activeTab === 'permission' ? 'bg-[#10b981] text-white' : 'text-slate-700 hover:bg-slate-200'">权限配置</Tab>
+        <Tab value="member" :class="activeTab === 'member' ? 'bg-[#10b981] text-white' : 'text-slate-700 hover:bg-slate-200'">成员</Tab>
       </TabList>
     </Tabs>
   </div>

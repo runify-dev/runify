@@ -207,7 +207,7 @@ export function useRoleManage() {
         }
       }
 
-      const data = await roleAPI.pageUserByRoleId(selectedRoleId.value, params)
+      const data = await roleAPI.pageUserByRoleId(selectedRoleId.value, { currentPage: Number(params.currentPage), pageSize: Number(params.pageSize) })
       const page = data.data
 
       memberPage.value = {

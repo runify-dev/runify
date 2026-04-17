@@ -73,7 +73,7 @@ const editor = new Editor({
   ],
 
   content: `# Hello World\n\nStart typing...\nH~2~O and E = mc^2^ \n$$
-\sub(3*5=15)
+sub(3*5=15)
 $$
 
 

@@ -15,7 +15,7 @@ const useConversationTokenStore = defineStore("conversationToken", {
     setApplicationId(applicationId: string) {
       this.appplicationId = applicationId;
     },
-    getToken(): String | undefined {
+    getToken(): string | undefined {
       if (!this.appplicationId) {
         return
       }

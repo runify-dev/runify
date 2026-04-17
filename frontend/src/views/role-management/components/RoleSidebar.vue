@@ -19,7 +19,7 @@
             class="flex w-full items-center rounded-lg px-2.5 py-2 text-left transition-colors"
             :class="
               selectedRoleId === role.id
-                ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-200'
+                ? 'bg-[#ecfdf5] text-[#10b981] ring-1 ring-[#10b981]'
                 : 'text-slate-700 hover:bg-slate-100'
             "
             @click="emit('select', role)"
@@ -65,7 +65,7 @@
             class="group flex w-full items-center rounded-lg px-2.5 py-2 text-left transition-colors"
             :class="
               selectedRoleId === role.id
-                ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-200'
+                ? 'bg-[#ecfdf5] text-[#10b981] ring-1 ring-[#10b981]'
                 : 'text-slate-700 hover:bg-slate-100'
             "
             @click="emit('select', role)"

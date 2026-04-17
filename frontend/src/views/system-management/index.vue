@@ -19,7 +19,7 @@
               v-bind="props.action"
             >
               <span :class="item.icon" />
-              <span>{{ item.label }}</span>
+              <span class="text-lg">{{ item.label }}</span>
               <Badge v-if="item.badge" class="ml-auto" :value="item.badge" />
               <span
                 v-if="item.shortcut"
@@ -63,12 +63,12 @@ const menus = ref([
   {
     label: '用户管理',
     name: 'user-management',
-    icon: 'pi pi-fw  pi-cog p-1'
+    icon: 'pi pi-fw pi-user p-1 text-lg'
   },
   {
     label: '角色管理',
     name: 'role-management',
-    icon: 'pi pi-fw  pi-cog p-1'
+    icon: 'pi pi-fw pi-id-card p-1 text-lg'
   }
 ])
 </script>

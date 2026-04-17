@@ -11,7 +11,7 @@ const useUserStore = defineStore('user', {
     token: undefined
   }),
   actions: {
-    getToken(): String | undefined {
+    getToken(): string | undefined {
       if (this.token) {
         return this.token
       }

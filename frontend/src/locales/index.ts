@@ -5,10 +5,10 @@ import { createI18n, useI18n } from 'vue-i18n'
 // 导入语言文件
 const langModules = import.meta.glob('./language/*/index.ts', { eager: true }) as Record<
   string,
-  () => Promise<{ default: Object }>
+  () => Promise<{ default: object }>
 >
 
-const langModuleMap = new Map<string, Object>()
+const langModuleMap = new Map<string, object>()
 
 export const langCode: Array<string> = []
 

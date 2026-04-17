@@ -89,7 +89,7 @@ const resolver = ref(
       path: z
         .string()
         .startsWith('/', { message: '必须已/开头' })
-        .regex(/^\/[a-zA-Z0-9_\-]+$/, { message: '必须字母或者数字组合' }),
+        .regex(/^\/[a-zA-Z0-9_-]+$/, { message: '必须字母或者数字组合' }),
       desc: z.string(),
       icon: z.string().min(1, { message: `图标必选` })
     })
