@@ -25,6 +25,7 @@
         <slot></slot>
       </div>
     </div>
+    <Toast />
   </div>
 </template>
 <script setup lang="ts">

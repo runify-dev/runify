@@ -1,11 +1,11 @@
 import axios, { type InternalAxiosRequestConfig, AxiosHeaders } from 'axios'
-import { MsgError } from '@/utils/message'
 import type { NProgress } from 'nprogress'
 import type { Ref } from 'vue'
 import type { Result } from '@/request/Result'
 import useStore from '@/stores'
 import { ref, type WritableComputedRef } from 'vue'
 import router from '@/router/admin/index'
+import bus from "@/bus"
 const axiosConfig = {
   baseURL: window.RUNIFY_APP.admin.baseURL + '/api',
   withCredentials: false,
@@ -45,7 +45,7 @@ instance.interceptors.response.use(
           !response.config.url.includes('/valid') &&
           !response.config.url.includes('/function_lib/debug')
         ) {
-          MsgError(response.data.message)
+          bus.emit("message:error", response.data.message)
           return Promise.reject(response.data)
         }
       }
@@ -70,9 +70,9 @@ const promise: (
 ) => Promise<Result<any>> = (request, loading = ref(false)) => {
   return new Promise((resolve, reject) => {
     if ((loading as NProgress).start) {
-      ;(loading as NProgress).start()
+      ; (loading as NProgress).start()
     } else {
-      ;(loading as Ref).value = true
+      ; (loading as Ref).value = true
     }
     request
       .then((response) => {
@@ -88,9 +88,9 @@ const promise: (
       })
       .finally(() => {
         if ((loading as NProgress).start) {
-          ;(loading as NProgress).done()
+          ; (loading as NProgress).done()
         } else {
-          ;(loading as Ref).value = false
+          ; (loading as Ref).value = false
         }
       })
   })
@@ -114,8 +114,8 @@ export const get: (
   loading?: NProgress | Ref<boolean>,
   timeout?: number
 ) => {
-  return promise(request({ url: url, method: 'get', params, timeout: timeout }), loading)
-}
+    return promise(request({ url: url, method: 'get', params, timeout: timeout }), loading)
+  }
 
 /**
  * faso post请求 一般用来添加资源
@@ -204,23 +204,23 @@ export const exportExcel: (
   params: any,
   loading?: NProgress | Ref<boolean>
 ) => {
-  return promise(request({ url: url, method: 'get', params, responseType: 'blob' }), loading).then(
-    (res: any) => {
-      if (res) {
-        const blob = new Blob([res], {
-          type: 'application/vnd.ms-excel'
-        })
-        const link = document.createElement('a')
-        link.href = window.URL.createObjectURL(blob)
-        link.download = fileName
-        link.click()
-        //释放内存
-        window.URL.revokeObjectURL(link.href)
+    return promise(request({ url: url, method: 'get', params, responseType: 'blob' }), loading).then(
+      (res: any) => {
+        if (res) {
+          const blob = new Blob([res], {
+            type: 'application/vnd.ms-excel'
+          })
+          const link = document.createElement('a')
+          link.href = window.URL.createObjectURL(blob)
+          link.download = fileName
+          link.click()
+          //释放内存
+          window.URL.revokeObjectURL(link.href)
+        }
+        return true
       }
-      return true
-    }
-  )
-}
+    )
+  }
 
 export const exportFile: (
   fileName: string,
@@ -233,23 +233,23 @@ export const exportFile: (
   params: any,
   loading?: NProgress | Ref<boolean>
 ) => {
-  return promise(request({ url: url, method: 'get', params, responseType: 'blob' }), loading).then(
-    (res: any) => {
-      if (res) {
-        const blob = new Blob([res], {
-          type: 'application/octet-stream'
-        })
-        const link = document.createElement('a')
-        link.href = window.URL.createObjectURL(blob)
-        link.download = fileName
-        link.click()
-        //释放内存
-        window.URL.revokeObjectURL(link.href)
+    return promise(request({ url: url, method: 'get', params, responseType: 'blob' }), loading).then(
+      (res: any) => {
+        if (res) {
+          const blob = new Blob([res], {
+            type: 'application/octet-stream'
+          })
+          const link = document.createElement('a')
+          link.href = window.URL.createObjectURL(blob)
+          link.download = fileName
+          link.click()
+          //释放内存
+          window.URL.revokeObjectURL(link.href)
+        }
+        return true
       }
-      return true
-    }
-  )
-}
+    )
+  }
 
 export const exportExcelPost: (
   fileName: string,
@@ -264,30 +264,30 @@ export const exportExcelPost: (
   data: any,
   loading?: NProgress | Ref<boolean>
 ) => {
-  return promise(
-    request({
-      url: url,
-      method: 'post',
-      params, // 查询字符串参数
-      data, // 请求体数据
-      responseType: 'blob'
-    }),
-    loading
-  ).then((res: any) => {
-    if (res) {
-      const blob = new Blob([res], {
-        type: 'application/vnd.ms-excel'
-      })
-      const link = document.createElement('a')
-      link.href = window.URL.createObjectURL(blob)
-      link.download = fileName
-      link.click()
-      // 释放内存
-      window.URL.revokeObjectURL(link.href)
-    }
-    return true
-  })
-}
+    return promise(
+      request({
+        url: url,
+        method: 'post',
+        params, // 查询字符串参数
+        data, // 请求体数据
+        responseType: 'blob'
+      }),
+      loading
+    ).then((res: any) => {
+      if (res) {
+        const blob = new Blob([res], {
+          type: 'application/vnd.ms-excel'
+        })
+        const link = document.createElement('a')
+        link.href = window.URL.createObjectURL(blob)
+        link.download = fileName
+        link.click()
+        // 释放内存
+        window.URL.revokeObjectURL(link.href)
+      }
+      return true
+    })
+  }
 
 export const download: (
   url: string,
@@ -302,8 +302,8 @@ export const download: (
   params?: any,
   loading?: NProgress | Ref<boolean>
 ) => {
-  return promise(request({ url: url, method: method, data, params, responseType: 'blob' }), loading)
-}
+    return promise(request({ url: url, method: method, data, params, responseType: 'blob' }), loading)
+  }
 
 /**
  * 与服务器建立ws链接
