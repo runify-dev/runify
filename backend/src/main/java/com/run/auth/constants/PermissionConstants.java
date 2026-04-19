@@ -101,6 +101,7 @@ public enum PermissionConstants {
      * 相当于角色 但是这个只针对资源
      */
     public enum ResourcePermissionGroup {
+        NOT_AUTH,
         /**
          * 查看
          */
@@ -108,7 +109,11 @@ public enum PermissionConstants {
         /**
          * 管理
          */
-        MANAGE
+        MANAGE,
+        /**
+         * 角色
+         */
+        ROLE
     }
 
     /**

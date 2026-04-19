@@ -32,12 +32,29 @@ public class TokenAuthHandlerModule {
                                                           ApplicationPermissionMapper applicationPermissionBaseMapper,
                                                           NotePermissionMapper notePermissionBaseMapper,
                                                           ModelPermissionMapper modelPermissionBaseMapper,
-                                                          ProjectPermissionMapper projectPermissionBaseMapper) {
+                                                          ProjectPermissionMapper projectPermissionBaseMapper,
+                                                          ApplicationRelationMapper applicationRelationMapper,
+                                                          NoteRelationMapper noteRelationMapper,
+                                                          ModelRelationMapper modelRelationMapper,
+                                                          ProjectRelationMapper projectRelationMapper,
+                                                          ApplicationMapper applicationMapper,
+                                                          NoteMapper noteMapper,
+                                                          ModelMapper modelMapper,
+                                                          ProjectMapper projectMapper
+    ) {
         TokenProvider tokenProvider = new TokenProvider(userMapper,
                 roleUserRelationMapper,
                 rolePermissionRelationMapper, roleBaseMapper, applicationPermissionBaseMapper,
-                notePermissionBaseMapper
-                , modelPermissionBaseMapper, projectPermissionBaseMapper);
+                notePermissionBaseMapper,
+                modelPermissionBaseMapper, projectPermissionBaseMapper,
+                applicationRelationMapper,
+                noteRelationMapper,
+                modelRelationMapper,
+                projectRelationMapper,
+                applicationMapper,
+                noteMapper,
+                modelMapper,
+                projectMapper);
         return new TokenBasicAuthHandler(tokenProvider);
     }
 

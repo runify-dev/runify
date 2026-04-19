@@ -8,7 +8,11 @@
             v-for="option in menuOptions"
             :key="option.value"
             class="px-3 py-2 text-lg font-medium transition-all"
-            :class="active === option.value ? 'text-[#10b981] border-b-2 border-[#10b981]' : 'text-gray-600 hover:text-[#10b981]'"
+            :class="
+              active === option.value
+                ? 'text-[#10b981] border-b-2 border-[#10b981]'
+                : 'text-gray-600 hover:text-[#10b981]'
+            "
             @click="active = option.value"
           >
             {{ option.label }}
@@ -45,10 +49,20 @@
             :headerStyle="{ backgroundColor: '#f5f5f5' }"
             :expandedKeys="expandedKeys"
           >
-            <Column field="name" header="资源名称" expander style="min-width: 200px; padding-left: 20px;">
+            <Column
+              field="name"
+              header="资源名称"
+              expander
+              style="min-width: 200px; padding-left: 20px"
+            >
               <template #body="{ node }">
                 <div class="flex items-center gap-2 pl-4">
-                  <span v-if="node.data.type === 'folder' || (node.children && node.children.length > 0)" class="text-[#10b981]">
+                  <span
+                    v-if="
+                      node.data.type === 'folder' || (node.children && node.children.length > 0)
+                    "
+                    class="text-[#10b981]"
+                  >
                     <i class="pi pi-folder"></i>
                   </span>
                   <span v-else-if="active === 'application'" class="text-[#10b981]">
@@ -69,35 +83,22 @@
                 </div>
               </template>
             </Column>
-            <Column field="permission" header="权限" style="min-width: 250px;">
+            <Column field="permission" header="权限" style="min-width: 250px">
               <template #body="{ node }">
                 <div class="flex items-center gap-4">
-                  <label class="flex items-center gap-1.5 cursor-pointer">
+                  <label
+                    class="flex items-center gap-1.5 cursor-pointer"
+                    v-for="item in getPermOptions(node.data)"
+                  >
                     <RadioButton
                       :model-value="node.data.permission"
-                      :value="'NOT_AUTH'"
-                      @update:model-value="node.data.change('NOT_AUTH')"
+                      :value="item.value"
+                      @update:model-value="node.data.change(item.value)"
                       :input-id="`${node.key}-not-auth`"
                     />
-                    <span class="text-sm text-surface-600 dark:text-surface-300">不授权</span>
-                  </label>
-                  <label class="flex items-center gap-1.5 cursor-pointer">
-                    <RadioButton
-                      :model-value="node.data.permission"
-                      :value="'VIEW'"
-                      @update:model-value="node.data.change('VIEW')"
-                      :input-id="`${node.key}-view`"
-                    />
-                    <span class="text-sm text-surface-600 dark:text-surface-300">查看</span>
-                  </label>
-                  <label class="flex items-center gap-1.5 cursor-pointer">
-                    <RadioButton
-                      :model-value="node.data.permission"
-                      :value="'MANAGE'"
-                      @update:model-value="node.data.change('MANAGE')"
-                      :input-id="`${node.key}-manage`"
-                    />
-                    <span class="text-sm text-surface-600 dark:text-surface-300">管理</span>
+                    <span class="text-sm text-surface-600 dark:text-surface-300">{{
+                      item.label
+                    }}</span>
                   </label>
                 </div>
               </template>
@@ -177,13 +178,13 @@ const filterTreeNodes = () => {
 
   // 遍历所有节点，收集需要展开的节点key
   const collectExpandedKeys = (nodes: any[], parentKeys: string[] = []) => {
-    nodes.forEach(node => {
+    nodes.forEach((node) => {
       const currentKeys = [...parentKeys, node.key]
       const matches = node.data.name.toLowerCase().includes(keyword)
 
       if (matches) {
         // 将当前节点及其所有父节点的key添加到展开列表
-        currentKeys.forEach(key => keysToExpand.add(key))
+        currentKeys.forEach((key) => keysToExpand.add(key))
       }
 
       if (node.children && node.children.length > 0) {
@@ -200,7 +201,7 @@ const filterTreeNodes = () => {
 
   // 过滤出匹配的节点及其父节点
   const filterNodes = (nodes: any[]) => {
-    return nodes.filter(node => {
+    return nodes.filter((node) => {
       const matches = node.data.name.toLowerCase().includes(keyword)
 
       if (node.children && node.children.length > 0) {
