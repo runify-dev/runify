@@ -89,11 +89,16 @@ public enum PermissionConstants {
      * 对应操作按钮
      */
     public enum Operate {
-        READ,
-        EDIT,
-        CREATE,
-        DELETE,
-        AUTHORIZATION
+        READ(0),
+        EDIT(1),
+        CREATE(2),
+        DELETE(3),
+        AUTHORIZATION(4);
+        final int bitIndex;
+
+        Operate(int bitIndex) {
+            this.bitIndex = bitIndex;
+        }
     }
 
     /**
