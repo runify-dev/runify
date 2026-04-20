@@ -12,44 +12,44 @@ public enum PermissionConstants {
     /**
      * ---------------------------资源权限---------------------------------------------------------------------------
      */
-    APPLICATION_READ(new Permission(Group.APPLICATION, Group.APPLICATION, Operate.READ), List.of(ResourcePermissionGroup.VIEW, ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
-    APPLICATION_EDIT(new Permission(Group.APPLICATION, Group.APPLICATION, Operate.EDIT), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
-    APPLICATION_DELETE(new Permission(Group.APPLICATION, Group.APPLICATION, Operate.DELETE), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
-    APPLICATION_CREATE(new Permission(Group.APPLICATION, Group.APPLICATION, Operate.CREATE), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    APPLICATION_READ(new Permission(Group.APPLICATION, Group.APPLICATION, Operate.READ, 0), List.of(ResourcePermissionGroup.VIEW, ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    APPLICATION_EDIT(new Permission(Group.APPLICATION, Group.APPLICATION, Operate.EDIT, 1), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    APPLICATION_DELETE(new Permission(Group.APPLICATION, Group.APPLICATION, Operate.DELETE, 2), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    APPLICATION_CREATE(new Permission(Group.APPLICATION, Group.APPLICATION, Operate.CREATE, 3), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
 
-    APPLICATION_FOLDER_EDIT(new Permission(Group.APPLICATION, Group.FOLDER, Operate.EDIT), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
-    APPLICATION_FOLDER_DELETE(new Permission(Group.APPLICATION, Group.FOLDER, Operate.DELETE), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
-    APPLICATION_FOLDER_CREATE(new Permission(Group.APPLICATION, Group.FOLDER, Operate.CREATE), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    APPLICATION_FOLDER_EDIT(new Permission(Group.APPLICATION, Group.FOLDER, Operate.EDIT, 4), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    APPLICATION_FOLDER_DELETE(new Permission(Group.APPLICATION, Group.FOLDER, Operate.DELETE, 5), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    APPLICATION_FOLDER_CREATE(new Permission(Group.APPLICATION, Group.FOLDER, Operate.CREATE, 6), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    APPLICATION_OVERVIEW_READ(new Permission(Group.APPLICATION, Group.OVERVIEW, Operate.READ, 7), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    APPLICATION_CONVERSATION_LOG_READ(new Permission(Group.APPLICATION, Group.CONVERSATION_LOG, Operate.READ, 8), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
 
-    APPLICATION_OVERVIEW_READ(new Permission(Group.APPLICATION, Group.OVERVIEW, Operate.READ), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    NOTE_READ(new Permission(Group.NOTE, Group.NOTE, Operate.READ, 0), List.of(ResourcePermissionGroup.VIEW, ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    NOTE_EDIT(new Permission(Group.NOTE, Group.NOTE, Operate.EDIT, 1), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    NOTE_DELETE(new Permission(Group.NOTE, Group.NOTE, Operate.DELETE, 2), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    NOTE_CREATE(new Permission(Group.NOTE, Group.NOTE, Operate.CREATE, 3), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
 
-    APPLICATION_CONVERSATION_LOG_READ(new Permission(Group.APPLICATION, Group.CONVERSATION_LOG, Operate.READ), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    MODEL_READ(new Permission(Group.MODEL, Group.MODEL, Operate.READ, 0), List.of(ResourcePermissionGroup.VIEW, ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    MODEL_EDIT(new Permission(Group.MODEL, Group.MODEL, Operate.EDIT, 1), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    MODEL_DELETE(new Permission(Group.MODEL, Group.MODEL, Operate.DELETE, 2), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    MODEL_CREATE(new Permission(Group.MODEL, Group.MODEL, Operate.CREATE, 3), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
 
-    NOTE_READ(new Permission(Group.NOTE, Group.NOTE, Operate.READ), List.of(ResourcePermissionGroup.VIEW, ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
-    NOTE_EDIT(new Permission(Group.NOTE, Group.NOTE, Operate.EDIT), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
-    NOTE_DELETE(new Permission(Group.NOTE, Group.NOTE, Operate.DELETE), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
-    NOTE_CREATE(new Permission(Group.NOTE, Group.NOTE, Operate.CREATE), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
-    MODEL_READ(new Permission(Group.MODEL, Group.MODEL, Operate.READ), List.of(ResourcePermissionGroup.VIEW, ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
-    MODEL_EDIT(new Permission(Group.MODEL, Group.MODEL, Operate.EDIT), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
-    MODEL_DELETE(new Permission(Group.MODEL, Group.MODEL, Operate.DELETE), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
-    MODEL_CREATE(new Permission(Group.MODEL, Group.MODEL, Operate.CREATE), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
-    PROJECT_READ(new Permission(Group.PROJECT, Group.PROJECT, Operate.READ), List.of(ResourcePermissionGroup.VIEW, ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
-    PROJECT_EDIT(new Permission(Group.PROJECT, Group.PROJECT, Operate.EDIT), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
-    PROJECT_DELETE(new Permission(Group.PROJECT, Group.PROJECT, Operate.DELETE), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
-    PROJECT_CREATE(new Permission(Group.PROJECT, Group.PROJECT, Operate.CREATE), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    PROJECT_READ(new Permission(Group.PROJECT, Group.PROJECT, Operate.READ, 0), List.of(ResourcePermissionGroup.VIEW, ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    PROJECT_EDIT(new Permission(Group.PROJECT, Group.PROJECT, Operate.EDIT, 1), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    PROJECT_DELETE(new Permission(Group.PROJECT, Group.PROJECT, Operate.DELETE, 2), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    PROJECT_CREATE(new Permission(Group.PROJECT, Group.PROJECT, Operate.CREATE, 3), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
     /**
      * ---------------------------系统权限---------------------------------------------------------------------------
      */
-    USER_MANAGEMENT_READ(new Permission(Group.USER_MANAGEMENT, Group.USER_MANAGEMENT, Operate.READ), List.of(), List.of(Role.ADMIN)),
-    USER_MANAGEMENT_EDIT(new Permission(Group.USER_MANAGEMENT, Group.USER_MANAGEMENT, Operate.EDIT), List.of(), List.of(Role.ADMIN)),
-    USER_MANAGEMENT_DELETE(new Permission(Group.USER_MANAGEMENT, Group.USER_MANAGEMENT, Operate.DELETE), List.of(), List.of(Role.ADMIN)),
-    USER_MANAGEMENT_CREATE(new Permission(Group.USER_MANAGEMENT, Group.USER_MANAGEMENT, Operate.CREATE), List.of(), List.of(Role.ADMIN)),
-    USER_MANAGEMENT_AUTHORIZATION(new Permission(Group.USER_MANAGEMENT, Group.USER_MANAGEMENT, Operate.AUTHORIZATION), List.of(), List.of(Role.ADMIN)),
+    USER_MANAGEMENT_READ(new Permission(Group.USER_MANAGEMENT, Group.USER_MANAGEMENT, Operate.READ, 0), List.of(), List.of(Role.ADMIN)),
+    USER_MANAGEMENT_EDIT(new Permission(Group.USER_MANAGEMENT, Group.USER_MANAGEMENT, Operate.EDIT, 1), List.of(), List.of(Role.ADMIN)),
+    USER_MANAGEMENT_DELETE(new Permission(Group.USER_MANAGEMENT, Group.USER_MANAGEMENT, Operate.DELETE, 2), List.of(), List.of(Role.ADMIN)),
+    USER_MANAGEMENT_CREATE(new Permission(Group.USER_MANAGEMENT, Group.USER_MANAGEMENT, Operate.CREATE, 3), List.of(), List.of(Role.ADMIN)),
+    USER_MANAGEMENT_AUTHORIZATION(new Permission(Group.USER_MANAGEMENT, Group.USER_MANAGEMENT, Operate.AUTHORIZATION, 4), List.of(), List.of(Role.ADMIN)),
 
-    ROLE_MANAGEMENT_READ(new Permission(Group.ROLE_MANAGEMENT, Group.ROLE_MANAGEMENT, Operate.READ), List.of(), List.of(Role.ADMIN)),
-    ROLE_MANAGEMENT_EDIT(new Permission(Group.USER_MANAGEMENT, Group.ROLE_MANAGEMENT, Operate.EDIT), List.of(), List.of(Role.ADMIN)),
-    ROLE_MANAGEMENT_DELETE(new Permission(Group.USER_MANAGEMENT, Group.ROLE_MANAGEMENT, Operate.DELETE), List.of(), List.of(Role.ADMIN)),
-    ROLE_MANAGEMENT_CREATE(new Permission(Group.USER_MANAGEMENT, Group.ROLE_MANAGEMENT, Operate.CREATE), List.of(), List.of(Role.ADMIN));
+    ROLE_MANAGEMENT_READ(new Permission(Group.ROLE_MANAGEMENT, Group.ROLE_MANAGEMENT, Operate.READ, 0), List.of(), List.of(Role.ADMIN)),
+    ROLE_MANAGEMENT_EDIT(new Permission(Group.USER_MANAGEMENT, Group.ROLE_MANAGEMENT, Operate.EDIT, 1), List.of(), List.of(Role.ADMIN)),
+    ROLE_MANAGEMENT_DELETE(new Permission(Group.USER_MANAGEMENT, Group.ROLE_MANAGEMENT, Operate.DELETE, 2), List.of(), List.of(Role.ADMIN)),
+    ROLE_MANAGEMENT_CREATE(new Permission(Group.USER_MANAGEMENT, Group.ROLE_MANAGEMENT, Operate.CREATE, 3), List.of(), List.of(Role.ADMIN));
 
 
     /**
@@ -89,16 +89,11 @@ public enum PermissionConstants {
      * 对应操作按钮
      */
     public enum Operate {
-        READ(0),
-        EDIT(1),
-        CREATE(2),
-        DELETE(3),
-        AUTHORIZATION(4);
-        final int bitIndex;
-
-        Operate(int bitIndex) {
-            this.bitIndex = bitIndex;
-        }
+        READ,
+        EDIT,
+        CREATE,
+        DELETE,
+        AUTHORIZATION;
     }
 
     /**
@@ -139,28 +134,35 @@ public enum PermissionConstants {
         Group group;
         Group subGroup;
         Operate operate;
-        String resourcePath;
+        String resourceId;
+        int bitIndex;
 
-        public Permission(Group group, Group subGroup, Operate operate) {
+        public Permission(Group group, Group subGroup, Operate operate, int bitIndex) {
             this.group = group;
             this.subGroup = subGroup;
             this.operate = operate;
+            this.bitIndex = bitIndex;
         }
 
-        public Permission(Group group, Group subGroup, Operate operate, String resourcePath) {
+        public Permission(Group group, Group subGroup, Operate operate, int bitIndex, String resourceId) {
             this.group = group;
             this.operate = operate;
             this.subGroup = subGroup;
-            this.resourcePath = resourcePath;
+            this.bitIndex = bitIndex;
+            this.resourceId = resourceId;
         }
 
-        public String toString(String resourcePath) {
-            return this.group + ":" + (this.subGroup != this.group ? this.subGroup + ":" : "") + this.operate + ":" + resourcePath;
+        public long bit() {
+            return 1L << this.bitIndex;
         }
 
         @Override
         public String toString() {
-            return this.group + ":" + (this.subGroup != this.group ? this.subGroup + ":" : "") + this.operate + (StringUtils.isNotEmpty(this.resourcePath) ? ":" + this.resourcePath : "");
+            return this.group + ":" + (this.subGroup != this.group ? this.subGroup + ":" : "") + this.operate;
+        }
+
+        public String getResourcePermissionKey(String resourceId) {
+            return this.group + ":" + resourceId;
         }
 
     }
@@ -194,6 +196,6 @@ public enum PermissionConstants {
     }
 
     public Function<RoutingContext, Permission> getResourcePermission() {
-        return c -> new Permission(this.permission.group, this.permission.subGroup, this.permission.operate, c.pathParam("resourceId"));
+        return c -> new Permission(this.permission.group, this.permission.subGroup, this.permission.operate, this.permission.bitIndex, c.pathParam("resourceId"));
     }
 }

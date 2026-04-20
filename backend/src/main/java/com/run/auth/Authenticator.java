@@ -1,24 +1,28 @@
 package com.run.auth;
 
 import com.run.auth.constants.PermissionConstants;
+import com.run.auth.dto.UserProfile;
 import com.run.common.exception.ApiException;
+import com.run.dao.entity.Role;
 import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
 import lombok.Getter;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 @Getter
 public class Authenticator implements Handler<RoutingContext> {
-    private List<Function<RoutingContext, PermissionConstants.Permission>> permissionCalls;
-    private List<PermissionConstants> permissionConstants;
-    private List<PermissionConstants.Role> roles;
-    private List<AggregatePermission> aggregatePermissions;
-    private PermissionConstants.Compare compare;
+    private final List<Function<RoutingContext, PermissionConstants.Permission>> permissionCalls;
+    private final List<PermissionConstants> permissionConstants;
+    private final List<PermissionConstants.Role> roles;
+    private final List<AggregatePermission> aggregatePermissions;
+    private final PermissionConstants.Compare compare;
 
     /**
      * 通用权限检查方法
@@ -32,7 +36,7 @@ public class Authenticator implements Handler<RoutingContext> {
                                                   PermissionChecker<T> checker,
                                                   RoutingContext context,
                                                   List<String> userRoles,
-                                                  List<String> userPermissions) {
+                                                  Map<String, Long> userPermissions) {
         if (CollectionUtils.isEmpty(permissions)) {
             return false;
         }
@@ -58,15 +62,16 @@ public class Authenticator implements Handler<RoutingContext> {
 
     @FunctionalInterface
     public interface PermissionChecker<T> {
-        boolean check(T permission, RoutingContext context, List<String> userRoles, List<String> userPermissions);
+        boolean check(T permission, RoutingContext context, List<String> userRoles, Map<String, Long> userPermissions);
     }
 
     @Override
     public void handle(RoutingContext context) {
         // 当前用户拥有的角色
-        List<String> roles = context.user().get("roles");
+        UserProfile user = context.user().get("user");
+        List<String> roleIds = user.getRoles().stream().map(Role::getId).toList();
         // 当前用户拥有的权限
-        List<String> permissions = context.user().get("permissions");
+        Map<String, Long> permissions = user.getPermissions();
 
         if (CollectionUtils.isEmpty(this.permissionCalls) &&
                 CollectionUtils.isEmpty(this.permissionConstants) &&
@@ -75,13 +80,13 @@ public class Authenticator implements Handler<RoutingContext> {
             context.next();
             return;
         }
-        if (checkPermissionCollection(this.permissionCalls, Authenticator::hasPermission, context, roles, permissions))
+        if (checkPermissionCollection(this.permissionCalls, Authenticator::hasPermission, context, roleIds, permissions))
             return;
-        if (checkPermissionCollection(this.permissionConstants, Authenticator::hasPermission, context, roles, permissions))
+        if (checkPermissionCollection(this.permissionConstants, Authenticator::hasPermission, context, roleIds, permissions))
             return;
-        if (checkPermissionCollection(this.aggregatePermissions, Authenticator::hasPermission, context, roles, permissions))
+        if (checkPermissionCollection(this.aggregatePermissions, Authenticator::hasPermission, context, roleIds, permissions))
             return;
-        if (checkPermissionCollection(this.roles, Authenticator::hasPermission, context, roles, permissions)) return;
+        if (checkPermissionCollection(this.roles, Authenticator::hasPermission, context, roleIds, permissions)) return;
         if (compare == PermissionConstants.Compare.AND) {
             context.next();
         } else {
@@ -89,30 +94,35 @@ public class Authenticator implements Handler<RoutingContext> {
         }
     }
 
-    public static boolean hasPermission(Function<RoutingContext, PermissionConstants.Permission> permission,
-                                        RoutingContext context,
-                                        List<String> userRoles,
-                                        List<String> userPermissions) {
-        return userPermissions.contains(permission.apply(context).toString());
+    protected static boolean hasPermission(Function<RoutingContext, PermissionConstants.Permission> permission,
+                                           RoutingContext context,
+                                           List<String> userRoles,
+                                           Map<String, Long> userPermissions) {
+        PermissionConstants.Permission p = permission.apply(context);
+        String key = StringUtils.isEmpty(p.getResourceId()) ? p.toString() : p.getResourcePermissionKey(p.getResourceId());
+        return userPermissions.containsKey(key) && (userPermissions.get(key) & p.bit()) > 0;
     }
 
-    public static boolean hasPermission(PermissionConstants permission,
-                                        RoutingContext context,
-                                        List<String> userRoles,
-                                        List<String> userPermissions) {
-        return userPermissions.contains(permission.toString());
+    protected static boolean hasPermission(PermissionConstants permission,
+                                           RoutingContext context,
+                                           List<String> userRoles,
+                                           Map<String, Long> userPermissions) {
+        PermissionConstants.Permission p = permission.getPermission();
+        String key = StringUtils.isEmpty(p.getResourceId()) ? p.toString() : p.getResourcePermissionKey(p.getResourceId());
+        return userPermissions.containsKey(key) && (userPermissions.get(key) & p.bit()) > 0;
     }
 
-    public static boolean hasPermission(PermissionConstants.Role permission,
-                                        RoutingContext context,
-                                        List<String> userRoles, List<String> userPermissions) {
+    protected static boolean hasPermission(PermissionConstants.Role permission,
+                                           RoutingContext context,
+                                           List<String> userRoles, Map<String, Long> userPermissions) {
         return userRoles.contains(permission.toString());
     }
 
-    public static boolean hasPermission(AggregatePermission permission,
-                                        RoutingContext context,
-                                        List<String> userRoles, List<String> userPermissions) {
-        return true;
+    protected static boolean hasPermission(AggregatePermission permission,
+                                           RoutingContext context,
+                                           List<String> userRoles,
+                                           Map<String, Long> userPermissions) {
+        return permission.hasPermission(context, userRoles, userPermissions);
     }
 
     private Authenticator(Builder builder) {
@@ -140,6 +150,7 @@ public class Authenticator implements Handler<RoutingContext> {
             this.permissionConstants = new ArrayList<>();
             this.roles = new ArrayList<>();
             this.aggregatePermissions = new ArrayList<>();
+            this.compare = PermissionConstants.Compare.OR;
         }
 
         public Builder permissionCalls(List<Function<RoutingContext, PermissionConstants.Permission>> permissionCalls) {

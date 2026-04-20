@@ -4,6 +4,7 @@ package com.run.dagger.module;
 import com.run.auth.TokenBasicAuthHandler;
 import com.run.auth.provider.ConversationTokenProvider;
 import com.run.auth.provider.TokenProvider;
+import com.run.common.cache.CacheStore;
 import com.run.dao.mapper.*;
 import dagger.Module;
 import dagger.Provides;
@@ -40,7 +41,8 @@ public class TokenAuthHandlerModule {
                                                           ApplicationMapper applicationMapper,
                                                           NoteMapper noteMapper,
                                                           ModelMapper modelMapper,
-                                                          ProjectMapper projectMapper
+                                                          ProjectMapper projectMapper,
+                                                          CacheStore cacheStore
     ) {
         TokenProvider tokenProvider = new TokenProvider(userMapper,
                 roleUserRelationMapper,
@@ -54,7 +56,8 @@ public class TokenAuthHandlerModule {
                 applicationMapper,
                 noteMapper,
                 modelMapper,
-                projectMapper);
+                projectMapper,
+                cacheStore);
         return new TokenBasicAuthHandler(tokenProvider);
     }
 

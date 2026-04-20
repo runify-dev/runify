@@ -1,6 +1,7 @@
 package com.run.route;
 
 
+import com.run.auth.AggregatePermission;
 import com.run.auth.Authenticator;
 import com.run.auth.TokenBasicAuthHandler;
 import com.run.auth.constants.PermissionConstants;
@@ -54,6 +55,15 @@ public class ApplicationRoute implements IRoute {
         apiRoute.put("/application/resources/:resourceId")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.APPLICATION_EDIT)
+                                .addPermission(PermissionConstants.APPLICATION_EDIT.getResourcePermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.USER)
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(applicationHandler::edit);
 
         apiRoute.delete("/application/resources/:resourceId")

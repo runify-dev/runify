@@ -15,6 +15,8 @@ public class AppConfig {
 
     private System system;
 
+    private Cache cache;
+
     public static AppConfig getDefault() {
         DataBase dataBase = new DataBase();
         dataBase.setType(SQLDialect.SQLITE);
@@ -23,6 +25,8 @@ public class AppConfig {
         s.setDataPath("data");
         appConfig.setDatabase(dataBase);
         appConfig.setSystem(s);
+        Cache c = new Cache();
+        c.setType(CacheType.LOCAL);
         return appConfig;
     }
 }

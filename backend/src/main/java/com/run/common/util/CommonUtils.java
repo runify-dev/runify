@@ -166,6 +166,7 @@ public class CommonUtils {
         return UuidCreator.getTimeOrderedEpoch();
 
     }
+
     public static <K, V> Map<K, V> ofNullable(Object... kv) {
         Map<K, V> map = new HashMap<>();
         for (int i = 0; i < kv.length; i += 2) {

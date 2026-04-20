@@ -7,15 +7,16 @@ import org.apache.commons.collections.CollectionUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 @Getter
 public class AggregatePermission {
-    private List<Function<RoutingContext, PermissionConstants.Permission>> permissionCalls;
-    private List<PermissionConstants> permissionConstants;
-    private List<AggregatePermission> aggregatePermissions;
-    private List<PermissionConstants.Role> roles;
-    private PermissionConstants.Compare compare;
+    private final List<Function<RoutingContext, PermissionConstants.Permission>> permissionCalls;
+    private final List<PermissionConstants> permissionConstants;
+    private final List<AggregatePermission> aggregatePermissions;
+    private final List<PermissionConstants.Role> roles;
+    private final PermissionConstants.Compare compare;
 
     private AggregatePermission(Builder builder) {
         this.permissionCalls = builder.permissionCalls;
@@ -27,7 +28,7 @@ public class AggregatePermission {
 
     public boolean hasPermission(RoutingContext context,
                                  List<String> userRoles,
-                                 List<String> userPermissions) {
+                                 Map<String, Long> userPermissions) {
         if (CollectionUtils.isEmpty(this.permissionCalls) &&
                 CollectionUtils.isEmpty(this.permissionConstants) &&
                 CollectionUtils.isEmpty(this.aggregatePermissions) &&
@@ -38,11 +39,11 @@ public class AggregatePermission {
             boolean hasPerm = Authenticator.hasPermission(permissionCall, context, userRoles, userPermissions);
             if (hasPerm) {
                 if (compare == PermissionConstants.Compare.OR) {
-                    return false;
+                    return true;
                 }
             } else {
                 if (compare == PermissionConstants.Compare.AND) {
-                    return true;
+                    return false;
                 }
             }
 
@@ -51,11 +52,11 @@ public class AggregatePermission {
             boolean hasPerm = Authenticator.hasPermission(permission, context, userRoles, userPermissions);
             if (hasPerm) {
                 if (compare == PermissionConstants.Compare.OR) {
-                    return false;
+                    return true;
                 }
             } else {
                 if (compare == PermissionConstants.Compare.AND) {
-                    return true;
+                    return false;
                 }
             }
         }
@@ -63,11 +64,11 @@ public class AggregatePermission {
             boolean hasPerm = Authenticator.hasPermission(role, context, userRoles, userPermissions);
             if (hasPerm) {
                 if (compare == PermissionConstants.Compare.OR) {
-                    return false;
+                    return true;
                 }
             } else {
                 if (compare == PermissionConstants.Compare.AND) {
-                    return true;
+                    return false;
                 }
             }
         }
@@ -75,11 +76,11 @@ public class AggregatePermission {
             boolean hasPerm = aggregatePermission.hasPermission(context, userRoles, userPermissions);
             if (hasPerm) {
                 if (compare == PermissionConstants.Compare.OR) {
-                    return false;
+                    return true;
                 }
             } else {
                 if (compare == PermissionConstants.Compare.AND) {
-                    return true;
+                    return false;
                 }
             }
         }

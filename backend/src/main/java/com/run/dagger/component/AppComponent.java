@@ -16,7 +16,7 @@ import javax.inject.Singleton;
  * {@code @注释: }
  */
 @Singleton
-@Component(modules = {AppModule.class, ConfigModule.class, SqlPoolModule.class, RouteModule.class, OpenAPIModule.class, TokenAuthHandlerModule.class})
+@Component(modules = {AppModule.class, ConfigModule.class, SqlPoolModule.class, CacheStoreModule.class, RouteModule.class, OpenAPIModule.class, TokenAuthHandlerModule.class})
 public interface AppComponent {
     @Named("mainRoute")
     Router mainRoute();

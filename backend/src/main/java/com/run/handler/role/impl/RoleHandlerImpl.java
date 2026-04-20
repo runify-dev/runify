@@ -1,6 +1,8 @@
 package com.run.handler.role.impl;
 
 import com.run.auth.constants.PermissionConstants;
+import com.run.auth.dto.UserProfile;
+import com.run.common.cache.CacheStore;
 import com.run.common.query.Query;
 import com.run.common.result.Page;
 import com.run.common.result.Result;
@@ -39,16 +41,19 @@ public class RoleHandlerImpl implements IRoleHandler {
     private RolePermissionRelationMapper rolePermissionRelationMapper;
     private RoleUserRelationMapper roleUserRelationMapper;
     private UserMapper userMapper;
+    private CacheStore cacheStore;
 
     @Inject
     public RoleHandlerImpl(RoleMapper roleMapper,
                            RolePermissionRelationMapper rolePermissionRelationMapper,
                            RoleUserRelationMapper roleUserRelationMapper,
-                           UserMapper userMapper) {
+                           UserMapper userMapper,
+                           CacheStore cacheStore) {
         this.roleMapper = roleMapper;
         this.rolePermissionRelationMapper = rolePermissionRelationMapper;
         this.roleUserRelationMapper = roleUserRelationMapper;
         this.userMapper = userMapper;
+        this.cacheStore = cacheStore;
     }
 
 
@@ -136,6 +141,7 @@ public class RoleHandlerImpl implements IRoleHandler {
 
     @Override
     public void modifyPermissions(RoutingContext context) {
+        UserProfile user = context.user().get("user");
         String roleId = context.pathParam("roleId");
         ModifyPermissionsVO modifyPermissionsVO = context.body().asPojo(ModifyPermissionsVO.class);
         List<String> permissions = modifyPermissionsVO.getPermissions();
@@ -145,7 +151,15 @@ public class RoleHandlerImpl implements IRoleHandler {
                         return new RolePermissionRelation(CommonUtils.uuid7(), roleId, permission);
                     }).toList();
                     return rolePermissionRelationMapper.batch_save(list);
-                }).onSuccess(result -> {
+                }).compose(result -> {
+                    return roleUserRelationMapper.list(F.field(RoleUserRelation::getRoleId).eq(F.params(RoleUserRelation::getRoleId)),
+                            Map.of("roleId", roleId)).compose(ok -> {
+                        return Future.succeededFuture(ok.stream().map(ru -> "permissions:" + ru.getUserId()).toList());
+                    });
+
+                }).compose(permissionKeys -> {
+                    return Future.fromCompletionStage(this.cacheStore.deleteAll(permissionKeys));
+                }).onSuccess(ok -> {
                     context.end(Result.success(Boolean.TRUE).toBuffer());
                 }).onFailure(context::fail);
     }
