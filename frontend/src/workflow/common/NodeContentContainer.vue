@@ -58,7 +58,7 @@ defineExpose({ open, close })
 }
 .lf-node-selected {
   .node-container {
-    outline-color: var(--el-color-primary);
+    outline-color: var(--p-primary-color);
   }
 }
 </style>

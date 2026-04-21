@@ -29,7 +29,18 @@ export const aiChatNode = {
     height: 50,
     name: 'ai对话',
     isHovered: false,
-    field_list: []
+    field_list: [
+      {
+        label: '回答',
+        value: 'content',
+        children: [
+          {
+            label: '回答',
+            value: 'content'
+          }
+        ]
+      }
+    ]
   }
 }
 
@@ -133,9 +144,7 @@ export const iconMap = {
             </filter>
             </defs>
             </svg>`,
-  close: (
-    color: string
-  ) => ` <svg
+  close: (color: string) => ` <svg
       @click="deleteEdge"
       width="22"
       height="22"
@@ -157,22 +166,22 @@ export const iconMap = {
 export const anchorIconMap: any = {
   left: {
     success: {
-      connected: iconMap.connected('var(--el-color-primary)'),
-      not_connected: iconMap.not_connected('var(--el-color-primary)')
+      connected: iconMap.connected('var(--p-primary-color)'),
+      not_connected: iconMap.not_connected('var(--p-primary-color)')
     },
     fail: {
-      connected: iconMap.connected('var(--el-color-error)'),
-      not_connected: iconMap.not_connected('var(--el-color-error)')
+      connected: iconMap.connected('var(--p-red-500)'),
+      not_connected: iconMap.not_connected('var(--p-red-500)')
     }
   },
   right: {
     success: {
-      connected: iconMap.connected('var(--el-color-primary)'),
-      not_connected: iconMap.not_connected('var(--el-color-primary)')
+      connected: iconMap.connected('var(--p-primary-color)'),
+      not_connected: iconMap.not_connected('var(--p-primary-color)')
     },
     fail: {
-      connected: iconMap.connected('var(--el-color-error)'),
-      not_connected: iconMap.not_connected('var(--el-color-error)')
+      connected: iconMap.connected('var(--p-red-500)'),
+      not_connected: iconMap.not_connected('var(--p-red-500)')
     }
   }
 }

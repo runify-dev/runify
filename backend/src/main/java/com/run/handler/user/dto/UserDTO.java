@@ -25,7 +25,6 @@ public class UserDTO {
     private String email;
     private String phone;
     private String icon;
-    private String role;
     private String nickname;
     private String username;
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")

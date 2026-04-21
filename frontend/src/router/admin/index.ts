@@ -7,6 +7,7 @@ import {
   type RouteRecordName
 } from 'vue-router'
 import { routes } from '@/router/admin/routes'
+import useStore from "@/stores"
 const router = createRouter({
   history: createWebHistory(window.RUNIFY_APP.admin.baseURL ? window.RUNIFY_APP.admin.baseURL : import.meta.env.BASE_URL),
   routes: routes
@@ -34,5 +35,29 @@ export const getChildRouteList: (
   }
   return []
 }
+router.beforeEach(
+  async (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
+    const { user } = useStore()
+
+    const notAuthRouteNameList = ['login']
+    if (!notAuthRouteNameList.includes(to.name ? to.name.toString() : '')) {
+      if (to.query && to.query.token) {
+        localStorage.setItem('token', to.query.token.toString())
+      }
+      const token = user.getToken()
+      if (!token) {
+        next({
+          path: '/login',
+        })
+        return
+      }
+      if (!user.user) {
+        await user.profile()
+      }
+    }
+    next()
+  },
+)
+
 
 export default router

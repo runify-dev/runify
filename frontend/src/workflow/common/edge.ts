@@ -39,9 +39,9 @@ class RunBezierEdge extends BezierEdge {
     this.root = root
     if (!root.innerHTML) {
       const inner = document.createElement('div')
-      inner.style.width = '20px';
+      inner.style.width = '20px'
       inner.style.height = '25px'
-      inner.className = "hidden add-node"
+      inner.className = 'hidden add-node'
       inner.innerHTML = iconMap.close('')
       root.appendChild(inner)
     }
@@ -90,18 +90,18 @@ class RunBezierEdge extends BezierEdge {
       animationDuration,
       animationIterationCount,
       animationTimingFunction,
-      animationDirection,
+      animationDirection
     } = animationStyle
     const positionData = {
       x: (startPoint.x + endPoint.x - customWidth) / 2,
       y: (startPoint.y + endPoint.y - customHeight) / 2,
       width: customWidth,
-      height: customHeight,
+      height: customHeight
     }
     const style = model.getEdgeStyle()
     const wrapperStyle = {
       width: customWidth,
-      height: customHeight,
+      height: customHeight
     }
 
     setTimeout(() => {
@@ -118,7 +118,7 @@ class RunBezierEdge extends BezierEdge {
       h(
         'style' as any,
         { type: 'text/css' },
-        '.lf-edge{stroke:var(--el-color-info)}.lf-edge:hover{stroke: var(--el-color-primary);}.lf-edge:hover .add-node{display:block}',
+        '.lf-edge{stroke:var(--p-gray-400)}.lf-edge:hover{stroke: var(--p-primary-color);}.lf-edge:hover .add-node{display:block}'
       ),
       h('path', {
         d: path,
@@ -126,18 +126,18 @@ class RunBezierEdge extends BezierEdge {
         ...arrowConfig,
         ...(isAnimation
           ? {
-            strokeDasharray,
-            stroke,
-            style: {
-              strokeDashoffset,
-              animationName,
-              animationDuration,
-              animationIterationCount,
-              animationTimingFunction,
-              animationDirection,
-            },
-          }
-          : {}),
+              strokeDasharray,
+              stroke,
+              style: {
+                strokeDashoffset,
+                animationName,
+                animationDuration,
+                animationIterationCount,
+                animationTimingFunction,
+                animationDirection
+              }
+            }
+          : {})
       }),
       h(
         'foreignObject',
@@ -145,16 +145,16 @@ class RunBezierEdge extends BezierEdge {
           ...positionData,
           y: positionData.y + 5,
           x: positionData.x + 5,
-          style: {},
+          style: {}
         },
         [
           h('div', {
             id,
             style: { ...wrapperStyle },
-            className: 'lf-custom-edge-wrapper',
-          }),
-        ],
-      ),
+            className: 'lf-custom-edge-wrapper'
+          })
+        ]
+      )
     ])
   }
 }
@@ -199,19 +199,18 @@ class RunBezierEdgeModel extends BezierEdgeModel {
       .getDefaultAnchor()
       .find((anchor: any) => anchor.id === this.sourceAnchorId)
 
-
     const targetAnchor = targetNodeModel
       .getDefaultAnchor()
       .find((anchor: any) => anchor.id === this.targetAnchorId)
     if (sourceAnchor && targetAnchor) {
       const startPoint = {
         x: sourceAnchor.x,
-        y: sourceAnchor.y,
+        y: sourceAnchor.y
       }
       this.updateStartPoint(startPoint)
       const endPoint = {
         x: targetAnchor.x,
-        y: targetAnchor.y,
+        y: targetAnchor.y
       }
 
       this.updateEndPoint(endPoint)
@@ -231,5 +230,5 @@ class RunBezierEdgeModel extends BezierEdgeModel {
 export default {
   type: 'run-edge',
   view: RunBezierEdge,
-  model: RunBezierEdgeModel,
+  model: RunBezierEdgeModel
 }

@@ -8,7 +8,7 @@
       :pt="{
         root: { style: 'border: none;', class: 'w-full' }
       }"
-      :model="items"
+      :model="menus"
     >
       <template #start>
         <Avatar :image="AppIcon" style="width: 40px" />
@@ -61,6 +61,10 @@ import { ref } from 'vue'
 import AppIcon from '@/assets/app.svg'
 import useStore from '@/stores'
 import { useRoute, useRouter } from 'vue-router'
+import { computed } from 'vue'
+import { PermissionConstants } from '@/permission/data'
+import { hasPermission } from '@/permission'
+import { Role } from '@/permission/common'
 const { user } = useStore()
 const menuRef = ref()
 const toggle = (event: any) => {
@@ -90,23 +94,33 @@ const items = ref([
   {
     name: 'application',
     label: '应用',
-    icon: 'pi pi-home'
+    icon: 'pi pi-home',
+    permissions: [PermissionConstants.APPLICATION_READ, Role.ADMIN, Role.USER]
   },
   {
     label: '笔记',
     icon: 'pi pi-home',
-    name: 'note'
+    name: 'note',
+    permissions: [PermissionConstants.NOTE_READ, Role.ADMIN, Role.USER]
   },
   {
     label: '模型',
     icon: 'pi pi-home',
-    name: 'model'
+    name: 'model',
+    permissions: [PermissionConstants.MODEL_READ, Role.ADMIN, Role.USER]
   },
   {
     label: '项目',
     icon: 'pi pi-search',
-    name: 'project'
+    name: 'project',
+    permissions: [PermissionConstants.PROJECT_READ, Role.ADMIN, Role.USER]
   }
 ])
+const menus = computed(() => {
+  return items.value.filter((m: any) => {
+    console.log(hasPermission(m.permissions, 'OR'))
+    return hasPermission(m.permissions, 'OR')
+  })
+})
 const { toggleMenu, toggleDarkMode, isDarkTheme } = useLayout()
 </script>

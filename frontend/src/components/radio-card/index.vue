@@ -74,8 +74,8 @@ const radioContentStyle = computed(() => {
     }
   }
   .active {
-    border: 1px solid var(--el-color-primary);
-    color: var(--el-color-primary);
+    border: 1px solid var(--p-primary-color);
+    color: var(--p-primary-color);
   }
   .item {
     line-height: 22px;

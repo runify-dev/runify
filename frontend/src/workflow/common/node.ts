@@ -110,7 +110,8 @@ class RootModel extends HtmlResize.model {
   }
   getNodeStyle() {
     return {
-      overflow: 'visible'
+      overflow: 'visible',
+      fill: 'none'
     }
   }
   getOutlineStyle() {
@@ -125,13 +126,13 @@ class RootModel extends HtmlResize.model {
   getAnchorStyle(_anchorInfo: any) {
     if (_anchorInfo.type == 'right' && _anchorInfo.status == 'fail') {
       return {
-        stroke: 'var(--el-color-danger)',
+        stroke: 'var(--p-red-500)',
         fill: '#fff',
         r: 4
       }
     }
     return {
-      stroke: 'var(--el-color-success)',
+      stroke: 'var(--p-primary-color)',
       fill: '#fff',
       r: 4
     }

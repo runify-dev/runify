@@ -1,8 +1,11 @@
 <template>
-  <component v-if="isIconfont" :is="Object.keys(iconMap).includes(name)
-    ? iconMap[name].iconReader()
-    : iconMap['404'].iconReader()
-    " class="el-icon app-icon">
+  <component
+    v-if="isIconfont"
+    :is="
+      Object.keys(iconMap).includes(name) ? iconMap[name].iconReader() : iconMap['404'].iconReader()
+    "
+    class="app-icon w-4 h-4 block"
+  >
   </component>
 
   <el-icon v-else-if="name">
@@ -12,7 +15,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 const modules: any = import.meta.glob('./data/*.ts', { eager: true })
-const iconMap: any = { ...Object.keys(modules).map((key) => modules[key].default).reduce((pre, next) => ({ ...pre, ...next })) }
+const iconMap: any = {
+  ...Object.keys(modules)
+    .map((key) => modules[key].default)
+    .reduce((pre, next) => ({ ...pre, ...next }))
+}
 
 const props = withDefaults(
   defineProps<{

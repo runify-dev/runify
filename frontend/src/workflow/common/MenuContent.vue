@@ -5,7 +5,7 @@
   >
     <div class="w-full h-full" v-for="key in Object.keys(menu)" :key="key">
       <h5
-        class="relative before:block before:absolute before:translate-x-[-50%] before:translate-y-[-50%] before:top-1/2 before:left-[2px] before:w-[2px] before:h-[80%] before:bg-[var(--el-color-primary)] pl-3 font-medium"
+        class="relative before:block before:absolute before:translate-x-[-50%] before:translate-y-[-50%] before:top-1/2 before:left-[2px] before:w-[2px] before:h-[80%] before:bg-[var(--p-primary-color)] pl-3 font-medium"
       >
         {{ key }}
       </h5>

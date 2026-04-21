@@ -94,3 +94,7 @@ export async function copyContent(content: string) {
     console.error(e)
   }
 }
+
+export function isFunction(fn: any) {
+  return typeof fn === 'function'
+}

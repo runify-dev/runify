@@ -1,12 +1,14 @@
 package com.run.handler.user.impl;
 
 
+import com.run.auth.dto.UserProfile;
 import com.run.common.exception.ApiException;
 import com.run.common.query.Query;
 import com.run.common.result.Page;
 import com.run.common.result.Result;
 import com.run.common.util.CommonUtils;
 import com.run.common.util.JWTUtil;
+import com.run.common.util.PermissionHexUtils;
 import com.run.common.util.ValidatorUtil;
 import com.run.common.validator.Group;
 import com.run.dao.common.F;
@@ -14,6 +16,7 @@ import com.run.dao.entity.User;
 import com.run.dao.mapper.UserMapper;
 import com.run.handler.user.IUserHandler;
 import com.run.handler.user.dto.UserDTO;
+import com.run.handler.user.dto.UserProfileTDO;
 import com.run.handler.user.pojo.LoginPojo;
 import com.run.handler.user.vo.UserQueryVO;
 import io.vertx.core.Future;
@@ -117,23 +120,13 @@ public class UserHandlerImpl implements IUserHandler {
         };
     }
 
-    public UserDTO to(User user) {
-        UserDTO userDto = new UserDTO();
-        try {
-            BeanUtils.copyProperties(userDto, user);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        return userDto;
-    }
-
 
     @Override
     public Handler<RoutingContext> profile() {
         return context -> {
             io.vertx.ext.auth.User user = context.user();
-            User userInstance = user.get("user");
-            context.end(Result.success(to(userInstance)).toBuffer());
+            UserProfile userInstance = user.get("user");
+            context.end(Result.success(new UserProfileTDO(userInstance)).toBuffer());
         };
 
     }
@@ -177,7 +170,7 @@ public class UserHandlerImpl implements IUserHandler {
                                     "username", "%" + query.getUsername() + "%",
                                     "nickname", "%" + query.getNickname() + "%"))
                     .onSuccess(userPage -> {
-                        List<UserDTO> list = userPage.getRecords().stream().map(this::to).toList();
+                        List<UserDTO> list = userPage.getRecords().stream().map(UserDTO::new).toList();
                         Page<UserDTO> result = new Page<>();
                         result.setRecords(list);
                         result.setSize(userPage.getSize());

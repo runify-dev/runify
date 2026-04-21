@@ -79,7 +79,7 @@ const isActive = computed(() => {
   .content {
     position: relative;
     z-index: 1;
-    color: var(--el-menu-active-color);
+    color: var(--p-primary-color);
     padding: 20px;
     text-align: center;
   }

@@ -93,9 +93,9 @@ const flattenVariables = (nodes: any[], parentLabel = '', parentValue = ''): any
       // 分组节点，递归子级，传递当前 label 作为前缀
       result.push(...flattenVariables(node.children ?? [], node.label, node.label))
     } else {
-      const name = parentValue ? `${parentValue}.${node.value}` : node.value
+      const value = parentValue ? `${parentValue}.${node.value}` : node.value
       const label = parentLabel ? `${parentLabel} / ${node.label}` : node.label
-      result.push({ name, label })
+      result.push({ value, label, children: node.children })
     }
   }
 

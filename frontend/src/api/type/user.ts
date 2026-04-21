@@ -27,6 +27,8 @@ interface User {
    * 用户权限
    */
   permissions: Array<string>
+
+  roles: Array<any>
 }
 interface LoginPojo {
   username: string

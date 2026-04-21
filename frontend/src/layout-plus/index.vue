@@ -2,14 +2,7 @@
   <div class="layout-wrapper" :class="containerClass">
     <AppTopbar />
     <router-view />
-    <div class="layout-main-container">
-      <!-- <AppMenuContent
-        ><template #menu>
-          <AppSidebar></AppSidebar>
-        </template>
-        <router-view
-      /></AppMenuContent> -->
-    </div>
+    <div class="layout-main-container"></div>
     <div class="layout-mask animate-fadein" @click="hideMobileMenu" />
   </div>
   <Toast />

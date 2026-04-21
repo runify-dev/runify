@@ -1,4 +1,3 @@
-<!-- TreeNode.vue -->
 <template>
   <div>
     <div

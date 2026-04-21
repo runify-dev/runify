@@ -1,13 +1,13 @@
 <template>
-  <div class="editor-root h-full w-full flex flex-col min-h-0">
+  <div class="editor-root flex h-full min-h-0 w-full flex-col">
     <div
-      class="h-full w-full flex flex-col min-h-0 rounded-lg border border-[var(--p-content-border-color)] bg-[var(--p-content-background)] shadow-sm overflow-hidden"
+      class="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-lg border border-[var(--p-content-border-color)] bg-[var(--p-content-background)] shadow-sm"
     >
-      <div class="relative flex flex-col flex-1 min-h-0 w-full" @click.self="focusEditor">
-        <div ref="cmContainer" class="flex flex-col flex-1 min-h-0 overflow-hidden" />
-        <div class="absolute bottom-2 right-2 z-10 pointer-events-none">
+      <div class="relative flex min-h-0 w-full flex-1 flex-col" @click.self="focusEditor">
+        <div ref="cmContainer" class="flex min-h-0 flex-1 flex-col overflow-hidden" />
+        <div class="pointer-events-none absolute bottom-2 right-2 z-10">
           <AppIcon
-            class="pointer-events-auto text-[color:var(--p-text-muted-color)] hover:opacity-70 cursor-pointer text-base"
+            class="pointer-events-auto cursor-pointer text-base text-[color:var(--p-text-muted-color)] hover:opacity-70"
             name="app-magnify"
             @click.stop="openDialog"
           />
@@ -15,54 +15,64 @@
       </div>
     </div>
 
-    <!-- 变量选择浮层 -->
     <Teleport to="body">
       <div
         v-if="pop.show"
         ref="popEl"
-        class="fixed z-[9999] w-[240px] rounded-lg overflow-hidden bg-white border border-slate-200 shadow-[0_8px_24px_rgba(0,0,0,0.12)]"
-        :style="{ left: pop.x + 'px', top: pop.y + 'px' }"
+        class="fixed z-[9999] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_8px_24px_rgba(0,0,0,0.12)]"
+        :style="{
+          left: `${pop.x}px`,
+          top: `${pop.y}px`,
+          width: `${pop.width}px`
+        }"
       >
-        <!-- 搜索框 -->
-        <div class="flex items-center gap-2 px-3 py-2 bg-slate-50 border-b border-slate-200">
-          <i class="pi pi-search text-xs text-slate-400 shrink-0" />
+        <div class="flex items-center gap-1.5 border-b border-slate-200 bg-slate-50 px-2 py-1.5">
+          <i class="pi pi-search shrink-0 text-[11px] text-slate-400" />
           <input
             ref="popInputRef"
             v-model="pop.query"
-            class="flex-1 bg-transparent border-none outline-none text-[13px] text-slate-800 placeholder:text-slate-400"
-            placeholder="搜索变量..."
+            class="min-w-0 flex-1 border-none bg-transparent text-[12px] leading-5 text-slate-800 outline-none placeholder:text-slate-400"
+            placeholder="搜索"
             @keydown="onPopKeydown"
           />
         </div>
 
-        <!-- 列表 -->
-        <ul class="m-0 p-1 list-none max-h-[200px] overflow-y-auto">
-          <li
-            v-for="(v, i) in filteredVars"
-            :key="v.name"
-            class="flex flex-col px-2.5 py-1.5 rounded-md cursor-pointer transition-colors duration-100"
-            :class="i === pop.idx ? 'bg-slate-100' : 'hover:bg-slate-50'"
-            @mousedown.prevent="commitVariable(v)"
-            @mouseenter="pop.idx = i"
+        <div class="var-picker-tree overflow-y-auto p-1" style="height: 200px">
+          <Tree
+            v-if="filteredTreeNodes.length"
+            v-model:expandedKeys="expandedKeys"
+            :value="filteredTreeNodes"
           >
-            <span class="text-[13px] font-medium text-slate-700 truncate leading-snug">{{
-              v.label || v.name
-            }}</span>
-            <span v-if="v.label" class="text-[11px] font-mono text-slate-400 truncate mt-0.5">{{
-              v.name
-            }}</span>
-          </li>
-          <li
-            v-if="!filteredVars.length"
-            class="px-2.5 py-3 text-[13px] text-slate-400 text-center"
-          >
-            无匹配变量
-          </li>
-        </ul>
+            <template #default="{ node }">
+              <div
+                class="flex min-w-0 items-center gap-1 rounded-md px-1.5 py-1 transition-colors"
+                :class="selectedNodeKey === node.key ? 'bg-slate-100' : 'hover:bg-slate-50'"
+                @click.stop="handleNodeClick(node)"
+                @dblclick.stop="handleNodeDblClick(node)"
+              >
+                <div class="min-w-0 flex-1">
+                  <div
+                    class="truncate text-[12px] leading-4"
+                    :class="node.data?.disabled ? 'text-slate-400' : 'font-medium text-slate-700'"
+                  >
+                    {{ node.label }}
+                  </div>
+                  <div
+                    v-if="node.data?.fullValue"
+                    class="mt-0.5 truncate text-[10px] leading-4 text-slate-400"
+                  >
+                    {{ node.data.fullValue }}
+                  </div>
+                </div>
+              </div>
+            </template>
+          </Tree>
+
+          <div v-else class="px-2 py-3 text-center text-[12px] text-slate-400">无匹配变量</div>
+        </div>
       </div>
     </Teleport>
 
-    <!-- 全屏弹窗 -->
     <Dialog
       v-model:visible="dialogVisible"
       :header="title"
@@ -70,13 +80,13 @@
       :modal="true"
       :draggable="false"
       append-to-body
-      class="[&_.p-dialog]:flex [&_.p-dialog]:flex-col [&_.p-dialog-content]:flex [&_.p-dialog-content]:flex-col [&_.p-dialog-content]:flex-1 [&_.p-dialog-content]:min-h-0 [&_.p-dialog-content]:overflow-hidden [&_.p-dialog-content]:p-3"
+      class="[&_.p-dialog]:flex [&_.p-dialog]:flex-col [&_.p-dialog-content]:flex [&_.p-dialog-content]:min-h-0 [&_.p-dialog-content]:flex-1 [&_.p-dialog-content]:flex-col [&_.p-dialog-content]:overflow-hidden [&_.p-dialog-content]:p-3"
       @show="onDialogShow"
       @hide="onDialogClose"
     >
-      <div ref="cmDialogContainer" class="flex flex-col flex-1 min-h-0 overflow-hidden" />
+      <div ref="cmDialogContainer" class="flex min-h-0 flex-1 flex-col overflow-hidden" />
       <template #footer>
-        <div class="flex gap-2 justify-end">
+        <div class="flex justify-end gap-2">
           <Button label="取消" severity="secondary" @click="cancelDialog" />
           <Button label="提交" @click="submitDialog" />
         </div>
@@ -86,18 +96,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import AppIcon from '@/components/icons/AppIcon.vue'
 import Dialog from 'primevue/dialog'
 import Button from 'primevue/button'
+import Tree from 'primevue/tree'
+import type { TreeNode } from 'primevue/treenode'
 
 import { basicSetup } from 'codemirror'
 import {
-  EditorView,
   Decoration,
+  EditorView,
   type DecorationSet,
   ViewPlugin,
-  ViewUpdate
+  type ViewUpdate
 } from '@codemirror/view'
 import { EditorState, RangeSetBuilder } from '@codemirror/state'
 import { markdown } from '@codemirror/lang-markdown'
@@ -106,8 +118,24 @@ import { oneDark } from '@codemirror/theme-one-dark'
 defineOptions({ name: 'MdEditorMagnify' })
 
 export interface VariableItem {
-  name: string
-  label?: string
+  label: string
+  value: string
+  disabled?: boolean
+  children?: VariableItem[]
+}
+
+interface VariableTreeNode extends TreeNode {
+  key: string
+  label: string
+  data: {
+    value: string
+    label: string
+    disabled?: boolean
+    fullValue: string
+    pathValues: string[]
+  }
+  children?: VariableTreeNode[]
+  leaf?: boolean
 }
 
 const props = defineProps<{
@@ -129,80 +157,300 @@ const popInputRef = ref<HTMLInputElement | null>(null)
 let mainView: EditorView | null = null
 let dialogView: EditorView | null = null
 let activeView: EditorView | null = null
+let removePopListeners: (() => void) | null = null
+
+const dialogVisible = ref(false)
+const isSubmitting = ref(false)
 
 const pop = reactive({
   show: false,
   x: 0,
   y: 0,
+  width: 240,
   query: '',
-  idx: 0,
   from: 0,
   to: 0
 })
 
-const filteredVars = computed<VariableItem[]>(() => {
-  const list = props.variables ?? []
-  const q = pop.query.trim().toLowerCase()
-  if (!q) return list
-  return list.filter(
-    (v) =>
-      v.name.toLowerCase().includes(q) ||
-      (v.label ?? '').toLowerCase().includes(q) ||
-      v.name.split('.').some((s) => s.toLowerCase().includes(q))
-  )
-})
+const expandedKeys = ref<Record<string, boolean>>({})
+const selectedNodeKey = ref<string | null>(null)
 
-function openPop(x: number, y: number, from: number, to: number) {
+function buildTreeNodes(
+  list: VariableItem[] = [],
+  parentKey = 'root',
+  parentValues: string[] = []
+): VariableTreeNode[] {
+  return list.map((item, index) => {
+    const key = `${parentKey}-${index}`
+    const currentValues = item.value ? [...parentValues, item.value] : [...parentValues]
+    const fullValue = currentValues.join('.')
+    const children = buildTreeNodes(item.children ?? [], key, currentValues)
+
+    return {
+      key,
+      label: item.label,
+      data: {
+        value: item.value,
+        label: item.label,
+        disabled: item.disabled,
+        fullValue,
+        pathValues: currentValues
+      },
+      children,
+      leaf: children.length === 0
+    }
+  })
+}
+
+const treeNodes = computed<VariableTreeNode[]>(() => buildTreeNodes(props.variables ?? []))
+
+function filterTree(nodes: VariableTreeNode[], keyword: string): VariableTreeNode[] {
+  const q = keyword.trim().toLowerCase()
+  if (!q) return nodes
+
+  const result: VariableTreeNode[] = []
+
+  for (const node of nodes) {
+    const selfMatched =
+      node.label.toLowerCase().includes(q) ||
+      String(node.data?.value ?? '')
+        .toLowerCase()
+        .includes(q) ||
+      String(node.data?.fullValue ?? '')
+        .toLowerCase()
+        .includes(q)
+
+    const sourceChildren = (node.children as VariableTreeNode[]) ?? []
+    const filteredChildren = filterTree(sourceChildren, q)
+
+    if (selfMatched) {
+      result.push({
+        ...node,
+        children: sourceChildren,
+        expanded: true
+      })
+      continue
+    }
+
+    if (filteredChildren.length > 0) {
+      result.push({
+        ...node,
+        children: filteredChildren,
+        expanded: true
+      })
+    }
+  }
+
+  return result
+}
+
+const filteredTreeNodes = computed<VariableTreeNode[]>(() => filterTree(treeNodes.value, pop.query))
+
+function findNodeByKey(nodes: VariableTreeNode[], key: string | null): VariableTreeNode | null {
+  if (!key) return null
+
+  for (const node of nodes) {
+    if (node.key === key) return node
+    const found = findNodeByKey((node.children as VariableTreeNode[]) ?? [], key)
+    if (found) return found
+  }
+
+  return null
+}
+
+function findFirstSelectableNode(nodes: VariableTreeNode[]): VariableTreeNode | null {
+  for (const node of nodes) {
+    if (!node.data?.disabled) return node
+    const found = findFirstSelectableNode((node.children as VariableTreeNode[]) ?? [])
+    if (found) return found
+  }
+  return null
+}
+
+function collectExpandedKeys(nodes: VariableTreeNode[]) {
+  const nextExpanded: Record<string, boolean> = {}
+
+  function walk(list: VariableTreeNode[]) {
+    for (const node of list) {
+      if (node.children?.length) {
+        nextExpanded[node.key] = true
+        walk(node.children as VariableTreeNode[])
+      }
+    }
+  }
+
+  walk(nodes)
+  return nextExpanded
+}
+
+const selectedNode = computed<VariableTreeNode | null>(() =>
+  findNodeByKey(filteredTreeNodes.value, selectedNodeKey.value)
+)
+
+watch(
+  () => filteredTreeNodes.value,
+  (nodes) => {
+    if (!pop.show) return
+
+    expandedKeys.value = collectExpandedKeys(nodes)
+
+    const current = findNodeByKey(nodes, selectedNodeKey.value)
+    if (current && !current.data?.disabled) return
+
+    const first = findFirstSelectableNode(nodes)
+    selectedNodeKey.value = first?.key ?? null
+  },
+  { deep: true }
+)
+
+function clamp(n: number, min: number, max: number) {
+  return Math.min(Math.max(n, min), max)
+}
+
+function getViewportSize() {
+  const vv = window.visualViewport
+  return {
+    width: vv?.width ?? window.innerWidth,
+    height: vv?.height ?? window.innerHeight
+  }
+}
+
+function updatePopPosition() {
+  if (!pop.show || !activeView) return
+
+  const anchor = activeView.coordsAtPos(pop.to)
+  if (!anchor) return
+
+  const { width: vw, height: vh } = getViewportSize()
+  const margin = 8
+  const width = Math.min(280, Math.max(220, vw - margin * 2))
+  const popupHeight = 235
+
+  const x = clamp(anchor.left, margin, Math.max(margin, vw - width - margin))
+
+  let y = anchor.bottom + 6
+  if (y + popupHeight > vh - margin) {
+    y = Math.max(margin, anchor.top - popupHeight - 6)
+  }
+
+  pop.width = width
+  pop.x = x
+  pop.y = y
+}
+
+function bindPopPositionListeners() {
+  removePopListeners?.()
+
+  const onReposition = () => {
+    requestAnimationFrame(() => updatePopPosition())
+  }
+
+  const scroller = activeView?.scrollDOM ?? null
+
+  window.addEventListener('resize', onReposition)
+  document.addEventListener('scroll', onReposition, true)
+
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', onReposition)
+    window.visualViewport.addEventListener('scroll', onReposition)
+  }
+
+  scroller?.addEventListener('scroll', onReposition, { passive: true })
+
+  removePopListeners = () => {
+    window.removeEventListener('resize', onReposition)
+    document.removeEventListener('scroll', onReposition, true)
+
+    if (window.visualViewport) {
+      window.visualViewport.removeEventListener('resize', onReposition)
+      window.visualViewport.removeEventListener('scroll', onReposition)
+    }
+
+    scroller?.removeEventListener('scroll', onReposition)
+  }
+}
+
+function openPop(from: number, to: number, view: EditorView) {
+  activeView = view
   pop.show = true
   pop.from = from
   pop.to = to
   pop.query = ''
-  pop.idx = 0
+  selectedNodeKey.value = null
+  expandedKeys.value = {}
 
-  const W = 240,
-    H = 280
-  pop.x = x + W > window.innerWidth ? window.innerWidth - W - 8 : x
-  pop.y = y + H > window.innerHeight ? y - H - 4 : y + 6
+  bindPopPositionListeners()
 
-  nextTick(() => popInputRef.value?.focus())
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      expandedKeys.value = collectExpandedKeys(filteredTreeNodes.value)
+
+      const first = findFirstSelectableNode(filteredTreeNodes.value)
+      selectedNodeKey.value = first?.key ?? null
+
+      updatePopPosition()
+      popInputRef.value?.focus()
+    })
+  })
 }
 
 function closePop() {
   pop.show = false
   pop.query = ''
+  selectedNodeKey.value = null
+  expandedKeys.value = {}
+  removePopListeners?.()
+  removePopListeners = null
 }
 
-function onPopKeydown(e: KeyboardEvent) {
-  const len = filteredVars.value.length
-  if (e.key === 'ArrowDown') {
-    e.preventDefault()
-    pop.idx = len ? (pop.idx + 1) % len : 0
-  } else if (e.key === 'ArrowUp') {
-    e.preventDefault()
-    pop.idx = len ? (pop.idx - 1 + len) % len : 0
-  } else if (e.key === 'Enter') {
-    e.preventDefault()
-    const v = filteredVars.value[pop.idx]
-    if (v) commitVariable(v)
-  } else if (e.key === 'Escape') {
-    e.preventDefault()
-    closePop()
-    nextTick(() => activeView?.focus())
-  }
-}
+function commitTreeNode(node?: VariableTreeNode | null) {
+  const target = node ?? selectedNode.value
+  if (!target || target.data?.disabled) return
 
-function commitVariable(v: VariableItem) {
+  const rawValue = target.data?.fullValue
+  if (!rawValue) return
+
   const view = activeView
   if (!view) return
-  // 插入格式为 ${var}，$ 只是触发字符，会被替换掉
-  const insert = `\${${v.name}}`
+
+  const insert = `\${${rawValue}}`
+
   view.dispatch({
     changes: { from: pop.from, to: pop.to, insert },
     selection: { anchor: pop.from + insert.length }
   })
-  if (view === mainView) emit('update:modelValue', view.state.doc.toString())
+
+  if (view === mainView) {
+    emit('update:modelValue', view.state.doc.toString())
+  }
+
   closePop()
   nextTick(() => view.focus())
+}
+
+function handleNodeClick(node: VariableTreeNode) {
+  if (node.data?.disabled) return
+  selectedNodeKey.value = node.key
+}
+
+function handleNodeDblClick(node: VariableTreeNode) {
+  if (node.data?.disabled) return
+  selectedNodeKey.value = node.key
+  commitTreeNode(node)
+}
+
+function onPopKeydown(e: KeyboardEvent) {
+  if (e.key === 'Enter') {
+    e.preventDefault()
+    commitTreeNode()
+    return
+  }
+
+  if (e.key === 'Escape') {
+    e.preventDefault()
+    closePop()
+    nextTick(() => activeView?.focus())
+  }
 }
 
 function onDocPointerDown(e: PointerEvent) {
@@ -211,23 +459,29 @@ function onDocPointerDown(e: PointerEvent) {
   closePop()
 }
 
-// ── 变量高亮 ──────────────────────────────────────────────
 const VAR_RE = /\$\{[^}\n]*\}/g
 
 const varHighlightPlugin = ViewPlugin.fromClass(
   class {
     decorations: DecorationSet
+
     constructor(view: EditorView) {
       this.decorations = this.build(view)
     }
+
     update(u: ViewUpdate) {
-      if (u.docChanged || u.viewportChanged) this.decorations = this.build(u.view)
+      if (u.docChanged || u.viewportChanged) {
+        this.decorations = this.build(u.view)
+      }
     }
+
     build(view: EditorView): DecorationSet {
       const builder = new RangeSetBuilder<Decoration>()
+
       for (const { from, to } of view.visibleRanges) {
         const text = view.state.doc.sliceString(from, to)
         VAR_RE.lastIndex = 0
+
         let m: RegExpExecArray | null
         while ((m = VAR_RE.exec(text)) !== null) {
           builder.add(
@@ -237,13 +491,13 @@ const varHighlightPlugin = ViewPlugin.fromClass(
           )
         }
       }
+
       return builder.finish()
     }
   },
   { decorations: (v) => v.decorations }
 )
 
-// ── CodeMirror extensions ─────────────────────────────────
 function buildExtensions(onChange?: (v: string) => void) {
   return [
     basicSetup,
@@ -263,43 +517,53 @@ function buildExtensions(onChange?: (v: string) => void) {
       }
     }),
     EditorView.domEventHandlers({
-      keydown(e, view) {
+      keydown(e) {
         if (e.key === 'Escape' && pop.show) {
           closePop()
           return true
         }
-        // 触发字符为 $
-        if (e.key !== '$') return false
-        setTimeout(() => {
-          const cursor = view.state.selection.main.head
-          // 确认刚插入的字符是 $
-          const ch = view.state.doc.sliceString(cursor - 1, cursor)
-          if (ch !== '$') return
-          const c = view.coordsAtPos(cursor)
-          if (!c) return
-          activeView = view
-          // from = $ 的位置（cursor-1），to = cursor
-          openPop(c.left, c.bottom, cursor - 1, cursor)
-        }, 0)
         return false
       }
     }),
     EditorView.updateListener.of((update) => {
-      if (!update.docChanged) return
-      if (onChange) onChange(update.state.doc.toString())
-      // 如果 @ 被删掉了就关闭浮层
+      if (update.docChanged && onChange) {
+        onChange(update.state.doc.toString())
+      }
+
+      if (!pop.show && update.docChanged) {
+        const isUserInput = update.transactions.some(
+          (tr) =>
+            tr.isUserEvent('input') ||
+            tr.isUserEvent('input.type') ||
+            tr.isUserEvent('input.complete') ||
+            tr.isUserEvent('input.paste')
+        )
+
+        if (isUserInput) {
+          const cursor = update.state.selection.main.head
+          const ch = cursor > 0 ? update.state.doc.sliceString(cursor - 1, cursor) : ''
+          if (ch === '$') {
+            openPop(cursor - 1, cursor, update.view)
+            return
+          }
+        }
+      }
+
       if (pop.show) {
         const cursor = update.state.selection.main.head
         pop.to = cursor
+
         const before = update.state.doc.sliceString(0, cursor)
-        // $ 还在且没有换行就继续，否则关闭
         if (
           before.length < pop.from + 1 ||
           before[pop.from] !== '$' ||
           before.slice(pop.from + 1).includes('\n')
         ) {
           closePop()
+          return
         }
+
+        requestAnimationFrame(() => updatePopPosition())
       }
     })
   ]
@@ -307,39 +571,49 @@ function buildExtensions(onChange?: (v: string) => void) {
 
 function createView(container: HTMLElement, content: string, onChange?: (v: string) => void) {
   return new EditorView({
-    state: EditorState.create({ doc: content, extensions: buildExtensions(onChange) }),
+    state: EditorState.create({
+      doc: content,
+      extensions: buildExtensions(onChange)
+    }),
     parent: container
   })
 }
 
 function focusEditor() {
+  activeView = mainView
   mainView?.focus()
 }
 
-const dialogVisible = ref(false)
-const isSubmitting = ref(false)
-
 function openDialog() {
+  closePop()
   isSubmitting.value = false
   dialogVisible.value = true
 }
 
 async function onDialogShow() {
   await nextTick()
+
   if (cmDialogContainer.value) {
     dialogView?.destroy()
     dialogView = createView(cmDialogContainer.value, props.modelValue ?? '')
     activeView = dialogView
+    dialogView.focus()
   }
 }
 
 function submitDialog() {
-  if (!dialogView) return
+  if (!dialogView || !mainView) return
+
   const content = dialogView.state.doc.toString()
   isSubmitting.value = true
+
   emit('update:modelValue', content)
   emit('submitDialog', content)
-  mainView?.dispatch({ changes: { from: 0, to: mainView.state.doc.length, insert: content } })
+
+  mainView.dispatch({
+    changes: { from: 0, to: mainView.state.doc.length, insert: content }
+  })
+
   dialogVisible.value = false
 }
 
@@ -349,8 +623,10 @@ function cancelDialog() {
 }
 
 function onDialogClose() {
-  // called by @hide
-  if (!isSubmitting.value) emit('submitDialog', props.modelValue)
+  if (!isSubmitting.value) {
+    emit('submitDialog', props.modelValue)
+  }
+
   dialogView?.destroy()
   dialogView = null
   activeView = mainView
@@ -363,7 +639,12 @@ watch(
   (val) => {
     if (!mainView) return
     const cur = mainView.state.doc.toString()
-    if (val !== cur) mainView.dispatch({ changes: { from: 0, to: cur.length, insert: val ?? '' } })
+
+    if (val !== cur) {
+      mainView.dispatch({
+        changes: { from: 0, to: cur.length, insert: val ?? '' }
+      })
+    }
   }
 )
 
@@ -374,6 +655,7 @@ onMounted(() => {
     )
     activeView = mainView
   }
+
   document.addEventListener('pointerdown', onDocPointerDown)
 })
 
@@ -381,5 +663,47 @@ onUnmounted(() => {
   mainView?.destroy()
   dialogView?.destroy()
   document.removeEventListener('pointerdown', onDocPointerDown)
+  removePopListeners?.()
 })
 </script>
+
+<style scoped>
+.var-picker-tree :deep(.p-tree) {
+  border: none;
+  background: transparent;
+  padding: 0;
+}
+
+.var-picker-tree :deep(.p-tree-root-children) {
+  gap: 0;
+}
+
+.var-picker-tree :deep(.p-tree-node) {
+  margin: 0;
+}
+
+.var-picker-tree :deep(.p-tree-node-content) {
+  padding: 0;
+  background: transparent !important;
+  border-radius: 0;
+}
+
+.var-picker-tree :deep(.p-tree-node-icon) {
+  display: none;
+}
+
+.var-picker-tree :deep(.p-tree-node-label) {
+  width: 100%;
+}
+
+.var-picker-tree :deep(.p-tree-node-toggle-button) {
+  width: 1rem;
+  height: 1rem;
+  margin-right: 0.125rem;
+  color: rgb(148 163 184);
+}
+
+.var-picker-tree :deep(.p-tree-node-children) {
+  padding-left: 0.5rem;
+}
+</style>

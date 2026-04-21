@@ -42,7 +42,6 @@
                               :items="[
                                 {
                                   label: '新建',
-
                                   items: [
                                     {
                                       label: '应用',

@@ -76,8 +76,25 @@ const submit = () => {
 const setField = () => {
   model.properties.field_list = [
     {
-      label: '结果',
-      value: 'result'
+      label: '回答结果',
+      value: 'content'
+    },
+    {
+      label: '思考过程',
+      value: 'reasoningContent'
+    },
+    {
+      label: '拒绝原因文本',
+      value: 'refusal'
+    },
+    { label: '是否拒绝回答', value: 'isRefusal' },
+    {
+      label: '工具调用',
+      value: 'toolCalls'
+    },
+    {
+      label: '结束原因',
+      value: 'finishReason'
     }
   ]
 }
@@ -86,7 +103,6 @@ onMounted(() => {
   treeCommonAPI.listResource('root').then((ok) => {
     modelList.value = ok.data
   })
-  console.log(model.properties.nodeData)
   if (model.properties.nodeData) {
     formRef.value?.setValues(JSON.parse(JSON.stringify(model.properties.nodeData)))
   } else {
