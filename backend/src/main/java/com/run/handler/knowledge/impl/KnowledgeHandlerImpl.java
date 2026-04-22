@@ -1,6 +1,9 @@
 package com.run.handler.knowledge.impl;
 
 
+import com.run.auth.constants.PermissionConstants;
+import com.run.auth.dto.UserProfile;
+import com.run.common.cache.CacheStore;
 import com.run.common.result.Result;
 import com.run.common.util.CommonUtils;
 import com.run.dao.entity.Knowledge;
@@ -35,9 +38,10 @@ public class KnowledgeHandlerImpl extends ResourceHandlerImpl<Knowledge, Knowled
     public KnowledgeHandlerImpl(KnowledgeMapper knowledgeMapper,
                                 KnowledgeFolderMapper knowledgeFolderMapper,
                                 KnowledgeRelationMapper knowledgeRelationMapper,
-                                KnowledgePermissionMapper knowledgePermissionMapper
+                                KnowledgePermissionMapper knowledgePermissionMapper,
+                                CacheStore cacheStore
     ) {
-        super(knowledgeMapper, knowledgeFolderMapper, knowledgeRelationMapper, knowledgePermissionMapper);
+        super(knowledgeMapper, knowledgeFolderMapper, knowledgeRelationMapper, knowledgePermissionMapper, cacheStore);
 
 
     }
@@ -56,6 +60,11 @@ public class KnowledgeHandlerImpl extends ResourceHandlerImpl<Knowledge, Knowled
         CommonUtils.copyProperties(knowledgeFolder, simpleNodePojo);
         simpleNodePojo.setType("folder");
         return simpleNodePojo;
+    }
+
+    @Override
+    public Boolean resourceRead(RoutingContext context) {
+        return Boolean.FALSE;
     }
 
     @Override

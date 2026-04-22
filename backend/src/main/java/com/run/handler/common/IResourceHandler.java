@@ -32,7 +32,7 @@ public interface IResourceHandler<R> {
      * @param query 查询条件
      * @return 列表
      */
-    Future<List<R>> listByPermission(QueryResourcePojo query, UUID userId);
+    Future<List<R>> listByPermission(QueryResourcePojo query, UUID userId,Boolean resourceRead);
 
     /**
      * 获取扁平树形数据
@@ -48,7 +48,7 @@ public interface IResourceHandler<R> {
      * @param query 查询
      * @return 资源和文件夹数据
      */
-    Future<List<SimpleNodePojo>> treeByPermission(QueryResourcePojo query, UUID userId);
+    Future<List<SimpleNodePojo>> treeByPermission(QueryResourcePojo query, UUID userId,Boolean resourceRead);
 
     /**
      * 删除资源

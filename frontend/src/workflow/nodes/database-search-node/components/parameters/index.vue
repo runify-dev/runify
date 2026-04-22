@@ -46,7 +46,7 @@
 <script setup lang="ts">
 import { ref, inject } from 'vue'
 import CreateParameter from './CreateParameter.vue'
-import { ElMessage } from 'element-plus'
+import bus from '@/bus'
 import { computed } from 'vue'
 import Cascader from '@/components/cascader/index.vue'
 const props = defineProps<{
@@ -82,7 +82,7 @@ const submit = (event: any) => {
     }
   } else {
     if (data.value.some((row: any) => row.field == event.row.field)) {
-      ElMessage.warning('字段已存在')
+      bus.emit('message:warn', '字段已存在')
       return
     }
     data.value.push(event.row)

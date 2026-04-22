@@ -20,7 +20,7 @@ public class RoleUserRelation implements BaseEntity<RoleUserRelation> {
     private UUID id;
 
     @Column(name = "role_id")
-    private UUID roleId;
+    private String roleId;
 
     @Column(name = "user_id")
     private UUID userId;

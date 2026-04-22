@@ -28,7 +28,7 @@ import { onMounted, ref, computed, inject, provide } from 'vue'
 import Workflow from '@/workflow/index.vue'
 import ApplicationAPI from '@/api/application'
 import { useRoute } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import bus from '@/bus'
 import { baseWorkflow, WorkflowType } from '@/workflow/common/data'
 import DebugConversation from './DebugConversation.vue'
 const debug = ref<boolean>(false)
@@ -53,7 +53,7 @@ const resourceId = computed(() => {
 })
 const save = () => {
   ApplicationAPI.edit(resourceId.value, workflowRef.value?.getGraphData()).then(() => {
-    ElMessage.success('保存成功')
+    bus.emit('message:success', '保存成功')
   })
 }
 

@@ -1,6 +1,9 @@
 package com.run.handler.note.impl;
 
 
+import com.run.auth.constants.PermissionConstants;
+import com.run.auth.dto.UserProfile;
+import com.run.common.cache.CacheStore;
 import com.run.common.result.Result;
 import com.run.common.util.CommonUtils;
 import com.run.dao.entity.Note;
@@ -34,9 +37,10 @@ public class NoteHandlerImpl extends ResourceHandlerImpl<Note, NoteFolder, NoteP
     public NoteHandlerImpl(NoteMapper noteMapper,
                            NoteFolderMapper noteFolderMapper,
                            NoteRelationMapper noteRelationMapper,
-                           NotePermissionMapper notePermissionMapper
+                           NotePermissionMapper notePermissionMapper,
+                           CacheStore cacheStore
     ) {
-        super(noteMapper, noteFolderMapper, noteRelationMapper, notePermissionMapper);
+        super(noteMapper, noteFolderMapper, noteRelationMapper, notePermissionMapper, cacheStore);
 
 
     }
@@ -55,6 +59,13 @@ public class NoteHandlerImpl extends ResourceHandlerImpl<Note, NoteFolder, NoteP
         CommonUtils.copyProperties(noteFolder, simpleNodePojo);
         simpleNodePojo.setType("folder");
         return simpleNodePojo;
+    }
+
+    @Override
+    public Boolean resourceRead(RoutingContext context) {
+        UserProfile userProfile = context.user().get("user");
+        PermissionConstants.Permission permission = PermissionConstants.NOTE_READ.getPermission();
+        return userProfile.getPermissions().containsKey(permission.toString());
     }
 
     @Override

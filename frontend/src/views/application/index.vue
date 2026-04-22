@@ -145,7 +145,7 @@
               />
             </div>
             <Menu
-              :model="items"
+              :model="_items"
               class="w-full application-menu"
               :pt="{ root: { style: { border: 0 } } }"
             >
@@ -202,6 +202,8 @@ import FlipCard from '@/components/flip-card/index.vue'
 import type { TreeNode } from 'primevue/treenode'
 import bus from '@/bus/index'
 import TreeEmpty from '@/components/tree-empty/index.vue'
+import { PermissionConstants } from '@/permission/data'
+import { hasPermission } from '@/permission'
 const route = useRoute()
 const to = (routeName: string) => {
   router.push({ name: routeName })
@@ -216,19 +218,35 @@ const items = ref([
     name: 'applicationOverview',
     label: '概览',
     icon: 'pi pi-fw pi-objects-column p-1',
+    permissions: [
+      PermissionConstants.APPLICATION_OVERVIEW_READ.newResourcePermission(route.params.id as string)
+    ],
     shortcut: ''
   },
   {
     name: 'applicationSetting',
     label: '设置',
-    icon: 'pi pi-fw pi-cog p-1'
+    icon: 'pi pi-fw pi-cog p-1',
+    permissions: [
+      PermissionConstants.APPLICATION_SETTING_READ.newResourcePermission(route.params.id as string)
+    ]
   },
   {
     name: 'applicationConversationLog',
     label: '对话日志',
-    icon: 'pi pi-fw pi-file p-1'
+    icon: 'pi pi-fw pi-file p-1',
+    permissions: [
+      PermissionConstants.APPLICATION_CONVERSATION_LOG_READ.newResourcePermission(
+        route.params.id as string
+      )
+    ]
   }
 ])
+const _items = computed(() => {
+  return items.value.filter((item: any) => {
+    return hasPermission(item.permissions, 'OR')
+  })
+})
 const expandedKeys = ref<TreeSelectionKeys>()
 const selectedKeys = computed(() => {
   const id = route.params.id as string

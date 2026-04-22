@@ -1,5 +1,8 @@
 package com.run.handler.project.impl;
 
+import com.run.auth.constants.PermissionConstants;
+import com.run.auth.dto.UserProfile;
+import com.run.common.cache.CacheStore;
 import com.run.common.exception.ApiException;
 import com.run.common.result.Result;
 import com.run.common.util.CommonUtils;
@@ -36,8 +39,8 @@ import java.util.UUID;
  */
 public class ProjectHandlerImpl extends ResourceHandlerImpl<Project, ProjectFolder, ProjectPermission, ProjectRelation, ProjectMapper, ProjectFolderMapper, ProjectPermissionMapper, ProjectRelationMapper> implements IProjectHandler {
     @Inject
-    public ProjectHandlerImpl(ProjectMapper projectMapper, ProjectFolderMapper projectFolderMapper, ProjectRelationMapper projectRelationMapper, ProjectPermissionMapper projectPermissionMapper) {
-        super(projectMapper, projectFolderMapper, projectRelationMapper, projectPermissionMapper);
+    public ProjectHandlerImpl(ProjectMapper projectMapper, ProjectFolderMapper projectFolderMapper, ProjectRelationMapper projectRelationMapper, ProjectPermissionMapper projectPermissionMapper, CacheStore cacheStore) {
+        super(projectMapper, projectFolderMapper, projectRelationMapper, projectPermissionMapper, cacheStore);
     }
 
 
@@ -134,5 +137,12 @@ public class ProjectHandlerImpl extends ResourceHandlerImpl<Project, ProjectFold
                 .onSuccess(ok -> context.end(Result.success(ok).toBuffer()))
                 .onFailure(context::fail);
         ;
+    }
+
+    @Override
+    public Boolean resourceRead(RoutingContext context) {
+        UserProfile userProfile = context.user().get("user");
+        PermissionConstants.Permission permission = PermissionConstants.PROJECT_READ.getPermission();
+        return userProfile.getPermissions().containsKey(permission.toString());
     }
 }

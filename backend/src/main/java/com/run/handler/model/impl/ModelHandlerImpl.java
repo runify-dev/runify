@@ -1,5 +1,8 @@
 package com.run.handler.model.impl;
 
+import com.run.auth.constants.PermissionConstants;
+import com.run.auth.dto.UserProfile;
+import com.run.common.cache.CacheStore;
 import com.run.common.result.Result;
 import com.run.common.util.CommonUtils;
 import com.run.dao.entity.Model;
@@ -37,8 +40,8 @@ import java.util.*;
 public class ModelHandlerImpl extends ResourceHandlerImpl<Model, ModelFolder, ModelPermission, ModelRelation, ModelMapper, ModelFolderMapper, ModelPermissionMapper, ModelRelationMapper> implements IModelHandler {
 
     @Inject
-    public ModelHandlerImpl(ModelMapper modelMapper, ModelFolderMapper modelFolderMapper, ModelRelationMapper modelRelationMapper, ModelPermissionMapper modelPermissionMapper) {
-        super(modelMapper, modelFolderMapper, modelRelationMapper, modelPermissionMapper);
+    public ModelHandlerImpl(ModelMapper modelMapper, ModelFolderMapper modelFolderMapper, ModelRelationMapper modelRelationMapper, ModelPermissionMapper modelPermissionMapper, CacheStore cacheStore) {
+        super(modelMapper, modelFolderMapper, modelRelationMapper, modelPermissionMapper, cacheStore);
     }
 
 
@@ -127,6 +130,13 @@ public class ModelHandlerImpl extends ResourceHandlerImpl<Model, ModelFolder, Mo
         CommonUtils.copyProperties(modelFolder, simpleNodePojo);
         simpleNodePojo.setType("folder");
         return simpleNodePojo;
+    }
+
+    @Override
+    public Boolean resourceRead(RoutingContext context) {
+        UserProfile userProfile = context.user().get("user");
+        PermissionConstants.Permission permission = PermissionConstants.PROJECT_READ.getPermission();
+        return userProfile.getPermissions().containsKey(permission.toString());
     }
 
     @Override

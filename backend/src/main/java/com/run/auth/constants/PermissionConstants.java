@@ -3,7 +3,6 @@ package com.run.auth.constants;
 
 import io.vertx.ext.web.RoutingContext;
 import lombok.Getter;
-import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 import java.util.function.Function;
@@ -20,8 +19,9 @@ public enum PermissionConstants {
     APPLICATION_FOLDER_EDIT(new Permission(Group.APPLICATION, Group.FOLDER, Operate.EDIT, 4), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
     APPLICATION_FOLDER_DELETE(new Permission(Group.APPLICATION, Group.FOLDER, Operate.DELETE, 5), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
     APPLICATION_FOLDER_CREATE(new Permission(Group.APPLICATION, Group.FOLDER, Operate.CREATE, 6), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
-    APPLICATION_OVERVIEW_READ(new Permission(Group.APPLICATION, Group.OVERVIEW, Operate.READ, 7), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
-    APPLICATION_CONVERSATION_LOG_READ(new Permission(Group.APPLICATION, Group.CONVERSATION_LOG, Operate.READ, 8), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    APPLICATION_OVERVIEW_READ(new Permission(Group.APPLICATION, Group.OVERVIEW, Operate.READ, 7), List.of(ResourcePermissionGroup.VIEW,ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    APPLICATION_SETTING_READ(new Permission(Group.APPLICATION, Group.SETTING, Operate.READ, 8), List.of(ResourcePermissionGroup.VIEW,ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    APPLICATION_CONVERSATION_LOG_READ(new Permission(Group.APPLICATION, Group.CONVERSATION_LOG, Operate.READ, 9), List.of(ResourcePermissionGroup.VIEW,ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
 
     NOTE_READ(new Permission(Group.NOTE, Group.NOTE, Operate.READ, 0), List.of(ResourcePermissionGroup.VIEW, ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
     NOTE_EDIT(new Permission(Group.NOTE, Group.NOTE, Operate.EDIT, 1), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
@@ -40,16 +40,17 @@ public enum PermissionConstants {
     /**
      * ---------------------------系统权限---------------------------------------------------------------------------
      */
-    USER_MANAGEMENT_READ(new Permission(Group.USER_MANAGEMENT, Group.USER_MANAGEMENT, Operate.READ, 0), List.of(), List.of(Role.ADMIN)),
-    USER_MANAGEMENT_EDIT(new Permission(Group.USER_MANAGEMENT, Group.USER_MANAGEMENT, Operate.EDIT, 1), List.of(), List.of(Role.ADMIN)),
-    USER_MANAGEMENT_DELETE(new Permission(Group.USER_MANAGEMENT, Group.USER_MANAGEMENT, Operate.DELETE, 2), List.of(), List.of(Role.ADMIN)),
-    USER_MANAGEMENT_CREATE(new Permission(Group.USER_MANAGEMENT, Group.USER_MANAGEMENT, Operate.CREATE, 3), List.of(), List.of(Role.ADMIN)),
-    USER_MANAGEMENT_AUTHORIZATION(new Permission(Group.USER_MANAGEMENT, Group.USER_MANAGEMENT, Operate.AUTHORIZATION, 4), List.of(), List.of(Role.ADMIN)),
 
-    ROLE_MANAGEMENT_READ(new Permission(Group.ROLE_MANAGEMENT, Group.ROLE_MANAGEMENT, Operate.READ, 0), List.of(), List.of(Role.ADMIN)),
-    ROLE_MANAGEMENT_EDIT(new Permission(Group.USER_MANAGEMENT, Group.ROLE_MANAGEMENT, Operate.EDIT, 1), List.of(), List.of(Role.ADMIN)),
-    ROLE_MANAGEMENT_DELETE(new Permission(Group.USER_MANAGEMENT, Group.ROLE_MANAGEMENT, Operate.DELETE, 2), List.of(), List.of(Role.ADMIN)),
-    ROLE_MANAGEMENT_CREATE(new Permission(Group.USER_MANAGEMENT, Group.ROLE_MANAGEMENT, Operate.CREATE, 3), List.of(), List.of(Role.ADMIN));
+    USER_MANAGEMENT_READ(new Permission(Group.SYSTEM_SETTING, Group.USER_MANAGEMENT, Operate.READ, 0), List.of(), List.of(Role.ADMIN)),
+    USER_MANAGEMENT_EDIT(new Permission(Group.SYSTEM_SETTING, Group.USER_MANAGEMENT, Operate.EDIT, 1), List.of(), List.of(Role.ADMIN)),
+    USER_MANAGEMENT_DELETE(new Permission(Group.SYSTEM_SETTING, Group.USER_MANAGEMENT, Operate.DELETE, 2), List.of(), List.of(Role.ADMIN)),
+    USER_MANAGEMENT_CREATE(new Permission(Group.SYSTEM_SETTING, Group.USER_MANAGEMENT, Operate.CREATE, 3), List.of(), List.of(Role.ADMIN)),
+    USER_MANAGEMENT_AUTHORIZATION(new Permission(Group.SYSTEM_SETTING, Group.USER_MANAGEMENT, Operate.AUTHORIZATION, 4), List.of(), List.of(Role.ADMIN)),
+
+    ROLE_MANAGEMENT_READ(new Permission(Group.SYSTEM_SETTING, Group.ROLE_MANAGEMENT, Operate.READ, 0), List.of(), List.of(Role.ADMIN)),
+    ROLE_MANAGEMENT_EDIT(new Permission(Group.SYSTEM_SETTING, Group.ROLE_MANAGEMENT, Operate.EDIT, 1), List.of(), List.of(Role.ADMIN)),
+    ROLE_MANAGEMENT_DELETE(new Permission(Group.SYSTEM_SETTING, Group.ROLE_MANAGEMENT, Operate.DELETE, 2), List.of(), List.of(Role.ADMIN)),
+    ROLE_MANAGEMENT_CREATE(new Permission(Group.SYSTEM_SETTING, Group.ROLE_MANAGEMENT, Operate.CREATE, 3), List.of(), List.of(Role.ADMIN));
 
 
     /**
@@ -81,7 +82,11 @@ public enum PermissionConstants {
         /**
          * 文件夹
          */
-        FOLDER;
+        FOLDER,
+        /**
+         * 系统设置
+         */
+        SYSTEM_SETTING;
     }
 
 

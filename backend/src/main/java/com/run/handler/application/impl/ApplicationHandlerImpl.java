@@ -1,6 +1,9 @@
 package com.run.handler.application.impl;
 
 
+import com.run.auth.constants.PermissionConstants;
+import com.run.auth.dto.UserProfile;
+import com.run.common.cache.CacheStore;
 import com.run.common.constants.ConversationExecuteConstants;
 import com.run.common.constants.ConversationUserConstants;
 import com.run.common.constants.MessageConstants;
@@ -57,8 +60,9 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
                                   ApplicationRelationMapper applicationRelationMapper,
                                   ApplicationPermissionMapper applicationPermissionMapper,
                                   ConversationMapper conversationMapper,
-                                  ConversationMessageMapper conversationMessageMapper) {
-        super(applicationMapper, applicationFolderMapper, applicationRelationMapper, applicationPermissionMapper);
+                                  ConversationMessageMapper conversationMessageMapper,
+                                  CacheStore cacheStore) {
+        super(applicationMapper, applicationFolderMapper, applicationRelationMapper, applicationPermissionMapper, cacheStore);
         this.applicationMapper = applicationMapper;
         this.conversationMapper = conversationMapper;
         this.conversationMessageMapper = conversationMessageMapper;
@@ -93,6 +97,13 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
         CommonUtils.copyProperties(applicationFolder, simpleNodePojo);
         simpleNodePojo.setType("folder");
         return simpleNodePojo;
+    }
+
+    @Override
+    public Boolean resourceRead(RoutingContext context) {
+        UserProfile userProfile = context.user().get("user");
+        PermissionConstants.Permission permission = PermissionConstants.APPLICATION_READ.getPermission();
+        return userProfile.getPermissions().containsKey(permission.toString());
     }
 
     @Override

@@ -1,5 +1,7 @@
 package com.run.handler.common.impl;
 
+import com.run.auth.dto.UserProfile;
+import com.run.common.cache.CacheStore;
 import com.run.common.constants.ResourcePermissionConstants;
 import com.run.common.result.Result;
 import com.run.common.util.CommonUtils;
@@ -19,6 +21,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
 import org.jooq.Condition;
+import org.jooq.Param;
 import org.jooq.impl.DSL;
 
 import java.util.*;
@@ -42,15 +45,18 @@ public abstract class ResourceHandlerImpl<R extends BaseEntity<R>,
     protected final RelationMapper relationMapper;
     protected final FolderMapper folderMapper;
     protected final PermissionMapper permissionMapper;
+    protected final CacheStore cacheStore;
 
     public ResourceHandlerImpl(ResourceMapper resourceMapper,
                                FolderMapper folderMapper,
                                RelationMapper relationMapper,
-                               PermissionMapper permissionMapper) {
+                               PermissionMapper permissionMapper,
+                               CacheStore cacheStore) {
         this.resourceMapper = resourceMapper;
         this.relationMapper = relationMapper;
         this.folderMapper = folderMapper;
         this.permissionMapper = permissionMapper;
+        this.cacheStore = cacheStore;
     }
 
     public Condition getWhere(QueryResourcePojo query) {
@@ -71,11 +77,11 @@ public abstract class ResourceHandlerImpl<R extends BaseEntity<R>,
                 .where(condition));
     }
 
-    public Condition getWhereByPermission(QueryResourcePojo query) {
+    public Condition getWhereByPermission(QueryResourcePojo query, Boolean resourceRead) {
         Condition condition = DSL.field("ancestor_id")
                 .in(permissionMapper.getDslContext().select(DSL.field("target"))
                         .from(permissionMapper.getTable())
-                        .where(DSL.field("permission").in(DSL.param("#{permissionView}"), DSL.param("#{permissionManage}"))
+                        .where(DSL.field("permission").in(resourceRead ? List.of(DSL.param("#{permissionView}"), DSL.param("#{permissionManage}"), DSL.param("#{permissionRole}")) : List.of(DSL.param("#{permissionView}"), DSL.param("#{permissionManage}")))
                                 .and(DSL.field("user_id").eq(DSL.param("#{userId}")))));
         if (StringUtils.isNotEmpty(query.getParentId())) {
             condition = condition.and(DSL.field("ancestor_id")
@@ -114,8 +120,8 @@ public abstract class ResourceHandlerImpl<R extends BaseEntity<R>,
     }
 
     @Override
-    public Future<List<R>> listByPermission(QueryResourcePojo query, UUID userId) {
-        Condition where = getWhereByPermission(query);
+    public Future<List<R>> listByPermission(QueryResourcePojo query, UUID userId, Boolean resourceRead) {
+        Condition where = getWhereByPermission(query, resourceRead);
         return resourceMapper.list(where, Map.of(
                 "folderId", Optional.ofNullable(query.getParentId()).orElse(""),
                 "depth", Optional.ofNullable(query.getDepth()).orElse(-1),
@@ -123,11 +129,12 @@ public abstract class ResourceHandlerImpl<R extends BaseEntity<R>,
                 "permissionView", "VIEW",
                 "permissionManage", "MANAGE",
                 "permissionNotAuth", "NOT_AUTH",
+                "permissionRole", "ROLE",
                 "userId", userId));
     }
 
     @Override
-    public Future<List<SimpleNodePojo>> treeByPermission(QueryResourcePojo query, UUID userId) {
+    public Future<List<SimpleNodePojo>> treeByPermission(QueryResourcePojo query, UUID userId, Boolean resourceRead) {
         Map<String, Object> params = Map.of(
                 "folderId", Optional.ofNullable(query.getParentId()).orElse(""),
                 "depth", Optional.ofNullable(query.getDepth()).orElse(-1),
@@ -135,8 +142,9 @@ public abstract class ResourceHandlerImpl<R extends BaseEntity<R>,
                 "permissionView", "VIEW",
                 "permissionManage", "MANAGE",
                 "permissionNotAuth", "NOT_AUTH",
+                "permissionRole", "ROLE",
                 "userId", userId);
-        Condition where = getWhereByPermission(query);
+        Condition where = getWhereByPermission(query, resourceRead);
         return resourceMapper.list(where, params).compose(rs ->
                 folderMapper.list(where, params).compose(r -> {
                     List<SimpleNodePojo> simpleNodePojoList = new ArrayList<>();
@@ -241,11 +249,13 @@ public abstract class ResourceHandlerImpl<R extends BaseEntity<R>,
         User user = context.user().get("user");
         String role = user.getRole();
         QueryResourcePojo query = new QueryResourcePojo(folderId, entries.get("name"), null);
-        (role.equals("ADMIN") ? list(query) : listByPermission(query, user.getId()))
+        (role.equals("ADMIN") ? list(query) : listByPermission(query, user.getId(), resourceRead(context)))
                 .onSuccess(rs -> context.end(Result.success(rs).toBuffer()))
                 .onFailure(context::fail);
 
     }
+
+    public abstract Boolean resourceRead(RoutingContext context);
 
     public void tree(RoutingContext context) {
         String folderId = Tool.getParentId(context.pathParam("folderId"));
@@ -253,7 +263,7 @@ public abstract class ResourceHandlerImpl<R extends BaseEntity<R>,
         User user = context.user().get("user");
         String role = user.getRole();
         QueryResourcePojo query = new QueryResourcePojo(folderId, entries.get("name"), null);
-        (role.equals("ADMIN") ? tree(query) : treeByPermission(query, user.getId()))
+        (role.equals("ADMIN") ? tree(query) : treeByPermission(query, user.getId(), resourceRead(context)))
                 .onSuccess(rs -> context.end(Result.success(rs).toBuffer()))
                 .onFailure(context::fail);
     }
@@ -295,7 +305,7 @@ public abstract class ResourceHandlerImpl<R extends BaseEntity<R>,
         User user = context.user().get("user");
         String role = user.getRole();
         QueryResourcePojo query = new QueryResourcePojo(folderId, entries.get("name"), null);
-        (role.equals("ADMIN") ? tree(query) : treeByPermission(query, user.getId()))
+        (role.equals("ADMIN") ? tree(query) : treeByPermission(query, user.getId(), resourceRead(context)))
                 .compose(rs -> permissionMapper
                         .list(DSL.field("user_id").eq(DSL.param("#{userId}")), Map.of("userId", userId))
                         .compose(ps -> Future.succeededFuture(toSimpleNodePermissionPojo(rs, ps))))
@@ -313,7 +323,7 @@ public abstract class ResourceHandlerImpl<R extends BaseEntity<R>,
                                 .and(DSL.field("target").eq(DSL.param("#{target}"))),
                         Map.of("userId", userId, "permission", permission, "target", resourceId))
                 .compose(_ -> permissionMapper.save(p))
-
+                .compose(_ -> Future.fromCompletionStage(cacheStore.delete("permissions" + userId)))
                 .onSuccess(rs -> context.end(Result.success(p).toBuffer()))
                 .onFailure(Future::failedFuture);
     }

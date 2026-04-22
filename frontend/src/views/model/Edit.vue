@@ -132,7 +132,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import RadioCard from '@/components/radio-card/index.vue'
 import { groupBy } from '@/utils/common'
 import ModelParameterForm from '@/views/model/components/ModelParameterForm.vue'
-import { ElMessage } from 'element-plus'
+import bus from '@/bus'
 import { useRoute, useRouter } from 'vue-router'
 import { TreeCommonAPI } from '@/api/tree'
 import { zodResolver } from '@primevue/forms/resolvers/zod'
@@ -162,7 +162,7 @@ const addParamsmodelParameterForm = (data: any, index?: number) => {
     (item: any, i: number) => item.field == data.field && i !== index
   )
   if (fin) {
-    ElMessage.error('字段:' + data.field + '已存在')
+    bus.emit('message:error', '字段:' + data.field + '已存在')
     return false
   }
 
@@ -186,7 +186,7 @@ const edit = () => {
   dynamicsFormRef.value?.formRef?.validate().then(({ values, errors }) => {
     if (Object.keys(errors).length === 0) {
       ModelAPI.edit(resourceId.value, values, loading).then(() => {
-        ElMessage.success('模型保存成功')
+        bus.emit('message:success', '模型保存成功')
       })
     }
   })

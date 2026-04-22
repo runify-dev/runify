@@ -35,6 +35,7 @@ import javax.inject.Inject;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class RoleHandlerImpl implements IRoleHandler {
     private RoleMapper roleMapper;
@@ -103,7 +104,7 @@ public class RoleHandlerImpl implements IRoleHandler {
     public void addUser(RoutingContext context) {
         AddUserVO addUserVO = context.body().asPojo(AddUserVO.class);
         List<String> userIds = addUserVO.getUserIds();
-        UUID roleId = UUID.fromString(context.pathParam("roleId"));
+        String roleId = context.pathParam("roleId");
         List<RoleUserRelation> list = userIds.stream().distinct().map(userId -> {
             return new RoleUserRelation(CommonUtils.uuid7(), roleId, UUID.fromString(userId));
         }).toList();
@@ -154,7 +155,7 @@ public class RoleHandlerImpl implements IRoleHandler {
                 }).compose(result -> {
                     return roleUserRelationMapper.list(F.field(RoleUserRelation::getRoleId).eq(F.params(RoleUserRelation::getRoleId)),
                             Map.of("roleId", roleId)).compose(ok -> {
-                        return Future.succeededFuture(ok.stream().map(ru -> "permissions:" + ru.getUserId()).toList());
+                        return Future.succeededFuture(ok.stream().flatMap(ru -> Stream.of("permissions:" + ru.getUserId(), "roles:" + ru.getUserId())).toList());
                     });
 
                 }).compose(permissionKeys -> {

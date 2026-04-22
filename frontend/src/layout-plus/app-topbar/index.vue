@@ -49,7 +49,7 @@
             image="https://primefaces.org/cdn/primevue/images/avatar/amyelsner.png"
             shape="circle"
           />
-          <Menu ref="menuRef" :model="buttons" :popup="true"></Menu>
+          <Menu ref="menuRef" :model="_buttons" :popup="true"></Menu>
         </div>
       </template>
     </Menubar>
@@ -76,7 +76,12 @@ const buttons = ref([
     icon: 'pi pi-cog',
     command: () => {
       router.push({ name: 'system-management' })
-    }
+    },
+    permissions: [
+      PermissionConstants.ROLE_MANAGEMENT_READ,
+      PermissionConstants.USER_MANAGEMENT_READ,
+      Role.ADMIN
+    ]
   },
   {
     label: '退出登录',
@@ -87,6 +92,14 @@ const buttons = ref([
     }
   }
 ])
+const _buttons = computed(() => {
+  return buttons.value.filter((m: any) => {
+    if (m.permissions) {
+      return hasPermission(m.permissions, 'OR')
+    }
+    return true
+  })
+})
 const route = useRoute()
 const router = useRouter()
 
@@ -118,7 +131,6 @@ const items = ref([
 ])
 const menus = computed(() => {
   return items.value.filter((m: any) => {
-    console.log(hasPermission(m.permissions, 'OR'))
     return hasPermission(m.permissions, 'OR')
   })
 })

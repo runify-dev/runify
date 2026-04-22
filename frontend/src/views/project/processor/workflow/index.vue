@@ -29,7 +29,7 @@ import { onMounted, ref, provide } from 'vue'
 import Workflow from '@/workflow/index.vue'
 import processorAPI from '@/api/processor'
 import { useRoute } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import bus from '@/bus'
 import { baseWorkflow, WorkflowType } from '@/workflow/common/data'
 const debug = ref<boolean>(false)
 const route = useRoute()
@@ -41,7 +41,7 @@ provide('WorkflowType', WorkflowType.PROCESSOR)
 const deploy = () => {
   processorAPI.deploy(route.params.id as string, route.params.processorId as string).then((ok) => {
     processor.value = ok.data
-    ElMessage.success('部署成功')
+    bus.emit('message:success', '部署成功')
   })
 }
 const unDeploy = () => {
@@ -49,7 +49,7 @@ const unDeploy = () => {
     .undeploy(route.params.id as string, route.params.processorId as string)
     .then((ok) => {
       processor.value = ok.data
-      ElMessage.success('取消部署成功')
+      bus.emit('success', '取消部署成功')
     })
 }
 const save = () => {
@@ -58,7 +58,7 @@ const save = () => {
       workflow: workflowRef.value?.getGraphData()
     })
     .then(() => {
-      ElMessage.success('成功')
+      bus.emit('success', '成功')
     })
 }
 

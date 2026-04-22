@@ -64,7 +64,7 @@
 </template>
 <script setup lang="ts">
 import { ref } from 'vue'
-import { ElMessage } from 'element-plus'
+import bus from '@/bus'
 import processorAPI from '@/api/processor'
 import { useRouter } from 'vue-router'
 import { zodResolver } from '@primevue/forms/resolvers/zod'
@@ -91,7 +91,7 @@ const submit = () => {
     if (Object.keys(errors).length == 0) {
       if (currentProjectId.value) {
         processorAPI.createProcessor(currentProjectId.value, values).then((ok) => {
-          ElMessage.success('创建成功')
+          bus.emit('message:success', '创建成功')
           router.push({ name: 'processorWorkflow', params: { processorId: ok.data.id } })
         })
       }

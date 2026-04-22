@@ -6,10 +6,8 @@ import com.run.auth.constants.PermissionConstants;
 import com.run.auth.constants.PermissionDataConstants;
 import com.run.auth.dto.UserProfile;
 import com.run.common.cache.CacheStore;
-import com.run.common.keyvalue.DefaultKeyValue;
 import com.run.common.util.CommonUtils;
 import com.run.common.util.JWTUtil;
-import com.run.common.util.JacksonUtils;
 import com.run.common.util.PermissionHexUtils;
 import com.run.dao.common.F;
 import com.run.dao.common.entity.BaseEntity;
@@ -17,7 +15,6 @@ import com.run.dao.common.mapper.BaseMapper;
 import com.run.dao.entity.*;
 import com.run.dao.entity.Role;
 import com.run.dao.mapper.*;
-import freemarker.ext.beans.BeansWrapper;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.User;
@@ -32,7 +29,6 @@ import org.jooq.impl.DSL;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -231,12 +227,13 @@ public class TokenProvider implements AuthenticationProvider {
         CompletableFuture<List<Role>> rolesFuture = cacheStore.get("roles:" + userId, new TypeReference<List<Role>>() {
         }).thenCompose(result -> {
             if (result.isEmpty()) {
-                SelectConditionStep<Record1<UUID>> where = roleUserRelationMapper.getDslContext()
+                SelectConditionStep<Record1<String>> where = roleUserRelationMapper.getDslContext()
                         .select(F.field(RoleUserRelation::getRoleId))
                         .from(roleUserRelationMapper.getTable())
                         .where(F.field(RoleUserRelation::getUserId).eq(F.params(RoleUserRelation::getUserId)));
-                return roleBaseMapper.list(F.field(RoleUserRelation::getId).in(where), Map.of("userId", userId)).compose(roles -> Future.fromCompletionStage(cacheStore.set("roles:" + userId, roles)
-                        .thenCompose(ok -> CompletableFuture.completedFuture(roles)))).toCompletionStage();
+                return roleBaseMapper.list(F.field(Role::getId).in(where), Map.of("userId", userId))
+                        .compose(roles -> Future.fromCompletionStage(cacheStore.set("roles:" + userId, roles)
+                                .thenCompose(ok -> CompletableFuture.completedFuture(roles)))).toCompletionStage();
             } else {
                 return CompletableFuture.completedFuture(result.get());
             }

@@ -1,32 +1,33 @@
 export enum Group {
-  APPLICATION = "APPLICATION",
-  NOTE = "NOTE",
-  PROJECT = "PROJECT",
-  MODEL = "MODEL",
-  USER_MANAGEMENT = "USER_MANAGEMENT",
-  ROLE_MANAGEMENT = "ROLE_MANAGEMENT",
-  OVERVIEW = "OVERVIEW",
-  SETTING = "SETTING",
-  CONVERSATION_LOG = "CONVERSATION_LOG",
-  FOLDER = "FOLDER"
+  APPLICATION = 'APPLICATION',
+  NOTE = 'NOTE',
+  PROJECT = 'PROJECT',
+  MODEL = 'MODEL',
+  USER_MANAGEMENT = 'USER_MANAGEMENT',
+  ROLE_MANAGEMENT = 'ROLE_MANAGEMENT',
+  OVERVIEW = 'OVERVIEW',
+  SETTING = 'SETTING',
+  CONVERSATION_LOG = 'CONVERSATION_LOG',
+  FOLDER = 'FOLDER',
+  SYSTEM_SETTING = 'SYSTEM_SETTING'
 }
 
 export enum Operate {
-  READ = "READ",
-  EDIT = "EDIT",
-  CREATE = "CREATE",
-  DELETE = "DELETE",
-  AUTHORIZATION = "AUTHORIZATION"
+  READ = 'READ',
+  EDIT = 'EDIT',
+  CREATE = 'CREATE',
+  DELETE = 'DELETE',
+  AUTHORIZATION = 'AUTHORIZATION'
 }
 
 export enum Role {
-  ADMIN = "ADMIN",
-  USER = "USER"
+  ADMIN = 'ADMIN',
+  USER = 'USER'
 }
 
 export enum Compare {
-  OR = "OR",
-  AND = "AND"
+  OR = 'OR',
+  AND = 'AND'
 }
 
 export class Permission {
@@ -66,7 +67,9 @@ export class Permission {
       return `${this.group}:${this.resourceId}`
     }
     return this.toString()
-
+  }
+  newResourcePermission(resourceId: string) {
+    return new Permission(this.group, this.subGroup, this.operate, this.bitIndex, resourceId)
   }
   getResourcePermissionKey(resourceId: string): string {
     return `${this.group}:${resourceId}`
@@ -102,10 +105,7 @@ export class AggregatePermission {
     return new AggregatePermissionBuilder()
   }
 
-  hasPermission(
-    userRoles: Set<string>,
-    userPermissions: Map<string, bigint>
-  ): boolean {
+  hasPermission(userRoles: Set<string>, userPermissions: Map<string, bigint>): boolean {
     if (
       this.permissionCalls.length === 0 &&
       this.permissionConstants.length === 0 &&
@@ -182,14 +182,10 @@ export class AggregatePermission {
     return userRoles.has(Role[role])
   }
 
-  private checkPermission(
-    permission: Permission,
-    userPermissions: Map<string, bigint>
-
-  ): boolean {
+  private checkPermission(permission: Permission, userPermissions: Map<string, bigint>): boolean {
     const key = permission.resourceId
       ? permission.getResourcePermissionKey(permission.resourceId)
-      : Group[permission.group]
+      : permission.toString()
     const rawValue =
       userPermissions instanceof Map ? userPermissions.get(key) : userPermissions[key]
     if (rawValue == null) {
@@ -263,4 +259,23 @@ export class AggregatePermissionBuilder {
       compare: this._compare
     })
   }
+}
+
+export const buildBaseResourcePermission = (permission: Permission, resourceId: string) => {
+  return resourceId == 'root'
+    ? buildBasePermission(permission)
+    : AggregatePermission.builder()
+      .addPermission(permission.newResourcePermission(resourceId))
+      .addRole(Role.ADMIN)
+      .compare(Compare.OR)
+      .build()
+}
+
+export const buildBasePermission = (permission: Permission) => {
+  return AggregatePermission.builder()
+    .addPermission(permission)
+    .addRole(Role.ADMIN)
+    .addRole(Role.USER)
+    .compare(Compare.OR)
+    .build()
 }
