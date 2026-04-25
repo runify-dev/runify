@@ -14,5 +14,15 @@ onMounted(() => {
     }
   ]
 })
+const validate = () => {
+  return Promise.resolve({ errors: {}, values: {} })
+}
+const submit = () => {
+  return Promise.resolve({ errors: {}, values: {} })
+}
+defineExpose({
+  validate: validate,
+  submit: submit
+})
 </script>
 <style lang="scss" scoped></style>

@@ -265,6 +265,9 @@ public class TokenProvider implements AuthenticationProvider {
                 CommonUtils.copyProperties(user, userProfile);
                 userProfile.setPermissions(permissions);
                 userProfile.setRoles(roles);
+                if (PermissionConstants.Role.ADMIN.name().equals(user.getRole())) {
+                    roles.add(new Role(PermissionConstants.Role.ADMIN.name(), "管理员", true, PermissionConstants.Role.ADMIN, null, null));
+                }
                 User userImpl = new UserImpl(new JsonObject(Map.of("user", userProfile)), new JsonObject());
                 return CompletableFuture.completedFuture(userImpl);
             });
@@ -340,80 +343,4 @@ public class TokenProvider implements AuthenticationProvider {
         });
     }
 
-    @NotNull
-    private Function<List<Role>, Future<User>> getListFutureFunction(String userId) {
-        return roles -> {
-            List<String> roleIds = roles.stream().map(Role::getId).toList();
-            Future<List<RolePermissionRelation>> rolePermissionRelations = rolePermissionRelationMapper
-                    .list(F.field(RolePermissionRelation::getRoleId).in(F.params(RolePermissionRelation::getRoleId)),
-                            Map.of("roleId", roleIds), List.of("roleId"));
-            return rolePermissionRelations.compose(rolePermissionRelationResult -> {
-                Future<Map<String, Long>> applicationPermissions =
-                        getResourcePermission(
-                                applicationMapper,
-                                applicationPermissionBaseMapper,
-                                applicationRelationMapper,
-                                userId,
-                                ApplicationRelation::getDescendantId,
-                                rolePermissionRelationResult,
-                                PermissionConstants.Group.APPLICATION);
-                Future<Map<String, Long>> notePermissions =
-                        getResourcePermission(
-                                noteMapper,
-                                notePermissionBaseMapper,
-                                noteRelationMapper,
-                                userId,
-                                NoteRelation::getDescendantId,
-                                rolePermissionRelationResult,
-                                PermissionConstants.Group.NOTE);
-                Future<Map<String, Long>> moelPermissions =
-                        getResourcePermission(
-                                modelMapper,
-                                modelPermissionBaseMapper,
-                                modelRelationMapper,
-                                userId,
-                                ModelRelation::getDescendantId,
-                                rolePermissionRelationResult,
-                                PermissionConstants.Group.MODEL);
-                Future<com.run.dao.entity.User> userFuture = userMapper.getById(userId);
-                Future<Map<String, Long>> projectPermissions =
-                        getResourcePermission(
-                                projectMapper,
-                                projectPermissionBaseMapper,
-                                projectRelationMapper,
-                                userId,
-                                ProjectRelation::getDescendantId,
-                                rolePermissionRelationResult,
-                                PermissionConstants.Group.PROJECT);
-                return Future.all(applicationPermissions, notePermissions, moelPermissions, projectPermissions, rolePermissionRelations, userFuture);
-            }).compose(result -> {
-                Map<String, Long> applicationPermissions = result.resultAt(0);
-                Map<String, Long> notePermissions = result.resultAt(1);
-                Map<String, Long> modelPermissions = result.resultAt(2);
-                Map<String, Long> projectPermissions = result.resultAt(3);
-                List<RolePermissionRelation> permissionRelations = result.resultAt(4);
-
-                Map<String, Long> menuPermissionMap = permissionRelations.stream()
-                        .map(RolePermissionRelation::getPermissionId)
-                        .map(PermissionDataConstants.permissionMap::get)
-                        .collect(Collectors.toMap(PermissionConstants.Permission::toString, PermissionConstants.Permission::bit));
-
-
-                Map<String, Long> collect = Stream.of(applicationPermissions, notePermissions, modelPermissions, projectPermissions, menuPermissionMap)
-                        .flatMap(map -> map.entrySet().stream())
-                        .collect(Collectors.toMap(
-                                Map.Entry::getKey,
-                                Map.Entry::getValue,
-                                (v1, v2) -> v1
-                        ));
-
-                com.run.dao.entity.User user = result.resultAt(5);
-                if (user == null) {
-                    return Future.failedFuture(new RuntimeException("用户不存在"));
-                }
-                UserImpl userImpl = new UserImpl(new JsonObject(Map.of("user", user, "permissions", collect, "roles", roleIds)), new JsonObject());
-                return Future.succeededFuture(userImpl);
-            });
-        };
-    }
 }

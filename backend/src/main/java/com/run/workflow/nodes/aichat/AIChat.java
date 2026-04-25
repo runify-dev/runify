@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.openai.core.JsonValue;
 import com.openai.core.http.AsyncStreamResponse;
 import com.openai.models.chat.completions.ChatCompletionMessageParam;
+import com.openai.models.chat.completions.ChatCompletionUserMessageParam;
 import com.run.RunApplication;
 import com.run.common.keyvalue.DefaultKeyValue;
 import com.run.common.util.ChatCompletionAccumulator;
@@ -72,7 +73,11 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
             ChatCompletionAccumulator chatCompletionAccumulator = new ChatCompletionAccumulator(List.of("reasoning_content", "reasoning"));
             List<ConversationMessage> conversationMessages = new ArrayList<>((List<ConversationMessage>) workFlowManage.getContextVariable(List.of("start-node", "messages")));
             List<ChatCompletionMessageParam> messages = ConversationMessageConverter.toOpenAiMessages(conversationMessages);
+            if (StringUtils.isNotEmpty(node.params.getSystem())) {
+                messages.addFirst(ChatCompletionMessageParam.ofUser(ChatCompletionUserMessageParam.builder().content(node.params.getSystem()).build()));
+            }
 
+            messages.set(messages.size() - 1, ChatCompletionMessageParam.ofUser(ChatCompletionUserMessageParam.builder().content(node.params.getUser()).build()));
             ModelMapper modelMapper = RunApplication.appComponent.modelMapper();
             modelMapper.getById(node.params.getModelId()).onSuccess(model -> {
                 IProvider provider = ModelProvideConstants.valueOf(model.getProvider()).getProvider();

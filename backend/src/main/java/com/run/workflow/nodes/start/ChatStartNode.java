@@ -49,7 +49,7 @@ public class ChatStartNode extends INode<ChatStartNode, StartNodeData> {
         public Supplier<List<Node>> apply(WorkFlowManage workFlowManage, ChatStartNode node) {
             node.write();
             workFlowManage.writeContext(node, "messages", node.params.messages);
-            workFlowManage.writeContext(node, "question", node.params.messages.getLast().getContent());
+            workFlowManage.writeContext(node, "question", node.params.messages.getLast().getContent().getJsonObject(0).getString("content"));
             node.end(NodeStatus.SUCCESS);
             return () -> workFlowManage.getNextList(node.node.getId()).stream().map(DefaultKeyValue::getValue).toList();
 

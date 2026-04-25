@@ -204,6 +204,7 @@ import bus from '@/bus/index'
 import TreeEmpty from '@/components/tree-empty/index.vue'
 import { PermissionConstants } from '@/permission/data'
 import { hasPermission } from '@/permission'
+import { Role } from '@/permission/common'
 const route = useRoute()
 const to = (routeName: string) => {
   router.push({ name: routeName })
@@ -219,7 +220,10 @@ const items = ref([
     label: '概览',
     icon: 'pi pi-fw pi-objects-column p-1',
     permissions: [
-      PermissionConstants.APPLICATION_OVERVIEW_READ.newResourcePermission(route.params.id as string)
+      PermissionConstants.APPLICATION_OVERVIEW_READ.newResourcePermission(
+        route.params.id as string
+      ),
+      Role.ADMIN
     ],
     shortcut: ''
   },
@@ -228,7 +232,8 @@ const items = ref([
     label: '设置',
     icon: 'pi pi-fw pi-cog p-1',
     permissions: [
-      PermissionConstants.APPLICATION_SETTING_READ.newResourcePermission(route.params.id as string)
+      PermissionConstants.APPLICATION_SETTING_READ.newResourcePermission(route.params.id as string),
+      Role.ADMIN
     ]
   },
   {
@@ -238,7 +243,8 @@ const items = ref([
     permissions: [
       PermissionConstants.APPLICATION_CONVERSATION_LOG_READ.newResourcePermission(
         route.params.id as string
-      )
+      ),
+      Role.ADMIN
     ]
   }
 ])

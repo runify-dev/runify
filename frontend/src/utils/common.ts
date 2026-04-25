@@ -2,6 +2,7 @@ import { type Node, type Tree } from '@/api/type/node'
 import { cloneDeep } from 'lodash'
 import { type DataTableFilterMeta } from 'primevue/datatable'
 import Clipboard from 'vue-clipboard3'
+import { v4 as uuidv4 } from 'uuid'
 export const toTree = (nodeList: Array<Tree>) => {
   nodeList = cloneDeep(nodeList)
   const nodeMap = Object.fromEntries(nodeList.map((item) => [item.id, item]))
@@ -97,4 +98,8 @@ export async function copyContent(content: string) {
 
 export function isFunction(fn: any) {
   return typeof fn === 'function'
+}
+
+export const randomId = () => {
+  return uuidv4()
 }

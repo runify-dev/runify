@@ -1,3 +1,4 @@
+import { randomId } from '@/utils/common'
 export const startNode = {
   id: 'start-node',
   type: 'start-node',
@@ -93,6 +94,40 @@ export const jsonResponseNode = {
     field_list: []
   }
 }
+export const defaulBranches = [
+  {
+    id: randomId(),
+    type: 'if',
+    logic: 'and',
+    conditions: [
+      {
+        id: randomId(),
+        variable: [],
+        compare: 'eq',
+        value: ''
+      }
+    ]
+  },
+  { id: randomId(), type: 'else', logic: 'and', conditions: [] }
+]
+export const judgeNode = {
+  type: 'judge-node',
+  text: '',
+  x: 0,
+  y: 0,
+  label: '条件判断',
+  properties: {
+    width: 200,
+    height: 128,
+    name: '条件判断',
+    isHovered: false,
+    field_list: [],
+    nodeData: {
+      branches: [...defaulBranches]
+    }
+  }
+}
+
 export const baseWorkflow = {
   nodes: [startNode],
   edges: []
