@@ -28,7 +28,7 @@ const pageConversation: (
   query: any,
   loading?: Ref<boolean>
 ) => Promise<Result<any>> = (applicationId, currentPage, pageSize, query, loading) => {
-  console.log({ ...query, pageSize, currentPage })
+
   return get(
     `/application/${applicationId}/conversation`,
     { ...query, pageSize, currentPage },
@@ -51,16 +51,22 @@ const pageConversationMessage: (
   query,
   loading
 ) => {
-  return get(
-    `/application/${applicationId}/conversation/${conversationId}/message`,
-    { ...query, pageSize, currentPage },
-    loading
-  )
-}
+    return get(
+      `/application/${applicationId}/conversation/${conversationId}/message`,
+      { ...query, pageSize, currentPage },
+      loading
+    )
+  }
 const createConversation = (applicationId: string, name: string) => {
   return post(`/application/${applicationId}/conversation`, { name }, {})
 }
 
+const resumeStream = (applicationId: string, conversationId: string, index: number) => {
+  return postStream(`/admin/api/application/${applicationId}/conversation/${conversationId}/resume-stream`, {}, { 'Last-Event-ID': index })
+}
+const statusStream = (applicationId: string, conversationId: string) => {
+  return get(`/application/${applicationId}/conversation/${conversationId}/status`)
+}
 const getApplicationInfo: (
   applicationId: string,
   loading?: Ref<boolean>
@@ -74,5 +80,7 @@ export default {
   pageConversation,
   createConversation,
   pageConversationMessage,
+  statusStream,
+  resumeStream
   getApplicationInfo
 }

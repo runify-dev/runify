@@ -28,11 +28,7 @@
             </div>
 
             <template v-else>
-              <div
-                v-for="(condition, conditionIndex) in getConditions(branch)"
-                :key="condition.id"
-                class="relative"
-              >
+              <div v-for="(condition, conditionIndex) in getConditions(branch)" :key="condition.id">
                 <div class="grid min-h-8 grid-cols-[1fr_42px_1fr] items-center gap-1 px-1.5 py-1">
                   <!-- 左值 -->
                   <button
@@ -44,6 +40,9 @@
                         : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                     "
                     @mouseenter="
+                      showPreview($event, '左值', formatVariable(condition.variable) || '选择变量')
+                    "
+                    @click="
                       showPreview($event, '左值', formatVariable(condition.variable) || '选择变量')
                     "
                     @mouseleave="hidePreview"
@@ -64,6 +63,7 @@
                         : 'text-slate-500'
                     "
                     @mouseenter="showPreview($event, '比较符', getCompareText(condition.compare))"
+                    @click="showPreview($event, '比较符', getCompareText(condition.compare))"
                     @mouseleave="hidePreview"
                   >
                     {{ getCompareText(condition.compare) }}
@@ -79,6 +79,7 @@
                         : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                     "
                     @mouseenter="showPreview($event, '右值', getRightValue(condition))"
+                    @click="showPreview($event, '右值', getRightValue(condition))"
                     @mouseleave="hidePreview"
                     @focus="showPreview($event, '右值', getRightValue(condition))"
                     @blur="hidePreview"
@@ -191,7 +192,8 @@ const validate = () => {
 }
 const simpleNodeContainerRef = ref<InstanceType<typeof SimpleNodeContainer>>()
 const submit = () => {
-  const height = containerRef.value.clientHeight + 50
+  const height = containerRef.value.clientHeight + 84
+  console.log(height)
   model.height = height
   model.properties.height = height
   return contentRef.value?.submit?.() || validateCurrentBranches()

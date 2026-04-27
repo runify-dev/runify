@@ -6,6 +6,7 @@ import com.run.common.constants.ConversationExecuteConstants;
 import com.run.common.constants.ConversationUserConstants;
 import com.run.common.constants.MessageConstants;
 import com.run.common.query.Query;
+import com.run.common.queue.MessageQueue;
 import com.run.common.result.Page;
 import com.run.common.result.Result;
 import com.run.common.util.CommonUtils;
@@ -28,6 +29,7 @@ import com.run.workflow.WorkFlowManage;
 import com.run.workflow.WorkflowType;
 import com.run.workflow.entity.WorkFlow;
 import com.run.workflow.message.struct.Content;
+import com.run.workflow.message.struct.Message;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
@@ -41,6 +43,7 @@ import org.jooq.impl.DSL;
 import javax.inject.Inject;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * {@code @Author:张少虎}
@@ -54,15 +57,18 @@ public class ConversationHandlerImpl implements IConversationHandler {
     private final ConversationMapper conversationMapper;
     private final ConversationMessageMapper conversationMessageMapper;
     private final ApplicationMapper applicationMapper;
+    private final MessageQueue<String> messageQueue;
 
     @Inject
     public ConversationHandlerImpl(
             ConversationMapper conversationMapper,
             ConversationMessageMapper conversationMessageMapper,
-            ApplicationMapper applicationMapper) {
+            ApplicationMapper applicationMapper,
+            MessageQueue<String> messageQueue) {
         this.applicationMapper = applicationMapper;
         this.conversationMapper = conversationMapper;
         this.conversationMessageMapper = conversationMessageMapper;
+        this.messageQueue = messageQueue;
     }
 
     @Override
@@ -154,6 +160,8 @@ public class ConversationHandlerImpl implements IConversationHandler {
         context.response().putHeader("Cache-Control", "no-cache");
         context.response().putHeader("Character-Encoding", "utf-8");
         context.response().write(Buffer.buffer("", "utf-8"));
+        messageQueue.create(conversationId.toString());
+        AtomicLong index = new AtomicLong(1);
         WorkFlowManage workFlowManage = new WorkFlowManage(WorkFlow.of(workflow, WorkflowType.CHAT_WORKFLOW),
                 new HashMap<>(Map.of(
                         "messages", list,
@@ -177,10 +185,14 @@ public class ConversationHandlerImpl implements IConversationHandler {
                         .onFailure(e -> {
                             context.fail(e);
                         });
+                messageQueue.complete(conversationId.toString());
+                messageQueue.delete(conversationId.toString());
                 return;
             }
-
-            context.response().write(Buffer.buffer("data: " + JacksonUtils.toJson(chunk) + "\n\n", "utf-8"));
+            Message message = new Message(List.of(chunk), index.getAndIncrement());
+            String messageString = "data: " + JacksonUtils.toJson(message) + "\n\n";
+            messageQueue.publish(conversationId.toString(), message.index(), messageString);
+            context.response().write(Buffer.buffer(messageString, "utf-8"));
         });
         workFlowManage.invoke();
     }
@@ -236,5 +248,42 @@ public class ConversationHandlerImpl implements IConversationHandler {
                         Map.of("conversationId", conversationId)
                 ).onSuccess(result -> context.end(Result.success(result).toBuffer()))
                 .onFailure(context::fail);
+    }
+
+    public void statusStream(RoutingContext context) {
+        String conversationId = context.pathParam("conversationId");
+        messageQueue.exists(conversationId, ok -> {
+            context.end(Result.success(Map.of("status", ok)).toBuffer());
+        });
+    }
+
+    public void resumeStream(RoutingContext context) {
+        String conversationId = context.pathParam("conversationId");
+        context.response().setChunked(true);
+        context.response().putHeader("Content-Type", "text/event-stream;charset=utf-8");
+        context.response().putHeader("Cache-Control", "no-cache");
+        context.response().putHeader("Character-Encoding", "utf-8");
+        context.response().write(Buffer.buffer("", "utf-8"));
+        String header = context.request().getHeader("Last-Event-ID");
+        messageQueue.exists(conversationId, ok -> {
+            if (ok) {
+                Thread.startVirtualThread(() -> {
+                    long index;
+                    try {
+                        index = Long.parseLong(header);
+                    } catch (NumberFormatException e) {
+                        index = 0L;
+                    }
+                    messageQueue.consumer(conversationId, UUID.randomUUID().toString(), index, chunk -> {
+                                context.response().write(Buffer.buffer(chunk, "utf-8"));
+                            },
+                            () -> {
+                                context.response().end();
+                            });
+                });
+
+            }
+        });
+
     }
 }

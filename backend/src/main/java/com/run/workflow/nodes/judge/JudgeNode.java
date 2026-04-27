@@ -72,6 +72,6 @@ public class JudgeNode extends INode<JudgeNode, JudgeNodeData> {
 
     @Override
     public NodeResult<JudgeNode> _invoke() {
-        return new NodeResult<>(new JudgeNode.Handle(), this);
+        return new NodeResult<>(new Handle(), this);
     }
 }

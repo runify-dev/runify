@@ -58,6 +58,13 @@ const delConversation: (
 ) => Promise<Result<Page<any>>> = (conversationId, loading) => {
   return del(`/conversation/${conversationId}`, undefined, undefined, loading)
 }
+
+const resumeStream = (conversationId: string, index: number) => {
+  return postStream(`/conversation/api/conversation/${conversationId}/resume-stream`, {}, { 'Last-Event-ID': index })
+}
+const statusStream = (conversationId: string) => {
+  return get(`/conversation/${conversationId}/status`)
+}
 export default {
   conversation,
   createConversation,
@@ -66,5 +73,7 @@ export default {
   pageConversation,
   pageConversationMessage,
   modifyName,
-  delConversation
+  delConversation,
+  resumeStream,
+  statusStream
 }
