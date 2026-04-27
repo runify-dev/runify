@@ -67,6 +67,13 @@ const resumeStream = (applicationId: string, conversationId: string, index: numb
 const statusStream = (applicationId: string, conversationId: string) => {
   return get(`/application/${applicationId}/conversation/${conversationId}/status`)
 }
+const getApplicationInfo: (
+  applicationId: string,
+  loading?: Ref<boolean>
+) => Promise<Result<any>> = (applicationId, loading) => {
+  return get(`/application/resources/${applicationId}`, undefined, loading)
+}
+
 export default {
   edit,
   chat,
@@ -75,4 +82,5 @@ export default {
   pageConversationMessage,
   statusStream,
   resumeStream
+  getApplicationInfo
 }
