@@ -61,10 +61,18 @@ const createConversation = (applicationId: string, name: string) => {
   return post(`/application/${applicationId}/conversation`, { name }, {})
 }
 
+const getApplicationInfo: (
+  applicationId: string,
+  loading?: Ref<boolean>
+) => Promise<Result<any>> = (applicationId, loading) => {
+  return get(`/application/resources/${applicationId}`, undefined, loading)
+}
+
 export default {
   edit,
   chat,
   pageConversation,
   createConversation,
-  pageConversationMessage
+  pageConversationMessage,
+  getApplicationInfo
 }
