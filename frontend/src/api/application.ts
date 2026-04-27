@@ -81,6 +81,6 @@ export default {
   createConversation,
   pageConversationMessage,
   statusStream,
-  resumeStream
+  resumeStream,
   getApplicationInfo
 }
