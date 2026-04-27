@@ -60,7 +60,12 @@ public interface IConversationHandler {
 
     /**
      * 分页获取 Message
+     *
      * @param context
      */
     void pageMessage(RoutingContext context);
+
+    void resumeStream(RoutingContext context);
+
+    void statusStream(RoutingContext context);
 }

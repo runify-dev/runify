@@ -10,11 +10,15 @@ import java.util.function.Consumer;
  */
 public interface MessageQueue<M> {
 
-    void consume(String eventId, String consumerId, Consumer<M> call);
+    void consumer(String eventId, String consumerId, Long index, Consumer<M> onNext, Runnable onComplete);
 
-    void publish(String eventId, M message);
+    void complete(String eventId);
+
+    void publish(String eventId, Long index, M message);
 
     void create(String eventId);
 
     void delete(String eventId);
+
+    void exists(String eventId, Consumer<Boolean> callback);
 }

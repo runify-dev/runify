@@ -178,15 +178,21 @@ export const del: (
  * @param data 请求body
  * @returns
  */
-export const postStream: (url: string, data?: unknown) => Promise<Result<any> | any> = (
+export const postStream: (url: string, data?: unknown, _headers?: any) => Promise<Result<any> | any> = (
   url,
-  data
+  data,
+  _headers
 ) => {
   const { conversationToken } = useStore()
   const token = conversationToken.getToken()
   const headers: HeadersInit = { 'Content-Type': 'application/json' }
   if (token) {
     headers['AUTHORIZATION'] = `Bearer ${token}`
+  }
+  if (_headers) {
+    Object.keys(_headers).forEach(key => {
+      headers[key] = _headers[key]
+    })
   }
   return fetch(url, {
     method: 'POST',

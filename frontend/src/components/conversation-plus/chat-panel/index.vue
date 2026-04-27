@@ -49,7 +49,7 @@
       <template v-else>
         <div
           v-for="(m, i) in messages"
-          :key="i"
+          :key="m.id || i"
           :class="['mrow', m.role === 'USER' ? 'user' : 'assistant']"
         >
           <ContentList :content-list="m.content" />
@@ -105,6 +105,7 @@ import { aggregators, Scroll } from '@/components/conversation-plus/index'
 import ContentList from '@/components/conversation-plus/content-list/index.vue'
 
 const conversationAPI = inject('conversationAPI') as any
+
 const props = defineProps<{ type: 'DEBUG' | 'CONVERSATION' }>()
 const emit = defineEmits<{ toggle: []; chanage: []; close: [] }>()
 
@@ -116,7 +117,12 @@ const {
   loadMessages,
   loadMoreMessages,
   pushMessage,
-  newChat
+  newChat,
+
+  statusStream,
+  resumeStream,
+  setStreamIndex,
+  clearStreamIndex
 } = useChatStore(props.type)
 
 const focused = ref(false)
@@ -131,22 +137,162 @@ const prompts = [
   { icon: '◉', text: '如何学习 Vue3 + Vite？' },
   { icon: '◇', text: '推荐健康的晚餐食谱' }
 ]
+
 let scroll: any
+
+/**
+ * 用来防止快速切换会话时，旧的 stream / status / resume 回调污染当前会话。
+ */
+let streamToken = 0
+
 // ─── 滚动到底部 ───────────────────────────────────────────────────
 const scrollToBottom = async () => {
   await nextTick()
-  scroll.scrollBottom()
+  scroll?.scrollBottom()
 }
 
-// ─── 切换会话时加载消息并滚到底 ──────────────────────────────────
+// ─── 创建 assistant 占位消息 ─────────────────────────────────────
+const createAnswerMessage = () => {
+  return reactive({
+    type: 'LOADING',
+    role: 'ASSISTANT' as 'ASSISTANT',
+    content: [],
+    id: '',
+    conversationId: '',
+    applicationId: '',
+    createTime: '',
+    updateTime: ''
+  })
+}
+
+// ─── 恢复时复用最后一条 assistant，没有就创建 ─────────────────────
+const getOrCreateLastAnswerMessage = () => {
+  const last = messages.value[messages.value.length - 1]
+
+  if (last && last.role === 'ASSISTANT') {
+    return last
+  }
+
+  const answerMessage = createAnswerMessage()
+  pushMessage(answerMessage as any)
+  return answerMessage
+}
+
+// ─── 流式回复聚合 ─────────────────────────────────────────────────
+const getOnStream = (message: any) => {
+  /**
+   * 初始化已有内容索引。
+   * 这样 resume 的时候，如果最后一条 assistant 已经有 content，
+   * 新 chunk 会尽量聚合到原来的 content 上，而不是完全从空 indexList 开始。
+   */
+  const indexList: string[] = Array.isArray(message.content)
+    ? message.content.map((content: any) => content.id + '_' + content.type)
+    : []
+
+  return (chunk: any) => {
+    if (typeof chunk.index === 'number') {
+      setStreamIndex(chunk.index)
+    }
+
+    if (!Array.isArray(chunk.content)) {
+      return
+    }
+
+    chunk.content.forEach((content: any) => {
+      const id = content.id + '_' + content.type
+      let i = indexList.indexOf(id)
+
+      if (i < 0) {
+        i = indexList.length
+        indexList.push(id)
+      }
+
+      if (message.content.length <= i) {
+        message.content[i] = content
+      } else {
+        message.content[i] = aggregators[content.type](message.content[i], content)
+      }
+    })
+
+    scrollToBottom()
+    emit('chanage')
+  }
+}
+
+// ─── 恢复当前会话未完成的流 ───────────────────────────────────────
+const resumeCurrentStream = async (token: number) => {
+  if (!current.value?.id) return
+  if (streamLoading.value) return
+
+  try {
+    const res = await statusStream()
+
+    if (token !== streamToken) return
+
+    if (res?.code !== 200 || res?.data?.status !== true) {
+      return
+    }
+
+    streamLoading.value = true
+
+    const answerMessage = getOrCreateLastAnswerMessage()
+
+    await scrollToBottom()
+
+    new ConversationStream(
+      resumeStream(),
+      getOnStream(answerMessage),
+      () => {
+        if (token !== streamToken) return
+
+        streamLoading.value = false
+        clearStreamIndex()
+        scrollToBottom()
+      },
+      () => {
+        if (token !== streamToken) return
+
+        streamLoading.value = false
+      }
+    ).stream()
+  } catch (e) {
+    if (token !== streamToken) return
+
+    streamLoading.value = false
+    console.error('resume stream failed', e)
+  }
+}
+
+// ─── 切换会话时加载消息并尝试恢复流 ───────────────────────────────
 watch(
   () => current.value?.id,
   async (id) => {
     if (!id) return
-    if (streamLoading.value) return
+
+    /**
+     * 每次切换会话都让旧的 stream 回调失效。
+     */
+    const token = ++streamToken
+
+    /**
+     * 不要因为 streamLoading 直接 return。
+     * 否则正在流式输出时，点击其他会话会加载不了消息。
+     */
+    streamLoading.value = false
+
     await loadMessages(id)
-    setTimeout(() => {
-      scrollToBottom()
+
+    if (token !== streamToken) return
+
+    setTimeout(async () => {
+      if (token !== streamToken) return
+
+      await scrollToBottom()
+
+      /**
+       * 每次切换会话后都检查是否有未完成流。
+       */
+      await resumeCurrentStream(token)
     }, 100)
   },
   { immediate: true }
@@ -156,45 +302,42 @@ watch(
 const onScroll = async () => {
   const el = msgBox.value
   if (!el) return
-  // 滚到顶部附近 60px 时触发
+
   if (el.scrollTop > 60) return
   if (!hasMoreMsg.value || msgLoading.value) return
 
-  // 记住加载前高度，加载后恢复位置防跳动
   const prevScrollHeight = el.scrollHeight
   await loadMoreMessages()
   await nextTick()
   el.scrollTop = el.scrollHeight - prevScrollHeight
 }
 
-// ─── 流式回复 ─────────────────────────────────────────────────────
-const getOnStream = (message: any) => {
-  const index: any[] = []
-  return (chunk: any) => {
-    const id = chunk.id + '_' + chunk.type
-    let i = index.indexOf(id)
-    if (i < 0) {
-      i = index.length
-      index.push(id)
-    }
-    if (message.content.length <= i) {
-      message.content[i] = chunk
-    } else {
-      message.content[i] = aggregators[chunk.type](message.content[i], chunk)
-    }
-    scrollToBottom()
-    emit('chanage')
-  }
-}
-
+// ─── 发起新对话 ───────────────────────────────────────────────────
 const conversation = async (q: any) => {
   if (!q.content.trim()) return
+  if (streamLoading.value) return
+
+  /**
+   * 新问题开始，也生成新 token。
+   * 旧的 resume / stream 回调不能再影响当前消息。
+   */
+  const token = ++streamToken
+
   streamLoading.value = true
-  console.log('sss', current.value)
+
   if (!current.value) {
     await newChat(q.content)
     await nextTick()
   }
+
+  if (token !== streamToken) return
+
+  if (!current.value?.id) {
+    streamLoading.value = false
+    return
+  }
+
+  clearStreamIndex()
 
   pushMessage({
     role: 'USER',
@@ -206,17 +349,8 @@ const conversation = async (q: any) => {
     updateTime: ''
   })
 
-  const answerMessage = reactive({
-    type: 'LOADING',
-    role: 'ASSISTANT' as 'ASSISTANT',
-    content: [],
-    id: '',
-    conversationId: '',
-    applicationId: '',
-    createTime: '',
-    updateTime: ''
-  })
-  pushMessage(answerMessage)
+  const answerMessage = createAnswerMessage()
+  pushMessage(answerMessage as any)
 
   await scrollToBottom()
 
@@ -224,10 +358,15 @@ const conversation = async (q: any) => {
     conversationAPI({ ...q }),
     getOnStream(answerMessage),
     () => {
+      if (token !== streamToken) return
+
       streamLoading.value = false
+      clearStreamIndex()
       scrollToBottom()
     },
     () => {
+      if (token !== streamToken) return
+
       streamLoading.value = false
     }
   ).stream()
@@ -240,14 +379,15 @@ const conversation = async (q: any) => {
 const resize = () => {
   const el = ta.value
   if (!el) return
+
   el.style.height = 'auto'
   el.style.height = Math.min(el.scrollHeight, 120) + 'px'
 }
+
 onMounted(() => {
   scroll = new Scroll(msgBox.value)
 })
 </script>
-
 <style scoped>
 .main {
   flex: 1;
@@ -273,6 +413,7 @@ onMounted(() => {
   position: relative;
   z-index: 50;
 }
+
 .bar-title {
   flex: 1;
   font-size: 13.5px;
@@ -292,8 +433,9 @@ onMounted(() => {
   scrollbar-color: var(--bd) transparent;
   display: flex;
   flex-direction: column;
-  align-items: center; /* ← 加这个 */
+  align-items: center;
 }
+
 /* 顶部懒加载指示器 */
 .top-loader {
   display: flex;
@@ -306,6 +448,7 @@ onMounted(() => {
     opacity 0.2s,
     height 0.2s;
 }
+
 .top-loader.visible {
   opacity: 1;
   height: 28px;
@@ -328,17 +471,20 @@ onMounted(() => {
   text-align: center;
   padding: 16px 10px 24px;
 }
+
 .wt {
   font-size: 16px;
   font-weight: 600;
   color: var(--t1);
   margin-bottom: 4px;
 }
+
 .ws {
   font-size: 12px;
   color: var(--t3);
   margin-bottom: 16px;
 }
+
 .qgrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -346,6 +492,7 @@ onMounted(() => {
   width: 100%;
   max-width: 320px;
 }
+
 .qcard {
   display: flex;
   align-items: flex-start;
@@ -361,9 +508,11 @@ onMounted(() => {
   font-family: inherit;
   transition: background 0.13s;
 }
+
 .qcard:hover {
   background: var(--hv);
 }
+
 .qicon {
   font-size: 11px;
   color: var(--t3);
@@ -382,6 +531,7 @@ onMounted(() => {
   margin-right: auto;
   width: 100%;
 }
+
 .mrow.user {
   flex-direction: row-reverse;
 }
@@ -392,14 +542,17 @@ onMounted(() => {
   border-radius: 12px;
   word-break: break-word;
 }
+
 .bub.user {
   background: var(--ub);
   border-bottom-right-radius: 3px;
 }
+
 .bub.assistant {
   background: var(--ab);
   border-bottom-left-radius: 3px;
 }
+
 .bub p {
   font-size: 13px;
   line-height: 1.6;
@@ -413,6 +566,7 @@ onMounted(() => {
   gap: 4px;
   padding: 10px 13px;
 }
+
 .typing span {
   width: 5px;
   height: 5px;
@@ -420,9 +574,11 @@ onMounted(() => {
   background: #c0c0c0;
   animation: dot 1.2s infinite ease-in-out;
 }
+
 .typing span:nth-child(2) {
   animation-delay: 0.18s;
 }
+
 .typing span:nth-child(3) {
   animation-delay: 0.36s;
 }
@@ -434,6 +590,7 @@ onMounted(() => {
     transform: translateY(0);
     opacity: 0.3;
   }
+
   40% {
     transform: translateY(-4px);
     opacity: 1;
@@ -443,15 +600,14 @@ onMounted(() => {
 .ibar {
   flex-shrink: 0;
   padding: 8px 10px;
-
   background: var(--bg);
-  display: flex; /* ← 加 */
-  justify-content: center; /* ← 加 */
+  display: flex;
+  justify-content: center;
 }
 
 .iwrap {
   width: 100%;
-  max-width: 680px; /* ← 和 .mrow 保持一致 */
+  max-width: 680px;
   display: flex;
   align-items: flex-end;
   gap: 6px;
@@ -461,9 +617,11 @@ onMounted(() => {
   padding: 6px 6px 6px 11px;
   transition: border-color 0.15s;
 }
+
 .iwrap.focused {
   border-color: #c0c0c0;
 }
+
 textarea {
   flex: 1;
   background: transparent;
@@ -479,9 +637,11 @@ textarea {
   padding: 0;
   margin: 0;
 }
+
 textarea::placeholder {
   color: var(--t3);
 }
+
 textarea:disabled {
   opacity: 0.5;
 }
@@ -503,11 +663,13 @@ textarea:disabled {
     color 0.15s,
     transform 0.1s;
 }
+
 .sbtn.on {
   background: var(--t1);
   color: var(--bg);
   cursor: pointer;
 }
+
 .sbtn.on:active {
   transform: scale(0.92);
 }

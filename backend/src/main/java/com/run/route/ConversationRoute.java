@@ -65,6 +65,16 @@ public class ConversationRoute implements IRoute {
                 .handler(tokenBasicAuthHandler)
                 .handler(conversationHandler::conversation);
 
+        apiRoute.get("/conversation/:conversationId/status")
+                .handler(tokenBasicAuthHandler)
+                .handler(conversationHandler::statusStream);
+
+        apiRoute.post("/conversation/:conversationId/resume-stream")
+                .handler(BodyHandler.create())
+                .handler(tokenBasicAuthHandler)
+                .handler(conversationHandler::resumeStream);
+
+
         apiRoute.delete("/conversation/:conversationId")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
