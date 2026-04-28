@@ -7,11 +7,12 @@ import com.run.handler.common.IFolderHandler;
 import com.run.handler.common.Tool;
 import com.run.handler.common.pojo.CreateFolderPojo;
 import com.run.handler.common.pojo.QueryFolderPojo;
+import com.run.sql.DSL;
+import com.run.sql.condition.Condition;
 import io.vertx.core.Future;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
-import org.jooq.Condition;
-import org.jooq.impl.DSL;
+
 
 import java.util.Map;
 import java.util.UUID;
@@ -38,15 +39,15 @@ public abstract class FolderHandlerImpl<F extends BaseEntity<F>,
     public Condition getWhere(QueryFolderPojo query) {
         Condition condition = DSL.noCondition();
         if (StringUtils.isNotEmpty(query.getParentId())) {
-            condition = condition.and(DSL.field("ancestor_id").eq(DSL.param("#{folderId}")));
+            condition = condition.and(DSL.field("ancestor_id").eq(query.getParentId()));
         } else {
             condition = condition.and(DSL.field("ancestor_id").isNull());
         }
         if (query.getDepth() != null) {
-            condition = condition.and(DSL.field("depth").eq(DSL.param("#{depth}")));
+            condition = condition.and(DSL.field("depth").eq(query.getDepth()));
         }
         if (StringUtils.isNotEmpty(query.getName())) {
-            condition = condition.and(DSL.field("name").like(DSL.param("#{name}", String.class)));
+            condition = condition.and(DSL.field("name").like("%" + query.getName() + "%"));
         }
         return DSL.field("id").in(relationMapper.getDslContext().select(DSL.field("descendant_id"))
                 .from(relationMapper.getTable())

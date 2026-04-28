@@ -3,8 +3,9 @@ package com.run.common.initialization;
 import com.run.common.config.AppConfig;
 import com.run.common.config.DataBase;
 import com.run.common.config.System;
+import com.run.sql.dialect.SQLDialect;
 import org.flywaydb.core.Flyway;
-import org.jooq.SQLDialect;
+
 
 import javax.inject.Inject;
 import java.io.IOException;
@@ -30,7 +31,7 @@ public class MigrationInitialization {
     public void init() {
         DataBase database = appConfig.getDatabase();
         System system = appConfig.getSystem();
-        if (database.getType() == SQLDialect.POSTGRES) {
+        if (database.getType() == SQLDialect.POSTGRESQL) {
             migrationsPgsql(database);
         } else if (database.getType() == SQLDialect.H2) {
             migrationsH2(system.getDataPath());

@@ -1,14 +1,9 @@
 package com.run.handler.knowledge.impl;
 
-import com.run.dao.entity.ApplicationFolder;
-import com.run.dao.entity.ApplicationRelation;
 import com.run.dao.entity.KnowledgeFolder;
 import com.run.dao.entity.KnowledgeRelation;
-import com.run.dao.mapper.ApplicationFolderMapper;
-import com.run.dao.mapper.ApplicationRelationMapper;
 import com.run.dao.mapper.KnowledgeFolderMapper;
 import com.run.dao.mapper.KnowledgeRelationMapper;
-import com.run.handler.application.IApplicationFolderHandler;
 import com.run.handler.common.impl.FolderHandlerImpl;
 import com.run.handler.knowledge.IKnowledgeFolderHandler;
 

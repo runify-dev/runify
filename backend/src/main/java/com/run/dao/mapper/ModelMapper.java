@@ -7,13 +7,14 @@ import com.run.dao.common.mapper.BaseMapper;
 import com.run.dao.entity.Model;
 import com.run.models.ModelInfo;
 import com.run.models.ModelProvideConstants;
+import com.run.sql.dialect.SQLDialect;
 import io.vertx.core.Future;
 import io.vertx.sqlclient.Pool;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.apache.commons.lang3.StringUtils;
-import org.jooq.SQLDialect;
+
 
 import javax.inject.Inject;
 import java.util.HashMap;

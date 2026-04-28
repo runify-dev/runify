@@ -1,7 +1,8 @@
 package com.run.common.config;
 
+import com.run.sql.dialect.SQLDialect;
 import lombok.Data;
-import org.jooq.SQLDialect;
+
 
 /**
  * {@code @Author:张少虎}

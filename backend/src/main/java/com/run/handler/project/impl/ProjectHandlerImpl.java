@@ -7,7 +7,6 @@ import com.run.common.exception.ApiException;
 import com.run.common.result.Result;
 import com.run.common.util.CommonUtils;
 import com.run.common.util.TreeUtil;
-import com.run.dao.common.F;
 import com.run.dao.entity.Project;
 import com.run.dao.entity.ProjectFolder;
 import com.run.dao.entity.ProjectPermission;
@@ -21,15 +20,15 @@ import com.run.handler.common.impl.ResourceHandlerImpl;
 import com.run.handler.common.pojo.SimpleNodePojo;
 import com.run.handler.project.IProjectHandler;
 import com.run.handler.project.vo.CreateProjectVO;
-import com.run.handler.tree.pojo.CreateSimpleNodePojo;
 import io.vertx.core.Future;
 import io.vertx.ext.web.RoutingContext;
-import org.apache.commons.lang3.StringUtils;
 
 import javax.inject.Inject;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.UUID;
+
+import static com.run.sql.DSL.field;
 
 /**
  * {@code @Author:张少虎}
@@ -122,7 +121,7 @@ public class ProjectHandlerImpl extends ResourceHandlerImpl<Project, ProjectFold
         String name = createProjectVO.getName();
         UUID nodeId = UUID.randomUUID();
         Project resource = new Project(nodeId, parentUuId, name, createProjectVO.getDesc(), createProjectVO.getIcon(), createProjectVO.getPath(), false, false, LocalDateTime.now(), LocalDateTime.now());
-        Future<Boolean> validPath = resourceMapper.count(F.field(Project::getPath).eq(F.params(Project::getPath)), Map.of("path", createProjectVO.getPath())).compose(c -> {
+        Future<Boolean> validPath = resourceMapper.count(field(Project::getPath).eq(createProjectVO.getPath()), Map.of()).compose(c -> {
             if (c > 0) {
                 return Future.failedFuture(new ApiException(500, "项目路径已存在"));
             }

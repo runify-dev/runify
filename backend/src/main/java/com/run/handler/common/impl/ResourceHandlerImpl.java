@@ -1,6 +1,5 @@
 package com.run.handler.common.impl;
 
-import com.run.auth.dto.UserProfile;
 import com.run.common.cache.CacheStore;
 import com.run.common.constants.ResourcePermissionConstants;
 import com.run.common.result.Result;
@@ -14,15 +13,13 @@ import com.run.handler.common.Tool;
 import com.run.handler.common.pojo.QueryResourcePojo;
 import com.run.handler.common.pojo.SimpleNodePermissionPojo;
 import com.run.handler.common.pojo.SimpleNodePojo;
-import com.run.handler.project.vo.CreateProjectVO;
 import com.run.handler.tree.pojo.CreateSimpleNodePojo;
+import com.run.sql.DSL;
+import com.run.sql.condition.Condition;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
-import org.jooq.Condition;
-import org.jooq.Param;
-import org.jooq.impl.DSL;
 
 import java.util.*;
 
@@ -62,15 +59,15 @@ public abstract class ResourceHandlerImpl<R extends BaseEntity<R>,
     public Condition getWhere(QueryResourcePojo query) {
         Condition condition = DSL.noCondition();
         if (StringUtils.isNotEmpty(query.getParentId())) {
-            condition = condition.and(DSL.field("ancestor_id").eq(DSL.param("#{folderId}")));
+            condition = condition.and(DSL.field("ancestor_id").eq(query.getParentId()));
         } else {
             condition = condition.and(DSL.field("ancestor_id").isNull());
         }
         if (query.getDepth() != null) {
-            condition = condition.and(DSL.field("depth").eq(DSL.param("#{depth}")));
+            condition = condition.and(DSL.field("depth").eq(query.getDepth()));
         }
         if (StringUtils.isNotEmpty(query.getName())) {
-            condition = condition.and(DSL.field("name").like(DSL.param("#{name}", String.class)));
+            condition = condition.and(DSL.field("name").like("%" + query.getName() + "%"));
         }
         return DSL.field("id").in(relationMapper.getDslContext().select(DSL.field("descendant_id"))
                 .from(relationMapper.getTable())
@@ -101,7 +98,7 @@ public abstract class ResourceHandlerImpl<R extends BaseEntity<R>,
                                 .where(DSL.field("ancestor_id").in(permissionMapper.getDslContext().select(DSL.field("target"))
                                         .from(permissionMapper.getTable())
                                         .where(DSL.field("permission")
-                                                .in(DSL.param("#{permissionNotAuth}"))
+                                                .in(List.of(DSL.param("permissionNotAuth")))
                                                 .and(DSL.field("user_id").eq(DSL.param("#{userId}"))))))));
     }
 
@@ -113,10 +110,7 @@ public abstract class ResourceHandlerImpl<R extends BaseEntity<R>,
     @Override
     public Future<List<R>> list(QueryResourcePojo query) {
         Condition where = getWhere(query);
-        return resourceMapper.list(where, Map.of(
-                "folderId", Optional.ofNullable(query.getParentId()).orElse(""),
-                "depth", Optional.ofNullable(query.getDepth()).orElse(-1),
-                "name", Optional.ofNullable(query.getName()).orElse("")));
+        return resourceMapper.list(where);
     }
 
     @Override

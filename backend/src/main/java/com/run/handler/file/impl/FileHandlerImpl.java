@@ -3,11 +3,11 @@ package com.run.handler.file.impl;
 
 import com.run.common.result.Result;
 import com.run.common.util.CommonUtils;
-import com.run.dao.common.F;
 import com.run.dao.common.entity.BaseReadStream;
 import com.run.dao.entity.FileEntity;
 import com.run.dao.mapper.FileMapper;
 import com.run.handler.file.IFileHandler;
+import com.run.sql.dialect.SQLDialect;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -17,7 +17,6 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
-import org.jooq.SQLDialect;
 
 import javax.inject.Inject;
 import java.io.File;
@@ -30,6 +29,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import static com.run.sql.DSL.field;
 
 /**
  * {@code @Author:张少虎}
@@ -68,7 +69,7 @@ public class FileHandlerImpl implements IFileHandler {
             fileEntity.setMeta(new JsonObject());
             fileEntity.setRef(null);
             fileEntity.setRefType(null);
-            if (dbType == SQLDialect.POSTGRES) {
+            if (dbType == SQLDialect.POSTGRESQL) {
                 fileMapper.save(fileEntity, file, 1024 * 1024).onSuccess(ok -> {
                     context.end(Result.success(fileEntity).toBuffer());
                 }).onFailure(context::fail);
@@ -79,8 +80,8 @@ public class FileHandlerImpl implements IFileHandler {
                             return sha256;
                         }, false)
                         .compose(sha256 -> fileMapper.search(
-                                F.field(FileEntity::getSha256Hash).eq(F.params(FileEntity::getSha256Hash)),
-                                Map.of("sha256Hash", sha256)))
+                                field(FileEntity::getSha256Hash).eq(sha256),
+                                Map.of()))
                         .compose(rows -> vertx.executeBlocking(() -> {
                             if (rows.size() == 0) {
                                 Path ossPath = CommonUtils.getOssPath();

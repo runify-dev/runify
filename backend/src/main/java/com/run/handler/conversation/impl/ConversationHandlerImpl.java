@@ -7,11 +7,10 @@ import com.run.common.constants.ConversationUserConstants;
 import com.run.common.constants.MessageConstants;
 import com.run.common.query.Query;
 import com.run.common.queue.MessageQueue;
-import com.run.common.result.Page;
 import com.run.common.result.Result;
 import com.run.common.util.CommonUtils;
 import com.run.common.util.JacksonUtils;
-import com.run.dao.common.F;
+
 import com.run.dao.entity.Application;
 import com.run.dao.entity.Conversation;
 import com.run.dao.entity.ConversationMessage;
@@ -25,6 +24,10 @@ import com.run.handler.conversation.vo.AnonymousLoginVO;
 import com.run.handler.conversation.vo.ModifyConversationNameVO;
 import com.run.handler.conversation.vo.QueryConversationMessageVO;
 import com.run.handler.conversation.vo.QueryConversationVO;
+import com.run.sql.DSL;
+import com.run.sql.condition.Condition;
+import com.run.sql.model.Field;
+import com.run.sql.model.Param;
 import com.run.workflow.WorkFlowManage;
 import com.run.workflow.WorkflowType;
 import com.run.workflow.entity.WorkFlow;
@@ -37,13 +40,14 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.User;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
-import org.jooq.conf.ParamType;
-import org.jooq.impl.DSL;
 
 import javax.inject.Inject;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
+
+import static com.run.sql.DSL.field;
+import static com.run.sql.DSL.param;
 
 /**
  * {@code @Author:张少虎}
@@ -78,8 +82,8 @@ public class ConversationHandlerImpl implements IConversationHandler {
         if (StringUtils.isEmpty(modifyConversationNameVO.getName())) {
             context.end(Result.error("名称必填").toBuffer());
         }
-        conversationMapper.update(Map.of(F.field(Conversation::getName), F.params(Conversation::getName)),
-                        F.field(Conversation::getId).eq(F.params(Conversation::getId)),
+        conversationMapper.update(Map.of(field(Conversation::getName), param("name")),
+                        field(Conversation::getId).eq(conversationId),
                         Map.of("id", conversationId, "name", modifyConversationNameVO.getName()))
                 .onSuccess(ok -> {
                     context.end(Result.success(true).toBuffer());
@@ -135,11 +139,10 @@ public class ConversationHandlerImpl implements IConversationHandler {
 
         Future<List<ConversationMessage>> conversationMessageFuture = conversationMessageMapper.save(conversationMessage)
                 .compose(ok -> conversationMessageMapper
-                        .list(conversationMessageMapper.select().where(F.field(ConversationMessage::getConversationId)
-                                                .eq(F.params(ConversationMessage::getConversationId)))
-                                        .orderBy(F.field(ConversationMessage::getCreateTime).desc())
-                                        .limit(DSL.param("#{limit}", Integer.class)).getSQL(ParamType.NAMED),
-                                Map.of("conversationId", conversationId, "limit", 10)));
+                        .list(conversationMessageMapper.select().where(field(ConversationMessage::getConversationId)
+                                        .eq(conversationId))
+                                .orderBy(field(ConversationMessage::getCreateTime).desc())
+                                .limit(10).render()));
         Future.all(applicationFuture, conversationMessageFuture)
                 .onSuccess(ok -> extracted(context, ((Application) ok.resultAt(0)).getWorkflow(),
                         UUID.fromString(conversationId), UUID.fromString(applicationId),
@@ -211,9 +214,9 @@ public class ConversationHandlerImpl implements IConversationHandler {
     @Override
     public void delConversation(RoutingContext context) {
         String conversationId = context.pathParams().get("conversationId");
-        conversationMapper.update(Map.of(F.field(Conversation::getIsDeleted), F.params(Conversation::getIsDeleted)),
-                        F.field(Conversation::getId).eq(F.params(Conversation::getId)),
-                        Map.of("id", conversationId, "isDeleted", true))
+        conversationMapper.update(Map.of(field(Conversation::getIsDeleted), param(Conversation::getIsDeleted)),
+                        field(Conversation::getId).eq(conversationId),
+                        Map.of("isDeleted", true))
                 .onSuccess(ok -> {
                     context.end(Result.success(true).toBuffer());
                 }).onFailure(context::fail);
@@ -225,13 +228,11 @@ public class ConversationHandlerImpl implements IConversationHandler {
         String conversationUserId = user.get("conversationUserId");
         QueryConversationVO queryConversationVO = Query.format(QueryConversationVO.class, context);
         conversationMapper.page(
-                        F.field(Conversation::getConversationUserId).eq(F.params(Conversation::getConversationUserId))
-                                .and(F.field(Conversation::getIsDeleted).eq(F.params(Conversation::getIsDeleted))),
-                        List.of(F.field(Conversation::getUpdateTime)),
+                        field(Conversation::getConversationUserId).eq(conversationUserId)
+                                .and(field(Conversation::getIsDeleted).eq(Boolean.FALSE)),
+                        List.of(field(Conversation::getUpdateTime).asc()),
                         queryConversationVO.getCurrentPage(),
-                        queryConversationVO.getPageSize(),
-                        Map.of("conversationUserId", conversationUserId,
-                                "isDeleted", Boolean.FALSE))
+                        queryConversationVO.getPageSize(), Map.of())
                 .onSuccess(result -> context.end(Result.success(result).toBuffer()))
                 .onFailure(context::fail);
     }
@@ -241,8 +242,8 @@ public class ConversationHandlerImpl implements IConversationHandler {
         String conversationId = context.pathParams().get("conversationId");
         QueryConversationMessageVO queryConversationMessageVO = Query.format(QueryConversationMessageVO.class, context);
         conversationMessageMapper.page(
-                        F.field(ConversationMessage::getConversationId).eq(F.params(ConversationMessage::getConversationId)),
-                        List.of(F.field(Conversation::getUpdateTime).desc()),
+                        field(ConversationMessage::getConversationId).eq(conversationId),
+                        List.of(field(Conversation::getUpdateTime).desc()),
                         queryConversationMessageVO.getCurrentPage(),
                         queryConversationMessageVO.getPageSize(),
                         Map.of("conversationId", conversationId)

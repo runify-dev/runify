@@ -9,12 +9,16 @@ import com.run.common.cache.CacheStore;
 import com.run.common.util.CommonUtils;
 import com.run.common.util.JWTUtil;
 import com.run.common.util.PermissionHexUtils;
-import com.run.dao.common.F;
 import com.run.dao.common.entity.BaseEntity;
 import com.run.dao.common.mapper.BaseMapper;
 import com.run.dao.entity.*;
 import com.run.dao.entity.Role;
 import com.run.dao.mapper.*;
+import com.run.sql.DSL;
+import com.run.sql.condition.Condition;
+import com.run.sql.dialect.SQLDialect;
+import com.run.sql.model.Field;
+import com.run.sql.query.SelectQuery;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.User;
@@ -23,15 +27,15 @@ import io.vertx.ext.auth.authentication.Credentials;
 import io.vertx.ext.auth.authentication.TokenCredentials;
 import io.vertx.ext.auth.impl.UserImpl;
 import io.vertx.sqlclient.Pool;
-import org.jetbrains.annotations.NotNull;
-import org.jooq.*;
-import org.jooq.impl.DSL;
+
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static com.run.sql.DSL.field;
 
 /**
  * {@code @Author:张少虎}
@@ -115,11 +119,11 @@ public class TokenProvider implements AuthenticationProvider {
     Condition getWhereByPermission(PermissionMapper permissionMapper,
                                    RelationMapper relationMapper,
                                    PermissionConstants.ResourcePermissionGroup resourcePermissionGroup) {
-        Field<Object> ancestorId = DSL.field("ancestor_id");
-        Field<Object> descendantId = DSL.field("descendant_id");
-        Field<Object> permissionField = DSL.field("permission");
-        Field<Object> userIdField = DSL.field("user_id");
-        Field<Object> targetField = DSL.field("target");
+        Field<Object> ancestorId = field("ancestor_id");
+        Field<Object> descendantId = field("descendant_id");
+        Field<Object> permissionField = field("permission");
+        Field<Object> userIdField = field("user_id");
+        Field<Object> targetField = field("target");
         var currentTargets = permissionMapper.getDslContext()
                 .select(targetField)
                 .from(permissionMapper.getTable())
@@ -227,11 +231,11 @@ public class TokenProvider implements AuthenticationProvider {
         CompletableFuture<List<Role>> rolesFuture = cacheStore.get("roles:" + userId, new TypeReference<List<Role>>() {
         }).thenCompose(result -> {
             if (result.isEmpty()) {
-                SelectConditionStep<Record1<String>> where = roleUserRelationMapper.getDslContext()
-                        .select(F.field(RoleUserRelation::getRoleId))
+                SelectQuery where = roleUserRelationMapper.getDslContext()
+                        .select(field(RoleUserRelation::getRoleId))
                         .from(roleUserRelationMapper.getTable())
-                        .where(F.field(RoleUserRelation::getUserId).eq(F.params(RoleUserRelation::getUserId)));
-                return roleBaseMapper.list(F.field(Role::getId).in(where), Map.of("userId", userId))
+                        .where(field(RoleUserRelation::getUserId).eq(userId));
+                return roleBaseMapper.list(field(Role::getId).in(where), Map.of())
                         .compose(roles -> Future.fromCompletionStage(cacheStore.set("roles:" + userId, roles)
                                 .thenCompose(ok -> CompletableFuture.completedFuture(roles)))).toCompletionStage();
             } else {
@@ -278,8 +282,8 @@ public class TokenProvider implements AuthenticationProvider {
     public Future<Map<String, Long>> getPermissionsByRoles(List<Role> roles, String userId) {
         List<String> roleIds = roles.stream().map(Role::getId).toList();
         Future<List<RolePermissionRelation>> rolePermissionRelations = rolePermissionRelationMapper
-                .list(F.field(RolePermissionRelation::getRoleId).in(F.params(RolePermissionRelation::getRoleId)),
-                        Map.of("roleId", roleIds), List.of("roleId"));
+                .list(field(RolePermissionRelation::getRoleId).in(roleIds),
+                        Map.of("roleId", roleIds));
         return rolePermissionRelations.compose(rolePermissionRelationResult -> {
             Future<Map<String, Long>> applicationPermissions =
                     getResourcePermission(

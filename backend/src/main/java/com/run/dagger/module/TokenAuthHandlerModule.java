@@ -6,10 +6,11 @@ import com.run.auth.provider.ConversationTokenProvider;
 import com.run.auth.provider.TokenProvider;
 import com.run.common.cache.CacheStore;
 import com.run.dao.mapper.*;
+import com.run.sql.dialect.SQLDialect;
 import dagger.Module;
 import dagger.Provides;
 import io.vertx.sqlclient.Pool;
-import org.jooq.SQLDialect;
+
 
 import javax.inject.Inject;
 import javax.inject.Named;

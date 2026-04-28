@@ -1,10 +1,12 @@
 package com.run.common.util;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.openai.models.chat.completions.*;
-import com.openai.models.completions.CompletionUsage;
+import com.run.ai.openai.JsonValue;
+import com.run.ai.openai.chat.ChatCompletion;
+import com.run.ai.openai.chat.ChatCompletionChunk;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
 import lombok.Getter;
-
 
 import java.util.*;
 
@@ -12,9 +14,8 @@ import java.util.*;
  * {@code @Author:张少虎}
  * {@code @Date: 2026/4/6  01:31}
  * {@code @Version 1.0}
- * {@code @注释: }
+ * {@code @注释: 适配自用轻量 openai chat sdk}
  */
-
 public class ChatCompletionAccumulator {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -22,27 +23,39 @@ public class ChatCompletionAccumulator {
     private String id;
     private String model;
     private String finishReason;
-    private CompletionUsage usage;
+
+    /**
+     * 轻量 SDK 中 usage 直接使用 Vert.x JsonObject 表示。
+     */
+    private JsonObject usage;
+
     private final StringBuilder content = new StringBuilder();
     private final StringBuilder refusal = new StringBuilder();
     private final Map<Integer, AccumulatedToolCall> toolCalls = new TreeMap<>();
 
-    // 需要收集的 additionalProperties key 列表
+    /**
+     * 需要收集的 additionalProperties key 列表，比如 reasoning_content。
+     */
     private final Set<String> trackedKeys;
-    // key -> StringBuilder 累加内容
+
+    /**
+     * key -> StringBuilder 累加内容。
+     */
     private final Map<String, StringBuilder> additionalProperties = new LinkedHashMap<>();
 
-    // ====== 构造器 ======
     public ChatCompletionAccumulator() {
         this.trackedKeys = Collections.emptySet();
     }
 
     public ChatCompletionAccumulator(Collection<String> trackedKeys) {
-        this.trackedKeys = new LinkedHashSet<>(trackedKeys);
-        trackedKeys.forEach(k -> additionalProperties.put(k, new StringBuilder()));
+        if (trackedKeys == null || trackedKeys.isEmpty()) {
+            this.trackedKeys = Collections.emptySet();
+        } else {
+            this.trackedKeys = new LinkedHashSet<>(trackedKeys);
+            trackedKeys.forEach(k -> additionalProperties.put(k, new StringBuilder()));
+        }
     }
 
-    // ====== ToolCall ======
     @Getter
     public static class AccumulatedToolCall {
         private int index;
@@ -60,13 +73,13 @@ public class ChatCompletionAccumulator {
             return "AccumulatedToolCall{" +
                     "index=" + index +
                     ", id='" + id + '\'' +
+                    ", type='" + type + '\'' +
                     ", functionName='" + functionName + '\'' +
                     ", functionArguments='" + functionArguments + '\'' +
                     '}';
         }
     }
 
-    // ====== Result ======
     public static class AccumulatedResult {
         @Getter
         private final String id;
@@ -85,14 +98,14 @@ public class ChatCompletionAccumulator {
         @Getter
         private final String content;
         /**
-         * 拒绝原因文本
+         * 拒绝原因文本。
          */
         @Getter
         private final String refusal;
         @Getter
         private final List<AccumulatedToolCall> toolCalls;
 
-        private final CompletionUsage usage;
+        private final JsonObject usage;
 
         @Getter
         private final boolean isToolCall;
@@ -103,26 +116,24 @@ public class ChatCompletionAccumulator {
         @Getter
         private final boolean isAborted;
         /**
-         * 模型拒绝回答
+         * 模型拒绝回答。
          */
         private final boolean isRefusal;
 
-        public boolean isRefusal() {
-            return isRefusal;
-        }
-
         /**
-         * 流结束但没有收到 finish_reason，说明异常断流
+         * 流结束但没有收到 finish_reason，说明异常断流。
          */
         @Getter
         private final boolean isIncomplete;
         /**
-         * arguments 是否合法 JSON
+         * arguments 是否合法 JSON。
          */
         @Getter
         private final Map<String, Boolean> toolCallArgumentsValid;
 
-        // additionalProperties 收集结果 key -> 完整内容
+        /**
+         * additionalProperties 收集结果 key -> 完整内容。
+         */
         @Getter
         private final Map<String, String> additionalProperties;
 
@@ -133,7 +144,7 @@ public class ChatCompletionAccumulator {
             this.content = acc.content.toString();
             this.refusal = acc.refusal.toString();
             this.toolCalls = Collections.unmodifiableList(new ArrayList<>(acc.toolCalls.values()));
-            this.usage = acc.usage;
+            this.usage = acc.usage == null ? null : acc.usage.copy();
 
             this.isToolCall = "tool_calls".equals(finishReason) || !this.toolCalls.isEmpty();
             this.isLegacyFunctionCall = "function_call".equals(finishReason);
@@ -144,23 +155,31 @@ public class ChatCompletionAccumulator {
 
             Map<String, Boolean> validMap = new LinkedHashMap<>();
             for (AccumulatedToolCall tc : this.toolCalls) {
-                validMap.put(tc.getFunctionName(), isValidJson(tc.getFunctionArguments()));
+                String key = tc.getFunctionName();
+                if (key == null || key.isBlank()) {
+                    key = String.valueOf(tc.getIndex());
+                }
+                validMap.put(key, isValidJson(tc.getFunctionArguments()));
             }
             this.toolCallArgumentsValid = Collections.unmodifiableMap(validMap);
 
-            // 快照 additionalProperties
             Map<String, String> snapshot = new LinkedHashMap<>();
             acc.additionalProperties.forEach((k, v) -> snapshot.put(k, v.toString()));
             this.additionalProperties = Collections.unmodifiableMap(snapshot);
         }
 
-        // 获取指定 key 的内容
+        public boolean isRefusal() {
+            return isRefusal;
+        }
+
         public Optional<String> getAdditionalProperty(String key) {
             return Optional.ofNullable(additionalProperties.get(key));
         }
 
         private static boolean isValidJson(String json) {
-            if (json == null || json.isBlank()) return false;
+            if (json == null || json.isBlank()) {
+                return false;
+            }
             try {
                 OBJECT_MAPPER.readTree(json);
                 return true;
@@ -169,8 +188,8 @@ public class ChatCompletionAccumulator {
             }
         }
 
-        public Optional<CompletionUsage> getUsage() {
-            return Optional.ofNullable(usage);
+        public Optional<JsonObject> getUsage() {
+            return Optional.ofNullable(usage == null ? null : usage.copy());
         }
 
         @Override
@@ -196,168 +215,168 @@ public class ChatCompletionAccumulator {
     }
 
     public ChatCompletionAccumulator append(ChatCompletion completion) {
-        if (completion == null) return this;
+        if (completion == null) {
+            return this;
+        }
 
-        if (this.id == null) this.id = completion.id();
-        if (this.model == null) this.model = completion.model();
+        if (this.id == null) {
+            this.id = completion.id();
+        }
+        if (this.model == null) {
+            this.model = completion.model();
+        }
 
-        completion.usage().ifPresent(u -> this.usage = u);
+        completion.usage().ifPresent(u -> this.usage = u.copy());
 
         for (ChatCompletion.Choice choice : completion.choices()) {
+            choice.finishReason().ifPresent(fr -> this.finishReason = fr);
 
-            // ===== finishReason =====
-            ChatCompletion.Choice.FinishReason fr = choice.finishReason();
-            this.finishReason = fr.asString();
+            ChatCompletion.Message message = choice.message();
 
-            ChatCompletionMessage message = choice.message();
-
-            // ===== content =====
             message.content().ifPresent(content::append);
-
-            // ===== refusal =====
             message.refusal().ifPresent(refusal::append);
+            message.toolCalls().ifPresent(this::appendToolCalls);
 
-            // ===== tool_calls =====
-            message.toolCalls().ifPresent(tcs -> {
-                for (int i = 0; i < tcs.size(); i++) {
-
-                    ChatCompletionMessageToolCall tc = tcs.get(i);
-
-                    AccumulatedToolCall merged = toolCalls.computeIfAbsent(i, idx -> {
-                        AccumulatedToolCall m = new AccumulatedToolCall();
-                        m.index = idx;
-                        return m;
-                    });
-
-                    // ===== function =====
-                    if (tc.isFunction()) {
-
-                        ChatCompletionMessageFunctionToolCall func = tc.function().orElse(null);
-                        if (func == null) continue;
-
-                        if (merged.id == null) merged.id = func.id();
-                        if (merged.type == null) merged.type = "function";
-
-                        if (merged.functionName == null) {
-                            merged.functionName = func.function().name();
-                        }
-
-                        merged.functionArguments.append(func.function().arguments());
-                    }
-
-                    // ===== custom =====
-                    else if (tc.isCustom()) {
-
-                        ChatCompletionMessageCustomToolCall customTc = tc.custom().orElse(null);
-                        if (customTc == null) continue;
-
-                        if (merged.id == null) merged.id = customTc.id();
-                        if (merged.type == null) merged.type = "custom";
-
-                        ChatCompletionMessageCustomToolCall.Custom custom = customTc.custom();
-
-                        // ✅ name
-                        if (merged.functionName == null) {
-                            merged.functionName = custom.name();
-                        }
-
-                        // ✅ input（注意：已经是 String）
-                        merged.functionArguments.append(custom.input());
-                    }
-
-                    // ===== fallback（极端情况）=====
-                    else {
-                        tc._json().ifPresent(merged.functionArguments::append);
-                    }
-                }
-            });
-
-            // ===== additionalProperties（Choice级别）=====
-            if (!trackedKeys.isEmpty()) {
-                choice._additionalProperties().forEach((k, v) -> {
-                    StringBuilder sb = additionalProperties.get(k);
-                    if (sb != null && v != null && !v.isNull()) {
-                        sb.append(v.toString());
-                    }
-                });
-            }
-
-            // ===== additionalProperties（Message级别）=====
-            if (!trackedKeys.isEmpty()) {
-                message._additionalProperties().forEach((k, v) -> {
-                    StringBuilder sb = additionalProperties.get(k);
-                    if (sb != null && v != null && !v.isNull()) {
-                        sb.append(v.toString());
-                    }
-                });
-            }
+            collectAdditionalProperties(choice._additionalProperties());
+            collectAdditionalProperties(message._additionalProperties());
         }
 
-        // ===== completion级 additionalProperties =====
-        if (!trackedKeys.isEmpty()) {
-            completion._additionalProperties().forEach((k, v) -> {
-                StringBuilder sb = additionalProperties.get(k);
-                if (sb != null && v != null && !v.isNull()) {
-                    sb.append(v);
-                }
-            });
-        }
+        collectAdditionalProperties(completion._additionalProperties());
 
         return this;
     }
 
-    // ====== append ======
     public ChatCompletionAccumulator append(ChatCompletionChunk chunk) {
-        if (this.id == null) this.id = chunk.id();
-        if (this.model == null) this.model = chunk.model();
+        if (chunk == null) {
+            return this;
+        }
 
-        chunk.usage().ifPresent(u -> this.usage = u);
+        if (this.id == null) {
+            this.id = chunk.id();
+        }
+        if (this.model == null) {
+            this.model = chunk.model();
+        }
+
+        chunk.usage().ifPresent(u -> this.usage = u.copy());
 
         for (ChatCompletionChunk.Choice choice : chunk.choices()) {
-            choice.finishReason().ifPresent(fr -> this.finishReason = fr.toString());
+            choice.finishReason().ifPresent(fr -> this.finishReason = fr);
 
-            ChatCompletionChunk.Choice.Delta delta = choice.delta();
+            ChatCompletionChunk.Delta delta = choice.delta();
             delta.content().ifPresent(content::append);
             delta.refusal().ifPresent(refusal::append);
-            delta.toolCalls().ifPresent(tcs -> tcs.forEach(this::appendToolCall));
+            delta.toolCalls().ifPresent(this::appendToolCalls);
 
-            // ✅ 收集指定的 additionalProperties
-            if (!trackedKeys.isEmpty()) {
-                delta._additionalProperties().forEach((k, v) -> {
-                    StringBuilder sb = additionalProperties.get(k);
-                    if (sb != null && !v.isNull()) {
-                        // JsonValue 可能是字符串或对象，统一转为字符串追加
-                        String text = v.toString();
-                        sb.append(text);
-                    }
-                });
-            }
+            collectAdditionalProperties(choice._additionalProperties());
+            collectAdditionalProperties(delta._additionalProperties());
         }
+
+        collectAdditionalProperties(chunk._additionalProperties());
+
         return this;
     }
 
-    private void appendToolCall(ChatCompletionChunk.Choice.Delta.ToolCall tc) {
-        AccumulatedToolCall merged = toolCalls.computeIfAbsent((int) tc.index(), i -> {
+    private void appendToolCalls(JsonArray calls) {
+        if (calls == null || calls.isEmpty()) {
+            return;
+        }
+
+        for (int i = 0; i < calls.size(); i++) {
+            Object value = calls.getValue(i);
+            if (value instanceof JsonObject obj) {
+                appendToolCall(obj, i);
+            }
+        }
+    }
+
+    private void appendToolCall(JsonObject tc, int fallbackIndex) {
+        int index = tc.getInteger("index", fallbackIndex);
+
+        AccumulatedToolCall merged = toolCalls.computeIfAbsent(index, i -> {
             AccumulatedToolCall m = new AccumulatedToolCall();
             m.index = i;
             return m;
         });
-        tc.id().ifPresent(v -> {
-            if (merged.id == null) merged.id = v;
-        });
-        tc.type().ifPresent(v -> {
-            if (merged.type == null) merged.type = v.toString();
-        });
-        tc.function().ifPresent(func -> {
-            func.name().ifPresent(v -> {
-                if (merged.functionName == null) merged.functionName = v;
-            });
-            func.arguments().ifPresent(merged.functionArguments::append);
+
+        String id = tc.getString("id");
+        if (merged.id == null && !isBlank(id)) {
+            merged.id = id;
+        }
+
+        String type = tc.getString("type");
+        if (merged.type == null && !isBlank(type)) {
+            merged.type = type;
+        }
+
+        JsonObject function = tc.getJsonObject("function");
+        if (function != null) {
+            if (merged.type == null) {
+                merged.type = "function";
+            }
+
+            String name = function.getString("name");
+            if (merged.functionName == null && !isBlank(name)) {
+                merged.functionName = name;
+            }
+
+            String arguments = function.getString("arguments");
+            if (!isBlank(arguments)) {
+                merged.functionArguments.append(arguments);
+            }
+        }
+
+        JsonObject custom = tc.getJsonObject("custom");
+        if (custom != null) {
+            if (merged.type == null) {
+                merged.type = "custom";
+            }
+
+            String name = custom.getString("name");
+            if (merged.functionName == null && !isBlank(name)) {
+                merged.functionName = name;
+            }
+
+            String input = custom.getString("input");
+            if (!isBlank(input)) {
+                merged.functionArguments.append(input);
+            }
+        }
+    }
+
+    private void collectAdditionalProperties(Map<String, JsonValue> properties) {
+        if (trackedKeys.isEmpty() || properties == null || properties.isEmpty()) {
+            return;
+        }
+
+        properties.forEach((k, v) -> {
+            StringBuilder sb = additionalProperties.get(k);
+            if (sb != null && !isNull(v)) {
+                sb.append(jsonValueToText(v));
+            }
         });
     }
 
-    // ====== complete ======
+    private static boolean isNull(JsonValue value) {
+        return value == null || value.raw() == null;
+    }
+
+    private static String jsonValueToText(JsonValue value) {
+        if (value == null || value.raw() == null) {
+            return "";
+        }
+        Object raw = value.raw();
+        if (raw instanceof String s) {
+            return s;
+        }
+        return value.toString();
+    }
+
     public AccumulatedResult complete() {
         return new AccumulatedResult(this);
+    }
+
+    private static boolean isBlank(String s) {
+        return s == null || s.isBlank();
     }
 }

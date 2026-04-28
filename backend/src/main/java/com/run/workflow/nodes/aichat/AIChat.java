@@ -2,11 +2,12 @@ package com.run.workflow.nodes.aichat;
 
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.openai.core.JsonValue;
-import com.openai.core.http.AsyncStreamResponse;
-import com.openai.models.chat.completions.ChatCompletionMessageParam;
-import com.openai.models.chat.completions.ChatCompletionUserMessageParam;
 import com.run.RunApplication;
+import com.run.ai.openai.AsyncStreamResponse;
+import com.run.ai.openai.JsonValue;
+import com.run.ai.openai.chat.ChatCompletionChunk;
+import com.run.ai.openai.chat.ChatCompletionMessageParam;
+import com.run.ai.openai.chat.ChatCompletionUserMessageParam;
 import com.run.common.keyvalue.DefaultKeyValue;
 import com.run.common.util.ChatCompletionAccumulator;
 import com.run.common.util.CommonUtils;
@@ -95,8 +96,8 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
                                 Boolean reasoningEnd = false;
 
                                 @Override
-                                public void onNext(com.openai.models.chat.completions.ChatCompletionChunk chatCompletionChunk) {
-                                    for (com.openai.models.chat.completions.ChatCompletionChunk.Choice choice : chatCompletionChunk.choices()) {
+                                public void onNext( ChatCompletionChunk chatCompletionChunk) {
+                                    for (ChatCompletionChunk.Choice choice : chatCompletionChunk.choices()) {
                                         JsonValue reasoningContent = choice.delta()._additionalProperties().get("reasoning_content");
                                         if (reasoningContent != null && !reasoningEnd) {
                                             isReasoning = true;

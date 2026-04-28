@@ -1,6 +1,8 @@
 package com.run.workflow.converter;
 
-import com.openai.models.chat.completions.*;
+import com.run.ai.openai.chat.ChatCompletionMessageParam;
+import com.run.ai.openai.chat.ChatCompletionSystemMessageParam;
+import com.run.ai.openai.chat.ChatCompletionUserMessageParam;
 import com.run.common.constants.ContentTypeConstants;
 import com.run.dao.entity.ConversationMessage;
 import io.vertx.core.json.JsonArray;
@@ -17,50 +19,62 @@ import java.util.stream.Stream;
  * {@code @Author:张少虎}
  * {@code @Date: 2026/4/6  17:40}
  * {@code @Version 1.0}
- * {@code @注释: }
+ * {@code @注释: 适配自用轻量 openai chat sdk}
  */
 public class ConversationMessageConverter {
 
     private ConversationMessageConverter() {
     }
 
-    // ── 公开接口 ──────────────────────────────────────────────────────────────
-
     public static List<ChatCompletionMessageParam> toOpenAiMessages(List<ConversationMessage> messages) {
         return toOpenAiMessages(messages, ContentConvertConfig.defaultConfig());
     }
 
-    public static List<ChatCompletionMessageParam> toOpenAiMessages(List<ConversationMessage> messages, ContentConvertConfig config) {
+    public static List<ChatCompletionMessageParam> toOpenAiMessages(List<ConversationMessage> messages,
+                                                                    ContentConvertConfig config) {
         List<ChatCompletionMessageParam> result = new ArrayList<>();
+        if (messages == null || messages.isEmpty()) {
+            return result;
+        }
         for (ConversationMessage message : messages) {
+            if (message == null) {
+                continue;
+            }
             result.addAll(toOpenAiMessage(message.getContent(), config));
         }
         return result;
     }
 
     public static List<ChatCompletionMessageParam> toOpenAiMessage(ConversationMessage message) {
+        if (message == null) {
+            return List.of();
+        }
         return toOpenAiMessage(message.getContent(), ContentConvertConfig.defaultConfig());
     }
 
-    public static List<ChatCompletionMessageParam> toOpenAiMessage(ConversationMessage message, ContentConvertConfig config) {
+    public static List<ChatCompletionMessageParam> toOpenAiMessage(ConversationMessage message,
+                                                                   ContentConvertConfig config) {
+        if (message == null) {
+            return List.of();
+        }
         return toOpenAiMessage(message.getContent(), config);
     }
 
     public static List<ChatCompletionMessageParam> toOpenAiMessage(JsonArray contents) {
-        return toOpenAiMessage(contents, ContentConvertConfig.builder().build());
+        return toOpenAiMessage(contents, ContentConvertConfig.defaultConfig());
     }
 
     public static List<ChatCompletionMessageParam> toOpenAiMessage(JsonArray contents, ContentConvertConfig config) {
+        ContentConvertConfig convertConfig = config == null ? ContentConvertConfig.defaultConfig() : config;
+
         if (streamContent(contents).anyMatch(obj -> ContentTypeConstants.QUESTION == parseType(obj))) {
-            return List.of(buildUserMessage(contents, config));
+            return List.of(buildUserMessage(contents, convertConfig));
         }
         if (streamContent(contents).anyMatch(obj -> ContentTypeConstants.SYSTEM == parseType(obj))) {
-            return List.of(buildSystemMessage(contents, config));
+            return List.of(buildSystemMessage(contents, convertConfig));
         }
-        return buildAssistantMessages(contents, config);
+        return buildAssistantMessages(contents, convertConfig);
     }
-
-    // ── USER ──────────────────────────────────────────────────────────────────
 
     private static ChatCompletionMessageParam buildUserMessage(JsonArray contents, ContentConvertConfig config) {
         String text = streamContent(contents)
@@ -68,6 +82,7 @@ public class ConversationMessageConverter {
                 .map(obj -> config.extract(ContentTypeConstants.QUESTION, obj))
                 .filter(s -> !isBlank(s))
                 .collect(Collectors.joining());
+
         return ChatCompletionMessageParam.ofUser(
                 ChatCompletionUserMessageParam.builder()
                         .content(text)
@@ -75,14 +90,13 @@ public class ConversationMessageConverter {
         );
     }
 
-    // ── SYSTEM ────────────────────────────────────────────────────────────────
-
     private static ChatCompletionMessageParam buildSystemMessage(JsonArray contents, ContentConvertConfig config) {
         String text = streamContent(contents)
                 .filter(obj -> ContentTypeConstants.SYSTEM == parseType(obj))
                 .map(obj -> config.extract(ContentTypeConstants.SYSTEM, obj))
                 .filter(s -> !isBlank(s))
                 .collect(Collectors.joining());
+
         return ChatCompletionMessageParam.ofSystem(
                 ChatCompletionSystemMessageParam.builder()
                         .content(text)
@@ -90,9 +104,8 @@ public class ConversationMessageConverter {
         );
     }
 
-    // ── ASSISTANT ─────────────────────────────────────────────────────────────
-
-    private static List<ChatCompletionMessageParam> buildAssistantMessages(JsonArray contents, ContentConvertConfig config) {
+    private static List<ChatCompletionMessageParam> buildAssistantMessages(JsonArray contents,
+                                                                           ContentConvertConfig config) {
         List<JsonObject> toolContents = streamContent(contents)
                 .filter(obj -> ContentTypeConstants.TOOL == parseType(obj))
                 .filter(obj -> !isBlank(obj.getString("result")))
@@ -100,44 +113,50 @@ public class ConversationMessageConverter {
 
         List<ChatCompletionMessageParam> result = new ArrayList<>();
 
-        ChatCompletionAssistantMessageParam.Builder assistantBuilder =
-                ChatCompletionAssistantMessageParam.builder();
-
         String text = extractText(contents, config);
+
+        JsonObject assistantMessage = new JsonObject()
+                .put("role", "assistant");
+
         if (!isBlank(text)) {
-            assistantBuilder.content(text);
+            assistantMessage.put("content", text);
+        } else if (toolContents.isEmpty()) {
+            assistantMessage.put("content", "");
         }
 
         if (!toolContents.isEmpty()) {
-            List<ChatCompletionMessageToolCall> toolCalls = toolContents.stream()
-                    .map(obj -> ChatCompletionMessageToolCall.ofFunction(
-                            ChatCompletionMessageFunctionToolCall.builder()
-                                    .id(obj.getString("id"))
-                                    .function(ChatCompletionMessageFunctionToolCall.Function.builder()
-                                            .name(obj.getString("functionName"))
-                                            .arguments(obj.getString("arguments", "{}"))
-                                            .build())
-                                    .build()
-                    ))
-                    .collect(Collectors.toList());
-            assistantBuilder.toolCalls(toolCalls);
+            JsonArray toolCalls = new JsonArray();
+            for (JsonObject obj : toolContents) {
+                toolCalls.add(buildToolCall(obj));
+            }
+            assistantMessage.put("tool_calls", toolCalls);
         }
 
-        result.add(ChatCompletionMessageParam.ofAssistant(assistantBuilder.build()));
+        result.add(ChatCompletionMessageParam.fromJsonObject(assistantMessage));
 
         for (JsonObject tc : toolContents) {
-            result.add(ChatCompletionMessageParam.ofTool(
-                    ChatCompletionToolMessageParam.builder()
-                            .toolCallId(tc.getString("id"))
-                            .content(tc.getString("result"))
-                            .build()
-            ));
+            result.add(ChatCompletionMessageParam.fromJsonObject(buildToolMessage(tc)));
         }
 
         return result;
     }
 
-    // ── 文本提取（按 config 策略） ─────────────────────────────────────────────
+    private static JsonObject buildToolCall(JsonObject obj) {
+        return new JsonObject()
+                .put("id", obj.getString("id"))
+                .put("type", "function")
+                .put("function", new JsonObject()
+                        .put("name", obj.getString("functionName"))
+                        .put("arguments", obj.getString("arguments", "{}"))
+                );
+    }
+
+    private static JsonObject buildToolMessage(JsonObject obj) {
+        return new JsonObject()
+                .put("role", "tool")
+                .put("tool_call_id", obj.getString("id"))
+                .put("content", obj.getString("result", ""));
+    }
 
     private static String extractText(JsonArray contents, ContentConvertConfig config) {
         if (contents == null || contents.isEmpty()) {
@@ -146,7 +165,9 @@ public class ConversationMessageConverter {
         StringBuilder sb = new StringBuilder();
         streamContent(contents).forEach(obj -> {
             ContentTypeConstants type = parseType(obj);
-            if (type == null) return;
+            if (type == null) {
+                return;
+            }
 
             ContentConvertStrategy strategy = config.getStrategy(type);
             switch (strategy) {
@@ -154,7 +175,9 @@ public class ConversationMessageConverter {
                 }
                 case TEXT -> {
                     String text = config.extract(type, obj);
-                    if (!isBlank(text)) sb.append(text);
+                    if (!isBlank(text)) {
+                        sb.append(text);
+                    }
                 }
                 case PREFIXED -> {
                     String text = config.extract(type, obj);
@@ -169,18 +192,23 @@ public class ConversationMessageConverter {
         return sb.toString().trim();
     }
 
-    // ── 工具方法 ──────────────────────────────────────────────────────────────
-
     private static Stream<JsonObject> streamContent(JsonArray contents) {
-        if (contents == null) return Stream.empty();
+        if (contents == null) {
+            return Stream.empty();
+        }
         return IntStream.range(0, contents.size())
                 .mapToObj(contents::getJsonObject)
                 .filter(Objects::nonNull);
     }
 
     private static ContentTypeConstants parseType(JsonObject obj) {
+        if (obj == null) {
+            return null;
+        }
         String type = obj.getString("type");
-        if (isBlank(type)) return null;
+        if (isBlank(type)) {
+            return null;
+        }
         try {
             return ContentTypeConstants.valueOf(type);
         } catch (IllegalArgumentException e) {

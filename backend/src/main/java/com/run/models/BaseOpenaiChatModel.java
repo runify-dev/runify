@@ -1,13 +1,11 @@
 package com.run.models;
 
-import com.openai.client.OpenAIClient;
-import com.openai.client.okhttp.OpenAIOkHttpClient;
-import com.openai.core.JsonValue;
-import com.openai.core.http.AsyncStreamResponse;
-import com.openai.models.chat.completions.ChatCompletionChunk;
-import com.openai.models.chat.completions.ChatCompletionCreateParams;
-import com.openai.models.chat.completions.ChatCompletionMessageParam;
-import com.openai.models.chat.completions.ChatCompletionUserMessageParam;
+
+import com.run.ai.openai.AsyncStreamResponse;
+import com.run.ai.openai.JsonValue;
+import com.run.ai.openai.OpenAIClient;
+import com.run.ai.openai.OpenAIOkHttpClient;
+import com.run.ai.openai.chat.*;
 import io.vertx.core.json.JsonObject;
 
 import java.util.List;
@@ -63,8 +61,8 @@ public abstract class BaseOpenaiChatModel implements ChatModel {
     }
 
     @Override
-    public CompletableFuture<com.openai.models.chat.completions.ChatCompletion> invoke(List<ChatCompletionMessageParam> messages,
-                                                                                       JsonObject extra) {
+    public CompletableFuture<ChatCompletion> invoke(List<ChatCompletionMessageParam> messages,
+                                                    JsonObject extra) {
         return this.client.async().chat().completions().create(getChatCompletionCreateParams(messages, extra));
     }
 

@@ -5,11 +5,12 @@ import com.run.dao.common.entity.BaseEntity;
 import com.run.dao.common.entity.WallNodeRelation;
 import com.run.dao.common.mapper.BaseMapper;
 import com.run.handler.tree.pojo.QueryNodePojo;
+import com.run.sql.DSL;
+import com.run.sql.condition.Condition;
 import io.vertx.core.Future;
 import io.vertx.sqlclient.RowSet;
 import org.apache.commons.lang3.StringUtils;
-import org.jooq.Condition;
-import org.jooq.impl.DSL;
+
 
 import java.util.*;
 
@@ -54,7 +55,7 @@ public class TreeUtil {
                     wallNodeRelation.apply(UUID.randomUUID(), null, nodeId, 1),
                     wallNodeRelation.apply(UUID.randomUUID(), nodeId, nodeId, 0)));
         }
-        return mapper.list(DSL.field("descendant_id").eq(DSL.param("#{descendant_id}")),
+        return mapper.list(DSL.field("descendant_id").eq(DSL.param("descendant_id")),
                         Map.of("descendant_id", parentId))
                 .compose(nodeRelations -> {
                     List<T> result = new ArrayList<>();
@@ -119,16 +120,16 @@ public class TreeUtil {
      */
     public static <T extends BaseEntity<T>> Future<Boolean> validateNodeName(UUID parentId, String nodeName, UUID nodeId, BaseMapper<T> mapper) {
 
-        Condition condition = DSL.field("name").eq(DSL.param("#{name}"));
+        Condition condition = DSL.field("name").eq(DSL.param("name"));
         if (nodeId != null) {
-            condition = condition.and(DSL.field("id").notEqual(DSL.param("#{id}")));
+            condition = condition.and(DSL.field("id").notEqual(DSL.param("id")));
         }
         Future<RowSet<T>> rowSetFuture;
         if (parentId == null) {
             rowSetFuture = mapper._list(condition.and(DSL.field("parent_id").isNull()), Map.of("name", nodeName, "id", nodeId != null ? nodeId : ""));
 
         } else {
-            rowSetFuture = mapper._list(condition.and(DSL.field("parent_id").eq(DSL.param("#{parent_id}"))),
+            rowSetFuture = mapper._list(condition.and(DSL.field("parent_id").eq(DSL.param("parent_id"))),
                     Map.of("name", nodeName, "parent_id", parentId, "id", nodeId != null ? nodeId : ""));
 
         }

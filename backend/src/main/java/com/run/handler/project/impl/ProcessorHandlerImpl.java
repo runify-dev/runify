@@ -7,7 +7,6 @@ import com.run.common.project.executor.ProcessorExecutor;
 import com.run.common.query.Query;
 import com.run.common.result.Result;
 import com.run.common.util.CommonUtils;
-import com.run.dao.common.F;
 import com.run.dao.entity.Processor;
 import com.run.dao.entity.Project;
 import com.run.dao.mapper.ProcessorMapper;
@@ -17,17 +16,19 @@ import com.run.handler.project.dto.ProcessorDto;
 import com.run.handler.project.vo.CreateProcessorVO;
 import com.run.handler.project.vo.EditProcessorVO;
 import com.run.handler.project.vo.QueryProcessorVO;
+import com.run.sql.condition.Condition;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
-import org.jooq.Condition;
 
 import javax.inject.Inject;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+
+import static com.run.sql.DSL.field;
 
 /**
  * {@code @Author:张少虎}
@@ -63,15 +64,15 @@ public class ProcessorHandlerImpl implements IProcessorHandler {
     }
 
     public Condition getCondition(QueryProcessorVO query) {
-        Condition condition = F.field(Processor::getProjectId).eq(F.params(Processor::getProjectId));
+        Condition condition = field(Processor::getProjectId).eq(query.getProjectId());
         if (StringUtils.isNotEmpty(query.getName())) {
-            condition = condition.and(F.field(Processor::getName).like(F.params(Processor::getName)));
+            condition = condition.and(field(Processor::getName).like(query.getName()));
         }
         if (StringUtils.isNotEmpty(query.getDesc())) {
-            condition = condition.and(F.field(Processor::getDesc).like(F.params(Processor::getDesc)));
+            condition = condition.and(field(Processor::getDesc).like(query.getDesc()));
         }
         if (StringUtils.isNotEmpty(query.getProtocol())) {
-            condition = condition.and(F.field(Processor::getProtocol).eq(F.params(Processor::getProtocol)));
+            condition = condition.and(field(Processor::getProtocol).eq(query.getProtocol()));
         }
         return condition;
     }

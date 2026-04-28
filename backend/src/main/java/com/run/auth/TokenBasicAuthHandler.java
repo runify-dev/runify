@@ -3,6 +3,7 @@ package com.run.auth;
 import com.run.auth.provider.TokenProvider;
 
 import com.run.common.result.Result;
+import com.run.sql.dialect.SQLDialect;
 import io.vertx.core.Future;
 import io.vertx.ext.auth.User;
 import io.vertx.ext.auth.authentication.AuthenticationProvider;
@@ -10,7 +11,7 @@ import io.vertx.ext.auth.authentication.TokenCredentials;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HTTPAuthorizationHandler;
 import io.vertx.sqlclient.Pool;
-import org.jooq.SQLDialect;
+
 
 /**
  * {@code @Author:张少虎}

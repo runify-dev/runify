@@ -2,10 +2,11 @@ package com.run.dao.mapper;
 
 import com.run.common.config.AppConfig;
 import com.run.common.util.CommonUtils;
-import com.run.dao.common.F;
+
 import com.run.dao.common.entity.BaseReadStream;
 import com.run.dao.common.mapper.BaseMapper;
 import com.run.dao.entity.FileEntity;
+import com.run.sql.dialect.SQLDialect;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
@@ -18,16 +19,17 @@ import io.vertx.sqlclient.RowSet;
 import io.vertx.sqlclient.SqlResult;
 import io.vertx.sqlclient.templates.SqlTemplate;
 import org.jetbrains.annotations.Nullable;
-import org.jooq.SQLDialect;
+
 
 import javax.inject.Inject;
 import java.io.File;
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.function.Function;
+
+import static com.run.sql.DSL.field;
 
 /**
  * {@code @Author:张少虎}
@@ -271,7 +273,7 @@ public class FileMapper extends BaseMapper<FileEntity> {
     }
 
     public BaseReadStream downloadFile(Vertx vertx, FileEntity fileEntity) {
-        if (dbType == SQLDialect.POSTGRES) {
+        if (dbType == SQLDialect.POSTGRESQL) {
             return new PgsqlReadStream(fileEntity.getLoId(), 0L, 1024 * 64L, fileEntity.getSize());
         } else {
             return new FileReadStream(vertx, fileEntity.getPath());
@@ -286,7 +288,7 @@ public class FileMapper extends BaseMapper<FileEntity> {
      * @return
      */
     public BaseReadStream downloadFile(Vertx vertx, FileEntity fileEntity, Long offset, Long size) {
-        if (dbType == SQLDialect.POSTGRES) {
+        if (dbType == SQLDialect.POSTGRESQL) {
             return new PgsqlReadStream(fileEntity.getLoId(), offset, 1024 * 64L, Math.min(fileEntity.getSize(), size));
         } else {
             return new FileReadStream(vertx, fileEntity.getPath(), offset, 1024 * 64L, Math.min(fileEntity.getSize(), size));
@@ -318,8 +320,8 @@ public class FileMapper extends BaseMapper<FileEntity> {
             fileEntity.setSha256Hash(sha256);
             return sha256;
         }, false).compose(sha256 -> {
-            return search(F.field(FileEntity::getSha256Hash).eq(F.params(FileEntity::getSha256Hash))
-                    , Map.of("sha256Hash", sha256))
+            return search(field(FileEntity::getSha256Hash).eq(sha256)
+                    , Map.of( ))
                     .compose(rows -> {
                         if (rows.size() == 0) {
                             return SqlTemplate.forQuery(client, "SELECT lo_creat(-1)::int8 as lo_id;").execute(Map.of()).compose(loId -> {

@@ -1,6 +1,5 @@
 package com.run.handler.project.impl;
 
-import com.run.dao.entity.NoteFolder;
 import com.run.dao.entity.ProjectFolder;
 import com.run.dao.entity.ProjectRelation;
 import com.run.dao.mapper.ProjectFolderMapper;

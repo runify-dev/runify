@@ -1,9 +1,10 @@
 package com.run.models;
 
-import com.openai.core.http.AsyncStreamResponse;
-import com.openai.models.chat.completions.ChatCompletion;
-import com.openai.models.chat.completions.ChatCompletionChunk;
-import com.openai.models.chat.completions.ChatCompletionMessageParam;
+
+import com.run.ai.openai.AsyncStreamResponse;
+import com.run.ai.openai.chat.ChatCompletion;
+import com.run.ai.openai.chat.ChatCompletionChunk;
+import com.run.ai.openai.chat.ChatCompletionMessageParam;
 import com.run.common.openai.request.message.Message;
 import com.run.common.openai.response.ChatCompletionMessageToolCall;
 import com.run.common.openai.response.CompletionUsage;

@@ -1,8 +1,6 @@
 package com.run.handler.knowledge.impl;
 
 
-import com.run.auth.constants.PermissionConstants;
-import com.run.auth.dto.UserProfile;
 import com.run.common.cache.CacheStore;
 import com.run.common.result.Result;
 import com.run.common.util.CommonUtils;

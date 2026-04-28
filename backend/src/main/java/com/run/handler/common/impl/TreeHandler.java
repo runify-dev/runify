@@ -8,6 +8,8 @@ import com.run.dao.common.mapper.BaseMapper;
 import com.run.handler.common.ITreeHandler;
 import com.run.handler.tree.pojo.CreateSimpleNodePojo;
 import com.run.handler.tree.pojo.QueryNodePojo;
+import com.run.sql.DSL;
+import com.run.sql.condition.Condition;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.ext.web.RoutingContext;
@@ -15,8 +17,6 @@ import io.vertx.sqlclient.RowSet;
 import io.vertx.sqlclient.SqlClient;
 import io.vertx.sqlclient.SqlResult;
 import org.apache.commons.lang3.StringUtils;
-import org.jooq.Condition;
-import org.jooq.impl.DSL;
 
 import java.util.*;
 
@@ -40,21 +40,21 @@ public abstract class TreeHandler<Node extends BaseEntity<Node>, Relation extend
     public Condition getWhere(QueryNodePojo queryNodePojo) {
         Condition condition = DSL.noCondition();
         if (StringUtils.isNotEmpty(queryNodePojo.getFolderId())) {
-            condition = condition.and(DSL.field("ancestor_id").eq(DSL.param("#{folderId}")));
+            condition = condition.and(DSL.field("ancestor_id").eq(queryNodePojo.getFolderId()));
         } else {
             condition = condition.and(DSL.field("ancestor_id").isNull());
         }
         if (queryNodePojo.getDepth() != null) {
-            condition = condition.and(DSL.field("depth").eq(DSL.param("#{depth}")));
+            condition = condition.and(DSL.field("depth").eq(queryNodePojo.getDepth()));
         }
         if (StringUtils.isNotEmpty(queryNodePojo.getName())) {
-            condition = condition.and(DSL.field("name").eq(DSL.param("#{name}")));
+            condition = condition.and(DSL.field("name").eq("%" + queryNodePojo.getName() + "%"));
         }
         if (queryNodePojo.getStar() != null) {
-            condition = condition.and(DSL.field("star").eq(DSL.param("#{star}")));
+            condition = condition.and(DSL.field("star").eq(queryNodePojo.getStar() ));
         }
         if (queryNodePojo.getShare() != null) {
-            condition = condition.and(DSL.field("share").eq(DSL.param("#{share}")));
+            condition = condition.and(DSL.field("share").eq(queryNodePojo.getShare()));
         }
         if (StringUtils.isNotEmpty(queryNodePojo.getType())) {
             condition = condition.and(DSL.field("type").eq(queryNodePojo.getType()));
@@ -184,7 +184,7 @@ public abstract class TreeHandler<Node extends BaseEntity<Node>, Relation extend
     protected Future<Boolean> validateNodeName(UUID parentId, String nodeName, UUID nodeId) {
         Condition condition = DSL.field("name").eq(DSL.param("#{name}"));
         if (nodeId != null) {
-            condition = condition.and(DSL.field("id").notEqual(DSL.param("#{id}")));
+            condition = condition.and(DSL.field("id").ne(DSL.param("#{id}")));
         }
         Future<RowSet<Node>> rowSetFuture;
         if (parentId == null) {

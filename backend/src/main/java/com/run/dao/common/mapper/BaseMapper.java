@@ -3,35 +3,39 @@ package com.run.dao.common.mapper;
 
 import com.run.common.config.AppConfig;
 import com.run.common.result.Page;
+import com.run.common.util.CommonUtils;
 import com.run.common.util.SqlTemplates;
-import com.run.dao.common.F;
+import com.run.dao.common.annotations.Column;
 import com.run.dao.common.convert.EntityConvert;
 import com.run.dao.common.entity.BaseEntity;
 import com.run.dao.common.entity.EntityConfig;
+import com.run.sql.DSLContext;
+import com.run.sql.RenderedSql;
+import com.run.sql.condition.Condition;
+import com.run.sql.dialect.SQLDialect;
+import com.run.sql.model.Field;
+import com.run.sql.model.Param;
+import com.run.sql.model.SortField;
+import com.run.sql.model.Table;
+import com.run.sql.query.InsertQuery;
+import com.run.sql.query.SelectQuery;
 import io.vertx.core.Future;
 import io.vertx.sqlclient.*;
-import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.templates.SqlTemplate;
 import io.vertx.sqlclient.templates.TupleMapper;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.jetbrains.annotations.NotNull;
-import org.jooq.*;
-import org.jooq.Record;
-import org.jooq.conf.ParamType;
-import org.jooq.conf.Settings;
-import org.jooq.impl.DSL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
-import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.util.*;
 
-import static org.jooq.impl.DSL.param;
-import static org.jooq.impl.DSL.using;
+import static com.run.sql.DSL.*;
+
 
 /**
  * {@code @Author:张少虎}
@@ -43,10 +47,10 @@ public class BaseMapper<T extends BaseEntity<T>> {
     Logger log = LoggerFactory.getLogger(this.getClass());
 
 
-    private List<org.jooq.Field<?>> fields;
+    private List<Field<?>> fields;
 
     @Getter
-    private Table<?> table;
+    private Table table;
     @Getter
     protected Pool client;
 
@@ -57,7 +61,8 @@ public class BaseMapper<T extends BaseEntity<T>> {
     private String saveTemplate;
 
     @Getter
-    private org.jooq.Field<Object> primaryField;
+    private com.run.sql.model.Field<?> primaryField;
+
     private EntityConfig<T> entityConfig;
 
     protected EntityConvert<T> getConvert() {
@@ -87,45 +92,30 @@ public class BaseMapper<T extends BaseEntity<T>> {
     private void constructor(Pool client, SQLDialect dbType, Class<T> entityClass) {
         this.client = client;
         this.dbType = dbType;
-        this.dslContext = using(dbType, new Settings().withRenderNamedParamPrefix(""));
-        this.entityConfig = F.getEntityConfig(entityClass);
+        this.dslContext = using(dbType);
+        this.entityConfig = new EntityConfig<>(entityClass);
         this.table = entityConfig.getTable(dbType);
-        this.fields = F.getFieldList(entityClass);
-        List<Field> fields = Arrays.stream(FieldUtils
-                        .getFieldsWithAnnotation(entityClass, com.run.dao.common.annotations.Column.class))
-                .filter(field -> field.getAnnotation(com.run.dao.common.annotations.Column.class).primaryKey()).toList();
-        if (fields.size() != 1) {
-            throw new RuntimeException("主键只能有一个");
+        List<Field<?>> fields = new ArrayList<>();
+        for (java.lang.reflect.Field field : FieldUtils
+                .getFieldsWithAnnotation(entityClass, Column.class)) {
+            Column annotation = field.getAnnotation(Column.class);
+            if (annotation.primaryKey()) {
+                this.primaryField = field(annotation.name());
+            }
+            fields.add(field(annotation.name()));
         }
-        this.primaryField = DSL.field(fields.getFirst().getName());
-
+        this.fields = fields;
         this.saveTemplate = generateSaveTemplate();
+
     }
 
     private String generateSaveTemplate() {
-        Map<org.jooq.Field<?>, Param<?>> updateMap = new HashMap<>();
-        for (org.jooq.Field<?> field : fields) {
-            updateMap.put(field, param("#{" + field.getName() + "}"));
+        Map<Field<?>, Param<?>> updateMap = new HashMap<>();
+        for (Field<?> field : fields) {
+            updateMap.put(field, param(field.nameOrExpression()));
         }
         return dslContext.insertInto(table)
-                .set(updateMap).getSQL(ParamType.NAMED);
-    }
-
-    private String generateUpdateTemplate(T obj) {
-        Map<String, Object> map = getConvert().toMap(obj);
-        Map<org.jooq.Field<?>, Param<?>> updateMap = new HashMap<>();
-        for (org.jooq.Field<?> field : fields) {
-            if (!field.getName().equals(primaryField.getName())) {
-                if (map.get(field.getName()) != null) {
-                    updateMap.put(field, param("#{" + field.getName() + "}"));
-                }
-            }
-        }
-        return dslContext.update(table)
-                .set(updateMap)
-                .where(primaryField.eq(param("#{" + primaryField.getName() + "}")))
-                .getSQL(ParamType.NAMED);
-
+                .set(updateMap).render().sql();
     }
 
     public Class<T> currentEntity() {
@@ -160,8 +150,9 @@ public class BaseMapper<T extends BaseEntity<T>> {
      * @return 异步响应
      */
     public Future<SqlResult<Void>> save(T t) {
-        log.info("sql:{}\n{}", saveTemplate, this.getConvert().toMap(t));
-        return generateInsertSqlTemplate().execute(t);
+        InsertQuery insertQuery = dslContext.insertInto(t);
+        log.info("sql:{}\n{}", insertQuery, insertQuery.getParams());
+        return SqlTemplate.forUpdate(client, insertQuery.getSQL()).execute(insertQuery.getParams());
     }
 
     /**
@@ -186,13 +177,13 @@ public class BaseMapper<T extends BaseEntity<T>> {
      * @return 数据
      */
     public Future<RowSet<T>> search(Condition condition, Map<String, Object> params) {
-        String template = dslContext.select(fields).from(table).where(condition).getSQL(ParamType.NAMED);
-        return search(template, params);
+        RenderedSql render = dslContext.select(fields).from(table).where(condition).render();
+        return search(render.sql(), CommonUtils.merge(render.params(), params));
     }
 
     public Future<RowSet<T>> search(Condition condition, Map<String, Object> params, SqlClient client) {
-        String template = dslContext.select(fields).from(table).where(condition).getSQL(ParamType.NAMED);
-        return search(template, params, client);
+        RenderedSql render = dslContext.select(fields).from(table).where(condition).render();
+        return search(render.sql(), CommonUtils.merge(render.params(), params), client);
     }
 
     /**
@@ -253,12 +244,11 @@ public class BaseMapper<T extends BaseEntity<T>> {
      * @return 数据
      */
     public Future<T> one(Condition condition, Map<String, Object> params, SqlClient client) {
-        String sql = dslContext
+        RenderedSql render = dslContext
                 .select(fields)
                 .from(table)
-                .where(condition)
-                .getSQL(ParamType.NAMED);
-        return one(sql, params, client);
+                .where(condition).render();
+        return one(render.sql(), CommonUtils.merge(render.params(), params), client);
     }
 
     /**
@@ -297,21 +287,19 @@ public class BaseMapper<T extends BaseEntity<T>> {
      * @return 数据
      */
     public Future<T> getById(String id, SqlClient client) {
-        String sql = dslContext
+        RenderedSql render = dslContext
                 .select(fields)
                 .from(table)
-                .where(primaryField.eq(param("#{" + primaryField.getName() + "}")))
-                .getSQL(ParamType.NAMED);
-        return one(sql, Map.of(primaryField.getName(), id), client);
+                .where(primaryField.eq(id)).render();
+        return one(render.sql(), render.params(), client);
     }
 
 
     public Future<SqlResult<Void>> deleteById(String id, SqlClient client) {
-        String sql = this.dslContext
-                .delete(table)
-                .where(primaryField.eq(param("#{" + primaryField.getName() + "}")))
-                .getSQL(ParamType.NAMED);
-        return delete(sql, Map.of(primaryField.getName(), id), client);
+        RenderedSql render = this.dslContext
+                .deleteFrom(table)
+                .where(primaryField.eq(id)).render();
+        return delete(render.sql(), render.params(), client);
     }
 
     /**
@@ -332,8 +320,8 @@ public class BaseMapper<T extends BaseEntity<T>> {
      * @return SqlResult
      */
     public Future<SqlResult<Void>> delete(Condition condition, Map<String, Object> params, SqlClient sqlClient) {
-        String sql = dslContext.delete(table).where(condition).getSQL(ParamType.NAMED);
-        return delete(sql, params, sqlClient);
+        RenderedSql render = dslContext.deleteFrom(table).where(condition).render();
+        return delete(render.sql(), CommonUtils.merge(render.params(), params), sqlClient);
     }
 
     /**
@@ -361,15 +349,9 @@ public class BaseMapper<T extends BaseEntity<T>> {
     }
 
     public Future<SqlResult<Void>> delete(Condition condition, Map<String, Object> params) {
-        String template = dslContext.delete(table).where(condition).getSQL(ParamType.NAMED);
-        return delete(template, params, client);
+        return delete(condition, params, client);
     }
 
-    public Future<SqlResult<Void>> delete(Condition condition, Map<String, Object> params, List<String> expandInKeyList) {
-        String template = dslContext.delete(table).where(condition).getSQL(ParamType.NAMED);
-        Result result = getResult(params, expandInKeyList, template);
-        return delete(result.template(), result.params(), client);
-    }
 
     @NotNull
     private static Result getResult(Map<String, Object> params, List<String> expandInKeyList, String template) {
@@ -391,14 +373,18 @@ public class BaseMapper<T extends BaseEntity<T>> {
                 .execute(params);
     }
 
-    public Future<SqlResult<Void>> update(Map<org.jooq.Field<Object>, Param<Object>> fieldMap, Condition condition, Map<String, Object> params) {
+    public Future<SqlResult<Void>> update(Map<Field<Object>, Param<Object>> fieldMap, Condition condition, Map<String, Object> params) {
         return update(fieldMap, condition, params, client);
     }
 
-    public Future<SqlResult<Void>> update(Map<org.jooq.Field<Object>, Param<Object>> fieldMap, Condition condition, Map<String, Object> params, SqlClient client) {
-        String template = dslContext.update(table).set(fieldMap).where(condition).getSQL(ParamType.NAMED);
-        return SqlTemplate.forUpdate(client, template)
-                .execute(params);
+    public Future<SqlResult<Void>> update(Map<Field<Object>, Param<Object>> fieldMap, Condition condition) {
+        return update(fieldMap, condition, Map.of(), client);
+    }
+
+    public Future<SqlResult<Void>> update(Map<Field<Object>, Param<Object>> fieldMap, Condition condition, Map<String, Object> params, SqlClient client) {
+        RenderedSql render = dslContext.update(table).set(fieldMap).where(condition).render();
+        return SqlTemplate.forUpdate(client, render.sql())
+                .execute(CommonUtils.merge(render.params(), params));
     }
 
     /**
@@ -408,12 +394,16 @@ public class BaseMapper<T extends BaseEntity<T>> {
      * @return SqlResult
      */
     public Future<SqlResult<Void>> update(T t) {
-        String template = generateUpdateTemplate(t);
-        return SqlTemplate.forUpdate(client, template)
+        RenderedSql render = dslContext.update(table).set(t).render();
+        String sql = render.sql();
+        return SqlTemplate.forUpdate(client, sql)
                 .mapFrom(TupleMapper.mapper(this.getConvert()::toMap))
                 .execute(t);
     }
 
+    public Future<List<T>> list(Condition condition) {
+        return _list(condition, Map.of()).compose(BaseMapper::toListFuture);
+    }
 
     /**
      * 查询列表
@@ -426,13 +416,13 @@ public class BaseMapper<T extends BaseEntity<T>> {
         return _list(condition, params).compose(BaseMapper::toListFuture);
     }
 
-    public Future<List<T>> list(Condition condition, Map<String, Object> params, List<String> expandInKeyList) {
-        return _list(condition, params, expandInKeyList).compose(BaseMapper::toListFuture);
-    }
-
 
     public Future<List<T>> list(String template, Map<String, Object> params) {
         return search(template, params).compose(BaseMapper::toListFuture);
+    }
+
+    public Future<List<T>> list(RenderedSql renderedSql) {
+        return search(renderedSql.sql(), renderedSql.params()).compose(BaseMapper::toListFuture);
     }
 
     /**
@@ -443,21 +433,14 @@ public class BaseMapper<T extends BaseEntity<T>> {
      * @return 异步响应
      */
     public Future<RowSet<T>> _list(Condition condition, Map<String, Object> params) {
-        String sql = dslContext.select(fields).from(table).where(condition).getSQL(ParamType.NAMED);
-        return SqlTemplate.forQuery(client, sql)
+        RenderedSql render = dslContext.select(fields).from(table).where(condition).render();
+        return SqlTemplate.forQuery(client, render.sql())
                 .mapTo(this.getConvert()::mapTo)
-                .execute(params);
+                .execute(CommonUtils.merge(render.params(), params));
     }
 
-    public Future<RowSet<T>> _list(Condition condition, Map<String, Object> params, List<String> expandInKeyList) {
-        String sql = dslContext.select(fields).from(table).where(condition).getSQL(ParamType.NAMED);
-        Result result = getResult(params, expandInKeyList, sql);
-        return SqlTemplate.forQuery(client, result.template)
-                .mapTo(this.getConvert()::mapTo)
-                .execute(result.params);
-    }
 
-    public SelectJoinStep<Record> select() {
+    public SelectQuery select() {
         return dslContext.select(fields).from(table);
     }
 
@@ -485,8 +468,9 @@ public class BaseMapper<T extends BaseEntity<T>> {
      * @param pageSize    每页大小
      * @return 分页数据
      */
-    public Future<Page<T>> page(Condition condition, Collection<? extends OrderField<?>> orderFields, long currentPage, long pageSize, Map<String, Object> params) {
+    public Future<Page<T>> page(Condition condition, Collection<? extends SortField> orderFields, long currentPage, long pageSize, Map<String, Object> params) {
         Future<Long> count = count(condition, params);
+
         return _page(condition, orderFields, currentPage, pageSize, params).compose(rowSet -> count.compose(c -> {
             List<T> ts = toList(rowSet);
             return Future.succeededFuture(new Page<T>(ts, c, currentPage, pageSize));
@@ -518,19 +502,16 @@ public class BaseMapper<T extends BaseEntity<T>> {
      * @param pageSize    每页大小
      * @return 分页结果
      */
-    private Future<RowSet<T>> _page(Condition condition, Collection<? extends OrderField<?>> orderFields,
+    private Future<RowSet<T>> _page(Condition condition, Collection<? extends SortField> orderFields,
                                     long currentPage, long pageSize, Map<String, Object> params) {
-        String sql = dslContext.select(fields).from(table).where(condition)
+        long offset = (currentPage - 1) * pageSize;
+        RenderedSql render = dslContext.select(fields).from(table).where(condition)
                 .orderBy(orderFields)
-                .offset(DSL.param("#{offset}", Integer.class))
-                .limit(DSL.param("#{limit}", Integer.class))
-                .getSQL(ParamType.NAMED);
-        HashMap<String, Object> result = new HashMap<>(params);
-        result.put("offset", (currentPage - 1) * pageSize);
-        result.put("limit", pageSize);
-        return SqlTemplate.forQuery(client, sql)
+                .offset(offset)
+                .limit(pageSize).render();
+        return SqlTemplate.forQuery(client, render.sql())
                 .mapTo(this.getConvert()::mapTo)
-                .execute(result);
+                .execute(CommonUtils.merge(render.params(), params));
 
     }
 
@@ -541,10 +522,10 @@ public class BaseMapper<T extends BaseEntity<T>> {
      * @return count 数
      */
     public Future<Long> count(Condition condition) {
-        String sql = dslContext.selectCount().from(table)
-                .where(condition).getQuery().toString();
-        return SqlTemplate.forQuery(client, sql)
-                .execute(Map.of()).compose(rows -> {
+        RenderedSql render = dslContext.selectCount().from(table)
+                .where(condition).render();
+        return SqlTemplate.forQuery(client, render.sql())
+                .execute(render.params()).compose(rows -> {
                     Row next = rows.iterator().next();
                     return Future.succeededFuture(next.getLong("count(*)"));
                 });
@@ -557,10 +538,10 @@ public class BaseMapper<T extends BaseEntity<T>> {
      * @return count 数
      */
     public Future<Long> count(Condition condition, Map<String, Object> params) {
-        String sql = dslContext.selectCount().from(table)
-                .where(condition).getSQL(ParamType.NAMED);
-        return SqlTemplate.forQuery(client, sql)
-                .execute(params).compose(rows -> {
+        RenderedSql render = dslContext.selectCount().from(table)
+                .where(condition).render();
+        return SqlTemplate.forQuery(client, render.sql())
+                .execute(CommonUtils.merge(render.params(), params)).compose(rows -> {
                     Row next = rows.iterator().next();
                     Long aLong = next.getLong(0);
                     return Future.succeededFuture(aLong);

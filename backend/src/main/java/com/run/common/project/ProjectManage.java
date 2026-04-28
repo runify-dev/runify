@@ -6,17 +6,13 @@ import com.run.common.keyvalue.DefaultKeyValue;
 import com.run.common.project.executor.HttpProcessorExecutor;
 import com.run.common.project.executor.ProcessorExecutor;
 import com.run.common.project.pool.PostgreSQL;
-import com.run.dao.common.F;
 import com.run.dao.entity.DatabaseConnectionPool;
 import com.run.dao.entity.Processor;
 import com.run.dao.entity.Project;
 import com.run.dao.mapper.DatabaseConnectionPoolMapper;
-import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.Router;
 import io.vertx.sqlclient.Pool;
-import io.vertx.sqlclient.Row;
-import io.vertx.sqlclient.RowSet;
 import lombok.Getter;
 
 import java.util.Map;
@@ -26,6 +22,8 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+
+import static com.run.sql.DSL.field;
 
 public class ProjectManage {
     private static Router mainRouter;
@@ -107,8 +105,8 @@ public class ProjectManage {
             this.router = getChildRouter.get();
             mainRouter.route(path).subRouter(this.router);
             databaseConnectionPoolMapper
-                    .search(F.field(DatabaseConnectionPool::getProjectId).eq(F.params(DatabaseConnectionPool::getProjectId)),
-                            Map.of("projectId", this.project.getId().toString()))
+                    .search(field(DatabaseConnectionPool::getProjectId).eq(this.project.getId().toString()),
+                            Map.of())
                     .onSuccess(poolList -> {
                         Map<String, Pool> collect = poolList.stream()
                                 .map(databaseConnectionPool -> new DefaultKeyValue<>(databaseConnectionPool.getId().toString(), poolNewInstance.get(databaseConnectionPool.getProtocol()).apply(databaseConnectionPool, vertx)))

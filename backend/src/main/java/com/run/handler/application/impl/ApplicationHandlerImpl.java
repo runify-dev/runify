@@ -11,7 +11,7 @@ import com.run.common.queue.MessageQueue;
 import com.run.common.result.Result;
 import com.run.common.util.CommonUtils;
 import com.run.common.util.JacksonUtils;
-import com.run.dao.common.F;
+
 import com.run.dao.entity.*;
 import com.run.dao.mapper.*;
 import com.run.handler.application.IApplicationHandler;
@@ -22,6 +22,8 @@ import com.run.handler.application.vo.ConversationVO;
 import com.run.handler.application.vo.CreateConversationVO;
 import com.run.handler.common.impl.ResourceHandlerImpl;
 import com.run.handler.common.pojo.SimpleNodePojo;
+import com.run.sql.DSL;
+import com.run.sql.condition.Condition;
 import com.run.workflow.WorkFlowManage;
 import com.run.workflow.WorkflowType;
 import com.run.workflow.entity.WorkFlow;
@@ -34,14 +36,14 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
-import org.jooq.Condition;
-import org.jooq.conf.ParamType;
-import org.jooq.impl.DSL;
+
 
 import javax.inject.Inject;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
+
+import static com.run.sql.DSL.field;
 
 /**
  * {@code @Author:张少虎}
@@ -210,11 +212,10 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
 
         Future<List<ConversationMessage>> conversationMessageFuture = conversationMessageMapper.save(conversationMessage)
                 .compose(ok -> conversationMessageMapper
-                        .list(conversationMessageMapper.select().where(F.field(ConversationMessage::getConversationId)
-                                                .eq(F.params(ConversationMessage::getConversationId)))
-                                        .orderBy(F.field(ConversationMessage::getCreateTime).desc())
-                                        .limit(DSL.param("#{limit}", Integer.class)).getSQL(ParamType.NAMED),
-                                Map.of("conversationId", conversationId, "limit", 10)));
+                        .list(conversationMessageMapper.select().where(field(ConversationMessage::getConversationId)
+                                        .eq(conversationId))
+                                .orderBy(field(ConversationMessage::getCreateTime).desc())
+                                .limit(10).render()));
         Future.all(applicationFuture, conversationMessageFuture)
                 .onSuccess(ok -> extracted(context, ((Application) ok.resultAt(0)).getWorkflow(),
                         UUID.fromString(conversationId), UUID.fromString(applicationId),
@@ -273,7 +274,7 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
     }
 
     public Condition getConversationQuery(ConversationQuery query) {
-        Condition condition = DSL.field("application_id").eq(DSL.param("#{application_id}"));
+        Condition condition = DSL.field("application_id").eq(query.getApplicationId());
         String startTime = query.getStartTime();
         if (StringUtils.isNotEmpty(startTime)) {
             condition = condition.and(DSL.field("create_time").le(startTime));
@@ -282,10 +283,10 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
             condition = condition.and(DSL.field("create_time").ge(startTime));
         }
         if (StringUtils.isNotEmpty(query.getName())) {
-            condition = condition.and(DSL.field("name").like(F.params(Conversation::getName)));
+            condition = condition.and(DSL.field("name").like("%" + query.getName() + "%"));
         }
         if (StringUtils.isNotEmpty(query.getExecuteType())) {
-            condition = condition.and(DSL.field("execute_type").eq(DSL.param("#{execute_type}")));
+            condition = condition.and(DSL.field("execute_type").eq(query.getExecuteType()));
         }
         return condition;
     }
@@ -299,7 +300,7 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
         ConversationQuery conversation = new ConversationQuery(entries);
         Condition conversationQuery = getConversationQuery(conversation);
         conversationMapper.page(conversationQuery,
-                        List.of(F.field(Conversation::getUpdateTime).desc()),
+                        List.of(field(Conversation::getUpdateTime).desc()),
                         Long.parseLong(currentPage), Long.parseLong(pageSize),
                         Map.of("application_id", conversation.getApplicationId(),
                                 "name", StringUtils.isEmpty(conversation.getName()) ? "" : "%" + conversation.getName() + "%",
@@ -314,12 +315,12 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
         String conversationId = context.pathParam("conversationId");
         String currentPage = context.queryParams().get("currentPage");
         String pageSize = context.queryParams().get("pageSize");
-        conversationMessageMapper.page(F.field(ConversationMessage::getApplicationId).eq(F.params(ConversationMessage::getApplicationId))
-                                .and(F.field(ConversationMessage::getConversationId).eq(F.params(ConversationMessage::getConversationId))),
-                        List.of(F.field(Conversation::getUpdateTime).desc()),
+        conversationMessageMapper.page(field(ConversationMessage::getApplicationId).eq(applicationId)
+                                .and(field(ConversationMessage::getConversationId).eq(conversationId)),
+                        List.of(field(Conversation::getUpdateTime).desc()),
                         Long.parseLong(currentPage),
                         Long.parseLong(pageSize),
-                        Map.of("conversationId", conversationId, "applicationId", applicationId)
+                        Map.of()
                 ).onSuccess(result -> context.end(Result.success(result).toBuffer()))
                 .onFailure(context::fail);
 

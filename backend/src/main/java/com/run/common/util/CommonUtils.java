@@ -174,4 +174,10 @@ public class CommonUtils {
         }
         return Collections.unmodifiableMap(map);
     }
+
+    public static Map<String, Object> merge(Map<String, Object> source, Map<String, Object> source1) {
+        HashMap<String, Object> result = new HashMap<>(source);
+        result.putAll(source1);
+        return result;
+    }
 }

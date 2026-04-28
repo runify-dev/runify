@@ -428,12 +428,12 @@ function commitTreeNode(node?: VariableTreeNode | null) {
   nextTick(() => view.focus())
 }
 
-function handleNodeClick(node: VariableTreeNode) {
+function handleNodeClick(node: any) {
   if (node.data?.disabled) return
   selectedNodeKey.value = node.key
 }
 
-function handleNodeDblClick(node: VariableTreeNode) {
+function handleNodeDblClick(node: any) {
   if (node.data?.disabled) return
   selectedNodeKey.value = node.key
   commitTreeNode(node)

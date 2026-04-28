@@ -8,7 +8,6 @@ import com.run.common.result.Page;
 import com.run.common.result.Result;
 import com.run.common.util.CommonUtils;
 import com.run.common.util.I18n;
-import com.run.dao.common.F;
 import com.run.dao.entity.Role;
 import com.run.dao.entity.RolePermissionRelation;
 import com.run.dao.entity.RoleUserRelation;
@@ -22,20 +21,21 @@ import com.run.handler.role.dto.PermissionDTO;
 import com.run.handler.role.vo.*;
 import com.run.handler.user.dto.UserDTO;
 import com.run.handler.user.vo.UserQueryVO;
+import com.run.sql.DSL;
+import com.run.sql.condition.Condition;
+import com.run.sql.query.SelectQuery;
 import io.vertx.core.Future;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
-import org.jooq.Condition;
-import org.jooq.Record1;
-import org.jooq.SelectConditionStep;
-import org.jooq.impl.DSL;
 
 import javax.inject.Inject;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static com.run.sql.DSL.field;
 
 public class RoleHandlerImpl implements IRoleHandler {
     private RoleMapper roleMapper;
@@ -63,7 +63,7 @@ public class RoleHandlerImpl implements IRoleHandler {
         RoleQueryVO query = Query.format(RoleQueryVO.class, context);
         Condition condition = DSL.noCondition();
         if (StringUtils.isNotEmpty(query.getName())) {
-            condition.and(F.field(Role::getName).like(F.params(Role::getName)));
+            condition.and(field(Role::getName).like("%" + query.getName() + "%"));
         }
         if (query.getCurrentPage() != null && query.getPageSize() != null) {
             roleMapper.page(condition, query.getCurrentPage(), query.getPageSize(), CommonUtils.ofNullable("name", query.getName()))
@@ -123,8 +123,7 @@ public class RoleHandlerImpl implements IRoleHandler {
             context.end(Result.success(permissionList).toBuffer());
         } else {
             Future.all(roleMapper.getById(roleId),
-                            rolePermissionRelationMapper.list(F.field(RolePermissionRelation::getRoleId).eq(F.params(RolePermissionRelation::getRoleId)),
-                                    Map.of("roleId", roleId)))
+                            rolePermissionRelationMapper.list(field(RolePermissionRelation::getRoleId).eq(roleId)))
                     .onSuccess(result -> {
                         Role role = result.resultAt(0);
                         List<RolePermissionRelation> rolePermissionRelations = result.resultAt(1);
@@ -146,17 +145,17 @@ public class RoleHandlerImpl implements IRoleHandler {
         String roleId = context.pathParam("roleId");
         ModifyPermissionsVO modifyPermissionsVO = context.body().asPojo(ModifyPermissionsVO.class);
         List<String> permissions = modifyPermissionsVO.getPermissions();
-        rolePermissionRelationMapper.delete(F.field(RolePermissionRelation::getRoleId).eq(F.params(RolePermissionRelation::getRoleId)), Map.of("roleId", roleId))
+        rolePermissionRelationMapper.delete(field(RolePermissionRelation::getRoleId).eq(roleId), Map.of())
                 .compose(ok -> {
                     List<RolePermissionRelation> list = permissions.stream().map(permission -> {
                         return new RolePermissionRelation(CommonUtils.uuid7(), roleId, permission);
                     }).toList();
                     return rolePermissionRelationMapper.batch_save(list);
                 }).compose(result -> {
-                    return roleUserRelationMapper.list(F.field(RoleUserRelation::getRoleId).eq(F.params(RoleUserRelation::getRoleId)),
-                            Map.of("roleId", roleId)).compose(ok -> {
-                        return Future.succeededFuture(ok.stream().flatMap(ru -> Stream.of("permissions:" + ru.getUserId(), "roles:" + ru.getUserId())).toList());
-                    });
+                    return roleUserRelationMapper.list(field(RoleUserRelation::getRoleId).eq(roleId))
+                            .compose(ok -> {
+                                return Future.succeededFuture(ok.stream().flatMap(ru -> Stream.of("permissions:" + ru.getUserId(), "roles:" + ru.getUserId())).toList());
+                            });
 
                 }).compose(permissionKeys -> {
                     return Future.fromCompletionStage(this.cacheStore.deleteAll(permissionKeys));
@@ -168,15 +167,14 @@ public class RoleHandlerImpl implements IRoleHandler {
     @Override
     public void users(RoutingContext context) {
         String roleId = context.pathParam("roleId");
-        SelectConditionStep<Record1<UUID>> where = roleUserRelationMapper.getDslContext()
-                .select(F.field(RoleUserRelation::getUserId))
+        SelectQuery where = roleUserRelationMapper.getDslContext()
+                .select(field(RoleUserRelation::getUserId))
                 .from(roleUserRelationMapper.getTable())
-                .where(F.field(RoleUserRelation::getRoleId).eq(F.params(RoleUserRelation::getRoleId)));
+                .where(field(RoleUserRelation::getRoleId).eq(roleId));
         UserQueryVO query = Query.format(UserQueryVO.class, context);
         if (query.getPageSize() != null && query.getCurrentPage() != null) {
-            userMapper.page(F.field(User::getId).in(where),
-                            query.getCurrentPage(), query.getPageSize(),
-                            Map.of("roleId", roleId))
+            userMapper.page(field(User::getId).in(where),
+                            query.getCurrentPage(), query.getPageSize(), Map.of())
                     .onSuccess(userPage -> {
                         List<UserDTO> list = userPage.getRecords().stream().map(UserDTO::new).toList();
                         Page<UserDTO> result = new Page<>();
@@ -187,7 +185,7 @@ public class RoleHandlerImpl implements IRoleHandler {
                         context.end(Result.success(result).toBuffer());
                     }).onFailure(context::fail);
         } else {
-            userMapper.list(F.field(User::getId).in(where),
+            userMapper.list(field(User::getId).in(where),
                             Map.of("roleId", roleId))
                     .onSuccess(users -> {
                         context.end(Result.success(users.stream().map(UserDTO::new).toList()).toBuffer());
@@ -201,9 +199,9 @@ public class RoleHandlerImpl implements IRoleHandler {
     public void removeUser(RoutingContext context) {
         String roleId = context.pathParam("roleId");
         RemoveUserVO pojo = context.body().asPojo(RemoveUserVO.class);
-        roleUserRelationMapper.delete(F.field(RoleUserRelation::getUserId).in(F.params(RoleUserRelation::getUserId))
-                                .and(F.field(RoleUserRelation::getRoleId).eq(F.params(RoleUserRelation::getRoleId))),
-                        Map.of("roleId", roleId, "userId", pojo.getUserIds()), List.of("userId"))
+        roleUserRelationMapper.delete(field(RoleUserRelation::getUserId).in(pojo.getUserIds())
+                                .and(field(RoleUserRelation::getRoleId).eq(roleId)),
+                        Map.of())
                 .onSuccess(r -> {
                     context.end(Result.success(Boolean.TRUE).toBuffer());
                 }).onFailure(context::fail);

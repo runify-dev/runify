@@ -2,12 +2,13 @@ package com.run.dagger.module;
 
 import com.run.common.config.AppConfig;
 import com.run.common.config.DataBase;
-import com.run.dao.common.F;
+
+import com.run.sql.dialect.SQLDialect;
 import dagger.Module;
 import dagger.Provides;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
-import org.jooq.SQLDialect;
+
 import org.yaml.snakeyaml.Yaml;
 
 import javax.inject.Singleton;
@@ -87,7 +88,6 @@ public class ConfigModule {
         for (InitConfig initConfig : initConfigs) {
             if (initConfig.support()) {
                 this.appConfig = initConfig.get();
-                F.activeSQLDialect(this.appConfig.getDatabase().getType());
                 return;
             }
         }

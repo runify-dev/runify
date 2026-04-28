@@ -8,10 +8,8 @@ import com.run.common.result.Page;
 import com.run.common.result.Result;
 import com.run.common.util.CommonUtils;
 import com.run.common.util.JWTUtil;
-import com.run.common.util.PermissionHexUtils;
 import com.run.common.util.ValidatorUtil;
 import com.run.common.validator.Group;
-import com.run.dao.common.F;
 import com.run.dao.entity.User;
 import com.run.dao.mapper.UserMapper;
 import com.run.handler.user.IUserHandler;
@@ -19,23 +17,23 @@ import com.run.handler.user.dto.UserDTO;
 import com.run.handler.user.dto.UserProfileTDO;
 import com.run.handler.user.pojo.LoginPojo;
 import com.run.handler.user.vo.UserQueryVO;
+import com.run.sql.DSL;
+import com.run.sql.condition.Condition;
+import com.run.sql.model.Field;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.sqlclient.Pool;
-import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
-import org.jooq.Condition;
-import org.jooq.Field;
-import org.jooq.Param;
-import org.jooq.impl.DSL;
 
 import javax.inject.Inject;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+
+import static com.run.sql.DSL.field;
 
 /**
  * {@code @Author:张少虎}
@@ -66,9 +64,9 @@ public class UserHandlerImpl implements IUserHandler {
         user.setPassword(CommonUtils.getSHA256(user.getPassword()));
         user.setRole("USER");
         ValidatorUtil.validate(user, Group.Create.class);
-        userMapper.one(F.field(User::getUsername)
-                                .eq(F.params(User::getUsername)),
-                        Map.of("username", user.getUsername()))
+        userMapper.one(field(User::getUsername)
+                                .eq(user.getUsername()),
+                        Map.of())
                 .compose(u -> {
                     if (u == null) {
                         return userMapper.save(user);
@@ -101,10 +99,10 @@ public class UserHandlerImpl implements IUserHandler {
             String password = loginPojo.getPassword();
 
 
-            Condition eq = F.field(User::getUsername)
-                    .eq(F.params(User::getUsername))
-                    .and(F.field(User::getPassword).eq(F.params(User::getPassword)));
-            userMapper.search(eq, Map.of("username", username, "password", CommonUtils.getSHA256(password)))
+            Condition eq = field(User::getUsername)
+                    .eq(username)
+                    .and(field(User::getPassword).eq(CommonUtils.getSHA256(password)));
+            userMapper.search(eq, Map.of())
                     .onSuccess(rows -> {
                         if (rows.size() > 0) {
                             User user = rows.iterator().next();
@@ -141,22 +139,21 @@ public class UserHandlerImpl implements IUserHandler {
     public Condition getCondition(UserQueryVO query) {
         String mixing = query.getGlobal();
         Condition condition = DSL.noCondition();
-        Field<String> username = F.field(User::getUsername);
-        Field<String> nikiName = F.field(User::getNickname);
+        Field<String> username = field(User::getUsername);
+        Field<String> nikiName = field(User::getNickname);
         if (StringUtils.isNotEmpty(mixing)) {
-            Field<String> phone = F.field(User::getPhone);
-            Field<String> email = F.field(User::getEmail);
-            Param<String> mixingParams = DSL.param("global", String.class);
-            condition = condition.and(username.like(mixingParams)
-                    .or(nikiName.like(mixingParams)
-                            .or(phone.like(mixingParams))
-                            .or(email.like(mixingParams))));
+            Field<String> phone = field(User::getPhone);
+            Field<String> email = field(User::getEmail);
+            condition = condition.and(username.like(query.getGlobal())
+                    .or(nikiName.like(query.getGlobal())
+                            .or(phone.like(query.getGlobal()))
+                            .or(email.like(query.getGlobal()))));
         }
         if (StringUtils.isNotEmpty(query.getUsername())) {
-            condition = condition.and(username.like(F.params(User::getUsername)));
+            condition = condition.and(username.like("%" + query.getUsername() + "%"));
         }
         if (StringUtils.isNotEmpty(query.getNickname())) {
-            condition = condition.and(nikiName.like(F.params(User::getNickname)));
+            condition = condition.and(nikiName.like("%" + query.getNickname() + "%"));
         }
         return condition;
     }

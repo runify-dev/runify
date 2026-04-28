@@ -4,22 +4,22 @@ import com.run.common.constants.DatabaseConnectionProtocolConstants;
 import com.run.common.project.ProjectManage;
 import com.run.common.query.Query;
 import com.run.common.result.Result;
-import com.run.dao.common.F;
 import com.run.dao.entity.DatabaseConnectionPool;
 import com.run.dao.mapper.DatabaseConnectionPoolMapper;
 import com.run.dao.mapper.ProjectMapper;
 import com.run.handler.project.IDatabaseCollectionPoolHandler;
 import com.run.handler.project.vo.CreateDatabaseCollectionPoolVO;
 import com.run.handler.project.vo.QueryDatabaseCollectionPoolVO;
+import com.run.sql.condition.Condition;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
-import org.jooq.Condition;
 
 import javax.inject.Inject;
 import java.time.LocalDateTime;
 import java.util.HashMap;
-import java.util.Objects;
 import java.util.UUID;
+
+import static com.run.sql.DSL.field;
 
 /**
  * {@code @Author:张少虎}
@@ -60,15 +60,15 @@ public class DatabaseCollectionPoolHandlerImpl implements IDatabaseCollectionPoo
     }
 
     private Condition getCondition(QueryDatabaseCollectionPoolVO query) {
-        Condition condition = F.field(DatabaseConnectionPool::getProjectId).eq(F.params(DatabaseConnectionPool::getProjectId));
+        Condition condition = field(DatabaseConnectionPool::getProjectId).eq(query.getProjectId());
         if (StringUtils.isNotEmpty(query.getName())) {
-            condition = condition.and(F.field(DatabaseConnectionPool::getName).like(F.params(DatabaseConnectionPool::getName)));
+            condition = condition.and(field(DatabaseConnectionPool::getName).like("%" + query.getName() + "%"));
         }
         if (StringUtils.isNotEmpty(query.getDesc())) {
-            condition = condition.and(F.field(DatabaseConnectionPool::getDesc).like(F.params(DatabaseConnectionPool::getDesc)));
+            condition = condition.and(field(DatabaseConnectionPool::getDesc).like(query.getDesc()));
         }
         if (StringUtils.isNotEmpty(query.getProtocol())) {
-            condition = condition.and(F.field(DatabaseConnectionPool::getProtocol).eq(F.params(DatabaseConnectionPool::getProtocol)));
+            condition = condition.and(field(DatabaseConnectionPool::getProtocol).eq(query.getProtocol()));
         }
         return condition;
     }

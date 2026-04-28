@@ -4,17 +4,14 @@ import com.run.dao.common.convert.Converter;
 import com.run.dao.common.convert.EntityConvert;
 import com.run.dao.common.convert.postgres.PostgresConvert;
 import com.run.dao.common.convert.sqlite.SqliteConvert;
+import com.run.sql.dialect.SQLDialect;
+import com.run.sql.model.Table;
 import lombok.Getter;
-import org.jooq.SQLDialect;
-import org.jooq.Schema;
-import org.jooq.impl.DSL;
 
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import static org.jooq.impl.DSL.table;
 
 /**
  * {@code @Author:张少虎}
@@ -24,13 +21,13 @@ import static org.jooq.impl.DSL.table;
  */
 @Getter
 public enum ConvertConstants {
-    SQLITE(SQLDialect.SQLITE, SqliteConvert::new, t -> table(t.getName())),
+    SQLITE(SQLDialect.SQLITE, SqliteConvert::new, t -> t),
 
-    POSTGRES(SQLDialect.POSTGRES, PostgresConvert::new, t -> table(DSL.name(Optional.ofNullable(t.getSchema()).map(Schema::getName).orElse(null), t.getName())));
+    POSTGRES(SQLDialect.POSTGRESQL, PostgresConvert::new, t -> t);
 
     ConvertConstants(SQLDialect sqlDialect, BiFunction<Class<?>,
                              Map<String, Converter<?, ?>>, EntityConvert<?>> newInstance,
-                     Function<org.jooq.Table<?>, org.jooq.Table<?>> mappingTable) {
+                     Function<Table, Table> mappingTable) {
         this.sqlDialect = sqlDialect;
         this.newInstance = newInstance;
         this.mappingTable = mappingTable;
@@ -38,7 +35,7 @@ public enum ConvertConstants {
     }
 
     final SQLDialect sqlDialect;
-    final Function<org.jooq.Table<?>, org.jooq.Table<?>> mappingTable;
+    final Function<Table, Table> mappingTable;
     final BiFunction<Class<?>, Map<String, Converter<?, ?>>, EntityConvert<?>> newInstance;
 
 }

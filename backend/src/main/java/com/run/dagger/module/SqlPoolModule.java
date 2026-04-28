@@ -3,6 +3,7 @@ package com.run.dagger.module;
 import com.run.common.config.AppConfig;
 import com.run.common.config.DataBase;
 
+import com.run.sql.dialect.SQLDialect;
 import dagger.Module;
 import dagger.Provides;
 import io.vertx.core.Vertx;
@@ -13,7 +14,7 @@ import io.vertx.pgclient.PgBuilder;
 import io.vertx.pgclient.PgConnectOptions;
 import io.vertx.sqlclient.Pool;
 import io.vertx.sqlclient.PoolOptions;
-import org.jooq.SQLDialect;
+
 
 import javax.inject.Inject;
 import java.nio.file.Path;

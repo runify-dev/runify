@@ -4,12 +4,12 @@ import com.run.common.exception.ApiException;
 import com.run.common.function.FourFunction;
 import com.run.dao.common.entity.BaseEntity;
 import com.run.dao.common.mapper.BaseMapper;
+import com.run.sql.DSL;
+import com.run.sql.condition.Condition;
 import io.vertx.core.Future;
 import io.vertx.sqlclient.RowSet;
 import org.apache.commons.lang3.Strings;
-import org.jooq.Condition;
-import org.jooq.impl.DSL;
-
+ 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -38,12 +38,12 @@ public class Tool {
                 .compose(resource -> Tool.validateNodeName(resourceMapper, getParentId.apply(resource), getName.apply(resource), UUID.fromString(resourceId)))
                 .compose(_ -> relationMapper
                         .delete(DSL.field("descendant_id")
-                                        .eq(DSL.param("#{descendant_id}")),
+                                        .eq(DSL.param("descendant_id")),
                                 Map.of("descendant_id", resourceId))
                 ).compose(_ -> Tool.getNodeRelation(relationMapper, UUID.fromString(folderId), UUID.fromString(resourceId), newRelation, getAncestorId, getDepth))
                 .compose(relationMapper::batch_save).compose(_ -> resourceMapper.update(
-                        Map.of(DSL.field("parent_id"), DSL.param("#{parent_id}")),
-                        DSL.field("id").eq(DSL.param("#{id}")),
+                        Map.of(DSL.field("parent_id"), DSL.param("parent_id")),
+                        DSL.field("id").eq(DSL.param("id")),
                         Map.of("parent_id", folderId, "id", resourceId)))
                 .compose(_ -> Future.succeededFuture(Boolean.TRUE));
     }
@@ -60,12 +60,12 @@ public class Tool {
      */
     public static <Node extends BaseEntity<Node>, NodeMapper extends BaseMapper<Node>> Future<Boolean>
     validName(NodeMapper nodeMapper, UUID parentId, String name) {
-        Condition eq = DSL.field("name").eq(DSL.param("#{name}", String.class));
+        Condition eq = DSL.field("name").eq(DSL.param("name", String.class));
         Future<Long> rowSetFuture;
         if (parentId == null) {
             rowSetFuture = nodeMapper.count(eq.and(DSL.field("parent_id").isNull()), Map.of("name", name));
         } else {
-            rowSetFuture = nodeMapper.count(eq.and(DSL.field("parent_id").eq(DSL.param("#{parent_id}"))),
+            rowSetFuture = nodeMapper.count(eq.and(DSL.field("parent_id").eq(DSL.param("parent_id"))),
                     Map.of("name", name, "parent_id", parentId));
         }
         return rowSetFuture
@@ -91,13 +91,13 @@ public class Tool {
     public static <Node extends BaseEntity<Node>, NodeMapper extends BaseMapper<Node>> Future<String>
     getAvailableNodeName(NodeMapper nodeMapper, UUID parentId, Function<Node, String> getName,
                          Supplier<String> getPrefix) {
-        Condition lick = DSL.field("name").like(DSL.param("#{name}", String.class));
+        Condition lick = DSL.field("name").like(DSL.param("name", String.class));
         Future<RowSet<Node>> rowSetFuture;
         String prefix = getPrefix.get();
         if (parentId == null) {
             rowSetFuture = nodeMapper._list(lick.and(DSL.field("parent_id").isNull()), Map.of("name", prefix + "%"));
         } else {
-            rowSetFuture = nodeMapper._list(DSL.field("parent_id").eq(DSL.param("#{parent_id}")),
+            rowSetFuture = nodeMapper._list(DSL.field("parent_id").eq(DSL.param("parent_id")),
                     Map.of("name", prefix + "%", "parent_id", parentId));
         }
         return rowSetFuture
@@ -141,7 +141,7 @@ public class Tool {
                     newRelation.apply(UUID.randomUUID(), null, nodeId, 1),
                     newRelation.apply(UUID.randomUUID(), nodeId, nodeId, 0)));
         }
-        return relationMapper.list(DSL.field("descendant_id").eq(DSL.param("#{descendant_id}")),
+        return relationMapper.list(DSL.field("descendant_id").eq(DSL.param("descendant_id")),
                         Map.of("descendant_id", parentId))
                 .compose(nodeRelations -> {
                     List<Relation> result = new ArrayList<>();
@@ -163,16 +163,16 @@ public class Tool {
      * @return 是否校验通过
      */
     public static <Node extends BaseEntity<Node>, Mapper extends BaseMapper<Node>> Future<Boolean> validateNodeName(Mapper mapper, UUID parentId, String nodeName, UUID nodeId) {
-        Condition condition = DSL.field("name").eq(DSL.param("#{name}"));
+        Condition condition = DSL.field("name").eq(DSL.param("name"));
         if (nodeId != null) {
-            condition = condition.and(DSL.field("id").notEqual(DSL.param("#{id}")));
+            condition = condition.and(DSL.field("id").notEqual(DSL.param("id")));
         }
         Future<RowSet<Node>> rowSetFuture;
         if (parentId == null) {
             rowSetFuture = mapper.search(condition.and(DSL.field("parent_id").isNull()), Map.of("name", nodeName, "id", nodeId != null ? nodeId : ""));
 
         } else {
-            rowSetFuture = mapper.search(condition.and(DSL.field("parent_id").eq(DSL.param("#{parent_id}"))),
+            rowSetFuture = mapper.search(condition.and(DSL.field("parent_id").eq(DSL.param("parent_id"))),
                     Map.of("name", nodeName, "parent_id", parentId, "id", nodeId != null ? nodeId : ""));
 
         }
