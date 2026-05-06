@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="editor-container">
     <Toolbar :editor="editor"></Toolbar>
     <div class="simple-editor-content relative">
       <OperationMenu :editor="editor"></OperationMenu>
@@ -45,10 +45,10 @@ defineExpose({ setContent, getEditor })
 </script>
 <style lang="scss">
 .bubble-menu {
-  background-color: var(--white);
-  border: 1px solid var(--gray-1);
-  border-radius: 0.7rem;
-  box-shadow: var(--shadow);
+  background-color: var(--p-content-background);
+  border: 1px solid var(--p-content-border-color);
+  border-radius: var(--p-content-border-radius);
+  box-shadow: var(--p-overlay-popover-shadow);
   display: flex;
   padding: 0.2rem;
 
@@ -56,14 +56,14 @@ defineExpose({ setContent, getEditor })
     background-color: unset;
 
     &:hover {
-      background-color: var(--gray-3);
+      background-color: var(--p-content-hover-background);
     }
 
     &.is-active {
-      background-color: var(--purple);
+      background-color: var(--p-primary-color);
 
       &:hover {
-        background-color: var(--purple-contrast);
+        background-color: var(--p-primary-600);
       }
     }
   }

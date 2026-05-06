@@ -1,47 +1,70 @@
 <template>
-  <div>
-    <Fieldset legend="参数">
+  <div class="flex flex-col gap-4">
+    <!-- 参数区域 -->
+    <Fieldset legend="请求参数" :pt="{ legend: { class: 'text-sm font-medium text-surface-700' } }">
       <Form ref="formRef">
-        <FormField
-          v-slot="$field"
-          v-for="parameter in meta.parameters"
-          :key="parameter.field"
-          :name="parameter.field"
-          :resolver="getResolver(parameter.field, parameter.required)"
-        >
-          <div class="gap-2 flex">
-            <label class="mb-2"> {{ parameter.description }}</label>
-            <span v-if="parameter.required" class="text-red-500">*</span>
-          </div>
-
-          <InputText type="text" fluid />
-          <Message v-if="$field.invalid" severity="error" size="small" variant="simple">{{
-            $field.error?.message
-          }}</Message>
-        </FormField>
+        <div class="flex flex-col gap-3">
+          <FormField
+            v-slot="$field"
+            v-for="parameter in meta.parameters"
+            :key="parameter.field"
+            :name="parameter.field"
+            :resolver="getResolver(parameter.field, parameter.required)"
+          >
+            <div class="flex flex-col gap-1.5">
+              <label class="text-sm text-surface-600">
+                {{ parameter.description }}
+                <span v-if="parameter.required" class="text-red-500 ml-0.5">*</span>
+              </label>
+              <InputText type="text" fluid class="!text-sm" />
+              <Message v-if="$field.invalid" severity="error" size="small" variant="simple">
+                {{ $field.error?.message }}
+              </Message>
+            </div>
+          </FormField>
+        </div>
       </Form>
     </Fieldset>
-    <Fieldset v-if="showBody" legend="请求体"
-      ><RequestBody
+
+    <!-- 请求体 -->
+    <Fieldset
+      v-if="showBody"
+      legend="请求体"
+      :pt="{ legend: { class: 'text-sm font-medium text-surface-700' } }"
+    >
+      <RequestBody
         ref="requestBodyRef"
         :contentType="meta.contentType"
         :requestBody="meta.requestBody"
-      ></RequestBody>
+      />
     </Fieldset>
+
+    <!-- 执行按钮 -->
     <Button
-      type="submit"
-      severity="secondary"
-      label="execute"
-      class="w-full mt-4"
+      label="执行请求"
+      icon="pi pi-play"
+      class="w-full"
       @click="execute"
     />
-    <Fieldset legend="响应结果">
-      <div v-loading="loading">
-        {{ result }}
+
+    <!-- 响应结果 -->
+    <Fieldset
+      legend="响应结果"
+      :pt="{ legend: { class: 'text-sm font-medium text-surface-700' } }"
+    >
+      <div v-loading="loading" class="min-h-[100px]">
+        <pre
+          v-if="result"
+          class="text-sm text-surface-600 bg-surface-50 p-3 rounded-lg overflow-auto max-h-[300px]"
+        >{{ JSON.stringify(result, null, 2) }}</pre>
+        <div v-else class="flex items-center justify-center h-[100px] text-surface-400 text-sm">
+          执行请求后查看结果
+        </div>
       </div>
     </Fieldset>
   </div>
 </template>
+
 <script setup lang="ts">
 import Fieldset from 'primevue/fieldset'
 import RequestBody from './body/index.vue'
@@ -50,10 +73,12 @@ import { Form, FormField, type FormInstance } from '@primevue/forms'
 import axios from 'axios'
 import { zodResolver } from '@primevue/forms/resolvers/zod'
 import { z } from 'zod'
+
 const project: any = inject('project')
 const props = defineProps<{
   meta: any
 }>()
+
 const requestBodyRef = ref<InstanceType<typeof RequestBody>>()
 const showBody = computed(() => {
   return ['POST', 'DELETE', 'PUT'].includes(props.meta.method)
@@ -61,6 +86,7 @@ const showBody = computed(() => {
 const formRef = ref<FormInstance>()
 const result = ref<any>()
 const loading = ref<boolean>(false)
+
 const getResolver = (field: string, required: boolean) => {
   return zodResolver(
     required
@@ -90,18 +116,18 @@ const execute = () => {
 
   Promise.all(promiseList).then((values: Array<any>) => {
     const form = values[0]
-    console.log(values)
     const body = values[1].values
 
-    if (Object.keys(form.errors).length == 0) {
+    if (Object.keys(form.errors).length === 0) {
       const config = createRequestConfig(props.meta, project.value.path, form.values, body)
       loading.value = true
+      result.value = null
       axios(config)
         .then((ok) => {
           result.value = ok.data
         })
         .catch((e) => {
-          result.value = e
+          result.value = e.response?.data || e.message
         })
         .finally(() => {
           loading.value = false
@@ -110,7 +136,6 @@ const execute = () => {
   })
 }
 
-// 3. 创建请求配置
 const createRequestConfig = (meta: any, baseUrl: string, parameters: any, body: any) => {
   const url = `${baseUrl}${processPathParams(meta.path, parameters, meta.parameters)}`
   const config: any = {
@@ -131,6 +156,7 @@ const createRequestConfig = (meta: any, baseUrl: string, parameters: any, body: 
 
   return config
 }
+
 const processPathParams = (path: string, formData: any, parameters?: any[]) => {
   let processedPath = path
   parameters?.forEach((param: any) => {
@@ -144,4 +170,3 @@ const processPathParams = (path: string, formData: any, parameters?: any[]) => {
   return processedPath
 }
 </script>
-<style lang="scss" scoped></style>

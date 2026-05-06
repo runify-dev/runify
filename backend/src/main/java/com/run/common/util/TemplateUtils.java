@@ -1,5 +1,7 @@
 package com.run.common.util;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.run.common.freemarker.JsonFriendlyObjectWrapper;
 import freemarker.template.Configuration;
 import freemarker.template.Template;
 import lombok.SneakyThrows;
@@ -15,10 +17,12 @@ import java.util.Map;
  * {@code @注释: }
  */
 public class TemplateUtils {
-    private static final Configuration cfg = new Configuration(Configuration.VERSION_2_3_31);
+    private static final Configuration cfg = new Configuration(Configuration.VERSION_2_3_32);
 
     static {
         cfg.setDefaultEncoding("UTF-8");
+        cfg.setBooleanFormat("c");
+        cfg.setObjectWrapper(new JsonFriendlyObjectWrapper(Configuration.VERSION_2_3_32, new ObjectMapper()));
     }
 
     @SneakyThrows

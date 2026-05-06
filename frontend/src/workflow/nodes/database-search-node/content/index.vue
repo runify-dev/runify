@@ -1,5 +1,5 @@
 <template>
-  <Form ref="formRef">
+  <Form ref="formRef" :resolver="zodResolver(schema)">
     <Fieldset legend="基本信息">
       <FormField v-slot="$field: any" :initial-value="[]" name="pool">
         <label>数据库连接池 </label>
@@ -42,6 +42,8 @@ import type { BaseNodeModel } from '@logicflow/core'
 
 import Cascader from '@/components/cascader/index.vue'
 import type { FormInstance } from '@primevue/forms'
+import { zodResolver } from '@primevue/forms/resolvers/zod'
+import { schema, validate as validateNodeData } from './validator'
 const getModel = inject('getModel') as () => BaseNodeModel
 const formRef = ref<FormInstance>()
 const model = getModel()
@@ -49,7 +51,14 @@ const getNodeFieldOptions = inject('getNodeFieldOptions') as any
 const options = getNodeFieldOptions()
 
 const validate = () => {
-  return formRef.value ? formRef.value.validate() : Promise.reject({ values: [], errors: [] })
+  if (formRef.value) {
+    return formRef.value.validate()
+  }
+  const result = validateNodeData(model.properties.nodeData)
+  if (result.valid) {
+    return Promise.resolve({ values: model.properties.nodeData, errors: {} })
+  }
+  return Promise.resolve({ values: {}, errors: result.errors })
 }
 const submit = () => {
   return validate().then(({ values, errors }) => {

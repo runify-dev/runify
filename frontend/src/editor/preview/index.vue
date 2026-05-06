@@ -31,7 +31,9 @@ editor.value = newInstance('', undefined, false)
 function flush() {
   if (destroyed || !editor.value || editor.value.isDestroyed) return
   try {
-    editor.value.commands.setContent(safeMarkdown(latestContent), { contentType: 'markdown' })
+    if (editor.value.commands?.setContent) {
+      editor.value.commands.setContent(safeMarkdown(latestContent), { contentType: 'markdown' })
+    }
   } catch (e) {
     console.warn('setContent failed', e)
   }
@@ -63,10 +65,10 @@ onBeforeUnmount(() => {
   padding: 0;
 }
 .bubble-menu {
-  background-color: var(--white);
-  border: 1px solid var(--gray-1);
-  border-radius: 0.7rem;
-  box-shadow: var(--shadow);
+  background-color: var(--p-content-background);
+  border: 1px solid var(--p-content-border-color);
+  border-radius: var(--p-content-border-radius);
+  box-shadow: var(--p-overlay-popover-shadow);
   display: flex;
   padding: 0.2rem;
 
@@ -74,14 +76,14 @@ onBeforeUnmount(() => {
     background-color: unset;
 
     &:hover {
-      background-color: var(--gray-3);
+      background-color: var(--p-content-hover-background);
     }
 
     &.is-active {
-      background-color: var(--purple);
+      background-color: var(--p-primary-color);
 
       &:hover {
-        background-color: var(--purple-contrast);
+        background-color: var(--p-primary-600);
       }
     }
   }

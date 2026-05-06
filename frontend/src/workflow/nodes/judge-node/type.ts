@@ -317,9 +317,9 @@ export function isVariableExpression(value?: string) {
 
 export function findOptionByPath(
   options: CascaderOption[],
-  path?: string[]
+  path?: string[] | string | null
 ): CascaderOption | null {
-  if (!path || path.length === 0) {
+  if (!path || !Array.isArray(path) || path.length === 0) {
     return null
   }
 

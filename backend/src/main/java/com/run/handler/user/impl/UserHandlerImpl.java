@@ -60,7 +60,9 @@ public class UserHandlerImpl implements IUserHandler {
         user.setId(UUID.randomUUID());
         user.setCreateTime(LocalDateTime.now());
         user.setUpdateTime(LocalDateTime.now());
-        user.setIcon("./user.jpeg");
+        if (StringUtils.isEmpty(user.getIcon())) {
+            user.setIcon("./user.jpeg");
+        }
         user.setPassword(CommonUtils.getSHA256(user.getPassword()));
         user.setRole("USER");
         ValidatorUtil.validate(user, Group.Create.class);
@@ -75,6 +77,17 @@ public class UserHandlerImpl implements IUserHandler {
                 }).onSuccess(ok -> {
                     context.end(Result.success(user).toBuffer());
                 }).onFailure(context::fail);
+    }
+
+    @Override
+    public void updateUser(RoutingContext context) {
+        String userId = context.pathParam("id");
+        User user = context.body().asPojo(User.class);
+        user.setId(UUID.fromString(userId));
+        user.setUpdateTime(LocalDateTime.now());
+        userMapper.update(user).onSuccess(ok -> {
+            context.end(Result.success(true).toBuffer());
+        }).onFailure(context::fail);
     }
 
     @Override

@@ -15,41 +15,85 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import SideBar from './sidebar/index.vue'
 import ChatPanel from './chat-panel/index.vue'
 defineEmits(['close'])
 
+type OpenMode = boolean | 'auto'
+type LayoutMode = 'push' | 'drawer' | 'auto'
+
 const props = withDefaults(
   defineProps<{
-    defaultOpen?: boolean
-    defaultMode?: 'push' | 'drawer'
+    defaultOpen?: OpenMode
+    defaultMode?: LayoutMode
     type: 'DEBUG' | 'CONVERSATION'
   }>(),
   {
-    defaultOpen: false,
-    defaultMode: 'push'
+    defaultOpen: 'auto',
+    defaultMode: 'auto'
   }
 )
 
-const open = ref(props.defaultOpen)
-const mode = ref<'push' | 'drawer'>(props.defaultMode)
+const BREAKPOINT = 768
+const isMobile = ref(window.innerWidth < BREAKPOINT)
+
+const updateMobile = () => {
+  isMobile.value = window.innerWidth < BREAKPOINT
+}
+
+onMounted(() => window.addEventListener('resize', updateMobile))
+onUnmounted(() => window.removeEventListener('resize', updateMobile))
+
+const mode = ref<'push' | 'drawer'>(
+  props.defaultMode === 'auto'
+    ? isMobile.value ? 'drawer' : 'push'
+    : props.defaultMode
+)
+
+// 监听 auto 模式下屏幕变化，更新 mode
+if (props.defaultMode === 'auto') {
+  watch(isMobile, (mobile) => {
+    mode.value = mobile ? 'drawer' : 'push'
+  })
+}
+
+const open = ref(
+  props.defaultOpen === 'auto' ? !isMobile.value : props.defaultOpen
+)
+
+// 监听 auto 模式下屏幕变化，更新 open
+if (props.defaultOpen === 'auto') {
+  watch(isMobile, (mobile) => {
+    open.value = !mobile
+  })
+}
+
 const isDark = ref(false)
 </script>
 
 <style>
 .cw {
+  /* ── 尺寸 ──────────────────────────────────────────────────────── */
   --sb-w: 200px;
-  --bg: #ffffff;
-  --bg2: #f7f7f5;
-  --bd: #eaeaea;
-  --t1: #1a1a1a;
-  --t2: #555555;
-  --t3: #aaaaaa;
-  --hv: #eeeeec;
-  --ac: #e9e9e7;
-  --ub: #1a1a1a;
-  --ab: #f5f5f3;
+
+  /* ── 浅色主题 ──────────────────────────────────────────────────── */
+  --bg: #fafafa;
+  --bg2: #f5f5f3;
+  --bd: #e5e5e3;
+  --t1: #37352f;
+  --t2: #6b6b6b;
+  --t3: #9b9b9b;
+  --hv: #efefed;
+  --ac: #e8e8e6;
+  --ub: #37352f;
+  --ab: #f0f0ee;
+  --mask: rgba(0, 0, 0, 0.25);
+  --shadow: rgba(0, 0, 0, 0.06);
+  --danger-bg: #fef2f2;
+  --danger-text: #dc2626;
+  --focus-border: #c0c0c0;
+  --hover-overlay: rgba(0, 0, 0, 0.04);
 
   container-type: inline-size;
   container-name: chat;
@@ -63,26 +107,34 @@ const isDark = ref(false)
   background: var(--bg);
   color: var(--t1);
 }
+
+/* ── 深色主题 ─────────────────────────────────────────────────────── */
 .dark.cw {
-  --bg: #111111;
-  --bg2: #181818;
-  --bd: #252525;
-  --t1: #f0f0f0;
-  --t2: #bbbbbb;
-  --t3: #555555;
-  --hv: #222222;
-  --ac: #252525;
-  --ub: #efefef;
-  --ab: #1d1d1d;
+  --bg: #191919;
+  --bg2: #1f1f1f;
+  --bd: #2e2e2e;
+  --t1: #e0e0e0;
+  --t2: #a0a0a0;
+  --t3: #666666;
+  --hv: #252525;
+  --ac: #2a2a2a;
+  --ub: #e0e0e0;
+  --ab: #232323;
+  --mask: rgba(0, 0, 0, 0.4);
+  --shadow: rgba(0, 0, 0, 0.2);
+  --danger-bg: #3b1111;
+  --danger-text: #f87171;
+  --focus-border: #555555;
+  --hover-overlay: rgba(255, 255, 255, 0.06);
 }
 
-/* 遮罩基础：默认隐藏（push 模式宽屏不需要） */
+/* ── 遮罩 ──────────────────────────────────────────────────────────── */
 .cw > .mask {
   display: none;
   position: absolute;
   inset: 0;
   z-index: 30;
-  background: rgba(0, 0, 0, 0.35);
+  background: var(--mask);
 }
 
 /* drawer 模式：始终显示遮罩 */
@@ -90,33 +142,32 @@ const isDark = ref(false)
   display: block;
 }
 
-/* 容器宽度 < 500px：push 模式强制变 drawer 行为，同时显示遮罩 */
+/* ── 窄屏适配：push 模式强制变 drawer ─────────────────────────────── */
 @container chat (max-width: 300px) {
   .cw > .mask {
     display: block;
   }
 
   .sb--push {
-    position: absolute !important;
+    position: absolute;
     top: 0;
     left: 0;
     bottom: 0;
-    width: var(--sb-w) !important;
-    min-width: var(--sb-w) !important;
-    border-right-width: 1px !important;
+    width: var(--sb-w);
+    min-width: var(--sb-w);
+    border-right-width: 1px;
     pointer-events: none;
     transform: translateX(-100%);
-    z-index: 40 !important;
+    z-index: 40;
     transition:
       transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-      box-shadow 0.25s !important;
+      box-shadow 0.25s;
   }
   .sb--push.sb--open {
     pointer-events: auto;
-    transform: translateX(0) !important;
-    box-shadow: 4px 0 16px rgba(0, 0, 0, 0.1);
-    /* push 的 width 动画在此失效，确保不占文档流 */
-    width: var(--sb-w) !important;
+    transform: translateX(0);
+    box-shadow: 4px 0 16px var(--shadow);
+    width: var(--sb-w);
   }
 
   /* 窄屏 push 未展开时遮罩也不需要 */

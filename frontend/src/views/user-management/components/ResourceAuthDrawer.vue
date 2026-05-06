@@ -1,113 +1,96 @@
 <template>
-  <div>
-    <Drawer v-model:visible="visible" header="资源授权" position="right" class="!w-3/5">
-      <div class="flex flex-col h-full gap-4 p-4">
-        <!-- Resource type tabs -->
-        <div class="flex items-center gap-6 border-b border-gray-200 pb-2">
-          <button
-            v-for="option in menuOptions"
-            :key="option.value"
-            class="px-3 py-2 text-lg font-medium transition-all"
-            :class="
-              active === option.value
-                ? 'text-[#10b981] border-b-2 border-[#10b981]'
-                : 'text-gray-600 hover:text-[#10b981]'
-            "
-            @click="active = option.value"
-          >
-            {{ option.label }}
-          </button>
-        </div>
-
-        <!-- Search box -->
-        <div class="w-full">
-          <div class="relative">
-            <input
-              type="text"
-              placeholder="搜索名称"
-              v-model="searchKeyword"
-              class="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
-            />
-            <span class="absolute left-3 top-2.5 text-gray-400">
-              <i class="pi pi-search"></i>
-            </span>
-          </div>
-        </div>
-
-        <!-- TreeTable -->
-        <div
-          class="flex-1 overflow-auto rounded-xl border border-surface-200 dark:border-surface-700 shadow-sm"
+  <Drawer v-model:visible="visible" header="资源授权" position="right" class="!w-3/5">
+    <div class="flex flex-col h-full gap-4 p-4">
+      <div class="flex items-center gap-6 border-b border-surface-200 pb-2">
+        <button
+          v-for="option in menuOptions"
+          :key="option.value"
+          class="px-3 py-2 text-lg font-medium transition-colors"
+          :class="
+            active === option.value
+              ? 'text-primary border-b-2 border-primary'
+              : 'text-surface-600 hover:text-primary'
+          "
+          @click="active = option.value"
         >
-          <TreeTable
-            ref="treeTableRef"
-            :value="filteredTreeNodes"
-            scrollable
-            scroll-height="flex"
-            class="resource-tree-table"
-            size="normal"
-            :rowStyle="{ height: '60px' }"
-            :headerStyle="{ backgroundColor: '#f5f5f5' }"
-            :expandedKeys="expandedKeys"
-          >
-            <Column
-              field="name"
-              header="资源名称"
-              expander
-              style="min-width: 200px; padding-left: 20px"
-            >
-              <template #body="{ node }">
-                <div class="flex items-center gap-2 pl-4">
-                  <span
-                    v-if="
-                      node.data.type === 'folder' || (node.children && node.children.length > 0)
-                    "
-                    class="text-[#10b981]"
-                  >
-                    <i class="pi pi-folder"></i>
-                  </span>
-                  <span v-else-if="active === 'application'" class="text-[#10b981]">
-                    <i class="pi pi-reddit"></i>
-                  </span>
-                  <span v-else-if="active === 'model'" class="text-[#10b981]">
-                    <i class="pi pi-box"></i>
-                  </span>
-                  <span v-else-if="active === 'project'" class="text-[#10b981]">
-                    <i class="pi pi-android"></i>
-                  </span>
-                  <span v-else class="text-[#10b981]">
-                    <i class="pi pi-file"></i>
-                  </span>
-                  <span class="font-medium text-surface-800 dark:text-surface-100 tracking-wide">
-                    {{ node.data.name }}
-                  </span>
-                </div>
-              </template>
-            </Column>
-            <Column field="permission" header="权限" style="min-width: 250px">
-              <template #body="{ node }">
-                <div class="flex items-center gap-4">
-                  <label
-                    class="flex items-center gap-1.5 cursor-pointer"
-                    v-for="item in getPermOptions(node.data)"
-                  >
-                    <RadioButton
-                      :model-value="node.data.permission"
-                      :value="item.value"
-                      @update:model-value="node.data.change(item.value)"
-                      :input-id="`${node.key}-not-auth`"
-                    />
-                    <span class="text-sm text-surface-600 dark:text-surface-300">{{
-                      item.label
-                    }}</span>
-                  </label>
-                </div>
-              </template>
-            </Column>
-          </TreeTable>
-        </div>
+          {{ option.label }}
+        </button>
       </div>
-    </Drawer>
-  </div>
+
+      <IconField>
+        <InputIcon>
+          <i class="pi pi-search" />
+        </InputIcon>
+        <InputText v-model="searchKeyword" placeholder="搜索名称" fluid />
+      </IconField>
+
+      <div
+        class="flex-1 overflow-auto rounded-xl border border-surface-200 dark:border-surface-700 shadow-sm"
+      >
+        <TreeTable
+          ref="treeTableRef"
+          :value="filteredTreeNodes"
+          scrollable
+          scroll-height="flex"
+          size="normal"
+          :row-style="{ height: '60px' }"
+          :header-style="{ backgroundColor: 'var(--surface-ground)' }"
+          :expanded-keys="expandedKeys"
+        >
+          <Column field="name" header="资源名称" expander class="min-w-[200px] pl-5">
+            <template #body="{ node }">
+              <div class="flex items-center gap-2 pl-4">
+                <span
+                  v-if="
+                    node.data.type === 'folder' || (node.children && node.children.length > 0)
+                  "
+                  class="text-primary"
+                >
+                  <i class="pi pi-folder" />
+                </span>
+                <span v-else-if="active === 'application'" class="text-primary">
+                  <i class="pi pi-reddit" />
+                </span>
+                <span v-else-if="active === 'model'" class="text-primary">
+                  <i class="pi pi-box" />
+                </span>
+                <span v-else-if="active === 'project'" class="text-primary">
+                  <i class="pi pi-android" />
+                </span>
+                <span v-else class="text-primary">
+                  <i class="pi pi-file" />
+                </span>
+                <span class="font-medium text-surface-800 dark:text-surface-100 tracking-wide">
+                  {{ node.data.name }}
+                </span>
+              </div>
+            </template>
+          </Column>
+          <Column field="permission" header="权限" class="min-w-[250px]">
+            <template #body="{ node }">
+              <div class="flex items-center gap-4">
+                <label
+                  v-for="item in getPermOptions(node.data)"
+                  :key="item.value"
+                  class="flex items-center gap-1.5 cursor-pointer"
+                >
+                  <RadioButton
+                    :model-value="node.data.permission"
+                    :value="item.value"
+                    @update:model-value="node.data.change(item.value)"
+                    :input-id="`${node.key}-${item.value}`"
+                  />
+                  <span class="text-sm text-surface-600 dark:text-surface-300">
+                    {{ item.label }}
+                  </span>
+                </label>
+              </div>
+            </template>
+          </Column>
+        </TreeTable>
+      </div>
+    </div>
+  </Drawer>
 </template>
 
 <script setup lang="ts">
@@ -242,5 +225,3 @@ const open = (uId: string) => {
 
 defineExpose({ close, open })
 </script>
-
-<style scoped></style>

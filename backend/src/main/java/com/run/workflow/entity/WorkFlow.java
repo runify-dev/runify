@@ -80,7 +80,8 @@ public class WorkFlow {
         for (Node node : this.nodes) {
             JsonObject properties = node.getProperties();
             JsonArray jsonArray = properties.getJsonArray("field_list", new JsonArray());
-            JsonArray globalFields = properties.getJsonArray("globalFields", new JsonArray());
+            JsonArray globalFields = properties.getJsonArray("globalFieldList", new JsonArray());
+            JsonArray loopFieldList = properties.getJsonArray("loopFieldList", new JsonArray());
             for (int i = 0; i < jsonArray.size(); i++) {
                 JsonObject jsonObject = jsonArray.getJsonObject(i);
                 String label = jsonObject.getString("label");
@@ -91,8 +92,15 @@ public class WorkFlow {
                 JsonObject jsonObject = globalFields.getJsonObject(i);
                 String label = jsonObject.getString("label");
                 String value = jsonObject.getString("value");
-                globalFieldList.add(new NodeField(node.getId(), "global", label, value));
+                globalFieldList.add(new NodeField("global", "global", label, value));
             }
+            for (int i = 0; i < loopFieldList.size(); i++) {
+                JsonObject jsonObject = loopFieldList.getJsonObject(i);
+                String label = jsonObject.getString("label");
+                String value = jsonObject.getString("value");
+                nodeFields.add(new NodeField("loop", "loop", label, value));
+            }
+
         }
         this.fieldList = nodeFields;
         this.globalFieldList = globalFieldList;
@@ -130,6 +138,9 @@ public class WorkFlow {
 
     public String resetPrompt(String prompt) {
         for (NodeField field : this.fieldList) {
+            prompt = field.resetVariable(prompt);
+        }
+        for (NodeField field : this.globalFieldList) {
             prompt = field.resetVariable(prompt);
         }
         return prompt;

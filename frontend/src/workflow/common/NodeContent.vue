@@ -26,7 +26,7 @@
   </Fieldset>
 </template>
 <script setup lang="ts">
-import { ref, onMounted, inject, provide, computed } from 'vue'
+import { onMounted, inject, provide, computed } from 'vue'
 import type { LifeCycle } from '@/workflow/common/type'
 import Clipboard from 'vue-clipboard3'
 import TreeNode from '@/workflow/common/TreeNode.vue'
@@ -60,50 +60,6 @@ provide('getOptions', () => {
       }))
     })
     .reduce((x: Array<any>, y: Array<any>) => [...x, ...y], [])
-})
-
-const getNodeFieldOptions = () => {
-  const getUpNode = (id: string, result: Array<any>) => {
-    const upNodes = model.graphModel.getNodeIncomingNode(id)
-    upNodes.forEach((node: any) => {
-      result.push(node)
-      getUpNode(node.id, result)
-    })
-    return result
-  }
-  const upNodes = getUpNode(model.id, [])
-  return upNodes.map((node) => {
-    return {
-      label: node.properties.name,
-      value: node.id,
-      disabled: true,
-      children: node.properties.field_list.map((item: any) => ({
-        label: item.label,
-        value: item.value,
-        children: item.children
-      }))
-    }
-  })
-}
-const flattenVariables = (nodes: any[], parentLabel = '', parentValue = ''): any[] => {
-  const result: any[] = []
-
-  for (const node of nodes) {
-    if (node.disabled) {
-      // 分组节点，递归子级，传递当前 label 作为前缀
-      result.push(...flattenVariables(node.children ?? [], node.label, node.label))
-    } else {
-      const value = parentValue ? `${parentValue}.${node.value}` : node.value
-      const label = parentLabel ? `${parentLabel} / ${node.label}` : node.label
-      result.push({ value, label, children: node.children })
-    }
-  }
-
-  return result
-}
-provide('getNodeFieldOptions', getNodeFieldOptions)
-provide('getTemplateVariables', () => {
-  return flattenVariables(getNodeFieldOptions())
 })
 
 const props = defineProps<{

@@ -35,7 +35,7 @@ public class NodeField {
 
     public String resetVariable(String prompt) {
         String userVariable = this.nodeName + "." + this.value;
-        String systemVariable = String.format("(context['%s']['%s'])!", this.nodeId, this.value);
+        String systemVariable = String.format("(context['%s']['%s'])!\"\"", this.nodeId, this.value);
         return prompt.replaceAll(userVariable, systemVariable);
     }
 

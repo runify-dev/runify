@@ -1,29 +1,41 @@
 <template>
-  <div
-    class="absolute z-10 right-6 top-14 items-center space-x-0 bg-white border border-gray-300 rounded-full p-px inline-flex"
-  >
-    <button @click="save" class="px-3 py-1 text-sm text-gray-600 hover:bg-gray-200/30 rounded-full">
-      保存
-    </button>
+  <div class="relative h-full">
+    <!-- 顶部操作栏 -->
+    <div
+      class="absolute z-10 right-6 top-4 flex items-center gap-1 bg-white/80 backdrop-blur-sm border border-surface-200 rounded-lg px-1.5 py-1 shadow-sm"
+    >
+      <Button
+        icon="pi pi-save"
+        label="保存"
+        variant="text"
+        size="small"
+        @click="save"
+      />
+      <div class="w-px h-5 bg-surface-200" />
+      <Button
+        v-if="processor && processor.isDeploy"
+        icon="pi pi-cloud-download"
+        label="取消部署"
+        variant="text"
+        size="small"
+        severity="warning"
+        @click="unDeploy"
+      />
+      <Button
+        v-if="processor && !processor.isDeploy"
+        icon="pi pi-cloud-upload"
+        label="部署"
+        variant="text"
+        size="small"
+        severity="success"
+        @click="deploy"
+      />
+    </div>
 
-    <button
-      v-if="processor && processor.isDeploy"
-      @click="unDeploy"
-      class="px-3 py-1 text-sm text-gray-600 hover:bg-gray-200/30 rounded-full"
-    >
-      取消部署
-    </button>
-    <button
-      v-if="processor && !processor.isDeploy"
-      @click="deploy"
-      class="px-3 py-1 text-sm text-gray-600 hover:bg-gray-200/30 rounded-full"
-    >
-      部署
-    </button>
+    <Workflow ref="workflowRef" />
   </div>
-
-  <Workflow ref="workflowRef"></Workflow>
 </template>
+
 <script setup lang="ts">
 import { onMounted, ref, provide } from 'vue'
 import Workflow from '@/workflow/index.vue'
@@ -31,34 +43,37 @@ import processorAPI from '@/api/processor'
 import { useRoute } from 'vue-router'
 import bus from '@/bus'
 import { baseWorkflow, WorkflowType } from '@/workflow/common/data'
-const debug = ref<boolean>(false)
+
 const route = useRoute()
-// 注入父组件提供的方法
 const workflowRef = ref<InstanceType<typeof Workflow>>()
 const processor = ref<any>()
+
 provide('getDetails', () => processor.value)
 provide('WorkflowType', WorkflowType.PROCESSOR)
+
 const deploy = () => {
   processorAPI.deploy(route.params.id as string, route.params.processorId as string).then((ok) => {
     processor.value = ok.data
     bus.emit('message:success', '部署成功')
   })
 }
+
 const unDeploy = () => {
   processorAPI
     .undeploy(route.params.id as string, route.params.processorId as string)
     .then((ok) => {
       processor.value = ok.data
-      bus.emit('success', '取消部署成功')
+      bus.emit('message:success', '取消部署成功')
     })
 }
+
 const save = () => {
   processorAPI
     .editProcessor(route.params.id as string, route.params.processorId as string, {
       workflow: workflowRef.value?.getGraphData()
     })
     .then(() => {
-      bus.emit('success', '成功')
+      bus.emit('message:success', '保存成功')
     })
 }
 
@@ -75,4 +90,3 @@ onMounted(() => {
     })
 })
 </script>
-<style lang="scss"></style>

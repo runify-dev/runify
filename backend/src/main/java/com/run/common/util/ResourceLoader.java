@@ -9,6 +9,7 @@ package com.run.common.util;
 
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+
 import java.net.JarURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
@@ -19,15 +20,13 @@ import java.util.jar.JarFile;
 import java.util.stream.Collectors;
 
 public class ResourceLoader {
-
-
     @SneakyThrows
-    public static List<String> getAdminResources() {
+    public static List<String> getAdminResources(String sourceName) {
         List<String> resources = new ArrayList<>();
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
 
         // 获取 admin 目录的 URL
-        Enumeration<URL> urls = classLoader.getResources("admin");
+        Enumeration<URL> urls = classLoader.getResources(sourceName);
 
         while (urls.hasMoreElements()) {
             URL url = urls.nextElement();
@@ -39,8 +38,8 @@ public class ResourceLoader {
                     jar.stream()
                             .filter(entry -> !entry.isDirectory())
                             .map(JarEntry::getName)
-                            .filter(name -> name.startsWith("admin/"))
-                            .map(name -> name.substring("admin/".length()))
+                            .filter(name -> name.startsWith(sourceName+"/"))
+                            .map(name -> name.substring((sourceName+"/").length()))
                             .forEach(resources::add);
                 }
             } else {
@@ -69,8 +68,8 @@ public class ResourceLoader {
                     jar.stream()
                             .filter(entry -> !entry.isDirectory())
                             .map(JarEntry::getName)
-                            .filter(name -> name.startsWith("admin/"))
-                            .map(name -> name.substring("admin/".length()))
+                            .filter(name -> name.startsWith(sourceName+"/"))
+                            .map(name -> name.substring((sourceName+"/").length()))
                             .forEach(resources::add);
                 }
             }
@@ -80,6 +79,14 @@ public class ResourceLoader {
                 .distinct()
                 .sorted()
                 .collect(Collectors.toList());
+    }
+
+
+    public static List<String> getAdminResources() {
+        return  getAdminResources("admin");
+    }
+    public static List<String> getConversationResources() {
+        return  getAdminResources("conversation");
     }
 
 }

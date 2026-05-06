@@ -16,7 +16,7 @@
       <div class="flex w-72 flex-col overflow-hidden rounded-xl">
         <!-- Header -->
         <div class="flex items-center gap-2 border-b border-white/6 px-4 py-2.5">
-          <span class="h-1.5 w-1.5 rounded-full bg-[#a78bfa]" style="box-shadow: 0 0 6px #a78bfa" />
+          <span class="h-1.5 w-1.5 rounded-full bg-primary" style="box-shadow: 0 0 6px var(--p-primary-400)" />
           <span class="font-mono text-[10px] uppercase tracking-widest text-white/35"
             >插入视频</span
           >
@@ -40,8 +40,8 @@
             <!-- 空闲：drop zone -->
             <label
               v-if="uploadStatus === 'idle'"
-              class="flex cursor-pointer flex-col items-center gap-3 rounded-lg border border-dashed border-white/12 px-4 py-5 transition-all duration-150 hover:border-[#a78bfa]/30 hover:bg-[#a78bfa]/4"
-              :class="dragOver ? '!border-[#a78bfa]/50 !bg-[#a78bfa]/6' : ''"
+              class="flex cursor-pointer flex-col items-center gap-3 rounded-lg border border-dashed border-white/12 px-4 py-5 transition-all duration-150 hover:border-primary/30 hover:bg-primary/4"
+              :class="dragOver ? '!border-primary/50 !bg-primary/6' : ''"
               @dragover.prevent="dragOver = true"
               @dragleave="dragOver = false"
               @drop.prevent="onDrop"
@@ -84,11 +84,11 @@
                 >
                   <span
                     v-if="uploadStatus === 'uploading'"
-                    class="pi pi-spin pi-spinner text-xs text-[#a78bfa]"
+                    class="pi pi-spin pi-spinner text-xs text-primary"
                   />
                   <span
                     v-else-if="uploadStatus === 'done'"
-                    class="pi pi-check text-xs text-[#00ffc8]"
+                    class="pi pi-check text-xs text-cyan-500"
                   />
                   <span
                     v-else-if="uploadStatus === 'error'"
@@ -101,7 +101,7 @@
                 </div>
                 <span
                   v-if="uploadStatus === 'uploading'"
-                  class="font-mono text-[10px] tabular-nums text-[#a78bfa]"
+                  class="font-mono text-[10px] tabular-nums text-primary"
                 >
                   {{ progress }}%
                 </span>
@@ -115,8 +115,8 @@
                     width: `${progress}%`,
                     background:
                       uploadStatus === 'error'
-                        ? '#f87171'
-                        : 'linear-gradient(90deg,#a78bfa,#00ffc8)'
+                        ? 'var(--p-red-400)'
+                        : 'linear-gradient(90deg,var(--p-primary-color),var(--p-cyan-500))'
                   }"
                 />
               </div>
@@ -262,9 +262,9 @@ const statusLabel = computed(() => {
   return ''
 })
 const statusColor = computed(() => {
-  if (uploadStatus.value === 'done') return 'text-[#00ffc8]'
+  if (uploadStatus.value === 'done') return 'text-cyan-500'
   if (uploadStatus.value === 'error') return 'text-red-400'
-  return 'text-[#a78bfa]'
+  return 'text-primary'
 })
 
 function onFileChange(e: Event) {

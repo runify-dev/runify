@@ -1,0 +1,47 @@
+// ── DataTable 全局样式 ──────────────────────────────────────────────
+.p-datatable-header-cell {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--p-text-muted-color);
+  background: transparent;
+  border-bottom: 1px solid var(--p-content-border-color);
+}
+
+.p-datatable-body-cell {
+  padding: 0.45rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+.p-datatable-row {
+  transition: background-color var(--p-transition-duration);
+}
+
+.p-datatable-header {
+  padding: 0.5rem 0.75rem;
+}
+
+.p-paginator-footer {
+  padding: 0.35rem 0.75rem;
+}
+
+.p-paginator {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8rem;
+
+  .p-paginator-first,
+  .p-paginator-prev,
+  .p-paginator-next,
+  .p-paginator-last,
+  .p-paginator-page {
+    min-width: 1.8rem;
+    height: 1.8rem;
+    margin: 0 1px;
+  }
+
+  .p-paginator-row-per-page-dropdown {
+    height: 1.8rem;
+  }
+}

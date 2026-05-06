@@ -1,5 +1,5 @@
 <template>
-  <div class="p-4 card layout-content-container">
+  <div class="p-4 ">
     <!-- 顶部工具栏 -->
     <div class="flex items-center justify-between gap-4 mb-6">
       <!-- 搜索框 -->

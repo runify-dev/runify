@@ -2,7 +2,6 @@ package com.run.workflow.message.aggregator.impl;
 
 import com.run.workflow.message.aggregator.ContentAggregator;
 import com.run.workflow.message.struct.QuestionContent;
-import com.run.workflow.message.struct.QuestionContent;
 
 /**
  * {@code @Author:张少虎}

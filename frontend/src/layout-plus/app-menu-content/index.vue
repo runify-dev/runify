@@ -2,7 +2,7 @@
   <div class="layout-main-container">
     <div class="layout-main">
       <AppSidebar> <slot name="menu"></slot></AppSidebar>
-      <div class="w-full">
+      <div class="w-full flex-1 min-h-0">
         <slot></slot>
       </div>
     </div>
@@ -14,25 +14,31 @@ import AppSidebar from '@/layout-plus/app-sidebar/index.vue'
 <style lang="scss" scoped>
 .layout-main-container {
   display: flex;
-
   flex-direction: column;
   min-height: 100dvh;
-  justify-content: space-between;
-  padding: 5rem 0 0 0;
+  padding-top: 4rem;
   transition: margin-left var(--layout-section-transition-duration);
-  .layout-main {
-    padding: 0;
-  }
+  background-color: var(--surface-ground);
+}
+
+.layout-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--app-content-bg);
+  border-radius: var(--content-border-radius);
+  padding: 1.5rem;
+  height: calc(100dvh - 4rem);
+  overflow: auto;
 }
 
 @media (min-width: 992px) {
   .layout-main-container {
-    margin-left: 0;
-    padding: 6rem 2rem 0 2rem;
+    padding-top: 6rem;
+    padding-bottom: 2rem;
   }
-}
-.layout-main {
-  flex: 1 1 auto;
-  padding-bottom: 2rem;
+  .layout-main {
+    height: calc(100dvh - 8rem);
+  }
 }
 </style>

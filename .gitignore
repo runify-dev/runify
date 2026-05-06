@@ -29,9 +29,16 @@ frontend/package-lock.json
 backend/target
 backend/src/main/resources/ui
 backend/src/main/resources/admin
+backend/src/main/resources/conversation
 frontend/components.d.ts
 frontend/target
 frontend/node
 target
 oss
 data
+installer/electron/backend.jar
+installer/electron/jre/
+installer/electron/dist/
+installer/electron/node_modules/
+installer/.jdk-*.tar.gz
+installer/.jdk-*.zip

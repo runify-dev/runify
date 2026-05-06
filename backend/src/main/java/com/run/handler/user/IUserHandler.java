@@ -18,6 +18,8 @@ public interface IUserHandler {
 
     void deleteUser(RoutingContext context);
 
+    void updateUser(RoutingContext context);
+
     /**
      * 登陆
      *

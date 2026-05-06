@@ -37,11 +37,6 @@ public class ProcessorStartNode extends INode<ProcessorStartNode, ProcessorStart
      */
     public final static List<WorkflowType> supportWorkflow = List.of(WorkflowType.PROCESSOR_HTTP);
 
-    @Override
-    public List<Answer> getAnswerList(WorkFlowManage wm) {
-        return List.of();
-    }
-
     public ProcessorStartNode(Node node, JsonObject params, List<String> upNodeIdList, String salt, INode<?, ?> upNode) {
         super(node, params, upNodeIdList, salt, upNode);
     }

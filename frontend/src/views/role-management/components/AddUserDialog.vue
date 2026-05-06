@@ -24,16 +24,16 @@
       <Button label="搜索" size="small" @click="emit('search')" />
     </div>
 
-    <div class="max-h-[420px] overflow-auto rounded-lg border border-slate-200">
+    <div class="max-h-[420px] overflow-auto rounded-lg border border-surface-200 dark:border-surface-700">
       <table class="min-w-full border-collapse text-sm">
-        <thead class="sticky top-0 bg-slate-50">
-          <tr class="text-slate-500">
-            <th class="w-[56px] border-b border-slate-200 px-3 py-2 text-center">选择</th>
-            <th class="border-b border-slate-200 px-3 py-2 text-left text-xs font-medium">昵称</th>
-            <th class="border-b border-slate-200 px-3 py-2 text-left text-xs font-medium">
+        <thead class="sticky top-0 bg-surface-50 dark:bg-surface-800">
+          <tr class="text-surface-500">
+            <th class="w-[56px] border-b border-surface-200 px-3 py-2 text-center dark:border-surface-700">选择</th>
+            <th class="border-b border-surface-200 px-3 py-2 text-left text-xs font-medium dark:border-surface-700">昵称</th>
+            <th class="border-b border-surface-200 px-3 py-2 text-left text-xs font-medium dark:border-surface-700">
               用户名
             </th>
-            <th class="border-b border-slate-200 px-3 py-2 text-left text-xs font-medium">
+            <th class="border-b border-surface-200 px-3 py-2 text-left text-xs font-medium dark:border-surface-700">
               邮箱
             </th>
           </tr>
@@ -43,7 +43,7 @@
           <tr
             v-for="user in availableUsers"
             :key="user.id"
-            class="border-b border-slate-200 last:border-b-0"
+            class="border-b border-surface-200 last:border-b-0 dark:border-surface-700"
           >
             <td class="px-3 py-2 text-center">
               <Checkbox
@@ -53,15 +53,15 @@
                 @update:model-value="emit('toggle-user', user.id, $event)"
               />
             </td>
-            <td class="px-3 py-2">{{ user.nickname || '-' }}</td>
-            <td class="px-3 py-2">{{ user.username || '-' }}</td>
-            <td class="px-3 py-2">{{ user.email || '-' }}</td>
+            <td class="px-3 py-2 text-surface-700 dark:text-surface-300">{{ user.nickname || '-' }}</td>
+            <td class="px-3 py-2 text-surface-700 dark:text-surface-300">{{ user.username || '-' }}</td>
+            <td class="px-3 py-2 text-surface-700 dark:text-surface-300">{{ user.email || '-' }}</td>
           </tr>
         </tbody>
 
         <tbody v-else>
           <tr>
-            <td colspan="4" class="px-4 py-10 text-center text-sm text-slate-400">
+            <td colspan="4" class="px-4 py-10 text-center text-sm text-surface-400">
               {{ loading ? '用户加载中...' : '暂无用户数据' }}
             </td>
           </tr>
@@ -69,7 +69,7 @@
       </table>
     </div>
 
-    <div class="mt-3 text-xs text-slate-500">已选 {{ selectedAddUserIds.size }} 人</div>
+    <div class="mt-3 text-xs text-surface-500">已选 {{ selectedAddUserIds.size }} 人</div>
 
     <template #footer>
       <div class="flex justify-end gap-2">

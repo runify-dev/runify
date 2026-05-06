@@ -1,6 +1,6 @@
 <template>
-  <div class="flex flex-col">
-    <div class="card layout-content-container overflow-auto pt-0" style="padding-top: 0">
+  <div class="note-detail">
+    <div class="pt-0" style="padding-top: 0">
       <Editor ref="editorRef" @change="change"></Editor>
     </div>
   </div>
@@ -8,17 +8,18 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
 import Editor from '@/editor/index.vue'
+import useStore from '@/stores'
 const route = useRoute()
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { TreeCommonAPI } from '@/api/tree'
 const treeCommonAPI = new TreeCommonAPI('note')
 import NoteAPI from '@/api/note'
 let timer: any
+let currentId: string
 const change = (editor: any) => {
-  if (timer) {
-    clearTimeout(timer)
-  }
-  timer = setTimeout(() => NoteAPI.edit(resourceId.value, editor.editor.getMarkdown()), 3000)
+  if (timer) clearTimeout(timer)
+  const id = resourceId.value
+  timer = setTimeout(() => NoteAPI.edit(id, editor.editor.getMarkdown()), 3000)
 }
 const editorRef = ref<InstanceType<typeof Editor>>()
 const resourceId = computed(() => {
@@ -29,27 +30,40 @@ const resourceId = computed(() => {
 })
 
 const get = () => {
-  treeCommonAPI.getResource(resourceId.value).then((ok) => {
+  currentId = resourceId.value
+  treeCommonAPI.getResource(currentId).then((ok) => {
     editorRef.value?.setContent(ok.data.content)
   })
 }
-const getUnmountSetContent = () => {
-  const noteId = resourceId.value
-  return () => {
-    if (timer) {
-      clearTimeout(timer)
-    }
-    if (editorRef.value) {
-      NoteAPI.edit(noteId, editorRef.value.getEditor().getMarkdown())
-    }
-  }
+
+function saveSync() {
+  if (!editorRef.value || !currentId) return
+  const content = editorRef.value.getEditor().getMarkdown()
+  if (!content) return
+  const baseURL = window.RUNIFY_APP.admin.baseURL + '/api'
+  const { user } = useStore()
+  const token = user.getToken()
+  fetch(`${baseURL}/note/resources/${currentId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', AUTHORIZATION: `Bearer ${token}` },
+    body: JSON.stringify({ content }),
+    keepalive: true,
+  })
 }
-const unmountSetContent = getUnmountSetContent()
+
+function onBeforeUnload() {
+  if (timer) clearTimeout(timer)
+  saveSync()
+}
+window.addEventListener('beforeunload', onBeforeUnload)
+
 onMounted(() => {
   get()
 })
 onBeforeUnmount(() => {
-  unmountSetContent()
+  window.removeEventListener('beforeunload', onBeforeUnload)
+  if (timer) clearTimeout(timer)
+  if (currentId) NoteAPI.edit(currentId, editorRef.value?.getEditor().getMarkdown() ?? '')
 })
 </script>
 <style lang="scss" scoped></style>

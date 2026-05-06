@@ -1,6 +1,6 @@
-import { ref, reactive, computed } from 'vue'
+import { ref, computed } from 'vue'
 import type { Ref } from 'vue'
-import type { Conversation, Msg } from '../../types'
+import type { Conversation, FlatLabel, FlatItem, FlatRow } from '../../types'
 import { formatDateTime } from '@/utils/common'
 import { useRoute } from 'vue-router'
 import dayjs from 'dayjs'
@@ -8,29 +8,21 @@ import conversationAPI from '@/api/conversation'
 import applicationAPI from '@/api/application'
 import type { QueryConversationVO } from '@/api/type/conversation'
 import { t } from '@/locales'
+import { useStreamManager } from '../shared/use-stream-manager'
+import { useMessagePagination } from '../shared/use-message-pagination'
+import { useConversationCrud } from '../shared/use-conversation-crud'
 
-// ─── 类型 ─────────────────────────────────────────────────────────
-export type FlatLabel = { type: 'label'; label: string }
-export type FlatItem = { type: 'item' } & Conversation
-export type FlatRow = FlatLabel | FlatItem
-
-export type ConversationGroup = { label: string; items: Conversation[] }
-
-// ─── 单例状态 ─────────────────────────────────────────────────────
-const chats = reactive<Conversation[]>([])
+// ─── 单例：当前会话 ID（sidebar 和 chat-panel 共享）──────────────
 const conversationId = ref<string | undefined>()
-const messages = ref<Msg[]>([])
 
-// ─── 流式断点状态：conversationId -> lastIndex ─────────────────────
-const streamIndexMap = reactive(new Map<string, number>())
+// ─── 流式断点持久化 ──────────────────────────────────────────────
+const streamIndexMap = new Map<string, number>()
 
 const streamIndexStorageKey = (cid: string) => `stream:index:${cid}`
 
 const getStoredStreamIndex = (cid: string) => {
   const memoryIndex = streamIndexMap.get(cid)
-  if (typeof memoryIndex === 'number') {
-    return memoryIndex
-  }
+  if (typeof memoryIndex === 'number') return memoryIndex
 
   const value = sessionStorage.getItem(streamIndexStorageKey(cid))
   if (!value) return 0
@@ -49,268 +41,141 @@ const clearStoredStreamIndex = (cid: string) => {
   sessionStorage.removeItem(streamIndexStorageKey(cid))
 }
 
-// ─── 会话分页状态 ─────────────────────────────────────────────────
-const currentPage = ref(1)
-const total = ref(0)
-const loadingMore = ref(false)
-const PAGE_SIZE = 30
-
-// ─── 消息分页状态 ─────────────────────────────────────────────────
-const msgCurrentPage = ref(1)
-const msgTotal = ref(0)
-const msgLoading = ref(false)
-const MSG_PAGE_SIZE = 2
-
 export function useChatStore() {
   const route = useRoute()
   const applicationId = computed(() => route.params.id as string)
 
-  const current = computed(() => chats.find((c) => c.id === conversationId.value))
-
-  const getCurrentConversationId = () => {
-    const cid = conversationId.value ?? current.value?.id
-    if (!cid) {
-      throw new Error('conversationId is empty')
+  // ─── 会话 CRUD ─────────────────────────────────────────────────
+  const { chats, hasMore, loadingMore, pageConversation, loadMore, total } = useConversationCrud({
+    pageConversationAPI: (query: any, loading?: Ref<boolean>) => {
+      return applicationAPI.pageConversation(
+        applicationId.value,
+        query.currentPage,
+        query.pageSize,
+        { ...query, executeType: 'DEBUG' },
+        loading
+      )
     }
-    return cid
+  })
+
+  const current = computed(() => chats.value.find((c) => c.id === conversationId.value))
+
+  // ─── 消息分页 ─────────────────────────────────────────────────
+  const {
+    messages,
+    msgLoading,
+    hasMoreMsg,
+    loadMessages,
+    loadMoreMessages,
+    pushMessage,
+    resetMsgState,
+    clearMsgState
+  } = useMessagePagination({
+    pageConversationMessage: (cid: string, query: any) => {
+      return applicationAPI.pageConversationMessage(
+        applicationId.value,
+        cid,
+        query.currentPage,
+        query.pageSize,
+        query
+      )
+    },
+    getCurrentName: () => current.value?.name,
+    getCurrentCreateTime: () => current.value?.createTime
+  })
+
+  // ─── 消息推送（含会话名称更新）──────────────────────────────────
+  const wrappedPushMessage = (msg: any) => {
+    pushMessage(msg)
+
+    if (messages.value.length === 1 && current.value) {
+      const question =
+        (msg.content as any[]).find((item: any) => item.type === 'QUESTION')?.content ?? ''
+      current.value.name = question.length > 24 ? question.slice(0, 24) + '…' : question
+      current.value.createTime = formatDateTime()
+    }
   }
 
-  const pageConversationProxy = (query: any, loading?: Ref<boolean>) => {
-    return applicationAPI.pageConversation(
-      applicationId.value,
-      query.currentPage,
-      query.pageSize,
-      { ...query, executeType: 'DEBUG' },
-      loading
-    )
-  }
+  // ─── Stream 管理 ──────────────────────────────────────────────
+  const streamManager = useStreamManager()
 
-  const pageConversationMessageProxy = (
-    conversationId: string,
-    query: any,
-    loading?: Ref<boolean>
-  ) => {
-    return applicationAPI.pageConversationMessage(
-      applicationId.value,
-      conversationId,
-      query.currentPage,
-      query.pageSize,
-      query,
-      loading
-    )
-  }
+  const streamLoading = computed(() => {
+    const cid = conversationId.value
+    return cid ? streamManager.getStreamLoading(cid) : false
+  })
 
-  // ─── 流式恢复接口 ────────────────────────────────────────────────
-
-  /**
-   * 查询当前会话是否还有流。
-   *
-   * 返回示例：
-   * { code: 200, data: { status: true } }
-   */
-  const statusStream = () => {
-    const cid = getCurrentConversationId()
-    return applicationAPI.statusStream(applicationId.value, cid)
-  }
-
-  /**
-   * 恢复当前会话流。
-   *
-   * index 从 store 内部根据 conversationId 获取。
-   */
-  const resumeStream = () => {
-    const cid = getCurrentConversationId()
-    const index = getStoredStreamIndex(cid)
-    return applicationAPI.resumeStream(applicationId.value, cid, index)
-  }
-
-  /**
-   * 获取当前会话最后收到的流式 index。
-   */
-  const getStreamIndex = () => {
-    const cid = getCurrentConversationId()
-    return getStoredStreamIndex(cid)
-  }
-
-  /**
-   * 设置当前会话最后收到的流式 index。
-   */
-  const setStreamIndex = (index: number) => {
-    const cid = getCurrentConversationId()
-    setStoredStreamIndex(cid, index)
-  }
-
-  /**
-   * 清除当前会话流式 index。
-   */
-  const clearStreamIndex = () => {
-    const cid = getCurrentConversationId()
-    clearStoredStreamIndex(cid)
-  }
-
-  const hasMore = computed(() => chats.length < total.value)
-  const hasMoreMsg = computed(() => messages.value.length < msgTotal.value)
-
-  // ─── 分组（今天/昨天/本周/更早）────────────────────────────────
-  const grouped = computed<ConversationGroup[]>(() => {
+  // ─── 分组 ─────────────────────────────────────────────────────
+  const flatItems = computed<FlatRow[]>(() => {
     const now = dayjs()
-    const m: Record<string, Conversation[]> = {
+    const buckets: Record<string, Conversation[]> = {
       今天: [],
       昨天: [],
       本周: [],
       更早: []
     }
 
-      ;[...chats]
-        .sort((a, b) => dayjs(b.createTime).valueOf() - dayjs(a.createTime).valueOf())
-        .forEach((c) => {
-          const time = dayjs(c.createTime)
-          if (time.isSame(now, 'day')) {
-            m['今天'].push(c)
-          } else if (time.isSame(now.subtract(1, 'day'), 'day')) {
-            m['昨天'].push(c)
-          } else if (time.isAfter(now.subtract(7, 'day'))) {
-            m['本周'].push(c)
-          } else {
-            m['更早'].push(c)
-          }
-        })
+    ;[...chats.value]
+      .sort((a, b) => dayjs(b.createTime).valueOf() - dayjs(a.createTime).valueOf())
+      .forEach((c) => {
+        const time = dayjs(c.createTime)
+        if (time.isSame(now, 'day')) buckets['今天'].push(c)
+        else if (time.isSame(now.subtract(1, 'day'), 'day')) buckets['昨天'].push(c)
+        else if (time.isAfter(now.subtract(7, 'day'))) buckets['本周'].push(c)
+        else buckets['更早'].push(c)
+      })
 
-    return Object.entries(m)
+    return Object.entries(buckets)
       .filter(([, v]) => v.length)
-      .map(([label, items]) => ({ label, items }))
+      .flatMap(([label, items]) => [
+        { type: 'label', label } as FlatLabel,
+        ...items.map((c) => ({ type: 'item', ...c }) as FlatItem)
+      ])
   })
 
-  const flatItems = computed<FlatRow[]>(() =>
-    grouped.value.flatMap(({ label, items }) => [
-      { type: 'label', label } as FlatLabel,
-      ...items.map((c) => ({ type: 'item', ...c }) as FlatItem)
-    ])
-  )
-
-  const toNewConversation = () => {
-    messages.value.splice(0)
-    msgCurrentPage.value = 1
-    msgTotal.value = 0
-    return newChat('新建对话')
-  }
-
-  // ─── 会话分页 ─────────────────────────────────────────────────
-  const pageConversation = async (
-    query: Omit<QueryConversationVO, 'currentPage' | 'pageSize'>,
-    loading?: Ref<boolean>
-  ) => {
-    currentPage.value = 1
-    const res = await pageConversationProxy(
-      { ...query, currentPage: 1, pageSize: PAGE_SIZE },
-      loading
-    )
-    chats.splice(0, chats.length, ...res.data.records)
-    total.value = res.data.total
-  }
-
-  const loadMore = async () => {
-    if (loadingMore.value || !hasMore.value) return
-
-    loadingMore.value = true
-    try {
-      const res = await pageConversationProxy({
-        currentPage: currentPage.value + 1,
-        pageSize: PAGE_SIZE
-      })
-      chats.push(...res.data.records)
-      total.value = res.data.total
-      currentPage.value += 1
-    } finally {
-      loadingMore.value = false
-    }
-  }
-
-  // ─── 消息分页 ─────────────────────────────────────────────────
-  const loadMessages = async (cid: string, reset = true) => {
-    if (msgLoading.value) return
-
-    if (reset) {
-      messages.value.splice(0)
-      msgCurrentPage.value = 1
-      msgTotal.value = 0
-    }
-
-    msgLoading.value = true
-    try {
-      const res = await pageConversationMessageProxy(cid, {
-        currentPage: msgCurrentPage.value,
-        pageSize: MSG_PAGE_SIZE
-      })
-
-      msgTotal.value = res.data.total
-
-      const records = [...res.data.records].reverse() as Msg[]
-
-      if (reset) {
-        messages.value.splice(0, messages.value.length, ...records)
-      } else {
-        messages.value.splice(0, 0, ...records)
-      }
-    } finally {
-      msgLoading.value = false
-    }
-  }
-
-  const loadMoreMessages = async () => {
-    if (!hasMoreMsg.value || msgLoading.value) return
-
-    const cid = conversationId.value ?? current.value?.id
-    if (!cid) return
-
-    msgCurrentPage.value += 1
-    await loadMessages(cid, false)
-  }
-
-  // ─── 会话 CRUD ────────────────────────────────────────────────
+  // ─── 会话操作 ─────────────────────────────────────────────────
   const newChat = async (name?: string) => {
     const chat = await applicationAPI.createConversation(
       applicationId.value,
-      name ?? t('conversation.newChat')
+      name&&name?.length>0 ? name: t('conversation.newChat')
     )
 
-    chats.unshift(chat.data)
+    chats.value.unshift(chat.data)
     conversationId.value = chat.data.id
 
-    messages.value.splice(0)
-    msgCurrentPage.value = 1
-    msgTotal.value = 0
+    messages.value = []
+    resetMsgState(chat.data.id)
+    clearStoredStreamIndex(chat.data.id)
 
-    return Promise.resolve(chat.data)
+    return chat.data
+  }
+
+  const toNewConversation = () => {
+    messages.value = []
+    return newChat('新建对话')
   }
 
   const switchChat = (id: string) => {
     conversationId.value = id
-
   }
 
   const deleteChat = (id: string) => {
-    const i = chats.findIndex((c) => c.id === id)
+    const i = chats.value.findIndex((c) => c.id === id)
     if (i < 0) return
 
     clearStoredStreamIndex(id)
+    clearMsgState(id)
 
-    chats.splice(i, 1)
-    total.value = Math.max(0, total.value - 1)
+    chats.value.splice(i, 1)
 
-    if (!chats.length) {
-      messages.value.splice(0)
-      msgCurrentPage.value = 1
-      msgTotal.value = 0
+    if (!chats.value.length) {
+      messages.value = []
       conversationId.value = undefined
       return
     }
 
     if (conversationId.value === id) {
-      const next = chats[i] ?? chats[i - 1]
-      if (next?.id) {
-        switchChat(next.id)
-      }
+      const next = chats.value[i] ?? chats.value[i - 1]
+      if (next?.id) switchChat(next.id)
     }
   }
 
@@ -319,29 +184,48 @@ export function useChatStore() {
     if (!trimmed) return
 
     conversationAPI.modifyName(id, trimmed).then(() => {
-      const c = chats.find((x) => x.id === id)
-      if (c) {
-        c.name = trimmed
-      }
+      const c = chats.value.find((x) => x.id === id)
+      if (c) c.name = trimmed
     })
   }
 
-  const pushMessage = (msg: Msg) => {
-    messages.value.push(msg)
-
-    if (messages.value.length === 1 && current.value) {
-      const content = (msg.content as any[]).find((item) => item.type === 'QUESTION')?.content ?? ''
-      current.value.name = content.length > 24 ? content.slice(0, 24) + '…' : content
-      current.value.createTime = formatDateTime()
-    }
+  const chat = (q: any) => {
+    const cid = conversationId.value
+    if (!cid) throw new Error('conversationId is empty')
+    return applicationAPI.chat(applicationId.value, cid, q)
   }
 
+  // ─── 流式操作 ─────────────────────────────────────────────────
+  const statusStream = () => {
+    const cid = conversationId.value
+    if (!cid) throw new Error('conversationId is empty')
+    return applicationAPI.statusStream(applicationId.value, cid)
+  }
+
+  const resumeStream = () => {
+    const cid = conversationId.value
+    if (!cid) throw new Error('conversationId is empty')
+    const index = getStoredStreamIndex(cid)
+    return applicationAPI.resumeStream(applicationId.value, cid, index)
+  }
+
+  const setStreamIndex = (index: number) => {
+    const cid = conversationId.value
+    if (cid) setStoredStreamIndex(cid, index)
+  }
+
+  const clearStreamIndex = () => {
+    const cid = conversationId.value
+    if (cid) clearStoredStreamIndex(cid)
+  }
+
+  // ─── 初始化 ───────────────────────────────────────────────────
   const init = async (
     query?: Omit<QueryConversationVO, 'currentPage' | 'pageSize'>,
     loading?: Ref<boolean>
   ) => {
     if (!query) {
-      query = { currentPage: 1, pageSize: PAGE_SIZE }
+      query = { currentPage: 1, pageSize: 30 }
     }
 
     await pageConversation(query, loading)
@@ -352,40 +236,51 @@ export function useChatStore() {
   }
 
   return {
-    toNewConversation,
-
+    // 状态
     chats,
     messages,
     conversationId,
     applicationId,
     current,
-
-    grouped,
     flatItems,
 
+    // 分页
     hasMore,
-    hasMoreMsg,
+    hasMoreMsg: computed(() => hasMoreMsg(conversationId.value)),
     loadingMore,
-    msgLoading,
+    msgLoading: computed(() => msgLoading(conversationId.value)),
+    streamLoading,
 
+    // 会话操作
     init,
     pageConversation,
     loadMore,
-
     loadMessages,
-    loadMoreMessages,
-
+    loadMoreMessages: () => loadMoreMessages(conversationId.value),
     newChat,
     switchChat,
     deleteChat,
     renameChat,
+    pushMessage: wrappedPushMessage,
+    toNewConversation,
 
-    pushMessage,
-
+    // 流式操作
+    chat,
     statusStream,
     resumeStream,
-    getStreamIndex,
     setStreamIndex,
-    clearStreamIndex
+    clearStreamIndex,
+
+    // stream manager
+    startStream: streamManager.startStream,
+    cancelStream: streamManager.cancelStream,
+    switchConversation: (opts: { cid: string; getOnStream: () => (chunk: any) => void; onFinish?: () => void; onFailure?: () => void; skipLoadMessages?: boolean }) => {
+      return streamManager.switchConversation({
+        ...opts,
+        loadMessages,
+        statusStream,
+        resumeStream
+      })
+    }
   }
 }

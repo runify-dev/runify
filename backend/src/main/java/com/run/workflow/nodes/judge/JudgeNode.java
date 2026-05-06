@@ -12,6 +12,7 @@ import jakarta.validation.Validator;
 import org.apache.commons.lang3.Strings;
 
 import java.util.List;
+import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
@@ -29,7 +30,8 @@ public class JudgeNode extends INode<JudgeNode, JudgeNodeData> {
     /**
      * 节点支持在什么工作流中运行
      */
-    public final static List<WorkflowType> supportWorkflow = List.of(WorkflowType.CHAT_WORKFLOW);
+    public final static List<WorkflowType> supportWorkflow = List.of(WorkflowType.CHAT_WORKFLOW, WorkflowType.PROCESSOR_HTTP_LOOP, WorkflowType.CHAT_WORKFLOW_LOOP, WorkflowType.PROCESSOR_HTTP);
+
 
     public JudgeNode(Node node, JsonObject params, List<String> upNodeIdList, String salt, INode<?, ?> upNode) {
         super(node, params, upNodeIdList, salt, upNode);
@@ -39,10 +41,6 @@ public class JudgeNode extends INode<JudgeNode, JudgeNodeData> {
         super(node, params, upNodeIdList, salt, context, validator, upNode);
     }
 
-    @Override
-    public List<Answer> getAnswerList(WorkFlowManage wm) {
-        return List.of();
-    }
 
     public static class Handle implements BiFunction<WorkFlowManage, JudgeNode, Supplier<List<Node>>> {
 

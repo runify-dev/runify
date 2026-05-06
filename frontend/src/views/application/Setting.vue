@@ -6,20 +6,19 @@
       保存
     </button>
     <button
-      @click="() => (debug = true)"
+      @click="debugFn"
       class="px-3 py-1 text-sm text-gray-600 hover:bg-gray-200/30 rounded-full"
     >
       调试
     </button>
   </div>
-  <el-collapse-transition>
+
     <DebugConversation
       v-if="debug"
       @close="debug = false"
       :forder-id="folderId"
       :application="application"
     ></DebugConversation>
-  </el-collapse-transition>
 
   <Workflow ref="workflowRef"></Workflow>
 </template>
@@ -39,6 +38,15 @@ provide('WorkflowType', WorkflowType.APPLICATION)
 provide('getDetails', () => application.value)
 const workflowRef = ref<InstanceType<typeof Workflow>>()
 const application = ref<any>()
+const debugFn=()=>{
+  workflowRef.value?.validateWorkflow().then(ok=>{
+    console.log(ok)
+    if(ok.valid){
+
+      debug.value=true
+    }
+  })
+}
 const folderId = computed(() => {
   const {
     params: { folderId }

@@ -1,5 +1,5 @@
 import { Result, type Page } from '@/request/Result'
-import { get, post, del } from '@/request/admin/index'
+import { get, post, put, del } from '@/request/admin/index'
 import type { User, LoginPojo, UserQueryPojo } from '@/api/type/user'
 import type { Ref } from 'vue'
 const login: (LoginPojo: LoginPojo, loading?: Ref<boolean>) => Promise<Result<string>> = (
@@ -44,4 +44,11 @@ const deleteUser: (userId: string, loading?: Ref<boolean>) => Promise<Result<boo
 ) => {
   return del(`/user/${userId}`, {}, {}, loading)
 }
-export default { login, profile, logout, page, createUser, deleteUser, listUser }
+const updateUser: (userId: string, body: any, loading?: Ref<boolean>) => Promise<Result<boolean>> = (
+  userId,
+  body,
+  loading
+) => {
+  return put(`/user/${userId}`, body, {}, loading)
+}
+export default { login, profile, logout, page, createUser, deleteUser, listUser, updateUser }

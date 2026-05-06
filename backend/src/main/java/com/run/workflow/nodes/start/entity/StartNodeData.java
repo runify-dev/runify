@@ -18,4 +18,30 @@ import java.util.List;
 public class StartNodeData {
     @NotEmpty(message = "列表不能为空且至少包含一个元素")
     public List<ConversationMessage> messages;
+
+    /**
+     * 全局变量列表
+     */
+    private List<GlobalVariable> globalVariables;
+
+    @Getter
+    @Setter
+    public static class GlobalVariable {
+        /**
+         * 变量名
+         */
+        private String name;
+        /**
+         * 显示名称
+         */
+        private String label;
+        /**
+         * 数据类型: string, number, boolean, array, dict
+         */
+        private String dataType;
+        /**
+         * 默认值
+         */
+        private Object defaultValue;
+    }
 }

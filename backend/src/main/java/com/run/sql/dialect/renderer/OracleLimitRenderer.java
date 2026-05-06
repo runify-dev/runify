@@ -11,13 +11,13 @@ public class OracleLimitRenderer implements LimitRenderer {
         }
         StringBuilder sb = new StringBuilder(sql);
         if (offset != null) {
-            sb.append(" offset ").append(ctx.bind("_offset", offset)).append(" rows");
+            sb.append(" offset ").append(ctx.bind("offset", offset)).append(" rows");
         }
         if (limit != null) {
             if (offset == null) {
-                sb.append(" fetch first ").append(ctx.bind("_limit", limit)).append(" rows only");
+                sb.append(" fetch first ").append(ctx.bind("limit", limit)).append(" rows only");
             } else {
-                sb.append(" fetch next ").append(ctx.bind("_limit", limit)).append(" rows only");
+                sb.append(" fetch next ").append(ctx.bind("limit", limit)).append(" rows only");
             }
         }
         return sb.toString();

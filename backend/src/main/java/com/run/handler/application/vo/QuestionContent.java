@@ -1,9 +1,14 @@
 package com.run.handler.application.vo;
 
+import com.fasterxml.jackson.annotation.JsonSetter;
+import com.fasterxml.jackson.annotation.Nulls;
+import com.run.common.pojo.File;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import java.util.List;
 
 /**
  * {@code @Author:张少虎}
@@ -16,5 +21,14 @@ import lombok.Setter;
 @Getter
 @Setter
 public class QuestionContent {
+    @JsonSetter(nulls = Nulls.AS_EMPTY)
     private String content;
+    @JsonSetter(nulls = Nulls.AS_EMPTY)
+    private List<File> images;
+    @JsonSetter(nulls = Nulls.AS_EMPTY)
+    private List<File> videos;
+    @JsonSetter(nulls = Nulls.AS_EMPTY)
+    private List<File> files;
+    @JsonSetter(nulls = Nulls.AS_EMPTY)
+    private List<String> texts;
 }

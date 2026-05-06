@@ -36,12 +36,8 @@ public class ResponseNode extends INode<ResponseNode, ResponseNodeData> {
     /**
      * 节点支持在什么工作流中运行
      */
-    public final static List<WorkflowType> supportWorkflow = List.of(WorkflowType.PROCESSOR_HTTP);
+    public final static List<WorkflowType> supportWorkflow = List.of(WorkflowType.PROCESSOR_HTTP, WorkflowType.CHAT_WORKFLOW, WorkflowType.CHAT_WORKFLOW_LOOP, WorkflowType.PROCESSOR_HTTP_LOOP);
 
-    @Override
-    public List<Answer> getAnswerList(WorkFlowManage wm) {
-        return List.of();
-    }
 
     public ResponseNode(Node node, JsonObject params, List<String> upNodeIdList, String salt, INode<?, ?> upNode) {
         super(node, params, upNodeIdList, salt, upNode);
@@ -113,7 +109,7 @@ public class ResponseNode extends INode<ResponseNode, ResponseNodeData> {
                 if (Strings.CS.equals(location, "reference")) {
                     text = JacksonUtils.toJson(workFlowManage.getContextVariable(plainText.getReference()));
                 } else {
-                    text = plainText.getValue();
+                    text = workFlowManage.generatePrompt(plainText.getValue());
                 }
                 workFlowManage.write(node, new TextContent(text, node, (String) workFlowManage.getParams().get("workflowRunId"),
                         CommonUtils.uuid7().toString()));

@@ -81,7 +81,9 @@ public final class UpdateQuery extends AbstractQuery {
                 continue;
             }
 
-            set(field(column.columnName()), value);
+            // 模型对象 set 时，参数名使用 Column.name() 对应的列名，避免生成 #{p1} / #{p2}。
+            // 如果同一个列名在同一条 SQL 中被绑定了不同值，RenderContext 会自动追加 _1、_2 后缀。
+            setValue(field(column.columnName()), param(column.columnName(), value));
         }
 
         return this;

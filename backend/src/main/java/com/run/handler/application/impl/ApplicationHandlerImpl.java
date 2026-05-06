@@ -7,11 +7,11 @@ import com.run.common.cache.CacheStore;
 import com.run.common.constants.ConversationExecuteConstants;
 import com.run.common.constants.ConversationUserConstants;
 import com.run.common.constants.MessageConstants;
+import com.run.common.keyvalue.DefaultKeyValue;
 import com.run.common.queue.MessageQueue;
 import com.run.common.result.Result;
 import com.run.common.util.CommonUtils;
 import com.run.common.util.JacksonUtils;
-
 import com.run.dao.entity.*;
 import com.run.dao.mapper.*;
 import com.run.handler.application.IApplicationHandler;
@@ -24,24 +24,31 @@ import com.run.handler.common.impl.ResourceHandlerImpl;
 import com.run.handler.common.pojo.SimpleNodePojo;
 import com.run.sql.DSL;
 import com.run.sql.condition.Condition;
+import com.run.workflow.INode;
 import com.run.workflow.WorkFlowManage;
 import com.run.workflow.WorkflowType;
+import com.run.workflow.entity.Node;
+import com.run.workflow.entity.NodeSerialize;
 import com.run.workflow.entity.WorkFlow;
 import com.run.workflow.message.struct.Content;
+import com.run.workflow.message.struct.ContentConverter;
 import com.run.workflow.message.struct.Message;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.RequestBody;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
-
+import org.apache.commons.lang3.Strings;
 
 import javax.inject.Inject;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
+import java.util.stream.IntStream;
 
 import static com.run.sql.DSL.field;
 
@@ -199,12 +206,14 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
         String applicationId = context.pathParam("applicationId");
         String conversationId = context.pathParam("conversationId");
         ConversationVO conversationVO = context.body().asPojo(ConversationVO.class);
-        com.run.workflow.message.struct.QuestionContent questionContent = new com.run.workflow.message.struct.QuestionContent(conversationVO.getContent().getContent(), conversationVO.getWorkflowRunId());
+        Content content = ContentConverter.of(conversationVO.getContent(), conversationVO.getWorkflowRunId());
+
         ConversationMessage conversationMessage = new ConversationMessage(UUID.randomUUID(),
                 UUID.fromString(conversationId),
                 UUID.fromString(applicationId), UUID.fromString(conversationVO.getWorkflowRunId()),
                 MessageConstants.USER,
-                new JsonArray(List.of(questionContent)),
+                new JsonArray(List.of(content)),
+                new JsonArray(),
                 LocalDateTime.now(),
                 LocalDateTime.now());
 
@@ -219,17 +228,30 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
         Future.all(applicationFuture, conversationMessageFuture)
                 .onSuccess(ok -> extracted(context, ((Application) ok.resultAt(0)).getWorkflow(),
                         UUID.fromString(conversationId), UUID.fromString(applicationId),
-                        UUID.fromString(conversationVO.getWorkflowRunId()), ok.resultAt(1)))
+                        UUID.fromString(conversationVO.getWorkflowRunId()), ok.resultAt(1), content))
                 .onFailure(context::fail);
     }
 
+    public DefaultKeyValue<Function<WorkFlow, Node>, Map<String, Map<String, Object>>> get(Content content, JsonArray context) {
+        if (content.getPosition() != null) {
+            HashMap<String, Map<String, Object>> _context = new HashMap<>();
+            for (int i = 0; i < context.size(); i++) {
+                NodeSerialize nodeSerialize = context.getJsonObject(i).mapTo(NodeSerialize.class);
+                _context.put(nodeSerialize.getNodeInfo().getId(), nodeSerialize.getContext());
+            }
+            return new DefaultKeyValue<>(wm -> wm.getNode(content.getPosition().id()), _context);
+        } else {
+            return new DefaultKeyValue<>((wm) -> wm.getNode("start-node"), new HashMap<>());
+        }
+    }
 
     private void extracted(RoutingContext context,
                            JsonObject workflow,
                            UUID conversationId,
                            UUID applicationId,
                            UUID workflowRunId,
-                           List<ConversationMessage> conversationMessages) {
+                           List<ConversationMessage> conversationMessages,
+                           Content question) {
         List<ConversationMessage> list = conversationMessages.stream().sorted(Comparator.comparing(ConversationMessage::getCreateTime)).toList();
         context.response().setChunked(true);
         context.response().putHeader("Content-Type", "text/event-stream;charset=utf-8");
@@ -238,20 +260,30 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
         context.response().write(Buffer.buffer("", "utf-8"));
         messageQueue.create(conversationId.toString());
         AtomicLong index = new AtomicLong(1);
+        Optional<ConversationMessage> first = conversationMessages.stream()
+                .filter(c -> Strings.CS.equals(c.getWorkflowRunId().toString(), workflowRunId.toString()))
+                .filter(c -> c.getType().equals(MessageConstants.ASSISTANT))
+                .sorted(Comparator.comparing(ConversationMessage::getCreateTime).reversed()).findFirst();
+        DefaultKeyValue<Function<WorkFlow, Node>, Map<String, Map<String, Object>>> kv = get(question, list.size() > 2 ?
+                first.map(ConversationMessage::getContext).orElse(new JsonArray()) : new JsonArray());
         WorkFlowManage workFlowManage = new WorkFlowManage(WorkFlow.of(workflow, WorkflowType.CHAT_WORKFLOW),
                 new HashMap<>(Map.of(
                         "messages", list,
+                        "content", JsonObject.mapFrom(question),
                         "conversationId", conversationId,
-                        "applicationId", applicationId)),
-                new HashMap<>(), (wm, node, chunk, isEnd) -> {
+                        "applicationId", applicationId,
+                        "workflowRunId", workflowRunId.toString())),
+                kv.getValue(), (wm, node, chunk, isEnd) -> {
             if (isEnd) {
                 List<Content> chunks = wm.getChunks();
+                List<INode<?, ?>> nodes = wm.getNodes();
                 List<ConversationMessage> messageArrayList = new ArrayList<>();
                 ConversationMessage conversationMessage = new ConversationMessage(UUID.randomUUID(),
                         conversationId,
                         applicationId, workflowRunId,
                         MessageConstants.ASSISTANT,
                         new JsonArray(chunks),
+                        new JsonArray(nodes.stream().map(INode::serialize).toList()),
                         LocalDateTime.now(),
                         LocalDateTime.now());
                 messageArrayList.add(conversationMessage);
@@ -269,12 +301,12 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
             String messageString = "data: " + JacksonUtils.toJson(message) + "\n\n";
             messageQueue.publish(conversationId.toString(), message.index(), messageString);
             context.response().write(Buffer.buffer(messageString, "utf-8"));
-        });
+        }, kv.getKey());
         workFlowManage.invoke();
     }
 
     public Condition getConversationQuery(ConversationQuery query) {
-        Condition condition = DSL.field("application_id").eq(query.getApplicationId());
+        Condition condition = DSL.field(Conversation::getApplicationId).eq(query.getApplicationId());
         String startTime = query.getStartTime();
         if (StringUtils.isNotEmpty(startTime)) {
             condition = condition.and(DSL.field("create_time").le(startTime));
@@ -302,9 +334,7 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
         conversationMapper.page(conversationQuery,
                         List.of(field(Conversation::getUpdateTime).desc()),
                         Long.parseLong(currentPage), Long.parseLong(pageSize),
-                        Map.of("application_id", conversation.getApplicationId(),
-                                "name", StringUtils.isEmpty(conversation.getName()) ? "" : "%" + conversation.getName() + "%",
-                                "execute_type", StringUtils.isEmpty(conversation.getExecuteType()) ? "" : conversation.getExecuteType()))
+                        Map.of())
                 .onSuccess(result -> context.end(Result.success(result).toBuffer()))
                 .onFailure(context::fail);
     }

@@ -2,6 +2,7 @@ package com.run.ai.openai;
 
 import okhttp3.OkHttpClient;
 
+import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
@@ -49,7 +50,11 @@ public final class OpenAIOkHttpClient {
         }
 
         public OpenAIClient build() {
-            OkHttpClient finalHttpClient = httpClient == null ? new OkHttpClient.Builder().build() : httpClient;
+            OkHttpClient finalHttpClient = httpClient == null ? new OkHttpClient.Builder()
+                    .connectTimeout(Duration.ofSeconds(10))
+                    .readTimeout(Duration.ofSeconds(60))
+                    .writeTimeout(Duration.ofSeconds(30))
+                    .build() : httpClient;
             Executor finalExecutor = executor == null ? defaultExecutor() : executor;
             return new OpenAIClientImpl(finalHttpClient, normalizeBaseUrl(baseUrl), apiKey, finalExecutor);
         }

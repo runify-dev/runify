@@ -4,16 +4,8 @@
 <script setup lang="ts"></script>
 <style lang="scss" scoped>
 .tiptap-separator {
-  --tt-link-border-color: var(--tt-gray-light-a-200);
-
-  .dark & {
-    --tt-link-border-color: var(--tt-gray-dark-a-200);
-  }
-}
-
-.tiptap-separator {
   flex-shrink: 0;
-  background-color: var(--tt-link-border-color);
+  background-color: var(--p-content-border-color);
 
   &[data-orientation='horizontal'] {
     height: 1px;

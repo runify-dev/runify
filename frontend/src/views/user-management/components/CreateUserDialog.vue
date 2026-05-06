@@ -1,6 +1,38 @@
 <template>
-  <Drawer v-model:visible="visible" header="创建用户" position="right" :style="{ width: '26rem' }">
+  <Drawer v-model:visible="visible" header="创建用户" position="right" class="!w-[26rem]">
     <Form ref="formRef" :initial-values="initialValues" :resolver="resolver" @submit="submit">
+      <FormField v-slot="$field" name="icon" class="flex flex-col gap-2 mt-4">
+        <label>头像</label>
+        <div class="flex items-center gap-3">
+          <div
+            v-if="!$field.value"
+            class="w-16 h-16 rounded-xl border-2 border-dashed border-surface-300 flex items-center justify-center cursor-pointer hover:border-primary-400 hover:bg-primary-50 transition-all duration-200"
+            @click="triggerFileInput"
+          >
+            <i class="pi pi-plus text-surface-400 text-lg" />
+          </div>
+          <div v-else class="relative group">
+            <div class="w-16 h-16 rounded-xl overflow-hidden border border-surface-200">
+              <Image :src="$field.value" alt="头像" width="64" height="64" preview />
+            </div>
+            <button
+              class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-150"
+              @click="($field as any).onChange({ value: '' })"
+            >
+              <i class="pi pi-times text-xs" />
+            </button>
+          </div>
+          <span class="text-xs text-surface-400">支持 JPG、PNG 格式，选填</span>
+        </div>
+        <input
+          ref="fileInputRef"
+          type="file"
+          accept="image/*"
+          class="hidden"
+          @change="handleFileChange"
+        />
+      </FormField>
+
       <FormField v-slot="$field" name="username" class="flex flex-col gap-1 mt-4">
         <label>用户名</label>
         <InputText class="mt-1" type="text" placeholder="请输入用户名（3-20位）" fluid />
@@ -63,12 +95,32 @@ import { zodResolver } from '@primevue/forms/resolvers/zod'
 import { z } from 'zod'
 import type { FormInstance } from '@primevue/forms'
 import UserAPI from '@/api/user'
+import fileAPI from '@/api/file'
 
 const emit = defineEmits(['success'])
 
 const visible = ref<boolean>(false)
+const fileInputRef = ref<HTMLInputElement>()
+
+const triggerFileInput = () => {
+  fileInputRef.value?.click()
+}
+
+const handleFileChange = (event: Event) => {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (file) {
+    const fd = new FormData()
+    fd.append('file', file)
+    fileAPI.uploadFile(fd).then((ok) => {
+      formRef.value?.setFieldValue('icon', `./api/storage/file/${ok.data.id}`)
+    })
+    input.value = ''
+  }
+}
 
 const initialValues = {
+  icon: '',
   username: '',
   nickname: '',
   email: '',
@@ -79,6 +131,7 @@ const initialValues = {
 const resolver = ref(
   zodResolver(
     z.object({
+      icon: z.string().optional(),
       username: z
         .string()
         .min(3, { message: '用户名长度为 3 - 20 之间' })

@@ -1,6 +1,6 @@
 <template>
   <div
-    class="flex h-full min-h-0 overflow-hidden bg-white text-sm text-slate-800 layout-content-container"
+    class="flex h-full min-h-0 overflow-hidden bg-surface-0 text-sm text-surface-800 dark:bg-surface-900 dark:text-surface-100 layout-content-container"
   >
     <RoleSidebar
       v-model:keyword="keyword"
@@ -12,7 +12,7 @@
       @create="openCreateDialog"
     />
 
-    <main class="flex min-w-0 flex-1 flex-col p-4">
+    <main class="flex min-w-0 flex-1 flex-col p-3">
       <RoleHeaderBar
         v-model:active-tab="activeTab"
         :role-name="selectedRole?.name"
@@ -48,7 +48,7 @@
         @page-change="handleMemberPageChange"
       />
 
-      <div v-if="activeTab === 'permission'" class="mt-4 flex justify-end">
+      <div v-if="activeTab === 'permission'" class="mt-2 flex justify-end">
         <Button
           label="保存"
           size="small"
@@ -146,50 +146,6 @@ const {
 </script>
 
 <style scoped>
-:deep(.p-inputtext),
-:deep(.p-button),
-:deep(.p-tab),
-:deep(.p-select),
-:deep(.p-tag),
-:deep(.p-paginator) {
-  border-radius: 0.5rem;
-}
-
-:deep(.p-inputtext) {
-  padding: 0.5rem 0.75rem;
-  font-size: 0.875rem;
-}
-
-:deep(.p-select) {
-  min-height: 2.5rem;
-}
-
-:deep(.p-button) {
-  padding: 0.45rem 0.7rem;
-}
-
-:deep(.p-button.p-button-icon-only) {
-  width: 2rem;
-  height: 2rem;
-}
-
-:deep(.p-tabs-tablist) {
-  border: 1px solid rgb(226 232 240);
-  border-radius: 0.625rem;
-  padding: 0.125rem;
-  background: white;
-}
-
-:deep(.p-tab) {
-  padding: 0.45rem 0.75rem;
-  font-size: 0.875rem;
-}
-
-:deep(.p-tab-active) {
-  background: #ecfdf5;
-  color: #10b981;
-}
-
 :deep(.p-checkbox) {
   transform: scale(0.92);
 }
@@ -200,11 +156,5 @@ const {
 
 :deep(.p-dialog-content) {
   padding-top: 0.25rem;
-}
-
-:deep(.p-paginator) {
-  padding: 0;
-  border: 0;
-  background: transparent;
 }
 </style>

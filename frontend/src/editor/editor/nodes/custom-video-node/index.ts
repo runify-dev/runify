@@ -208,7 +208,7 @@ export const CustomVideoBlock = Node.create<VideoBlockOptions>({
           const clampedEnd = Math.max(0, Math.min(end, docSize))
           if (clampedStart >= clampedEnd) continue
           newState.doc.nodesBetween(clampedStart, clampedEnd, (node, pos) => {
-            if (node.type.name !== "audioBlock") return true
+            if (node.type.name !== "audioBlock" && node.type.name !== "videoBlock") return true
             const nextPos = pos + node.nodeSize
             if (nextPos > docSize) return true   // ← 额外守卫
             const nextNode = newState.doc.nodeAt(nextPos)

@@ -28,11 +28,15 @@ import com.run.sql.DSL;
 import com.run.sql.condition.Condition;
 import com.run.sql.model.Field;
 import com.run.sql.model.Param;
+import com.run.workflow.INode;
 import com.run.workflow.WorkFlowManage;
 import com.run.workflow.WorkflowType;
+import com.run.workflow.entity.NodeSerialize;
 import com.run.workflow.entity.WorkFlow;
 import com.run.workflow.message.struct.Content;
+import com.run.workflow.message.struct.ContentConverter;
 import com.run.workflow.message.struct.Message;
+import com.run.workflow.message.struct.QuestionContent;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
@@ -126,12 +130,13 @@ public class ConversationHandlerImpl implements IConversationHandler {
         String applicationId = user.get("applicationId");
         String conversationId = context.pathParam("conversationId");
         ConversationVO conversationVO = context.body().asPojo(ConversationVO.class);
-        com.run.workflow.message.struct.QuestionContent questionContent = new com.run.workflow.message.struct.QuestionContent(conversationVO.getContent().getContent(), conversationVO.getWorkflowRunId());
+        Content content = ContentConverter.of(conversationVO.getContent(), conversationVO.getWorkflowRunId());
         ConversationMessage conversationMessage = new ConversationMessage(UUID.randomUUID(),
                 UUID.fromString(conversationId),
                 UUID.fromString(applicationId), UUID.fromString(conversationVO.getWorkflowRunId()),
                 MessageConstants.USER,
-                new JsonArray(List.of(questionContent)),
+                new JsonArray(List.of(content)),
+                new JsonArray(),
                 LocalDateTime.now(),
                 LocalDateTime.now());
 
@@ -174,11 +179,14 @@ public class ConversationHandlerImpl implements IConversationHandler {
             if (isEnd) {
                 List<Content> chunks = wm.getChunks();
                 List<ConversationMessage> messageArrayList = new ArrayList<>();
+                List<INode<?, ?>> nodes = wm.getNodes();
+
                 ConversationMessage conversationMessage = new ConversationMessage(UUID.randomUUID(),
                         conversationId,
                         applicationId, workflowRunId,
                         MessageConstants.ASSISTANT,
                         new JsonArray(chunks),
+                        new JsonArray(nodes.stream().map(INode::serialize).toList()),
                         LocalDateTime.now(),
                         LocalDateTime.now());
                 messageArrayList.add(conversationMessage);

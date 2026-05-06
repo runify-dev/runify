@@ -37,10 +37,6 @@ public class DatabaseSearchNode extends INode<DatabaseSearchNode, DatabaseSearch
      */
     public final static List<WorkflowType> supportWorkflow = List.of(WorkflowType.PROCESSOR_HTTP);
 
-    @Override
-    public List<Answer> getAnswerList(WorkFlowManage wm) {
-        return List.of();
-    }
 
     public DatabaseSearchNode(Node node, JsonObject params, List<String> upNodeIdList, String salt, INode<?, ?> upNode) {
         super(node, params, upNodeIdList, salt, upNode);

@@ -12,7 +12,7 @@
   }
 
   img:not([data-type="emoji"] img).ProseMirror-selectednode {
-    outline-color: var(--tt-brand-color-500);
+    outline-color: var(--p-primary-color);
   }
 
   // Thread image handling

@@ -1,9 +1,10 @@
 <template>
   <div
-    class="absolute z-99999 bottom-8 right-6 bg-white rounded-xl overflow-hidden"
+    class="debug-panel"
+    :class="{ expanded }"
     :style="toggleStyle"
   >
-    <Conversation defaultMode="drawer" @close="$emit('close')" type="DEBUG">
+    <Conversation defaultMode="drawer" :defaultOpen="false" @close="$emit('close')" type="DEBUG">
       <template #header>
         <button class="hbtn" @click="toggle">
           <i class="pi pi-arrow-up-right-and-arrow-down-left-from-center"></i>
@@ -38,14 +39,15 @@ const toggle = () => {
 const toggleStyle = computed(() => {
   return expanded.value
     ? {
-        height: '100vh',
-        width: '50%',
+        height: '100dvh',
+        width: 'min(50%, 100vw)',
         bottom: 0,
-        right: 0
+        right: 0,
+        borderRadius: 0
       }
     : {
-        height: '450px',
-        width: '400px'
+        height: 'min(450px, calc(100dvh - 64px))',
+        width: 'min(400px, calc(100vw - 32px))'
       }
 })
 const props = defineProps<{
@@ -63,6 +65,33 @@ provide('conversationAPI', (question: any) => {
 })
 </script>
 <style lang="scss">
+.debug-panel {
+  position: absolute;
+  z-index: 99999;
+  bottom: 2rem;
+  right: 1.5rem;
+  background: #fff;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  max-width: 100vw;
+  max-height: 100dvh;
+
+  &.expanded {
+    border-radius: 0;
+  }
+
+  @media (max-width: 576px) {
+    &,
+    &.expanded {
+      bottom: 0;
+      right: 0;
+      width: 100vw !important;
+      height: 100dvh !important;
+      border-radius: 0;
+    }
+  }
+}
+
 .hbtn {
   width: 32px;
   height: 32px;

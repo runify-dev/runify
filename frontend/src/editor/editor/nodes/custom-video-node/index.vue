@@ -1,13 +1,13 @@
 <template>
   <node-view-wrapper
-    class="block my-5 rounded-xl overflow-hidden border-2 border-transparent transition-all duration-200 bg-[#0d0d0d] shadow-[0_2px_12px_rgba(0,0,0,0.12)]"
+    class="block my-5 rounded-xl overflow-hidden border-2 border-transparent transition-all duration-200 bg-surface-950 shadow-md"
     :class="{
-      'border-[var(--p-primary-color)] shadow-[0_0_0_3px_var(--p-primary-color,#7db3e8)]/25':
+      'border-primary shadow-[0_0_0_3px_var(--p-primary-color)]/25':
         selected
     }"
     contenteditable="false"
   >
-    <div class="relative bg-[#0d0d0d]" @click="onShellClick">
+    <div class="relative bg-surface-950" @click="onShellClick">
       <!-- 16:9 ratio box -->
       <div class="relative aspect-video bg-black cursor-pointer">
         <!-- Upload progress overlay -->
@@ -108,7 +108,7 @@
             ></div>
             <div
               class="absolute top-0 left-0 h-full rounded-sm flex items-center"
-              :style="{ width: playedPercent + '%', background: 'var(--p-primary-color, #7db3e8)' }"
+              :style="{ width: playedPercent + '%', background: 'var(--p-primary-color)' }"
             >
               <div
                 class="absolute -right-[5px] w-3 h-3 rounded-full bg-white shadow-[0_1px_4px_rgba(0,0,0,0.4)] opacity-0 group-hover:opacity-100 transition-opacity duration-150"

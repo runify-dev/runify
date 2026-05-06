@@ -23,6 +23,7 @@ public class Content {
 
     private String workflowRunId;
 
+    private Position position;
 
     public Content(ContentTypeConstants type,
                    INode<?, ?> node,
@@ -35,6 +36,7 @@ public class Content {
         nodeInfo.put("id", node.getNode().getId());
         nodeInfo.put("status", node.getStatus());
         nodeInfo.put("name", node.getNode().getProperties().getString("name"));
+        this.position = new Position(node.getNode().getId());
         this.extra.put("nodeInfo", nodeInfo);
         this.id = id;
     }

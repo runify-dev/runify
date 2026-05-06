@@ -19,6 +19,7 @@
       .layout-main-container {
         margin-left: 0;
         padding-left: 2rem;
+        padding-right: 2rem;
       }
 
       .layout-sidebar {
@@ -48,6 +49,8 @@
     &.layout-static {
       .layout-main-container {
         margin-left: 22rem;
+        padding-left: 2rem;
+        padding-right: 2rem;
       }
 
       &.layout-static-inactive {
@@ -59,6 +62,7 @@
         .layout-main-container {
           margin-left: 0;
           padding-left: 2rem;
+          padding-right: 2rem;
         }
       }
     }
@@ -79,7 +83,6 @@
   .layout-wrapper {
     .layout-main-container {
       margin-left: 0;
-      padding-left: 2rem;
       .card {
         padding: 0;
       }

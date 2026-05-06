@@ -19,6 +19,108 @@ const getNodeName = (model: BaseNodeModel) => {
     }
   }
 }
+const useProvide=(model:any)=>{
+const getNodeFieldOptions = (withSelf?:boolean) => {
+  const getUpNode = (id: string, result: Array<any>) => {
+    const upNodes = model.graphModel.getNodeIncomingNode(id)
+    upNodes.forEach((node: any) => {
+      result.push(node)
+      getUpNode(node.id, result)
+    })
+    return result
+  }
+  const upNodes = getUpNode(model.id, withSelf?[model]:[])
+
+  const result = upNodes.filter(node=>node.properties.field_list&&node.properties.field_list.length>0).map((node) => {
+    return {
+      label: node.properties.name,
+      value: node.id,
+      disabled: true,
+      children: node.properties.field_list.map((item: any) => ({
+        label: item.label,
+        value: item.value,
+        children: item.children
+      }))
+    }
+  })
+
+  // 合并父级变量（子画布场景）
+  const parentGetOptions = model.graphModel.getParentNodeFieldOptions
+  if (parentGetOptions) {
+    parentGetOptions().forEach((item: any) => {
+      result.push(item)
+    })
+  }
+
+  getGlobalFieldOptions().forEach((item) => {
+    result.push(item)
+  })
+  return result
+}
+
+const getGlobalFieldOptions = () => {
+  const result = []
+   // 合并父级变量（子画布场景）
+  const parentGetOptions = model.graphModel.parentGetGlobalFieldOptions
+  if (parentGetOptions) {
+    parentGetOptions().forEach((item: any) => {
+      result.push(item)
+    })
+  }
+  const startNode = model.graphModel.getNodeModelById('start-node')
+  if (startNode) {
+    if(startNode?.properties?.globalFieldList&&startNode?.properties?.globalFieldList.length>0){
+  result.push({
+      label: 'global',
+      disabled: true,
+      value: 'global',
+      children: startNode?.properties?.globalFieldList || []
+    })
+    }
+
+  }
+  const getParentModel= model.graphModel.getParentModel;
+  if(getParentModel){
+    const pm=getParentModel()
+   result.push({
+      label: pm.properties.name,
+      value: pm.id,
+      disabled: true,
+      children: pm.properties.field_list.map((item: any) => ({
+        label: item.label,
+        value: item.value,
+        children: item.children
+      }))
+    })
+  }
+  return result
+}
+
+const flattenVariables = (nodes: any[], parentLabel = '', parentValue = ''): any[] => {
+  const result: any[] = []
+
+  for (const node of nodes) {
+    if (node.disabled) {
+      // 分组节点，递归子级，传递当前 label 作为前缀
+      result.push(...flattenVariables(node.children ?? [], node.label, node.label))
+    } else {
+      const value = parentValue ? `${parentValue}.${node.value}` : node.value
+      const label = parentLabel ? `${parentLabel} / ${node.label}` : node.label
+      result.push({ value, label, children: node.children })
+    }
+  }
+
+  return result
+}
+const  getTemplateVariables=() => {
+  return flattenVariables(getNodeFieldOptions())
+}
+
+return {getGlobalFieldOptions,getNodeFieldOptions,getTemplateVariables}
+}
+
+
+
 class RootView extends HtmlResize.view {
   component: any
   constructor(props: { model: BaseNodeModel; graphModel: GraphModel }, vueNode: any) {
@@ -31,6 +133,8 @@ class RootView extends HtmlResize.view {
   setHtml(rootEl: SVGForeignObjectElement): void {
     if (!rootEl.innerHTML) {
       const node = document.createElement('div')
+      node.setAttribute('data-node-id', this.props.model.id)
+      node.setAttribute('data-node-type', this.props.model.type)
       rootEl.appendChild(node)
       this.renderVueComponent(node)
     }
@@ -42,7 +146,7 @@ class RootView extends HtmlResize.view {
     const { model, graphModel } = this.props
     if (root) {
       if (isActive()) {
-        connect(this.targetId(), this.component, root, model, graphModel)
+        connect(this.targetId(), this.component, root, model, graphModel,useProvide(model))
       }
     }
   }
@@ -75,7 +179,29 @@ class RootView extends HtmlResize.view {
           style: { zindex: 0 },
           onClick: () => {
             if (direction == 'right') {
-              this.props.model.openNodeMenu(anchorData)
+              const model= this.props.model;
+              const appendNode = (node: any, anchorData: any) => {
+                const nodeModel = model.graphModel.addNode({
+                  type: node.type,
+                  properties: node.properties,
+                  x: anchorData.x + node.properties.width / 2 + 200,
+                  y: anchorData.y
+                })
+
+                model.graphModel.addEdge({
+                  type: 'run-edge',
+                  sourceNodeId: model.id,
+                  sourceAnchorId: anchorData.id,
+                  targetNodeId: nodeModel.id,
+                  targetAnchorId: generateAnchor(nodeModel.id, 'left', 'main', 'success')
+                })
+                return Promise.resolve({ message: '添加成功' })
+              }
+              model.graphModel.eventCenter.emit('runify:node:open-add-node-dialog', {
+                call: appendNode,
+                anchorData: anchorData
+              })
+
             }
           },
           dangerouslySetInnerHTML: {
@@ -141,7 +267,7 @@ class RootModel extends HtmlResize.model {
     const { id, x, y, width, type } = this
     const anchors: any = []
     if (type.toString() !== 'Base') {
-      if (type.toString() !== 'start-node') {
+      if (type.toString() !== 'start-node' && type.toString() !== 'loop-start-node') {
         anchors.push({
           x: x - width / 2,
           y: y,

@@ -10,7 +10,7 @@
       style="
         font-family: 'Bricolage Grotesque', sans-serif;
         background: color-mix(in srgb, var(--p-surface-900) 90%, transparent);
-        box-shadow: 0 12px 40px color-mix(in srgb, #000 50%, transparent);
+        box-shadow: 0 12px 40px color-mix(in srgb, var(--p-surface-950) 50%, transparent);
       "
     >
       <!-- ── Upload state ── -->

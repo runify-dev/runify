@@ -14,8 +14,8 @@
     <packaging>pom</packaging>
     <properties>
         <version>1.0.0</version>
-        <maven.compiler.source>24</maven.compiler.source>
-        <maven.compiler.target>24</maven.compiler.target>
+        <maven.compiler.source>25</maven.compiler.source>
+        <maven.compiler.target>25</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <vertx.version>5.0.1</vertx.version>
         <mysql.connector.version>8.0.33</mysql.connector.version>
@@ -24,7 +24,7 @@
         <jackson.datatype.version>2.19.2</jackson.datatype.version>
         <logback.version>1.5.17</logback.version>
         <jsqlparser.version>5.1</jsqlparser.version>
-        <lombok.version>1.18.38</lombok.version>
+        <lombok.version>1.18.46</lombok.version>
         <node.version>v20.11.0</node.version>
         <npm.version>10.2.4</npm.version>
         <sqlite.version>3.50.3.0</sqlite.version>

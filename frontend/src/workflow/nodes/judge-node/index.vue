@@ -1,14 +1,14 @@
 <template>
   <SimpleNodeContainer
-    ref="simpleNodeContainerRef"
+    ref="containerRef"
     :model="model"
     :validate="validate"
     :submit="submit"
   >
-    <Content :@orkflowType="workflowType" :details="details" ref="contentRef" />
+    <Content :workflowType="workflowType" :details="details" ref="contentRef" />
 
     <template #content>
-      <div class="space-y-1.5 p-2" ref="containerRef">
+      <div class="space-y-1.5 p-2" ref="branchContainerRef">
         <div v-for="branch in branches" :key="branch.id" class="grid grid-cols-[28px_1fr] gap-1.5">
           <div class="flex items-center justify-end pr-1 text-[11px] font-medium text-slate-400">
             {{ getBranchTitle(branch.type) }}
@@ -122,9 +122,11 @@
 import SimpleNodeContainer from '@/workflow/common/SimpleNodeContainer.vue'
 import type { BaseNodeModel } from '@logicflow/core'
 import Content from './content/index.vue'
+import { init } from './content'
 import Popover from 'primevue/popover'
 import { computed, inject, ref, onMounted, onBeforeUnmount } from 'vue'
 import { WorkflowType, defaulBranches } from '@/workflow/common/data'
+import { useNodeValidator } from '@/workflow/common/useNodeValidator'
 
 import {
   type CompareValue,
@@ -153,7 +155,7 @@ const previewTitle = ref('')
 const previewContent = ref('')
 
 let previewTimer: number | undefined
-const containerRef = ref()
+const branchContainerRef = ref<HTMLElement>()
 const branches = computed<JudgeBranch[]>(() => {
   const value = model.properties?.nodeData?.branches
 
@@ -190,9 +192,9 @@ const firstErrorKey = computed(() => {
 const validate = () => {
   return contentRef.value?.validate?.() || validateCurrentBranches()
 }
-const simpleNodeContainerRef = ref<InstanceType<typeof SimpleNodeContainer>>()
+const containerRef = ref<InstanceType<typeof SimpleNodeContainer>>()
 const submit = () => {
-  const height = containerRef.value.clientHeight + 84
+  const height = branchContainerRef.value!.clientHeight + 84
   console.log(height)
   model.height = height
   model.properties.height = height
@@ -280,7 +282,10 @@ function cancelHidePreview() {
   }
 }
 
+useNodeValidator(model, containerRef)
+
 onMounted(() => {
+  init({ model, workflowType: workflowType as string, details })
   model.refreshDegrees()
 })
 

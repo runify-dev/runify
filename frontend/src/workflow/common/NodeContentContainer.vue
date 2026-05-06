@@ -22,10 +22,12 @@
   </Drawer>
 </template>
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, inject } from 'vue'
 import Drawer from 'primevue/drawer'
 import type { BaseNodeModel } from '@logicflow/core'
 import NodeContent from '@/workflow/common/NodeContent.vue'
+const getModel = inject('getModel') as () => BaseNodeModel
+const model = getModel()
 const props = defineProps<{
   validate: () => Promise<any>
   submit: () => Promise<any>
@@ -37,6 +39,7 @@ const confirm = () => {
   props.validate().then(({ errors }) => {
     if (Object.keys(errors).length == 0) {
       props.submit().then(() => {
+        model.graphModel.eventCenter.emit('runify:node:data-saved', model.id)
         close()
       })
     }

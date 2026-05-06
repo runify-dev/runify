@@ -1,5 +1,6 @@
 package com.run.handler.application.vo;
 
+import io.vertx.core.json.JsonObject;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -16,6 +17,6 @@ import lombok.Setter;
 @Getter
 @Setter
 public class ConversationVO {
-    private QuestionContent content;
+    private JsonObject content;
     private String workflowRunId;
 }

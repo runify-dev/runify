@@ -57,6 +57,11 @@ public class UserRoute implements IRoute {
                 .handler(tokenBasicAuthHandler)
                 .handler(iUserHandler::deleteUser);
 
+        apiRoute.put("/user/:id")
+                .handler(BodyHandler.create())
+                .handler(tokenBasicAuthHandler)
+                .handler(iUserHandler::updateUser);
+
         apiRoute.post("/login")
                 .handler(BodyHandler.create())
                 .handler(iUserHandler.login());

@@ -12,13 +12,22 @@
   flex-direction: column;
   min-height: 100dvh;
   justify-content: space-between;
-  padding: 6rem 2rem 0 2rem;
+  padding: 4rem 0 0 0;
   margin-left: 0 !important;
   transition: margin-left var(--layout-section-transition-duration);
+  background-color: var(--surface-ground);
 }
 
 .layout-main {
-  flex: 1 1 auto;
-  padding-bottom: 2rem;
+  flex: 1;
+  background-color: var(--app-content-bg);
+  border-radius: var(--content-border-radius);
+  padding: 1.5rem;
+}
+
+@media (min-width: 992px) {
+  .layout-main-container {
+    padding: 6rem 2rem 2rem 2rem;
+  }
 }
 </style>

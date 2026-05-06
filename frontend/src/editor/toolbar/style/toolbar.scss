@@ -1,13 +1,13 @@
 :root {
   --tt-toolbar-height: 2.75rem;
   --tt-safe-area-bottom: env(safe-area-inset-bottom, 0px);
-  --tt-toolbar-bg-color: var(--white);
-  --tt-toolbar-border-color: var(--tt-gray-light-a-100);
+  --tt-toolbar-bg-color: var(--p-content-background);
+  --tt-toolbar-border-color: var(--p-content-border-color);
 }
 
-.dark {
-  --tt-toolbar-bg-color: var(--black);
-  --tt-toolbar-border-color: var(--tt-gray-dark-a-50);
+.app-dark {
+  --tt-toolbar-bg-color: var(--p-surface-950);
+  --tt-toolbar-border-color: var(--p-content-border-color);
 }
 
 .tiptap-toolbar {
@@ -52,12 +52,13 @@
     @media screen and (max-width: 991px) {
       position: fixed;
       top: auto;
-      bottom: var(--tt-safe-area-bottom);
+      bottom: 0;
       left: 0;
       right: 0;
       border-bottom: none;
       border-top: 1px solid var(--tt-toolbar-border-color);
       z-index: 50;
+      padding-bottom: var(--tt-safe-area-bottom);
     }
   }
 

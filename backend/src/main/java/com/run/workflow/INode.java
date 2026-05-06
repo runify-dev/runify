@@ -3,7 +3,9 @@ package com.run.workflow;
 import com.github.f4b6a3.uuid.UuidCreator;
 import com.run.common.util.CommonUtils;
 import com.run.workflow.entity.Node;
+import com.run.workflow.entity.NodeInfo;
 import com.run.workflow.entity.NodeResult;
+import com.run.workflow.entity.NodeSerialize;
 import io.vertx.core.json.JsonObject;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
@@ -13,6 +15,7 @@ import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -53,13 +56,26 @@ public abstract class INode<T extends INode, NodeData> {
     @Getter
     private String realNodeId;
 
-    private String displayId;
-
     private INode<?, ?> upNode;
     @Getter
     private List<String> upNodeIdList;
 
-    public abstract List<Answer> getAnswerList(WorkFlowManage wm);
+    public void deserialize(NodeSerialize nodeSerialize, Node node) {
+        this.node = node;
+        this.status = nodeSerialize.getNodeInfo().getStatus();
+        // 每个node的Content需要自行处理
+    }
+
+    public NodeSerialize serialize() {
+        NodeSerialize nodeSerialize = new NodeSerialize();
+        NodeInfo nodeInfo = new NodeInfo();
+        nodeInfo.setId(this.node.getId());
+        nodeInfo.setStatus(this.status);
+        nodeInfo.setName(this.getNode().getProperties().getString("name"));
+        nodeSerialize.setNodeInfo(nodeInfo);
+        nodeSerialize.setContext(this.getContext().getMap());
+        return nodeSerialize;
+    }
 
     public Boolean getNodeDisplaySingle(Node node) {
         JsonObject jsonObject = node.getProperties().getJsonObject("nodeData", new JsonObject());
@@ -67,29 +83,6 @@ public abstract class INode<T extends INode, NodeData> {
         return single != null && single;
     }
 
-    public String getDisplayId() {
-        if (StringUtils.isEmpty(displayId)) {
-            Boolean single = getNodeDisplaySingle(node);
-            if (single != null && single) {
-                UUID timeOrdered = UuidCreator.getTimeOrderedEpoch();
-                this.displayId = timeOrdered.toString();
-            } else {
-                if (upNode == null) {
-                    UUID timeOrdered = UuidCreator.getTimeOrderedEpoch();
-                    this.displayId = timeOrdered.toString();
-                } else {
-                    Boolean upNodeSingle = getNodeDisplaySingle(upNode.node);
-                    if (upNodeSingle) {
-                        UUID timeOrdered = UuidCreator.getTimeOrderedEpoch();
-                        this.displayId = timeOrdered.toString();
-                    } else {
-                        this.displayId = upNode.getDisplayId();
-                    }
-                }
-            }
-        }
-        return displayId;
-    }
 
     public INode(Node node, JsonObject params, List<String> upNodeIdList, String salt, INode<?, ?> upNode) {
         this.node = node;

@@ -43,6 +43,9 @@ public class ConversationMessage implements BaseEntity<ConversationMessage> {
     @Column(name = "content")
     private JsonArray content;
 
+    @Column(name = "context")
+    private JsonArray context;
+
     @Column(name = "create_time")
     private LocalDateTime createTime;
 

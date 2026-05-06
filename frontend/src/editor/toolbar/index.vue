@@ -1,6 +1,6 @@
 <template>
-  <div role="toolbar" aria-label="toolbar" class="tiptap-toolbar" data-variant="fixed">
-    <div style="flex: 1"></div>
+  <div ref="toolbarRef" role="toolbar" aria-label="toolbar" class="tiptap-toolbar" data-variant="fixed">
+    <div class="flex-1"></div>
     <Undo :editor="editor"></Undo>
     <Redo :editor="editor"></Redo>
     <Separatror></Separatror>
@@ -19,11 +19,12 @@
     <Audio :editor="editor"></Audio>
     <Video :editor="editor"></Video>
     <File :editor="editor"></File>
-    <div style="flex: 1"></div>
+    <div class="flex-1"></div>
   </div>
 </template>
 <script setup lang="ts">
 import { type Editor } from '@tiptap/vue-3'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import Undo from './operate/undo.vue'
 import Redo from './operate/redo.vue'
 import Separatror from './operate/separator.vue'
@@ -43,5 +44,37 @@ import File from './operate/file/index.vue'
 import './style/index.scss'
 
 const props = defineProps<{ editor: Editor }>()
+const toolbarRef = ref<HTMLElement>()
+
+let initialHeight = window.innerHeight
+
+function onFocusIn(e: FocusEvent) {
+  const target = e.target as HTMLElement
+  if (!target || !toolbarRef.value) return
+  if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+    setTimeout(() => {
+      const diff = initialHeight - window.innerHeight
+      if (diff > 200 && toolbarRef.value) {
+        toolbarRef.value.style.bottom = `${diff}px`
+      }
+    }, 300)
+  }
+}
+
+function onFocusOut() {
+  setTimeout(() => {
+    if (toolbarRef.value) toolbarRef.value.style.bottom = ''
+  }, 300)
+}
+
+onMounted(() => {
+  document.addEventListener('focusin', onFocusIn)
+  document.addEventListener('focusout', onFocusOut)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('focusin', onFocusIn)
+  document.removeEventListener('focusout', onFocusOut)
+})
 </script>
 <style lang="scss"></style>

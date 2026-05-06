@@ -1,4 +1,5 @@
-import { randomId } from '@/utils/common'
+import {randomId} from '@/utils/common'
+
 export const startNode = {
   id: 'start-node',
   type: 'start-node',
@@ -12,9 +13,21 @@ export const startNode = {
     name: '开始节点',
     isHovered: false,
     field_list: [
+       {
+      label:"上下文",
+      value: 'messages'
+    },
       {
         label: '用户问题',
         value: 'question'
+      },
+      {
+        label: "图片",
+        value: ""
+      },
+      {
+        label: "视频",
+        value: ""
       }
     ]
   }
@@ -94,6 +107,91 @@ export const jsonResponseNode = {
     field_list: []
   }
 }
+export const loopStartNode = {
+  id: 'loop-start-node',
+  type: 'loop-start-node',
+  text: '',
+  x: 0,
+  y: 0,
+  label: '循环开始',
+  properties: {
+    width: 200,
+    height: 50,
+    name: '循环开始',
+    isHovered: false,
+    field_list: [
+    
+    ]
+  }
+}
+
+export const loopNode = {
+  type: 'loop-node',
+  text: '',
+  x: 0,
+  y: 0,
+  label: '循环',
+  properties: {
+    width: 280,
+    height: 50,
+    expanded: false,
+    name: '循环',
+    isHovered: false,
+    field_list: [
+      {
+        label: '当前项',
+        value: 'item'
+      },
+      {
+        label: '当前索引',
+        value: 'index'
+      }
+    ],
+    nodeData: {
+      loopType: 'foreach',
+      children: {nodes: [], edges: []}
+    }
+  }
+}
+
+export const loopContinueNode = {
+  type: 'loop-continue-node',
+  text: '',
+  x: 0,
+  y: 0,
+  label: '循环跳过',
+  properties: {
+    width: 200,
+    height: 50,
+    name: '循环跳过',
+    isHovered: false,
+    field_list: [],
+    nodeData: {
+      conditions: [],
+      logic: 'and'
+    }
+  }
+}
+
+export const loopBreakNode = {
+  type: 'loop-break-node',
+  text: '',
+  x: 0,
+  y: 0,
+  label: '跳出循环',
+  properties: {
+    width: 200,
+    height: 50,
+    name: '跳出循环',
+    isHovered: false,
+    field_list: [],
+    nodeData: {
+      conditions: [],
+      logic: 'and'
+    }
+  }
+}
+
 export const defaulBranches = [
   {
     id: randomId(),
@@ -108,7 +206,7 @@ export const defaulBranches = [
       }
     ]
   },
-  { id: randomId(), type: 'else', logic: 'and', conditions: [] }
+  {id: randomId(), type: 'else', logic: 'and', conditions: []}
 ]
 export const judgeNode = {
   type: 'judge-node',
@@ -128,6 +226,87 @@ export const judgeNode = {
   }
 }
 
+export const terminalNode = {
+  type: 'terminal-node',
+  text: '',
+  x: 0,
+  y: 0,
+  label: '终端执行',
+  properties: {
+    width: 200,
+    height: 50,
+    name: '终端执行',
+    isHovered: false,
+    field_list: [
+      { label: '执行结果', value: 'result' },
+      { label: '标准输出', value: 'stdout' },
+      { label: '错误输出', value: 'stderr' },
+      { label: '退出码', value: 'exitCode' }
+    ],
+    nodeData: {
+      location: 'customize',
+      reference: [],
+      code: ''
+    }
+  }
+}
+
+export const variableAssignNode = {
+  type: 'variable-assign-node',
+  text: '',
+  x: 0,
+  y: 0,
+  label: '变量赋值',
+  properties: {
+    width: 200,
+    height: 50,
+    name: '变量赋值',
+    isHovered: false,
+    field_list: [],
+    nodeData: {
+      variables: []
+    }
+  }
+}
+
+export const approvalNode = {
+  type: 'approval-node',
+  text: '',
+  x: 0,
+  y: 0,
+  label: '审批',
+  properties: {
+    width: 200,
+    height: 50,
+    name: '审批',
+    isHovered: false,
+    field_list: [{ label: '审批结果', value: 'approved' }],
+    nodeData: {
+      location: 'customize',
+      reference: [],
+      prompt: ''
+    }
+  }
+}
+
+export const contextPushNode = {
+  type: 'context-push-node',
+  text: '',
+  x: 0,
+  y: 0,
+  label: '推送上下文',
+  properties: {
+    width: 200,
+    height: 50,
+    name: '推送上下文',
+    isHovered: false,
+    field_list: [],
+    nodeData: {
+      items: []
+    }
+  }
+}
+
 export const baseWorkflow = {
   nodes: [startNode],
   edges: []
@@ -135,7 +314,9 @@ export const baseWorkflow = {
 
 export enum WorkflowType {
   APPLICATION = 'APPLICATION',
-  PROCESSOR = 'PROCESSOR'
+  PROCESSOR = 'PROCESSOR',
+  APPLICATION_LOOP = 'APPLICATION_LOOP',
+  PROCESSOR_LOOP = 'PROCESSOR_LOOP'
 }
 
 export const iconMap = {

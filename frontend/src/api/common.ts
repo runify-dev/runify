@@ -11,6 +11,7 @@ class ConversationStream {
    */
   onFailure: (e: any) => void
 
+  cancelled = false
   tempChunk = ''
   constructor(response: any,
     onStream: (chunk: any) => void,
@@ -24,12 +25,32 @@ class ConversationStream {
   }
   stream() {
     this.response.then((res: any) => {
-      this.reader = res.body.getReader();
+      if (this.cancelled) return
+      if (!res.ok) {
+        this.onFailure(new Error(`HTTP ${res.status}`))
+        return
+      }
+      this.reader = res.body?.getReader();
+      if (!this.reader) {
+        this.onFailure(new Error('No response body'))
+        return
+      }
       this.reader.read().then(this.write_stream)
+    }).catch((e: any) => {
+      if (this.cancelled) return
+      this.onFailure(e)
     })
   }
 
+  cancel() {
+    this.cancelled = true
+    if (this.reader) {
+      this.reader.cancel().catch(() => {})
+    }
+  }
+
   write_stream = ({ done, value }: { done: boolean; value: any }) => {
+    if (this.cancelled) return
     try {
       if (done) {
         this.onFinish()

@@ -1,5 +1,5 @@
 <template>
-  <Form ref="formRef">
+  <Form ref="formRef" :resolver="zodResolver(schema)">
     <Fieldset legend="基本信息">
       <FormField name="functionName" class="mt-2">
         <label>函数名称 </label>
@@ -33,12 +33,21 @@ import CodeEditor from '@/components/code-editor/index.vue'
 import type { BaseNodeModel } from '@logicflow/core'
 
 import type { FormInstance } from '@primevue/forms'
+import { zodResolver } from '@primevue/forms/resolvers/zod'
+import { schema, validate as validateNodeData } from './validator'
 const getModel = inject('getModel') as () => BaseNodeModel
 const formRef = ref<FormInstance>()
 const model = getModel()
 
 const validate = () => {
-  return formRef.value ? formRef.value.validate() : Promise.reject({ values: [], errors: [] })
+  if (formRef.value) {
+    return formRef.value.validate()
+  }
+  const result = validateNodeData(model.properties.nodeData)
+  if (result.valid) {
+    return Promise.resolve({ values: model.properties.nodeData, errors: {} })
+  }
+  return Promise.resolve({ values: {}, errors: result.errors })
 }
 const submit = () => {
   return validate().then(({ values, errors }) => {

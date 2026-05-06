@@ -7,7 +7,7 @@
  */
 
 import { Node, mergeAttributes, textblockTypeInputRule } from "@tiptap/core";
-import { Plugin, PluginKey, TextSelection } from "@tiptap/pm/state";
+import { Plugin, PluginKey, TextSelection, NodeSelection } from "@tiptap/pm/state";
 import type { EditorView as PMEditorView } from "@tiptap/pm/view";
 import { type NodeView } from "@tiptap/pm/view";
 
@@ -45,7 +45,7 @@ import { languages } from "@codemirror/language-data";
 // 语言列表
 // ─────────────────────────────────────────────
 const LANGUAGES = [
-  { value: "", label: "Auto", color: "#a0aec0" },
+  { value: "", label: "Auto", color: "var(--p-text-muted-color)" },
   { value: "javascript", label: "JavaScript", color: "#f7df1e" },
   { value: "typescript", label: "TypeScript", color: "#3178c6" },
   { value: "python", label: "Python", color: "#3572A5" },
@@ -150,8 +150,8 @@ const codeBlockTheme = EditorView.theme(
     "&": {
       fontSize: "13px",
       fontFamily: '"JetBrains Mono", "Fira Code", "Consolas", monospace',
-      background: "#f6f8fa",
-      color: "#24292f",
+      background: "var(--p-surface-0)",
+      color: "var(--p-text-color)",
       borderRadius: "0 0 12px 12px",
     },
     "&.cm-focused": { outline: "none" },
@@ -161,39 +161,38 @@ const codeBlockTheme = EditorView.theme(
       padding: "10px 0",
       overflowX: "auto",
     },
-    ".cm-content": { padding: "0", caretColor: "#24292f" },
+    ".cm-content": { padding: "0", caretColor: "var(--p-text-color)" },
     ".cm-gutters": {
-      background: "#f0f2f5",
-      borderRight: "1px solid #e8eaed",
-      color: "#b0b7c0",
+      background: "var(--p-surface-100)",
+      borderRight: "1px solid var(--p-content-border-color)",
+      color: "var(--p-text-muted-color)",
       minWidth: "40px",
       userSelect: "none",
       cursor: "default",
     },
     ".cm-lineNumbers .cm-gutterElement": { padding: "0 10px 0 14px" },
-    ".cm-activeLine": { backgroundColor: "rgba(0,0,0,0.03)" },
+    ".cm-activeLine": { backgroundColor: "var(--p-surface-100)" },
     ".cm-activeLineGutter": {
-      backgroundColor: "rgba(0,0,0,0.05)",
-      color: "#6a737d",
+      backgroundColor: "var(--p-surface-200)",
+      color: "var(--p-text-muted-color)",
     },
     ".cm-selectionBackground, &.cm-focused .cm-selectionBackground": {
-      background: "rgba(125,179,232,0.3)",
+      background: "var(--p-primary-200)",
     },
-    ".cm-cursor": { borderLeftColor: "#24292f" },
+    ".cm-cursor": { borderLeftColor: "var(--p-text-color)" },
     ".cm-scroller::-webkit-scrollbar": { height: "6px", width: "6px" },
     ".cm-scroller::-webkit-scrollbar-track": { background: "transparent" },
     ".cm-scroller::-webkit-scrollbar-thumb": {
-      background: "#d0d5db",
+      background: "var(--p-surface-300)",
       borderRadius: "3px",
       cursor: "pointer",
     },
-    ".cm-scroller::-webkit-scrollbar-thumb:hover": { background: "#9ca3af" },
-    // 补全下拉
+    ".cm-scroller::-webkit-scrollbar-thumb:hover": { background: "var(--p-surface-400)" },
     ".cm-tooltip.cm-tooltip-autocomplete": {
-      border: "1px solid #e1e4e8",
+      border: "1px solid var(--p-content-border-color)",
       borderRadius: "8px",
       boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-      background: "#fff",
+      background: "var(--p-content-background)",
       fontSize: "12.5px",
       fontFamily: '"JetBrains Mono","Fira Code","Consolas",monospace',
     },
@@ -208,12 +207,12 @@ const codeBlockTheme = EditorView.theme(
       lineHeight: "1.6",
     },
     ".cm-tooltip-autocomplete > ul > li[aria-selected]": {
-      background: "#ebf1ff",
-      color: "#1a4c9e",
+      background: "var(--p-primary-100)",
+      color: "var(--p-primary-700)",
     },
     ".cm-completionLabel": { flex: "1" },
     ".cm-completionDetail": {
-      color: "#8b949e",
+      color: "var(--p-text-muted-color)",
       fontSize: "11px",
       marginLeft: "8px",
       fontStyle: "normal",
@@ -254,7 +253,7 @@ class CodeMirrorNodeView implements NodeView {
       position: "relative",
       margin: "20px 0",
       borderRadius: "12px",
-      border: "1px solid #e1e4e8",
+      border: "1px solid var(--p-content-border-color)",
       boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
       fontFamily: '"JetBrains Mono","Fira Code","Consolas",monospace',
       overflow: "visible",
@@ -318,6 +317,30 @@ class CodeMirrorNodeView implements NodeView {
               const sel = state.selection.main;
               const atStart = sel.from === 0 && sel.to === 0;
               if (isEmpty || atStart) {
+                const pos = this.getPos();
+                if (pos !== undefined) {
+                  const pmTr = this.pmView.state.tr.deleteRange(
+                    pos,
+                    pos + this.node.nodeSize
+                  );
+                  this.updating = true;
+                  this.pmView.dispatch(pmTr);
+                  this.updating = false;
+                  this.pmView.focus();
+                  return true;
+                }
+              }
+              return false;
+            },
+          },
+          {
+            key: "Delete",
+            run: (view) => {
+              const { state } = view;
+              const sel = state.selection.main;
+              const docLen = state.doc.length;
+              const atEnd = sel.from === docLen && sel.to === docLen;
+              if (atEnd) {
                 const pos = this.getPos();
                 if (pos !== undefined) {
                   const pmTr = this.pmView.state.tr.deleteRange(
@@ -408,7 +431,7 @@ class CodeMirrorNodeView implements NodeView {
       this.loadLanguage(node.attrs.language);
       const langInfo = LANGUAGES.find(
         (l) => l.value === node.attrs.language
-      ) ?? { label: node.attrs.language || "Auto", color: "#a0aec0" };
+      ) ?? { label: node.attrs.language || "Auto", color: "var(--p-text-muted-color)" };
       this.langDot.style.background = langInfo.color;
       this.langLabel.textContent = langInfo.label;
     }
@@ -438,14 +461,14 @@ class CodeMirrorNodeView implements NodeView {
   }
 
   selectNode() {
-    this.dom.style.borderColor = "#c8d0da";
+    this.dom.style.borderColor = "var(--p-primary-color)";
     this.dom.style.boxShadow =
-      "0 2px 8px rgba(0,0,0,0.09), 0 0 0 3px rgba(130,150,180,0.12)";
+      "0 0 0 3px var(--p-primary-100), 0 2px 8px rgba(0,0,0,0.09)";
     this.cm.focus();
   }
 
   deselectNode() {
-    this.dom.style.borderColor = "#e1e4e8";
+    this.dom.style.borderColor = "var(--p-content-border-color)";
     this.dom.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06)";
   }
 
@@ -461,7 +484,16 @@ class CodeMirrorNodeView implements NodeView {
     ) {
       return false;
     }
-    return true;
+    // 仅拦截 CM 编辑器内部的事件；节点被 PM 选中（NodeSelection）但 CM 未聚焦时，
+    // 放行事件让 PM 处理 Backspace/Delete 等键盘快捷键
+    if (this.cm.hasFocus) return true;
+    if (
+      event.target instanceof Node &&
+      this.cm.dom.contains(event.target as unknown as globalThis.Node)
+    ) {
+      return true;
+    }
+    return false;
   }
 
   ignoreMutation() {
@@ -475,7 +507,7 @@ class CodeMirrorNodeView implements NodeView {
     const lang = node.attrs.language ?? "";
     const langInfo = LANGUAGES.find((l) => l.value === lang) ?? {
       label: lang || "Auto",
-      color: "#a0aec0",
+      color: "var(--p-text-muted-color)",
     };
 
     const header = document.createElement("div");
@@ -484,8 +516,8 @@ class CodeMirrorNodeView implements NodeView {
       alignItems: "center",
       justifyContent: "space-between",
       padding: "6px 12px",
-      background: "#eef0f3",
-      borderBottom: "1px solid #e1e4e8",
+      background: "var(--p-surface-100)",
+      borderBottom: "1px solid var(--p-content-border-color)",
       borderRadius: "12px 12px 0 0",
       userSelect: "none",
     });
@@ -494,10 +526,10 @@ class CodeMirrorNodeView implements NodeView {
     // 语言选择器
     const langSelector = document.createElement("div");
     langSelector.style.cssText =
-      "display:flex;align-items:center;gap:6px;cursor:pointer;padding:4px 8px;border-radius:6px;transition:background 0.15s;font-size:12px;font-weight:500;color:#444d56;";
+      "display:flex;align-items:center;gap:6px;cursor:pointer;padding:4px 8px;border-radius:6px;transition:background 0.15s;font-size:12px;font-weight:500;color:var(--p-text-color);";
     langSelector.addEventListener("mouseenter", () => {
       if (this.pmView.editable)
-        langSelector.style.background = "rgba(0,0,0,0.06)";
+        langSelector.style.background = "var(--p-surface-hover)";
     });
     langSelector.addEventListener("mouseleave", () => {
       langSelector.style.background = "";
@@ -518,7 +550,7 @@ class CodeMirrorNodeView implements NodeView {
     this.langLabel.textContent = langInfo.label;
 
     const chevron = document.createElement("span");
-    chevron.innerHTML = `<svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 4L6 8L10 4" stroke="#6a737d" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    chevron.innerHTML = `<svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 4L6 8L10 4" stroke="var(--p-text-muted-color)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
     chevron.style.cssText =
       "display:flex;align-items:center;transition:transform 0.2s;";
 
@@ -532,15 +564,15 @@ class CodeMirrorNodeView implements NodeView {
     // 复制按钮
     const copyBtn = document.createElement("button");
     copyBtn.style.cssText =
-      "display:inline-flex;align-items:center;gap:4px;padding:4px 8px;border:none;border-radius:6px;background:transparent;cursor:pointer;font-size:11.5px;font-weight:500;color:#6a737d;font-family:inherit;transition:background 0.15s,color 0.15s;";
+      "display:inline-flex;align-items:center;gap:4px;padding:4px 8px;border:none;border-radius:6px;background:transparent;cursor:pointer;font-size:11.5px;font-weight:500;color:var(--p-text-muted-color);font-family:inherit;transition:background 0.15s,color 0.15s;";
     copyBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M11 5V3.5A1.5 1.5 0 009.5 2h-6A1.5 1.5 0 002 3.5v6A1.5 1.5 0 003.5 11H5" stroke="currentColor" stroke-width="1.3"/></svg><span>复制</span>`;
     copyBtn.addEventListener("mouseenter", () => {
-      copyBtn.style.background = "rgba(0,0,0,0.07)";
-      copyBtn.style.color = "#24292e";
+      copyBtn.style.background = "var(--p-surface-hover)";
+      copyBtn.style.color = "var(--p-text-color)";
     });
     copyBtn.addEventListener("mouseleave", () => {
       copyBtn.style.background = "";
-      copyBtn.style.color = "#6a737d";
+      copyBtn.style.color = "var(--p-text-muted-color)";
     });
     copyBtn.addEventListener("click", () => this.copyCode(copyBtn));
 
@@ -574,8 +606,8 @@ class CodeMirrorNodeView implements NodeView {
       top: rect.bottom + 4 + "px",
       left: rect.left + "px",
       zIndex: "9999",
-      background: "#fff",
-      border: "1px solid #e1e4e8",
+      background: "var(--p-content-background)",
+      border: "1px solid var(--p-content-border-color)",
       borderRadius: "8px",
       boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
       minWidth: "180px",
@@ -584,11 +616,11 @@ class CodeMirrorNodeView implements NodeView {
     });
 
     const searchWrap = document.createElement("div");
-    searchWrap.style.cssText = "padding:8px;border-bottom:1px solid #f0f0f0;";
+    searchWrap.style.cssText = "padding:8px;border-bottom:1px solid var(--p-surface-200);";
     const searchInput = document.createElement("input");
     searchInput.placeholder = "搜索语言...";
     searchInput.style.cssText =
-      "width:100%;box-sizing:border-box;padding:4px 8px;border:1px solid #e1e4e8;border-radius:4px;font-size:12px;font-family:inherit;outline:none;background:#f6f8fa;color:#24292e;";
+      "width:100%;box-sizing:border-box;padding:4px 8px;border:1px solid var(--p-content-border-color);border-radius:4px;font-size:12px;font-family:inherit;outline:none;background:var(--p-surface-0);color:var(--p-text-color);";
     searchWrap.appendChild(searchInput);
     dropdown.appendChild(searchWrap);
 
@@ -604,12 +636,12 @@ class CodeMirrorNodeView implements NodeView {
       ).forEach((l) => {
         const item = document.createElement("div");
         const isActive = l.value === this.node.attrs.language;
-        item.style.cssText = `display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:4px;font-size:12.5px;cursor:pointer;transition:background 0.1s;color:${isActive ? "#1a4c9e" : "#24292e"
-          };background:${isActive ? "#ebf1ff" : ""};font-weight:${isActive ? "600" : "400"
+        item.style.cssText = `display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:4px;font-size:12.5px;cursor:pointer;transition:background 0.1s;color:${isActive ? "var(--p-primary-color)" : "var(--p-text-color)"
+          };background:${isActive ? "var(--p-primary-50)" : ""};font-weight:${isActive ? "600" : "400"
           };`;
         item.innerHTML = `<span style="width:8px;height:8px;border-radius:50%;background:${l.color};flex-shrink:0;display:inline-block;"></span>${l.label}`;
         item.addEventListener("mouseenter", () => {
-          if (!isActive) item.style.background = "#f1f3f5";
+          if (!isActive) item.style.background = "var(--p-surface-hover)";
         });
         item.addEventListener("mouseleave", () => {
           if (!isActive) item.style.background = "";
@@ -668,10 +700,10 @@ class CodeMirrorNodeView implements NodeView {
     }
     const span = btn.querySelector("span")!;
     span.textContent = "已复制";
-    btn.style.color = "#2ea043";
+    btn.style.color = "var(--p-green-500)";
     setTimeout(() => {
       span.textContent = "复制";
-      btn.style.color = "#6a737d";
+      btn.style.color = "var(--p-text-muted-color)";
     }, 2000);
   }
 }
@@ -755,7 +787,38 @@ export const CodeBlockLowlight = Node.create({
   },
 
   addKeyboardShortcuts() {
-    return {};
+    return {
+      Backspace: () => {
+        const { state, dispatch } = this.editor.view;
+        const { selection } = state;
+        if (selection instanceof NodeSelection && selection.node.type.name === "customCodeBlock") {
+          dispatch(state.tr.deleteSelection());
+          return true;
+        }
+        const { $from, empty } = selection;
+        if (!empty || $from.parentOffset !== 0) return false;
+        const before = $from.before($from.depth);
+        const nodeBefore = state.doc.resolve(before).nodeBefore;
+        if (nodeBefore?.type.name === "customCodeBlock") {
+          if ($from.parent.content.size === 0) {
+            dispatch(state.tr.delete(before, before + $from.parent.nodeSize));
+          } else {
+            dispatch(state.tr.delete(before - nodeBefore.nodeSize, before));
+          }
+          return true;
+        }
+        return false;
+      },
+      Delete: () => {
+        const { state, dispatch } = this.editor.view;
+        const { selection } = state;
+        if (selection instanceof NodeSelection && selection.node.type.name === "customCodeBlock") {
+          dispatch(state.tr.deleteSelection());
+          return true;
+        }
+        return false;
+      },
+    };
   },
 
   addProseMirrorPlugins() {

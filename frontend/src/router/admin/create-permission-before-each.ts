@@ -103,7 +103,7 @@ function buildLoginLocation(
   return {
     ...loginRoute,
     query: {
-      ...(query ?? {}),
+      ...query,
       redirect: to.fullPath
     }
   }

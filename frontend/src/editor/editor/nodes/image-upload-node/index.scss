@@ -14,7 +14,7 @@
   --tiptap-image-upload-icon-color: var(--white);
 }
 
-.dark {
+.app-dark {
   --tiptap-image-upload-active: var(--tt-brand-color-400);
   --tiptap-image-upload-progress-bg: var(--tt-brand-color-900);
   --tiptap-image-upload-icon-bg: var(--tt-brand-color-400);
@@ -108,7 +108,7 @@
     cursor: pointer;
     position: relative;
     overflow: hidden;
-    transition: all 0.2s ease;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
 
     &:hover {
       border-color: var(--tiptap-image-upload-border-hover);
@@ -116,18 +116,12 @@
 
     &.drag-active {
       border-color: var(--tiptap-image-upload-border-active);
-      background-color: rgba(
-        var(--tiptap-image-upload-active-rgb, 0, 123, 255),
-        0.05
-      );
+      background-color: var(--p-primary-50);
     }
 
     &.drag-over {
       border-color: var(--tiptap-image-upload-border-active);
-      background-color: rgba(
-        var(--tiptap-image-upload-active-rgb, 0, 123, 255),
-        0.1
-      );
+      background-color: var(--p-primary-100);
     }
   }
 
@@ -173,7 +167,7 @@
       position: absolute;
       inset: 0;
       background-color: var(--tiptap-image-upload-progress-bg);
-      transition: all 300ms ease-out;
+      transition: width 300ms ease-out;
     }
 
     .tiptap-image-upload-preview-content {

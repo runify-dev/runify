@@ -233,6 +233,7 @@ import {
   valueModeOptions,
   isVariableExpression
 } from '../type'
+import { validate as validateNodeData } from './validator'
 
 defineProps<{
   WorkflowType?: string

@@ -9,6 +9,7 @@ import Content from '@/components/conversation-plus/content/index.vue'
 const props = defineProps<{ contentList: Array<any> }>()
 const contents = computed(() => {
   return props.contentList
+    .filter((item) => item.type !== 'APPROVAL')
     .map((item, index) => ({ item, index }))
     .sort((a, b) => {
       const idA = a.item.id || ''

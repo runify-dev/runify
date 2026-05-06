@@ -1,6 +1,6 @@
 <template>
-  <div class="flex flex-col">
-    <div class="card overflow-auto layout-content-container">
+  <div class="flex flex-col h-full">
+    <div class="overflow-auto h-full">
       <router-view></router-view>
     </div>
   </div>

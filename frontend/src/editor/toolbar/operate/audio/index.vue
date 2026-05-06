@@ -17,7 +17,7 @@
       <div class="flex w-72 flex-col overflow-hidden rounded-xl">
         <!-- Header -->
         <div class="flex items-center gap-2 border-b border-white/6 px-4 py-2.5">
-          <span class="h-1.5 w-1.5 rounded-full bg-[#00ffc8]" style="box-shadow: 0 0 6px #00ffc8" />
+          <span class="h-1.5 w-1.5 rounded-full bg-cyan-500" style="box-shadow: 0 0 6px var(--p-cyan-500)" />
           <span class="font-mono text-[10px] uppercase tracking-widest text-white/35">
             插入音频
           </span>
@@ -40,8 +40,8 @@
           <!-- ── Upload ── -->
           <TabPanel value="upload" class="p-4">
             <label
-              class="flex cursor-pointer flex-col items-center gap-3 rounded-lg border border-dashed border-white/12 px-4 py-5 transition-all duration-150 hover:border-[#00ffc8]/30 hover:bg-[#00ffc8]/4"
-              :class="dragOver ? '!border-[#00ffc8]/50 !bg-[#00ffc8]/6' : ''"
+              class="flex cursor-pointer flex-col items-center gap-3 rounded-lg border border-dashed border-white/12 px-4 py-5 transition-all duration-150 hover:border-cyan-500/30 hover:bg-cyan-500/4"
+              :class="dragOver ? '!border-cyan-500/50 !bg-cyan-500/6' : ''"
               @dragover.prevent="dragOver = true"
               @dragleave="dragOver = false"
               @drop.prevent="onDrop"
@@ -135,14 +135,14 @@
                     class="w-1 rounded-sm transition-all duration-75"
                     :style="{
                       height: `${h}%`,
-                      background: 'linear-gradient(to top,#00ffc8,rgba(0,255,200,0.35))'
+                      background: 'linear-gradient(to top,var(--p-cyan-500),var(--p-cyan-300))'
                     }"
                   />
                 </div>
                 <!-- Timer -->
                 <span
                   class="font-mono text-xl font-bold tabular-nums text-white/85"
-                  style="text-shadow: 0 0 20px rgba(0, 255, 200, 0.4)"
+                  style="text-shadow: 0 0 20px var(--p-cyan-500)"
                 >
                   {{ formatDuration(recordedSeconds) }}
                 </span>
@@ -150,7 +150,7 @@
                 <div class="flex items-center gap-1.5">
                   <span
                     class="h-2 w-2 animate-pulse rounded-full bg-red-400"
-                    style="box-shadow: 0 0 8px #f87171"
+                    style="box-shadow: 0 0 8px var(--p-red-400)"
                   />
                   <span class="font-mono text-[10px] uppercase tracking-widest text-red-400/70">
                     录音中

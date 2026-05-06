@@ -51,21 +51,27 @@ const props_info = computed(() => {
  * 校验
  */
 const resolver = computed(() => {
-  return zodResolver(
-    props_info.value.resolver
-      ? new Function('z', `return ${props_info.value.resolver}`)(z)
-      : props.formField.required
-        ? z.any().refine(
-            (val) => {
-              console.log(val)
-              return val !== undefined && val !== '' && val !== null
-            },
-            {
-              message: props.formField.label.value + ' ' + '此项必填'
-            }
-          )
-        : z.any()
-  )
+  let schema: any
+  try {
+    if (props_info.value.resolver) {
+      const r = props_info.value.resolver
+      const code = Array.isArray(r) ? r.join('\n') : r
+      schema = new Function('z', `return ${code}`)(z)
+    }
+  } catch {
+    // fallback below
+  }
+  if (!schema) {
+    schema = props.formField.required
+      ? z.any().refine(
+          (val) => val !== undefined && val !== '' && val !== null,
+          {
+            message: (props.formField.label?.value || props.formField.label || props.formField.field) + ' 此项必填'
+          }
+        )
+      : z.any()
+  }
+  return zodResolver(schema)
 })
 
 const validate = () => {

@@ -1,16 +1,16 @@
 <template>
-  <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+  <div class="mb-2 flex flex-wrap items-center justify-between gap-3">
     <div class="min-w-0">
       <div class="flex flex-wrap items-center gap-2">
-        <div class="truncate text-xl font-semibold leading-6 text-slate-900">
+        <div class="truncate text-xl font-semibold leading-6 text-surface-900 dark:text-surface-100">
           {{ roleName || '角色管理' }}
         </div>
 
-        <span class="text-sm font-medium text-slate-400">
+        <span class="text-sm font-medium text-surface-400">
           ({{ inheritedRoleLabel(roleType) }})
         </span>
 
-        <span class="flex items-center gap-1 text-xs text-slate-400">
+        <span class="flex items-center gap-1 text-xs text-surface-400">
           <i class="pi pi-users text-xs" />
           <span>{{ memberTotal }}</span>
         </span>
@@ -25,9 +25,9 @@
     </div>
 
     <Tabs :value="activeTab" class="w-auto" @update:value="emit('update:activeTab', $event as 'permission' | 'member')">
-      <TabList class="bg-slate-100 rounded-lg p-1">
-        <Tab value="permission" :class="activeTab === 'permission' ? 'bg-[#10b981] text-white' : 'text-slate-700 hover:bg-slate-200'">权限配置</Tab>
-        <Tab value="member" :class="activeTab === 'member' ? 'bg-[#10b981] text-white' : 'text-slate-700 hover:bg-slate-200'">成员</Tab>
+      <TabList class="rounded-lg bg-surface-100 p-1 dark:bg-surface-800">
+        <Tab value="permission" :class="activeTab === 'permission' ? 'bg-primary-500 text-primary-contrast-color' : 'text-surface-700 hover:bg-surface-200 dark:text-surface-300 dark:hover:bg-surface-700'">权限配置</Tab>
+        <Tab value="member" :class="activeTab === 'member' ? 'bg-primary-500 text-primary-contrast-color' : 'text-surface-700 hover:bg-surface-200 dark:text-surface-300 dark:hover:bg-surface-700'">成员</Tab>
       </TabList>
     </Tabs>
   </div>

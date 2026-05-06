@@ -1,46 +1,52 @@
 <template>
-  <div>
+  <div class="flex flex-col">
     <DataTable
       v-model:filters="filters"
       :value="conversationList"
       dataKey="id"
       filterDisplay="menu"
       :loading="loading"
+      stripedRows
       @row-click="openMessage"
       @update:filters="filtersData"
+      :row-class="() => 'cursor-pointer'"
+      :pt="{
+        header: { class: 'border-none' }
+      }"
     >
       <template #header>
-        <div class="flex justify-end">
-          <IconField>
-            <InputIcon>
-              <i class="pi pi-search" />
-            </InputIcon>
-            <InputText v-model="filters['name'].value" placeholder="关键字搜索" />
-          </IconField>
+        <div class="flex items-center justify-between gap-3">
+          <span class="text-sm font-medium text-surface-500">对话日志</span>
+          <InputGroup class="max-w-xs">
+            <InputGroupAddon class="!bg-surface-0 !border-surface-200">
+              <i class="pi pi-search text-surface-400 text-sm" />
+            </InputGroupAddon>
+            <InputText
+              v-model="filters['name'].value"
+              placeholder="搜索名称..."
+              class="!border-l-0 !border-surface-200 !bg-surface-0 text-sm"
+            />
+          </InputGroup>
         </div>
       </template>
-      <template #footer>
-        <Paginator
-          :rows="pageSize"
-          :totalRecords="total"
-          :rowsPerPageOptions="[5, 10, 20, 30]"
-          @page="
-            (v: any) => {
-              currentPage = v.page
-              pageSize = v.rows
-              listConversationLog()
-            }
-          "
-        ></Paginator>
+      <template #empty>
+        <div class="flex flex-col items-center justify-center py-10 text-surface-400">
+          <i class="pi pi-inbox text-4xl mb-3 opacity-40" />
+          <p class="text-sm">暂无对话记录</p>
+        </div>
       </template>
-      <template #empty> No customers found. </template>
-      <template #loading> Loading customers data. Please wait. </template>
+      <template #loading>
+        <div class="flex items-center justify-center py-6 text-surface-400">
+          <i class="pi pi-spin pi-spinner mr-2" />
+          <span class="text-sm">加载中，请稍候...</span>
+        </div>
+      </template>
       <Column
         field="name"
         header="名称"
         :showFilterMatchModes="false"
         sortable
-        style="min-width: 10rem"
+        class="min-w-[10rem]"
       >
         <template #body="{ data }">
           {{ data.name }}
@@ -54,11 +60,13 @@
         field="executeType"
         :showFilterMatchModes="false"
         sortable
-        style="min-width: 10rem"
+        class="min-w-[10rem]"
       >
         <template #body="{ data }">
-          <Tag severity="info" value="调试" v-if="data.executeType == 'DEBUG'"></Tag>
-          <Tag severity="success" value="对话" v-else></Tag>
+          <Tag
+            :severity="data.executeType === 'DEBUG' ? 'info' : 'success'"
+            :value="data.executeType === 'DEBUG' ? '调试' : '对话'"
+          />
         </template>
         <template #filter="{ filterModel }">
           <SelectButton
@@ -76,33 +84,44 @@
         header="对话用户类型"
         field="conversationUserType"
         :filterMenuStyle="{ width: '14rem' }"
-        style="min-width: 12rem"
+        class="min-w-[12rem]"
       >
         <template #body="{ data }">
           <Tag
-            severity="info"
-            value="系统用户"
-            v-if="data.conversationUserType == 'ADMIN_USER'"
-          ></Tag>
-          <Tag
-            severity="success"
-            value="匿名用户"
-            v-if="data.conversationUserType == 'ANONYMOUS'"
-          ></Tag>
+            :severity="data.conversationUserType === 'ADMIN_USER' ? 'info' : 'success'"
+            :value="data.conversationUserType === 'ADMIN_USER' ? '系统用户' : '匿名用户'"
+          />
         </template>
       </Column>
       <Column
         field="starNum"
         header="点赞数量"
         :showFilterMatchModes="false"
-        style="min-width: 12rem"
+        class="min-w-[12rem]"
       >
         <template #body="{ data }">
-          {{ data.starNum }}
+          <span class="flex items-center gap-1.5">
+            <i class="pi pi-thumbs-up text-surface-400 text-sm" />
+            {{ data.starNum }}
+          </span>
         </template>
       </Column>
     </DataTable>
-    <ConversationMessageDrawer ref="conversationMessageDrawerRef"></ConversationMessageDrawer>
+    <div class="flex justify-end pt-2">
+      <Paginator
+        :rows="pageSize"
+        :totalRecords="total"
+        :rowsPerPageOptions="[5, 10, 20, 30]"
+        @page="
+          (v: any) => {
+            currentPage = v.page
+            pageSize = v.rows
+            listConversationLog()
+          }
+        "
+      />
+    </div>
+    <ConversationMessageDrawer ref="conversationMessageDrawerRef" />
   </div>
 </template>
 <script setup lang="ts">
@@ -200,4 +219,3 @@ onMounted(() => {
   listConversationLog()
 })
 </script>
-<style scoped></style>

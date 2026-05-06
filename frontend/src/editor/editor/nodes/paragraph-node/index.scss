@@ -8,7 +8,7 @@
   // ai
   --tiptap-ai-insertion-color: var(--tt-brand-color-600);
 
-  .dark & {
+  .app-dark & {
     --tt-collaboration-carets-label: var(--tt-gray-dark-100);
     --link-text-color: var(--tt-brand-color-400);
     --thread-text: var(--tt-gray-dark-900);
@@ -263,7 +263,7 @@
      ===================== */
 .prosemirror-dropcursor-block,
 .prosemirror-dropcursor-inline {
-  background: var(--tt-brand-color-400) !important;
+  background: var(--p-primary-400) !important;
   border-radius: 0.25rem;
   margin-left: -1px;
   margin-right: -1px;

@@ -8,6 +8,7 @@
         <component :is="iconComponent(model.type)"></component>
         <div class="node-label pl-2">{{ model.properties.name }}</div>
       </div>
+      <slot name="header"></slot>
       <DropdownMenu
         :items="[
           {
@@ -48,8 +49,7 @@
 </template>
 <script setup lang="ts">
 import { BaseNodeModel } from '@logicflow/core'
-import { inject, ref, onMounted } from 'vue'
-import { generateAnchor } from '@/utils/common'
+import { inject, ref } from 'vue'
 import NodeContentContainer from '@/workflow/common/NodeContentContainer.vue'
 import DropdownMenu from '@/components/dropdown-menu/index.vue'
 import { iconComponent } from '../icons'
@@ -67,24 +67,6 @@ const reName = (name: string) => {
   model.properties.name = name
   return Promise.resolve({ data: '修改成功' })
 }
-
-const appendNode = (node: any, anchorData: any) => {
-  const nodeModel = model.graphModel.addNode({
-    type: node.type,
-    properties: node.properties,
-    x: anchorData.x + node.properties.width / 2 + 200,
-    y: anchorData.y
-  })
-
-  model.graphModel.addEdge({
-    type: 'run-edge',
-    sourceNodeId: model.id,
-    sourceAnchorId: anchorData.id,
-    targetNodeId: nodeModel.id,
-    targetAnchorId: generateAnchor(nodeModel.id, 'left', 'main', 'success')
-  })
-  return Promise.resolve({ message: '添加成功' })
-}
 defineProps<{
   validate: () => Promise<any>
   submit: () => Promise<any>
@@ -94,15 +76,7 @@ const nodeContentContainerRef = ref<InstanceType<typeof NodeContentContainer>>()
 const openContent = () => {
   nodeContentContainerRef.value?.open(model)
 }
-
-onMounted(() => {
-  model.openNodeMenu = (anchorData: any) => {
-    model.graphModel.eventCenter.emit('runify:node:open-add-node-dialog', {
-      call: appendNode,
-      anchorData: anchorData
-    })
-  }
-})
+defineExpose({ openContent })
 </script>
 <style lang="scss" scope>
 // 定义颜色变量
@@ -148,11 +122,14 @@ $white: #fff;
   .title-left {
     display: flex;
     align-items: center;
-    width: 150px;
+    min-width: 0;
+    flex: 1;
 
     .node-label {
       flex: 1;
-      // 一行显示不下时，省略号
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
   }
 

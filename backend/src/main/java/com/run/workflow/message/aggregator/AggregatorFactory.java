@@ -3,10 +3,8 @@ package com.run.workflow.message.aggregator;
 import com.run.workflow.message.aggregator.impl.FailureAggregator;
 import com.run.workflow.message.aggregator.impl.ReasoningAggregator;
 import com.run.workflow.message.aggregator.impl.TextAggregator;
-import com.run.workflow.message.struct.Content;
-import com.run.workflow.message.struct.FailureContent;
-import com.run.workflow.message.struct.ReasoningContent;
-import com.run.workflow.message.struct.TextContent;
+import com.run.workflow.message.aggregator.impl.ToolCallAggregator;
+import com.run.workflow.message.struct.*;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -25,6 +23,7 @@ public class AggregatorFactory {
         AGGREGATORS.put(TextContent.class, new TextAggregator());
         AGGREGATORS.put(ReasoningContent.class, new ReasoningAggregator());
         AGGREGATORS.put(FailureContent.class, new FailureAggregator());
+        AGGREGATORS.put(ToolCallContent.class, new ToolCallAggregator());
     }
 
     @SuppressWarnings("unchecked")

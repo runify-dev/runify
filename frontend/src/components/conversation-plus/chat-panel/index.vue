@@ -20,7 +20,7 @@
     <div ref="msgBox" class="msgs" @scroll="onScroll">
       <!-- 顶部加载指示 -->
       <div class="top-loader" :class="{ visible: msgLoading && messages.length > 0 }">
-        <span class="typing"><span /><span /><span /></span>
+        <Loading :size="24" />
       </div>
 
       <!-- 欢迎页 -->
@@ -42,7 +42,7 @@
 
       <!-- 初始加载中 -->
       <div v-else-if="messages.length === 0 && msgLoading" class="init-loading">
-        <span class="typing"><span /><span /><span /></span>
+        <Loading :size="36" />
       </div>
 
       <!-- 消息列表 -->
@@ -57,54 +57,125 @@
 
         <!-- 流式回复 loading -->
         <div v-if="streamLoading" class="mrow assistant">
-          <div class="bub assistant typing"><span /><span /><span /></div>
+          <Loading :size="18" />
         </div>
       </template>
     </div>
 
+    <!-- 图片预览 -->
+    <div v-if="previewSrc" class="preview-overlay" @click.self="previewSrc = null">
+      <img :src="previewSrc" class="preview-img" />
+      <button class="preview-close" @click="previewSrc = null">✕</button>
+    </div>
+
+    <!-- 大文本预览 -->
+    <div v-if="previewText" class="preview-overlay" @click.self="previewText = null">
+      <div class="preview-text-box">
+        <button class="preview-close" @click="previewText = null">✕</button>
+        <CodePreview :modelValue="previewText.text" :filename="previewText.filename" class="preview-code" />
+      </div>
+    </div>
+
     <!-- 输入框 -->
     <footer class="ibar">
+      <!-- 审批浮窗 -->
+      <div v-if="pendingApproval" class="approval-bar">
+        <div class="approval-header">
+          <span class="approval-icon">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM8 4v4M8 10.5h.006" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="approval-msg">{{ pendingApproval.content }}</span>
+        </div>
+        <div class="approval-actions">
+          <button class="approval-btn reject" @click="closeApproval('reject')">拒绝</button>
+          <button class="approval-btn approve" @click="closeApproval('approve')">通过</button>
+        </div>
+      </div>
       <div class="iwrap" :class="{ focused }">
-        <textarea
-          ref="ta"
-          v-model="question.content"
-          rows="1"
-          placeholder="发送消息…"
-          :disabled="streamLoading"
-          @focus="focused = true"
-          @blur="focused = false"
-          @keydown.enter.exact.prevent="conversation(question)"
-          @input="resize"
-        />
-        <button
-          class="sbtn"
-          :class="{ on: question.content.trim() && !streamLoading }"
-          :disabled="!question.content.trim() || streamLoading"
-          @click="conversation(question)"
-        >
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-            <path
-              d="M6.5 11V2M2.5 6L6.5 2l4 4"
-              stroke="currentColor"
-              stroke-width="1.7"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-          </svg>
-        </button>
+        <!-- 附件缩略图 -->
+        <div v-if="pastedImages.length || pastedTexts.length || pastedVideos.length || pastedFiles.length" class="athumbs">
+          <div v-for="(img, i) in pastedImages" :key="'img-' + i" class="athumb">
+            <img :src="img.previewUrl" class="athumb-img" @click="previewSrc = img.previewUrl" />
+            <button class="athumb-rm" @click.stop="removeImage(i)">✕</button>
+          </div>
+          <div v-for="(t, i) in pastedTexts" :key="'txt-' + i" class="athumb-text" @click="previewText = t">
+            <svg class="athumb-text-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <path d="M12 2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7l-5-5Z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 2v5h5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M6 10h8M6 13.5h5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+            </svg>
+            <span class="athumb-text-label">Text</span>
+            <button class="athumb-rm" @click.stop="removeText(i)">✕</button>
+          </div>
+          <!-- 视频 -->
+          <div v-for="(v, i) in pastedVideos" :key="'vid-' + i" class="athumb-text">
+            <svg class="athumb-text-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <rect x="2" y="4" width="16" height="12" rx="2" stroke="currentColor" stroke-width="1.2"/>
+              <path d="M8.5 7.5v5l4.5-2.5-4.5-2.5Z" fill="currentColor"/>
+            </svg>
+            <span class="athumb-text-label">Video</span>
+            <button class="athumb-rm" @click.stop="removeVideo(i)">✕</button>
+          </div>
+          <!-- 文件 -->
+          <div v-for="(f, i) in pastedFiles" :key="'file-' + i" class="athumb-text">
+            <svg class="athumb-text-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <path d="M12 2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7l-5-5Z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 2v5h5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M10 11v4M8 13l2 2 2-2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span class="athumb-text-label">{{ f.file.name.length > 8 ? f.file.name.slice(0, 8) + '…' : f.file.name }}</span>
+            <button class="athumb-rm" @click.stop="removeFile(i)">✕</button>
+          </div>
+        </div>
+
+        <div class="irow">
+          <MdEditor
+            ref="editorRef"
+            v-model="question.content"
+            :disabled="streamLoading || !!pendingApproval"
+            placeholder="发送消息…"
+            @submit="conversation(question)"
+            @paste-images="handlePasteImages"
+            @paste-videos="handlePasteVideos"
+            @paste-files="handlePasteFiles"
+            @paste-text="handlePasteText"
+            @focus="focused = true"
+            @blur="focused = false"
+          />
+          <button
+            class="sbtn"
+            :class="{ on: hasContent && !streamLoading }"
+            :disabled="!hasContent || streamLoading"
+            @click="conversation(question)"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path
+                d="M8 14V2M3 7l5-5 5 5"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+        </div>
       </div>
     </footer>
   </main>
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, reactive, inject, onMounted, watch } from 'vue'
+import { ref, computed, nextTick, reactive, onMounted, onUnmounted, watch } from 'vue'
 import { useChatStore } from '../common/use-chat-store/index'
-import { ConversationStream } from '@/api/common'
 import { aggregators, Scroll } from '@/components/conversation-plus/index'
 import ContentList from '@/components/conversation-plus/content-list/index.vue'
-
-const conversationAPI = inject('conversationAPI') as any
+import Loading from '@/components/conversation-plus/loading/index.vue'
+import MdEditor from '@/components/conversation-plus/editor/index.vue'
+import CodePreview from '@/components/conversation-plus/code-preview/index.vue'
+import { randomId } from '@/utils/common'
+import FileAPI from '@/api/file'
 
 const props = defineProps<{ type: 'DEBUG' | 'CONVERSATION' }>()
 const emit = defineEmits<{ toggle: []; chanage: []; close: [] }>()
@@ -114,10 +185,15 @@ const {
   current,
   msgLoading,
   hasMoreMsg,
-  loadMessages,
   loadMoreMessages,
   pushMessage,
   newChat,
+  chat,
+
+  streamLoading,
+  startStream,
+  cancelStream,
+  switchConversation,
 
   statusStream,
   resumeStream,
@@ -126,10 +202,200 @@ const {
 } = useChatStore(props.type)
 
 const focused = ref(false)
-const streamLoading = ref(false)
 const msgBox = ref<HTMLElement | null>(null)
-const ta = ref<HTMLTextAreaElement | null>(null)
+const editorRef = ref<InstanceType<typeof MdEditor> | null>(null)
 const question = ref<any>({ content: '' })
+const pendingApproval = computed(() => {
+  const lastMsg = messages.value[messages.value.length - 1]
+  if (!lastMsg || !Array.isArray(lastMsg.content)) return null
+  return lastMsg.content.find(
+    (item: any) => item.type === 'APPROVAL'
+  ) || null
+})
+const closeApproval = (action: 'approve' | 'reject') => {
+  const approval = pendingApproval.value
+  if (!approval) return
+
+  // push 用户审批消息，历史记录展示
+  pushMessage({
+    role: 'USER',
+    content: [
+      {
+        type: 'APPROVAL_SUBMIT',
+        content: approval.content,
+        result: action
+      }
+    ],
+    id: '',
+    conversationId: '',
+    applicationId: '',
+    createTime: '',
+    updateTime: ''
+  })
+
+  const cid = current.value?.id
+  if (!cid) return
+
+  clearStreamIndex()
+
+  const answerMessage = createAnswerMessage()
+  pushMessage(answerMessage as any)
+
+  startStream({
+    cid,
+    request: () =>
+      chat({
+        content: {
+          type: 'APPROVAL_SUBMIT',
+          content: approval.content,
+          result: action,
+          position: approval.position
+        },
+        workflowRunId: approval.workflowRunId
+      }),
+    onStream: getOnStream(answerMessage),
+    onFinish: () => {
+      clearStreamIndex()
+    }
+  })
+}
+
+// ─── 粘贴图片附件 ──────────────────────────────────────────────
+interface PastedImage {
+  file: File
+  previewUrl: string
+}
+const pastedImages = ref<PastedImage[]>([])
+
+const handlePasteImages = (files: File[]) => {
+  for (const file of files) {
+    pastedImages.value.push({ file, previewUrl: URL.createObjectURL(file) })
+  }
+}
+
+const removeImage = (index: number) => {
+  URL.revokeObjectURL(pastedImages.value[index].previewUrl)
+  pastedImages.value.splice(index, 1)
+}
+
+const clearImages = () => {
+  pastedImages.value.forEach((img) => URL.revokeObjectURL(img.previewUrl))
+  pastedImages.value = []
+}
+
+// ─── 粘贴大文本附件 ─────────────────────────────────────────────
+interface PastedText {
+  text: string
+  filename?: string
+}
+const pastedTexts = ref<PastedText[]>([])
+
+const LONG_TEXT_THRESHOLD = 300
+
+const handlePasteText = (text: string, filename?: string) => {
+  pastedTexts.value.push({ text, filename })
+}
+
+const removeText = (index: number) => {
+  pastedTexts.value.splice(index, 1)
+}
+
+const clearTexts = () => {
+  pastedTexts.value = []
+}
+
+// ─── 粘贴视频附件 ─────────────────────────────────────────────
+interface PastedFile {
+  file: File
+}
+const pastedVideos = ref<PastedFile[]>([])
+
+const handlePasteVideos = (files: File[]) => {
+  for (const file of files) {
+    pastedVideos.value.push({ file })
+  }
+}
+
+const removeVideo = (index: number) => {
+  pastedVideos.value.splice(index, 1)
+}
+
+const clearVideos = () => {
+  pastedVideos.value = []
+}
+
+// ─── 粘贴文件附件 ─────────────────────────────────────────────
+const pastedFiles = ref<PastedFile[]>([])
+
+const TEXT_MIME_PREFIXES = ['text/']
+const TEXT_MIME_TYPES = [
+  'application/json',
+  'application/xml',
+  'application/javascript',
+  'application/typescript',
+  'application/x-yaml',
+  'application/yaml',
+  'application/x-sh',
+  'application/graphql'
+]
+
+const isTextFile = (file: File) => {
+  if (TEXT_MIME_PREFIXES.some((p) => file.type.startsWith(p))) return true
+  if (TEXT_MIME_TYPES.includes(file.type)) return true
+  // 无 MIME 类型时按扩展名判断
+  if (!file.type) {
+    const ext = file.name.split('.').pop()?.toLowerCase() || ''
+    return ['txt', 'md', 'json', 'csv', 'xml', 'yaml', 'yml', 'ts', 'js', 'jsx', 'tsx', 'html', 'css', 'sh', 'sql', 'graphql', 'toml', 'ini', 'log', 'py', 'rb', 'go', 'rs', 'java', 'c', 'cpp', 'h'].includes(ext)
+  }
+  return false
+}
+
+const handlePasteFiles = (files: File[]) => {
+  for (const file of files) {
+    if (isTextFile(file)) {
+      const fname = file.name
+      const reader = new FileReader()
+      reader.onload = () => {
+        const text = typeof reader.result === 'string' ? reader.result : ''
+        if (text.length > LONG_TEXT_THRESHOLD) {
+          handlePasteText(text, fname)
+        } else {
+          pastedTexts.value.push({ text, filename: fname })
+        }
+      }
+      reader.readAsText(file)
+    } else {
+      pastedFiles.value.push({ file })
+    }
+  }
+}
+
+const removeFile = (index: number) => {
+  pastedFiles.value.splice(index, 1)
+}
+
+const clearFiles = () => {
+  pastedFiles.value = []
+}
+
+// ─── 是否有内容可发送 ──────────────────────────────────────────
+const hasContent = computed(() => {
+  return (
+    question.value.content.trim() ||
+    pastedImages.value.length ||
+    pastedTexts.value.length ||
+    pastedVideos.value.length ||
+    pastedFiles.value.length
+  )
+})
+
+// ─── 图片预览 ──────────────────────────────────────────────────
+const previewSrc = ref<string | null>(null)
+const previewText = ref<PastedText | null>(null)
+
+let scroll: any
+let newChatInProgress = false
+let domObserver: MutationObserver | null = null
 
 const prompts = [
   { icon: '✦', text: '帮我写一篇关于 AI 的技术文章' },
@@ -138,24 +404,11 @@ const prompts = [
   { icon: '◇', text: '推荐健康的晚餐食谱' }
 ]
 
-let scroll: any
-
-/**
- * 用来防止快速切换会话时，旧的 stream / status / resume 回调污染当前会话。
- */
-let streamToken = 0
-
-// ─── 滚动到底部 ───────────────────────────────────────────────────
-const scrollToBottom = async () => {
-  await nextTick()
-  scroll?.scrollBottom()
-}
-
 // ─── 创建 assistant 占位消息 ─────────────────────────────────────
 const createAnswerMessage = () => {
   return reactive({
     type: 'LOADING',
-    role: 'ASSISTANT' as 'ASSISTANT',
+    role: 'ASSISTANT' as const,
     content: [],
     id: '',
     conversationId: '',
@@ -180,11 +433,6 @@ const getOrCreateLastAnswerMessage = () => {
 
 // ─── 流式回复聚合 ─────────────────────────────────────────────────
 const getOnStream = (message: any) => {
-  /**
-   * 初始化已有内容索引。
-   * 这样 resume 的时候，如果最后一条 assistant 已经有 content，
-   * 新 chunk 会尽量聚合到原来的 content 上，而不是完全从空 indexList 开始。
-   */
   const indexList: string[] = Array.isArray(message.content)
     ? message.content.map((content: any) => content.id + '_' + content.type)
     : []
@@ -207,59 +455,14 @@ const getOnStream = (message: any) => {
         indexList.push(id)
       }
 
-      if (message.content.length <= i) {
-        message.content[i] = content
-      } else {
+      if (i < message.content.length) {
         message.content[i] = aggregators[content.type](message.content[i], content)
+      } else {
+        message.content[i] = content
       }
     })
 
-    scrollToBottom()
     emit('chanage')
-  }
-}
-
-// ─── 恢复当前会话未完成的流 ───────────────────────────────────────
-const resumeCurrentStream = async (token: number) => {
-  if (!current.value?.id) return
-  if (streamLoading.value) return
-
-  try {
-    const res = await statusStream()
-
-    if (token !== streamToken) return
-
-    if (res?.code !== 200 || res?.data?.status !== true) {
-      return
-    }
-
-    streamLoading.value = true
-
-    const answerMessage = getOrCreateLastAnswerMessage()
-
-    await scrollToBottom()
-
-    new ConversationStream(
-      resumeStream(),
-      getOnStream(answerMessage),
-      () => {
-        if (token !== streamToken) return
-
-        streamLoading.value = false
-        clearStreamIndex()
-        scrollToBottom()
-      },
-      () => {
-        if (token !== streamToken) return
-
-        streamLoading.value = false
-      }
-    ).stream()
-  } catch (e) {
-    if (token !== streamToken) return
-
-    streamLoading.value = false
-    console.error('resume stream failed', e)
   }
 }
 
@@ -268,32 +471,15 @@ watch(
   () => current.value?.id,
   async (id) => {
     if (!id) return
+    if (newChatInProgress) return
 
-    /**
-     * 每次切换会话都让旧的 stream 回调失效。
-     */
-    const token = ++streamToken
-
-    /**
-     * 不要因为 streamLoading 直接 return。
-     * 否则正在流式输出时，点击其他会话会加载不了消息。
-     */
-    streamLoading.value = false
-
-    await loadMessages(id)
-
-    if (token !== streamToken) return
-
-    setTimeout(async () => {
-      if (token !== streamToken) return
-
-      await scrollToBottom()
-
-      /**
-       * 每次切换会话后都检查是否有未完成流。
-       */
-      await resumeCurrentStream(token)
-    }, 100)
+    await switchConversation({
+      cid: id,
+      getOnStream: () => getOnStream(getOrCreateLastAnswerMessage()),
+      onFinish: () => {
+        clearStreamIndex()
+      }
+    })
   },
   { immediate: true }
 )
@@ -314,34 +500,79 @@ const onScroll = async () => {
 
 // ─── 发起新对话 ───────────────────────────────────────────────────
 const conversation = async (q: any) => {
-  if (!q.content.trim()) return
+  if (!hasContent.value) return
   if (streamLoading.value) return
 
-  /**
-   * 新问题开始，也生成新 token。
-   * 旧的 resume / stream 回调不能再影响当前消息。
-   */
-  const token = ++streamToken
-
-  streamLoading.value = true
-
   if (!current.value) {
-    await newChat(q.content)
+    newChatInProgress = true
+    const chatData = await newChat(q.content)
+    newChatInProgress = false
     await nextTick()
   }
 
-  if (token !== streamToken) return
-
-  if (!current.value?.id) {
-    streamLoading.value = false
-    return
-  }
+  const cid = current.value?.id
+  if (!cid) return
 
   clearStreamIndex()
 
+  // 通用文件上传，返回 { url, name }
+  interface FileEntry { url: string; name: string }
+  const uploadAll = (items: PastedFile[]): Promise<FileEntry[]> =>
+    Promise.all(
+      items.map(({ file }) => {
+        const fd = new FormData()
+        fd.append('file', file)
+        return FileAPI.uploadFile(fd).then((ok) => ({
+          url: `./api/storage/file/${ok.data.id}`,
+          name: file.name
+        }))
+      })
+    )
+
+  // 上传图片
+  let imageEntries: FileEntry[] = []
+  if (pastedImages.value.length) {
+    imageEntries = await uploadAll(pastedImages.value)
+    clearImages()
+  }
+
+  // 上传视频
+  let videoEntries: FileEntry[] = []
+  if (pastedVideos.value.length) {
+    videoEntries = await uploadAll(pastedVideos.value)
+    clearVideos()
+  }
+
+  // 上传文件
+  let fileEntries: FileEntry[] = []
+  if (pastedFiles.value.length) {
+    fileEntries = await uploadAll(pastedFiles.value)
+    clearFiles()
+  }
+
+  // 大文本
+  let texts: string[] = []
+  if (pastedTexts.value.length) {
+    texts = pastedTexts.value.map((t) => t.text)
+    clearTexts()
+  }
+
+  const contentObj: any = { type: 'QUESTION', content: q.content }
+  if (imageEntries.length) contentObj.images = imageEntries
+  if (videoEntries.length) contentObj.videos = videoEntries
+  if (fileEntries.length) contentObj.files = fileEntries
+  if (texts.length) contentObj.texts = texts
+
+  const payload: any = { content: contentObj, workflowRunId: randomId() }
+
+  const contentItem: any = { ...q, type: 'QUESTION' }
+  if (imageEntries.length) contentItem.images = imageEntries
+  if (videoEntries.length) contentItem.videos = videoEntries
+  if (fileEntries.length) contentItem.files = fileEntries
+  if (texts.length) contentItem.texts = texts
   pushMessage({
     role: 'USER',
-    content: [{ ...q, type: 'QUESTION' }],
+    content: [contentItem],
     id: '',
     conversationId: '',
     applicationId: '',
@@ -352,40 +583,35 @@ const conversation = async (q: any) => {
   const answerMessage = createAnswerMessage()
   pushMessage(answerMessage as any)
 
-  await scrollToBottom()
-
-  new ConversationStream(
-    conversationAPI({ ...q }),
-    getOnStream(answerMessage),
-    () => {
-      if (token !== streamToken) return
-
-      streamLoading.value = false
+  startStream({
+    cid,
+    request: () => chat(payload),
+    onStream: getOnStream(answerMessage),
+    onFinish: () => {
       clearStreamIndex()
-      scrollToBottom()
-    },
-    () => {
-      if (token !== streamToken) return
-
-      streamLoading.value = false
     }
-  ).stream()
+  })
 
   question.value.content = ''
-  resize()
-}
-
-// ─── textarea 自适应高度 ──────────────────────────────────────────
-const resize = () => {
-  const el = ta.value
-  if (!el) return
-
-  el.style.height = 'auto'
-  el.style.height = Math.min(el.scrollHeight, 120) + 'px'
+  editorRef.value?.clear()
 }
 
 onMounted(() => {
   scroll = new Scroll(msgBox.value)
+
+  // 监听 DOM 子节点变化，自动滚动到底部
+  domObserver = new MutationObserver(() => {
+    requestAnimationFrame(() => {
+      if (scroll?.bottomSuction && msgBox.value) {
+        msgBox.value.scrollTop = msgBox.value.scrollHeight
+      }
+    })
+  })
+  domObserver.observe(msgBox.value!, { childList: true, subtree: true })
+})
+
+onUnmounted(() => {
+  domObserver?.disconnect()
 })
 </script>
 <style scoped>
@@ -526,10 +752,14 @@ onMounted(() => {
   align-items: flex-end;
   gap: 6px;
   margin-bottom: 10px;
-  max-width: 500px;
+  max-width: 680px;
   margin-left: auto;
   margin-right: auto;
   width: 100%;
+}
+
+.mrow.assistant {
+  align-items: flex-start;
 }
 
 .mrow.user {
@@ -554,102 +784,201 @@ onMounted(() => {
 }
 
 .bub p {
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.6;
   white-space: pre-wrap;
   margin: 0 0 3px;
-}
-
-.typing {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 10px 13px;
-}
-
-.typing span {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: #c0c0c0;
-  animation: dot 1.2s infinite ease-in-out;
-}
-
-.typing span:nth-child(2) {
-  animation-delay: 0.18s;
-}
-
-.typing span:nth-child(3) {
-  animation-delay: 0.36s;
-}
-
-@keyframes dot {
-  0%,
-  80%,
-  100% {
-    transform: translateY(0);
-    opacity: 0.3;
-  }
-
-  40% {
-    transform: translateY(-4px);
-    opacity: 1;
-  }
+  color: var(--t2);
 }
 
 .ibar {
   flex-shrink: 0;
-  padding: 8px 10px;
+  padding: 12px 16px 16px;
   background: var(--bg);
   display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* 图片附件缩略图 */
+.athumbs {
+  display: flex;
+  gap: 8px;
+  padding: 8px 8px 0;
+  flex-wrap: wrap;
+}
+
+.athumb {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--bd);
+  background: var(--bg2);
+  flex-shrink: 0;
+}
+
+.athumb-text {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border-radius: 8px;
+  border: 1px solid var(--bd);
+  background: linear-gradient(135deg, var(--bg) 0%, var(--hv) 100%);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
+  gap: 2px;
+  box-sizing: border-box;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.athumb-text:hover {
+  border-color: var(--t3);
+}
+
+.athumb-text-icon {
+  color: var(--t2);
+  flex-shrink: 0;
+}
+
+.athumb-text-label {
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--t3);
+  letter-spacing: 0.3px;
+}
+
+.athumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  cursor: pointer;
+  display: block;
+}
+
+.athumb-rm {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 9px;
+  line-height: 16px;
+  text-align: center;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.athumb:hover .athumb-rm,
+.athumb-text:hover .athumb-rm {
+  opacity: 1;
+}
+
+/* 图片预览 */
+.preview-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+}
+
+.preview-img {
+  max-width: 85%;
+  max-height: 85%;
+  border-radius: 8px;
+  object-fit: contain;
+  cursor: default;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.preview-text-box {
+  position: relative;
+  width: min(70vw, 800px);
+  height: min(75vh, 600px);
+  background: var(--bg);
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: default;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+}
+
+.preview-code {
+  flex: 1;
+  min-height: 0;
+}
+
+.preview-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.preview-close:hover {
+  background: rgba(0, 0, 0, 0.7);
 }
 
 .iwrap {
   width: 100%;
   max-width: 680px;
   display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  border: 1px solid var(--bd);
+  border-radius: 16px;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.irow {
+  display: flex;
   align-items: flex-end;
-  gap: 6px;
-  background: var(--ab);
-  border: 1.5px solid var(--bd);
-  border-radius: 11px;
-  padding: 6px 6px 6px 11px;
-  transition: border-color 0.15s;
+  gap: 8px;
+  padding: 8px 8px 8px 14px;
 }
 
 .iwrap.focused {
-  border-color: #c0c0c0;
-}
-
-textarea {
-  flex: 1;
-  background: transparent;
-  border: none;
-  outline: none;
-  resize: none;
-  font-size: 13px;
-  font-family: inherit;
-  color: var(--t1);
-  line-height: 1.5;
-  max-height: 120px;
-  overflow-y: auto;
-  padding: 0;
-  margin: 0;
-}
-
-textarea::placeholder {
-  color: var(--t3);
-}
-
-textarea:disabled {
-  opacity: 0.5;
+  border-color: var(--focus-border);
+  box-shadow: 0 0 0 2px var(--hover-overlay);
 }
 
 .sbtn {
-  width: 30px;
-  height: 30px;
-  border-radius: 7px;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
   border: none;
   background: var(--bd);
   color: var(--t3);
@@ -659,8 +988,8 @@ textarea:disabled {
   justify-content: center;
   flex-shrink: 0;
   transition:
-    background 0.15s,
-    color 0.15s,
+    background 0.2s,
+    color 0.2s,
     transform 0.1s;
 }
 
@@ -670,7 +999,85 @@ textarea:disabled {
   cursor: pointer;
 }
 
+.sbtn.on:hover {
+  opacity: 0.85;
+}
+
 .sbtn.on:active {
   transform: scale(0.92);
+}
+
+/* ── 审批浮窗 ──────────────────────────────────────────────────────── */
+.approval-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  background: var(--bg);
+  border: 1px solid var(--bd);
+  border-radius: 10px;
+  width: 100%;
+  max-width: 680px;
+}
+
+.approval-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.approval-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--hv);
+  color: var(--t2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.approval-msg {
+  flex: 1;
+  font-size: 13px;
+  color: var(--t1);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.approval-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.approval-btn {
+  padding: 5px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--bd);
+  background: var(--bg);
+  color: var(--t1);
+  font-size: 12.5px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.approval-btn:hover {
+  background: var(--hv);
+}
+
+.approval-btn.approve {
+  background: var(--t1);
+  color: var(--bg);
+  border-color: var(--t1);
+}
+
+.approval-btn.approve:hover {
+  opacity: 0.85;
 }
 </style>

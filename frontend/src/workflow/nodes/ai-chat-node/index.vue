@@ -1,21 +1,22 @@
 <template>
-  <SimpleNodeContainer :model="model" :submit="submit" :validate="validate">
+  <SimpleNodeContainer ref="containerRef" :model="model" :submit="submit" :validate="validate">
     <Content ref="contentRef" :WorkflowType="WorkflowType" :details="details"></Content>
   </SimpleNodeContainer>
 </template>
 <script setup lang="ts">
-import MdInput from '@/components/md/MDInput.vue'
 import SimpleNodeContainer from '@/workflow/common/SimpleNodeContainer.vue'
 import type { BaseNodeModel } from '@logicflow/core'
-import type { FormInstance } from 'element-plus'
-import { TreeCommonAPI } from '@/api/tree'
 import Content from './content/index.vue'
+import { init } from './content'
+import { inject, ref, onMounted } from 'vue'
+import { useNodeValidator } from '@/workflow/common/useNodeValidator'
+
 const WorkflowType = inject('WorkflowType')
 const details = (inject('getDetails') as any)()
-import { inject, onMounted, ref } from 'vue'
 const getModel = inject('getModel') as () => BaseNodeModel
 const model = getModel()
 
+const containerRef = ref<InstanceType<typeof SimpleNodeContainer>>()
 const contentRef = ref()
 const validate = () => {
   return contentRef.value ? contentRef.value.validate() : Promise.resolve(true)
@@ -23,6 +24,12 @@ const validate = () => {
 const submit = () => {
   return contentRef.value ? contentRef.value.submit() : Promise.resolve(true)
 }
+
+useNodeValidator(model, containerRef)
+
+onMounted(() => {
+  init({ model, workflowType: WorkflowType as string, details })
+})
 </script>
 <style lang="scss" scoped>
 :deep(.el-form-item__content) {

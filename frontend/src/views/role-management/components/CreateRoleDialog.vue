@@ -9,7 +9,7 @@
   >
     <div class="space-y-4">
       <div>
-        <label class="mb-1.5 block text-sm font-medium text-slate-700">角色名称</label>
+        <label class="mb-1.5 block text-sm font-medium text-surface-700 dark:text-surface-300">角色名称</label>
         <InputText
           v-model.trim="nameModel"
           class="w-full"
@@ -19,7 +19,7 @@
       </div>
 
       <div>
-        <label class="mb-1.5 block text-sm font-medium text-slate-700">继承角色</label>
+        <label class="mb-1.5 block text-sm font-medium text-surface-700 dark:text-surface-300">继承角色</label>
         <Select
           v-model="typeModel"
           :options="inheritRoleOptions"

@@ -11,10 +11,10 @@ public class StandardLimitRenderer implements LimitRenderer {
         }
         StringBuilder sb = new StringBuilder(sql);
         if (limit != null) {
-            sb.append(" limit ").append(ctx.bind("_limit", limit));
+            sb.append(" limit ").append(ctx.bind("limit", limit));
         }
         if (offset != null) {
-            sb.append(" offset ").append(ctx.bind("_offset", offset));
+            sb.append(" offset ").append(ctx.bind("offset", offset));
         }
         return sb.toString();
     }

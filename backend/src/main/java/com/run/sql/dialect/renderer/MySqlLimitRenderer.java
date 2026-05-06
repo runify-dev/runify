@@ -12,13 +12,13 @@ public class MySqlLimitRenderer implements LimitRenderer {
         StringBuilder sb = new StringBuilder(sql);
         if (limit != null && offset != null) {
             sb.append(" limit ")
-                    .append(ctx.bind("_offset", offset))
+                    .append(ctx.bind("offset", offset))
                     .append(", ")
-                    .append(ctx.bind("_limit", limit));
+                    .append(ctx.bind("limit", limit));
         } else if (limit != null) {
-            sb.append(" limit ").append(ctx.bind("_limit", limit));
+            sb.append(" limit ").append(ctx.bind("limit", limit));
         } else {
-            sb.append(" limit ").append(ctx.bind("_offset", offset)).append(", 18446744073709551615");
+            sb.append(" limit ").append(ctx.bind("offset", offset)).append(", 18446744073709551615");
         }
         return sb.toString();
     }

@@ -23,9 +23,14 @@ import {
   javaScriptNode,
   databaseSearchNode,
   jsonResponseNode,
-  judgeNode
+  judgeNode,
+  loopNode,
+  terminalNode,
+  variableAssignNode,
+  contextPushNode,
+  approvalNode
 } from '@/workflow/common/data'
-const baseNodes = [aiChatNode, javaScriptNode, databaseSearchNode, jsonResponseNode, judgeNode]
+const baseNodes = [aiChatNode, javaScriptNode, databaseSearchNode, jsonResponseNode, judgeNode, loopNode, terminalNode, variableAssignNode, contextPushNode, approvalNode]
 const emit = defineEmits(['selected'])
 </script>
 <style lang="scss"></style>

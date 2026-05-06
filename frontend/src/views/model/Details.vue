@@ -1,9 +1,11 @@
 <template>
   <div class="flex flex-col">
-    <div class="card overflow-auto layout-content-container">
-      <Button class="float-right" label="保存" @click="edit" />
+    <div class="overflow-auto">
+      <div class="flex justify-end px-10 pt-4">
+        <Button label="保存" @click="edit" />
+      </div>
       <DynamicsForm
-        class="pr-10 pl-10 pb-10"
+        class="px-10 pb-10"
         v-loading="loading"
         ref="dynamicsFormRef"
         :otherParams="{}"
@@ -18,7 +20,7 @@
           >
             <label>供应商</label>
             <RadioCard
-              style="--el-card-padding: 5px"
+              class="provider-radio"
               body-class="p-0"
               :model-value="$field.value"
               @update:model-value="(v) => $field.onChange({ value: v })"
@@ -26,8 +28,8 @@
               value-field="provider"
             >
               <template v-slot="item">
-                <div class="w-full h-full flex items-center justify-center content-center">
-                  <div :innerHTML="item.icon" style="height: 20px; width: 20px" class="mr-4" />
+                <div class="w-full h-full flex items-center justify-center">
+                  <div :innerHTML="item.icon" class="h-5 w-5 mr-4" />
                   {{ item.name }}
                 </div>
               </template>
@@ -42,7 +44,7 @@
           >
             <label>模型类型</label>
             <RadioCard
-              style="--el-card-padding: 5px"
+              class="model-type-radio"
               body-class="p-0"
               :model-value="$field.value"
               @update:model-value="(v) => $field.onChange({ value: v })"
@@ -50,8 +52,8 @@
               value-field="code"
             >
               <template v-slot="item">
-                <div class="w-full h-full flex items-center justify-center content-center">
-                  <div :innerHTML="item.icon" style="height: 20px; width: 20px" class="mr-4" />
+                <div class="w-full h-full flex items-center justify-center">
+                  <div :innerHTML="item.icon" class="h-5 w-5 mr-4" />
                   {{ item.message }}
                 </div>
               </template>
@@ -279,4 +281,9 @@ onMounted(() => {
   get()
 })
 </script>
-<style lang="scss" scoped></style>
+<style lang="scss" scoped>
+:deep(.provider-radio .p-card),
+:deep(.model-type-radio .p-card) {
+  padding: 5px;
+}
+</style>

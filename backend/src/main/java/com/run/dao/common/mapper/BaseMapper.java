@@ -118,6 +118,22 @@ public class BaseMapper<T extends BaseEntity<T>> {
                 .set(updateMap).render().sql();
     }
 
+    private RenderedSql generateUpdateTemplate(T obj) {
+        Map<String, Object> map = getConvert().toMap(obj);
+        Map<Field<?>, Param<?>> updateMap = new HashMap<>();
+        for (Field<?> field : fields) {
+            if (!field.nameOrExpression().equals(primaryField.nameOrExpression())) {
+                if (map.get(field.nameOrExpression()) != null) {
+                    updateMap.put(field, param(field.nameOrExpression()));
+                }
+            }
+        }
+        return dslContext.update(table)
+                .set(updateMap)
+                .where(primaryField.eq(param(primaryField.nameOrExpression()))).render();
+
+    }
+
     public Class<T> currentEntity() {
         ParameterizedType genericSuperclass = (ParameterizedType) getClass().getGenericSuperclass();
         return (Class<T>) genericSuperclass.getActualTypeArguments()[0];
@@ -150,9 +166,7 @@ public class BaseMapper<T extends BaseEntity<T>> {
      * @return 异步响应
      */
     public Future<SqlResult<Void>> save(T t) {
-        InsertQuery insertQuery = dslContext.insertInto(t);
-        log.info("sql:{}\n{}", insertQuery, insertQuery.getParams());
-        return SqlTemplate.forUpdate(client, insertQuery.getSQL()).execute(insertQuery.getParams());
+        return generateInsertSqlTemplate().execute(t);
     }
 
     /**
@@ -394,9 +408,8 @@ public class BaseMapper<T extends BaseEntity<T>> {
      * @return SqlResult
      */
     public Future<SqlResult<Void>> update(T t) {
-        RenderedSql render = dslContext.update(table).set(t).render();
-        String sql = render.sql();
-        return SqlTemplate.forUpdate(client, sql)
+        RenderedSql renderedSql = generateUpdateTemplate(t);
+        return SqlTemplate.forUpdate(client, renderedSql.sql())
                 .mapFrom(TupleMapper.mapper(this.getConvert()::toMap))
                 .execute(t);
     }

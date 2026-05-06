@@ -6,7 +6,7 @@
   --tt-checklist-check-icon-color: var(--white);
   --tt-checklist-text-active: var(--tt-gray-light-a-500);
 
-  .dark & {
+  .app-dark & {
     --tt-checklist-bg-color: var(--tt-gray-dark-a-100);
     --tt-checklist-bg-active-color: var(--tt-gray-dark-a-900);
     --tt-checklist-border-color: var(--tt-gray-dark-a-200);

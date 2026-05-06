@@ -21,15 +21,19 @@ public class UIInitialization {
     private final Router router;
     private final Vertx vertx;
     private final Router mainRouter;
+    private final Router conversationUIRoute;
     List<String> adminResources = ResourceLoader.getAdminResources();
+    List<String> conversationResources = ResourceLoader.getConversationResources();
 
     @Inject
     public UIInitialization(@Named("mainRoute") Router mainRouter,
                             @Named("uiRoute") Router uiRoute,
+                            @Named("conversationUIRoute") Router conversationUIRoute,
                             Vertx vertx) {
         this.router = uiRoute;
         this.vertx = vertx;
         this.mainRouter = mainRouter;
+        this.conversationUIRoute = conversationUIRoute;
     }
 
     public void init() {
@@ -51,5 +55,21 @@ public class UIInitialization {
 
         });
 
+        StaticHandlerImpl conversationStaticHandlerImpl = new StaticHandlerImpl(FileSystemAccess.RELATIVE, "conversation/");
+        conversationUIRoute.get().handler(conversationStaticHandlerImpl);
+        conversationUIRoute.route().last().handler(context -> {
+            String path = context.request().path();
+            Optional<String> first = conversationResources.stream().filter(path::endsWith).findFirst();
+            if (first.isPresent()) {
+                context.redirect("/conversation/" + first.get());
+            } else {
+                vertx.fileSystem().readFile("conversation/index.html")
+                        .onSuccess(result -> {
+                            context.response()
+                                    .putHeader("Content-Type", "text/html")
+                                    .end(result);
+                        }).onFailure(context::fail);
+            }
+        });
     }
 }

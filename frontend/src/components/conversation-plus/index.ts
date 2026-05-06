@@ -43,6 +43,16 @@ class Scroll {
       this.isProgrammaticScroll = true
     }
   }
+  forceBottom() {
+    this.bottomSuction = true
+    this.isProgrammaticScroll = true
+    this.element.scrollTop = this.element.scrollHeight
+    // 子组件渲染可能比 nextTick 晚，用 rAF 兜底
+    requestAnimationFrame(() => {
+      this.element.scrollTop = this.element.scrollHeight
+      this.isProgrammaticScroll = true
+    })
+  }
 }
 export { Scroll }
 const TEXT = (prev: any = {}, chunk: any) => {
@@ -73,8 +83,31 @@ const FAILURE = (prev: any, chunk: any) => {
     extra: chunk.extra ?? prev.extra
   }
 }
+const TOOL = (prev: any, chunk: any) => {
+  return {
+    type: 'TOOL',
+    id: chunk.id ?? prev.id,
+    toolName:(prev.toolName || '') + (chunk.toolName || ''), 
+    functionArguments:(prev.functionArguments || '') + (chunk.functionArguments || ''), 
+    content: (prev.content || '') + (chunk.content || ''),
+    status: chunk.status ?? prev.status,
+    workflowRunId: chunk.workflowRunId ?? prev.workflowRunId,
+    extra: chunk.extra ?? prev.extra
+  }
+}
+const APPROVAL = (prev: any, chunk: any) => {
+  return {
+    type: 'APPROVAL',
+    id: chunk.id ?? prev.id,
+    content: (prev.content || '') + (chunk.content || ''),
+    status: chunk.status ?? prev.status,
+    extra: chunk.extra ?? prev.extra
+  }
+}
 export const aggregators: any = {
   TEXT: TEXT,
   REASONING: REASONING,
-  FAILURE: FAILURE
+  FAILURE: FAILURE,
+  TOOL: TOOL,
+  APPROVAL: APPROVAL
 }

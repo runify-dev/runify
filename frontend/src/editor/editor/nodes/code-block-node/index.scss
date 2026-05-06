@@ -6,7 +6,7 @@
   --tt-codeblock-text: var(--tt-gray-light-a-800);
   --tt-codeblock-border: var(--tt-gray-light-a-200);
 
-  .dark & {
+  .app-dark & {
     --tt-inline-code-bg-color: var(--tt-gray-dark-a-100);
     --tt-inline-code-text-color: var(--tt-gray-dark-a-700);
     --tt-inline-code-border-color: var(--tt-gray-dark-a-200);

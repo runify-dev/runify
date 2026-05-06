@@ -1,6 +1,6 @@
 <template>
-  <div class="flex flex-col">
-    <div class="card" style="height: calc(100dvh - 8rem)">
+  <div class="flex flex-col flex-1 min-h-0">
+    <div class="flex-1 min-h-0 flex flex-col">
       <router-view></router-view>
     </div>
   </div>

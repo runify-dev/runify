@@ -214,7 +214,7 @@ onMounted(() => {
 }
 .sb--drawer.sb--open {
   transform: translateX(0);
-  box-shadow: 4px 0 16px rgba(0, 0, 0, 0.1);
+  box-shadow: 4px 0 16px var(--shadow);
 }
 
 /* ── 头部 ─────────────────────────────────────────────────────────── */
@@ -313,12 +313,12 @@ onMounted(() => {
     color 0.12s;
 }
 .nitem-btns button:hover {
-  background: rgba(0, 0, 0, 0.07);
+  background: var(--hover-overlay);
   color: var(--t2);
 }
 .nitem-btns button.del:hover {
-  background: #fee2e2;
-  color: #dc2626;
+  background: var(--danger-bg);
+  color: var(--danger-text);
 }
 
 /* ── 重命名输入框 ──────────────────────────────────────────────────── */

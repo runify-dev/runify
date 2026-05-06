@@ -23,3 +23,13 @@
         top: 100px;
     }
 }
+
+.layout-content-height {
+    height: calc(100dvh - var(--app-content-height-offset));
+}
+
+@media (min-width: 992px) {
+    :root {
+        --app-content-height-offset: 11rem;
+    }
+}

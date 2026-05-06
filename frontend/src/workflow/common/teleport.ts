@@ -4,20 +4,26 @@ import { defineComponent, h, reactive, isVue3, Teleport, markRaw, Fragment } fro
 let active = false
 const items = reactive<{ [key: string]: any }>({})
 
+
 export function connect(
   id: string,
   component: any,
   container: HTMLDivElement,
   model: BaseNodeModel | BaseEdgeModel,
   graphModel: GraphModel,
+  extraProvide?:any
 ) {
   if (active) {
+    if(!extraProvide){
+      extraProvide={}
+    }
     items[id] = markRaw(
       defineComponent({
         render: () => h(Teleport, { to: container } as any, [h(component)]),
         provide: () => ({
           getModel: () => reactive(model),
           getGraphModel: () => reactive(graphModel),
+          ...extraProvide
         })
       })
     )

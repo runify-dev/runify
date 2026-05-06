@@ -58,24 +58,28 @@ export function insertAudioNodeFn(editor: Editor, upload: AudioBlockOptions['upl
   const nodeType = state.schema.nodes.audioBlock
   if (!nodeType) return
 
-  const audioNode = nodeType.create({
-    src: null,
-    title: file.name.replace(/\.[^.]+$/, ''),
-    artist: '',
-    uploadProgress: 0,
-    uploadId
-  })
-
   const insertPos = state.selection.to
-  const insertTr = state.tr.insert(insertPos, audioNode)
-  insertTr.setMeta('addToHistory', false)
-  dispatch(insertTr)
+  dispatch(
+    state.tr.insert(insertPos, nodeType.create({
+      src: null,
+      title: file.name.replace(/\.[^.]+$/, ''),
+      artist: '',
+      uploadProgress: 0,
+      uploadId
+    })).setMeta('addToHistory', false)
+  )
 
-  let cachedPos: number = insertPos
+  startAudioUpload(editor, upload, file, uploadId)
+}
+
+function startAudioUpload(editor: Editor, upload: AudioBlockOptions['upload'], file: File, uploadId: string) {
+  let cachedPos = -1
 
   const findByUploadId = (): number => {
-    const node = editor.state.doc.nodeAt(cachedPos)
-    if (node?.type.name === 'audioBlock' && node.attrs.uploadId === uploadId) return cachedPos
+    if (cachedPos !== -1) {
+      const node = editor.state.doc.nodeAt(cachedPos)
+      if (node?.type.name === 'audioBlock' && node.attrs.uploadId === uploadId) return cachedPos
+    }
     let pos = -1
     editor.state.doc.descendants((n, p) => {
       if (n.type.name === 'audioBlock' && n.attrs.uploadId === uploadId) {
@@ -95,7 +99,6 @@ export function insertAudioNodeFn(editor: Editor, upload: AudioBlockOptions['upl
     if (!n) return
     const patchTr = s.tr.setNodeMarkup(pos, undefined, { ...n.attrs, ...patch })
     patchTr.setMeta('addToHistory', false)
-    cachedPos = pos
     editor.view.dispatch(patchTr)
   }
 
@@ -243,10 +246,22 @@ export const CustomAudioBlock = Node.create<AudioBlockOptions>({
         ({ commands }) =>
           commands.insertContent({ type: this.name, attrs: options }),
 
-      insertAudioFile: (file: File) => () => {
-        insertAudioNodeFn(this.editor, this.options.upload, file)
-        return true
-      }
+      insertAudioFile: (file: File) =>
+        ({ commands }) => {
+          const uploadId = `upload_${Date.now()}_${Math.random().toString(36).slice(2)}`
+          const ok = commands.insertContent({
+            type: this.name,
+            attrs: {
+              src: null,
+              title: file.name.replace(/\.[^.]+$/, ''),
+              artist: '',
+              uploadProgress: 0,
+              uploadId,
+            },
+          })
+          if (ok) startAudioUpload(this.editor, this.options.upload, file, uploadId)
+          return ok
+        }
     }
   },
 
@@ -280,12 +295,17 @@ export const CustomAudioBlock = Node.create<AudioBlockOptions>({
           }
         }
 
+        const docSize = newState.doc.content.size
         const tr = newState.tr
         let modified = false
         for (const [start, end] of merged) {
-          newState.doc.nodesBetween(start, end, (node, pos) => {
+          const clampedStart = Math.max(0, Math.min(start, docSize))
+          const clampedEnd = Math.max(0, Math.min(end, docSize))
+          if (clampedStart >= clampedEnd) continue
+          newState.doc.nodesBetween(clampedStart, clampedEnd, (node, pos) => {
             if (node.type.name !== 'audioBlock') return true
             const nextPos = pos + node.nodeSize
+            if (nextPos > docSize) return true
             const nextNode = newState.doc.nodeAt(nextPos)
             if (nextNode?.type.name === 'paragraph' && nextNode.content.size === 0) {
               tr.delete(nextPos, nextPos + nextNode.nodeSize)

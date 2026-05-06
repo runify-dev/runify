@@ -7,8 +7,7 @@ import okio.BufferedSource;
 
 import java.io.IOException;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -17,6 +16,9 @@ import java.util.function.Function;
  * Lightweight SSE stream response. Subscribe once, keep the returned StreamSubscription, and cancel it when needed.
  */
 public final class AsyncStreamResponse<T> {
+
+    // 流式读取超时时间（秒），默认 60 秒
+    private static final long STREAM_READ_TIMEOUT_SECONDS = 60;
 
     private final Call call;
     private final Executor executor;
@@ -109,6 +111,11 @@ public final class AsyncStreamResponse<T> {
                 if (dispatchEvent(dataBuffer, handler, sub)) {
                     break;
                 }
+                continue;
+            }
+
+            // 跳过注释行（心跳）
+            if (line.startsWith(":")) {
                 continue;
             }
 

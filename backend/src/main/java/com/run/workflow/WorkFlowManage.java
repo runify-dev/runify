@@ -8,13 +8,16 @@ import com.run.workflow.entity.*;
 import com.run.workflow.message.aggregator.AggregationManager;
 import com.run.workflow.message.struct.Content;
 import com.run.workflow.message.struct.FailureContent;
+import com.run.workflow.message.struct.Position;
 import com.run.workflow.nodes.NodeManage;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.Strings;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -37,6 +40,7 @@ public class WorkFlowManage {
     /**
      * 工作流对象,存储了工作流相关信息
      */
+    @Getter
     private final WorkFlow workFlow;
     /**
      * 用户收集参数
@@ -54,11 +58,12 @@ public class WorkFlowManage {
     /**
      * 用于存储上下文
      */
+    @Getter
     private final Map<String, Map<String, Object>> context;
     /**
      * 获取开始执行节点,正常情况下开始节点都是Start,但是在存在中断节点需要召回时,就是中断节点
      */
-    private final Supplier<Node> getStartNode;
+    private final Function<WorkFlow, Node> getStartNode;
     /**
      * 校验器,用于校验对象值是否正确
      */
@@ -76,6 +81,7 @@ public class WorkFlowManage {
     /**
      * 工作流写出
      */
+    @Getter
     private final Write<WorkFlowManage, INode<?, ?>, Content, Boolean> write;
     /**
      * 已运行的节点信息
@@ -86,9 +92,10 @@ public class WorkFlowManage {
     public WorkFlowManage(WorkFlow workFlow,
                           Map<String, Object> params,
                           Map<String, Map<String, Object>> context,
-                          Write<WorkFlowManage, INode<?, ?>, Content, Boolean> write) {
+                          Write<WorkFlowManage, INode<?, ?>, Content, Boolean> write,
+                          Function<WorkFlow, Node> getStartNode) {
         this.workFlow = workFlow;
-        this.getStartNode = () -> workFlow.getNode("start-node");
+        this.getStartNode = getStartNode;
         this.nodeNewInstance = NodeManage.of();
         this.write = write;
         this.params = params;
@@ -97,8 +104,15 @@ public class WorkFlowManage {
         this.startTime = LocalDateTime.now();
     }
 
+    public WorkFlowManage(WorkFlow workFlow,
+                          Map<String, Object> params,
+                          Map<String, Map<String, Object>> context,
+                          Write<WorkFlowManage, INode<?, ?>, Content, Boolean> write) {
+        this(workFlow, params, context, write, w -> w.getNode("start-node"));
+    }
+
     public void invoke() {
-        Node startNode = this.getStartNode.get();
+        Node startNode = this.getStartNode.apply(workFlow);
         invoke(startNode, null);
     }
 
@@ -139,6 +153,25 @@ public class WorkFlowManage {
                     CommonUtils.uuid7().toString()));
             this.assertionEnd();
         }
+    }
+
+    public void nextFailInvoke(INode<?, ?> upINode) {
+        String id = upINode.node.getId();
+        List<DefaultKeyValue<Edge, Node>> nextList = getNextList(id);
+        Boolean errorCaptureEnabled = upINode.node.getProperties().getBoolean("errorCaptureEnabled");
+        Supplier<List<Node>> handle;
+        if (errorCaptureEnabled) {
+            handle = () -> nextList.stream().filter(edgeNodeDefaultKeyValue -> {
+                        Edge edge = edgeNodeDefaultKeyValue.getKey();
+                        return Strings.CS.equals(edge.getSourceNodeId() + "_right" + "_main" + "_fail", edge.getString("sourceAnchorId"));
+                    })
+                    .map(DefaultKeyValue::getValue)
+                    .toList();
+        } else {
+            handle = ArrayList::new;
+        }
+
+        nextInvoke(upINode, handle);
     }
 
     /**
@@ -187,11 +220,36 @@ public class WorkFlowManage {
     }
 
     /**
+     * 写入上下文
+     *
+     * @param nodeId 节点id
+     * @param key    需要写入数据的key
+     * @param value  需要写入数据的值
+     */
+    public void writeContext(String nodeId, String key, Object value) {
+        Map<String, Object> m = this.context.computeIfAbsent(nodeId, k -> new HashMap<>());
+        m.put(key, value);
+    }
+
+    public void writeGlobalContext(String key, Object value) {
+        Map<String, Object> m = this.context.computeIfAbsent("global", k -> new HashMap<>());
+        m.put(key, value);
+    }
+
+    /**
      * 将节点数据输出出去
      *
      * @param chunk 需要输出的chunk
      */
     public void write(INode<?, ?> node, Content chunk) {
+        aggregationManager.aggregate(chunk);
+        this.write.write(this, node, chunk, false);
+    }
+
+    public void writeChildren(INode<?, ?> node, Content chunk, Integer currentIndex) {
+        String id = node.node.getId();
+        Position position = chunk.getPosition();
+        chunk.setPosition(new Position(id, currentIndex, position));
         aggregationManager.aggregate(chunk);
         this.write.write(this, node, chunk, false);
     }
@@ -216,7 +274,7 @@ public class WorkFlowManage {
      */
     @SuppressWarnings("all")
     public Object getContextVariable(List<String> contextRef) {
-        Map<String, ?> context = this.context;
+        Map<String, ?> context = this.getContext();
         for (int i = 0; i < contextRef.size(); i++) {
             String key = contextRef.get(i);
             if (i == contextRef.size() - 1) {
@@ -275,5 +333,4 @@ public class WorkFlowManage {
     public List<DefaultKeyValue<Edge, Node>> getNextList(String node_id) {
         return workFlow.getNextNodes(node_id);
     }
-
 }

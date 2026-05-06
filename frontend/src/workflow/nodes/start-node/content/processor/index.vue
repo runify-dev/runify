@@ -4,6 +4,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import HttpProtocolProcessor from './http/index.vue'
+import { validate as validateNodeData } from './validator'
 defineProps<{
   details: any
 }>()
@@ -12,7 +13,10 @@ const kw: any = {
 }
 const processorRef = ref()
 const validate = () => {
-  return processorRef.value?.validate()
+  if (processorRef.value) {
+    return processorRef.value.validate()
+  }
+  return Promise.resolve({ values: {}, errors: {} })
 }
 const submit = () => {
   return processorRef.value?.submit()

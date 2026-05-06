@@ -189,10 +189,10 @@ function exec(fn: () => void): void {
   }
   &:hover,
   &--active {
-    background: var(--tt-color-accent);
-    border-color: var(--tt-color-accent);
-    color: #fff;
-    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.35);
+    background: var(--p-primary-color);
+    border-color: var(--p-primary-color);
+    color: var(--p-primary-contrast-color);
+    box-shadow: 0 2px 8px var(--p-primary-300);
   }
 }
 .tt-handle-menu {

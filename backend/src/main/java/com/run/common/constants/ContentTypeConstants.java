@@ -38,5 +38,21 @@ public enum ContentTypeConstants {
     /**
      * 工具调用
      */
-    TOOL;
+    TOOL,
+    /**
+     * 跳过
+     */
+    CONTINUE,
+    /**
+     * 退出循环
+     */
+    BREAK,
+    /**
+     * 审批
+     */
+    APPROVAL,
+    /**
+     * 已提交
+     */
+    APPROVAL_SUBMIT;
 }
