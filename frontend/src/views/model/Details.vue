@@ -1,127 +1,125 @@
 <template>
-  <div class="flex flex-col">
-    <div class="overflow-auto">
-      <div class="flex justify-end px-10 pt-4">
-        <Button label="保存" @click="edit" />
-      </div>
+  <div class="flex flex-col h-full">
+    <!-- 顶部操作栏 -->
+    <div class="flex items-center justify-between px-6 py-3 border-b border-surface-border">
+      <span class="text-lg font-bold">模型配置</span>
+      <Button label="保存" icon="pi pi-save" @click="edit" />
+    </div>
+
+    <!-- 表单内容 -->
+    <div class="flex-1 overflow-auto px-6 py-6">
       <DynamicsForm
-        class="px-10 pb-10"
         v-loading="loading"
         ref="dynamicsFormRef"
-        :otherParams="{}"
+        :modelValue="formData"
+        @update:modelValue="formData = $event"
+        class="flex flex-col gap-6"
       >
         <template #default>
-          <FormField
-            v-slot="$field: any"
-            asChild
-            name="provider"
-            :resolver="resolver.provider"
-            initialValue="openai_provider"
-          >
-            <label>供应商</label>
+          <!-- 供应商 -->
+          <div class="flex flex-col gap-1">
+            <label class="text-sm font-semibold text-color">供应商</label>
             <RadioCard
-              class="provider-radio"
-              body-class="p-0"
-              :model-value="$field.value"
-              @update:model-value="(v) => $field.onChange({ value: v })"
+              grid-class="grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
+              :model-value="formData.provider"
+              @update:model-value="setField('provider', $event)"
               :option-list="providerList"
               value-field="provider"
             >
               <template v-slot="item">
-                <div class="w-full h-full flex items-center justify-center">
-                  <div :innerHTML="item.icon" class="h-5 w-5 mr-4" />
-                  {{ item.name }}
+                <div class="flex items-center gap-2">
+                  <div :innerHTML="item.icon" class="h-5 w-5 shrink-0" />
+                  <span class="text-sm">{{ item.name }}</span>
                 </div>
               </template>
             </RadioCard>
-          </FormField>
-          <FormField
-            v-slot="$field: any"
-            asChild
-            name="modelType"
-            :resolver="resolver.modelType"
-            initialValue="LLM"
-          >
-            <label>模型类型</label>
+          </div>
+
+          <!-- 模型类型 -->
+          <div class="flex flex-col gap-1">
+            <label class="text-sm font-semibold text-color">模型类型</label>
             <RadioCard
-              class="model-type-radio"
-              body-class="p-0"
-              :model-value="$field.value"
-              @update:model-value="(v) => $field.onChange({ value: v })"
+              grid-class="grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
+              :model-value="formData.modelType"
+              @update:model-value="setField('modelType', $event)"
               :option-list="modelTypeList"
               value-field="code"
             >
               <template v-slot="item">
-                <div class="w-full h-full flex items-center justify-center">
-                  <div :innerHTML="item.icon" class="h-5 w-5 mr-4" />
-                  {{ item.message }}
+                <div class="flex items-center gap-2">
+                  <div :innerHTML="item.icon" class="h-5 w-5 shrink-0" />
+                  <span class="text-sm">{{ item.message }}</span>
                 </div>
               </template>
             </RadioCard>
-            <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">{{
-              $field.error?.message
-            }}</Message>
-          </FormField>
-          <FormField
-            v-slot="$field"
-            asChild
-            name="modelName"
-            initialValue=""
-            :resolver="resolver.modelName"
-          >
-            <label>模型名称</label>
+          </div>
+
+          <!-- 模型名称 -->
+          <div class="flex flex-col gap-1">
+            <label class="text-sm font-semibold text-color">模型名称</label>
             <Select
+              :model-value="formData.modelName"
+              @update:model-value="setField('modelName', $event)"
               :options="modelList"
               fluid
               optionLabel="name"
               option-value="name"
-              placeholder="请选择模型"
-              class="w-full md:w-56"
+              placeholder="输入或选择模型名称"
+              editable
             />
-            <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">{{
-              $field.error?.message
-            }}</Message>
-          </FormField>
+          </div>
         </template>
+
         <template #after>
-          <FormField asChild v-slot="$field" name="modelParameterForm" :initialValue="[]">
-            <DataTable :value="$field.value" v-if="$field.value?.length > 0">
-              <Column field="field" header="字段"></Column>
-              <Column field="label" header="显示名称">
-                <template #body="scope">
-                  {{ scope.data.label.value }}
-                </template>
-              </Column>
-              <Column field="defaultValue" header="默认值"></Column>
-              <Column field="type" header="组件类型"></Column>
-              <Column field="operate" header="操作">
-                <template #body="scope">
+          <!-- 模型参数 -->
+          <div class="flex items-center justify-between mt-2">
+            <span class="text-sm font-semibold text-color">模型参数</span>
+            <Button label="添加参数" icon="pi pi-plus" size="small" variant="outlined" @click="openAddModelParameterForm()" />
+          </div>
+
+          <DataTable
+            :value="formData.modelParameterForm || []"
+            v-if="formData.modelParameterForm?.length > 0"
+            size="small"
+          >
+            <Column field="field" header="字段" />
+            <Column field="label" header="显示名称">
+              <template #body="scope">
+                {{ scope.data.label.value }}
+              </template>
+            </Column>
+            <Column field="defaultValue" header="默认值" />
+            <Column field="type" header="组件类型" />
+            <Column field="operate" header="操作" style="width: 100px">
+              <template #body="scope">
+                <div class="flex gap-1">
                   <Button
                     icon="pi pi-file-edit"
                     variant="text"
                     rounded
-                    aria-label="Cancel"
-                    size="normal"
-                    @click.stop="openAddmodelParameterForm(scope.data, scope.index)"
+                    size="small"
+                    @click.stop="openAddModelParameterForm(scope.data, scope.index)"
                   />
                   <Button
-                    icon="pi pi-times-circle"
+                    icon="pi pi-trash"
                     variant="text"
+                    severity="danger"
                     rounded
-                    aria-label="Cancel"
-                    size="normal"
-                    @click="deletemodelParameterForm(scope.index)"
+                    size="small"
+                    @click="deleteModelParameterForm(scope.index)"
                   />
-                </template>
-              </Column>
-            </DataTable>
-          </FormField>
+                </div>
+              </template>
+            </Column>
+          </DataTable>
+          <div v-else class="text-sm text-muted-color py-4 text-center border border-dashed border-surface-border rounded">
+            暂无模型参数
+          </div>
 
-          <Button label="添加模型参数" variant="text" @click="openAddmodelParameterForm()" />
           <ModelParameterForm
-            :addParams="addParamsmodelParameterForm"
+            :addParams="addParamsModelParameterForm"
             ref="modelParameterFormRef"
-          ></ModelParameterForm>
+          />
         </template>
       </DynamicsForm>
     </div>
@@ -135,10 +133,9 @@ import RadioCard from '@/components/radio-card/index.vue'
 import { groupBy } from '@/utils/common'
 import ModelParameterForm from '@/views/model/components/ModelParameterForm.vue'
 import bus from '@/bus'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { TreeCommonAPI } from '@/api/tree'
-import { zodResolver } from '@primevue/forms/resolvers/zod'
-import { z } from 'zod'
+
 const treeCommonAPI = new TreeCommonAPI('model')
 const loading = ref<boolean>(false)
 const route = useRoute()
@@ -149,6 +146,7 @@ const resourceId = computed(() => {
   } = route as any
   return id
 })
+
 const providerList = ref<Array<any>>([])
 const modelList = ref<Array<any>>()
 const modelDict = ref<any>({})
@@ -157,65 +155,77 @@ const defaultModelDict = ref<any>({})
 const dynamicsFormRef = ref<InstanceType<typeof DynamicsForm>>()
 const modelParameterFormRef = ref<InstanceType<typeof ModelParameterForm>>()
 const model = ref<any>()
-const addParamsmodelParameterForm = (data: any, index?: number) => {
-  const modelParameterForm =
-    dynamicsFormRef.value?.formRef?.getFieldState('modelParameterForm')?.value
-  const fin = modelParameterForm.find(
-    (item: any, i: number) => item.field == data.field && i !== index
-  )
+const formData = ref<Record<string, any>>({})
+
+const setField = (field: string, value: any) => {
+  dynamicsFormRef.value?.setFieldValue(field, value)
+}
+
+const addParamsModelParameterForm = (data: any, index?: number) => {
+  const list = formData.value.modelParameterForm || []
+  const fin = list.find((item: any, i: number) => item.field === data.field && i !== index)
   if (fin) {
     bus.emit('message:error', '字段:' + data.field + '已存在')
     return false
   }
-
   if (index !== undefined) {
-    modelParameterForm.splice(index, 1, data)
+    list.splice(index, 1, data)
   } else {
-    modelParameterForm.push(data)
+    list.push(data)
   }
   return true
 }
-const openAddmodelParameterForm = (data?: any, index?: number) => {
+
+const openAddModelParameterForm = (data?: any, index?: number) => {
   modelParameterFormRef.value?.open(data, index)
 }
-const deletemodelParameterForm = (index: number) => {
-  const modelParameterForm =
-    dynamicsFormRef.value?.formRef?.getFieldState('modelParameterForm')?.value
-  modelParameterForm.splice(index, 1)
+
+const deleteModelParameterForm = (index: number) => {
+  formData.value.modelParameterForm?.splice(index, 1)
+}
+
+const toNestedObject = (flat: Record<string, any>) => {
+  const result: Record<string, any> = {}
+  for (const [key, value] of Object.entries(flat)) {
+    const parts = key.split('.')
+    let cur = result
+    for (let i = 0; i < parts.length - 1; i++) {
+      cur[parts[i]] = cur[parts[i]] || {}
+      cur = cur[parts[i]]
+    }
+    cur[parts[parts.length - 1]] = value
+  }
+  return result
 }
 
 const edit = () => {
-  dynamicsFormRef.value?.formRef?.validate().then(({ values, errors }) => {
-    if (Object.keys(errors).length === 0) {
-      ModelAPI.edit(resourceId.value, values, loading).then(() => {
-        bus.emit('message:success', '模型保存成功')
-      })
-    }
+  const { values, errors } = dynamicsFormRef.value?.validate() || { values: {}, errors: {} }
+  if (Object.keys(errors).length > 0) {
+    return
+  }
+  const payload = toNestedObject(values)
+  ModelAPI.edit(resourceId.value, payload, loading).then(() => {
+    bus.emit('message:success', '模型保存成功')
   })
 }
-const resolver = computed(() => {
-  return {
-    provider: zodResolver(z.string().min(1, { error: '供应商必填' })),
-    modelType: zodResolver(z.string().min(1, { error: '模型类型必填' })),
-    modelName: zodResolver(z.string().min(1, { error: '模型名称必填' }))
-  }
-})
 
 const credentialForm = computed(() => {
-  const modelType = dynamicsFormRef.value?.formRef?.getFieldState('modelType')
-  const modelName = dynamicsFormRef.value?.formRef?.getFieldState('modelName')
-  if (modelName && modelType && modelType.value && modelName.value) {
-    const v = modelDict.value[modelType.value][modelName.value]
-    if (v && v.length > 0) {
-      return v[0].credential
+  const mt = formData.value.modelType
+  const mn = formData.value.modelName
+  if (mt && mn) {
+    const typeDict = modelDict.value[mt]
+    if (typeDict) {
+      const v = typeDict[mn]
+      if (v && v.length > 0) return v[0].credential
     }
-    return defaultModelDict.value[modelType.value][0].credential
+    const defaults = defaultModelDict.value[mt]
+    if (defaults && defaults.length > 0) return defaults[0].credential
   }
   return []
 })
 
 watch(credentialForm, () => {
-  if (model.value && credentialForm.value) {
+  if (model.value && credentialForm.value.length) {
     dynamicsFormRef.value?.render(
       credentialForm.value.map((c: any) => ({ ...c, field: 'credential.' + c.field })),
       model.value
@@ -224,16 +234,15 @@ watch(credentialForm, () => {
 })
 
 watch(model, () => {
-  if (model.value && credentialForm.value) {
+  if (model.value && credentialForm.value.length) {
     dynamicsFormRef.value?.render(
       credentialForm.value.map((c: any) => ({ ...c, field: 'credential.' + c.field })),
       model.value
     )
   }
 })
-const provider = computed(() => {
-  return dynamicsFormRef.value?.formRef?.getFieldState('provider')?.value
-})
+
+const provider = computed(() => formData.value.provider)
 
 watch(
   provider,
@@ -243,10 +252,8 @@ watch(
         modelList.value = ok.data
         const _modelDict = groupBy(ok.data, 'modelType')
         for (const key in _modelDict) {
-          const v = _modelDict[key]
-          _modelDict[key] = groupBy(v, 'name')
+          _modelDict[key] = groupBy(_modelDict[key], 'name')
         }
-
         modelDict.value = _modelDict
         defaultModelDict.value = groupBy(
           ok.data.filter((item: any) => item.isDefault),
@@ -256,7 +263,10 @@ watch(
       ModelAPI.listModelType(provider.value).then((ok) => {
         modelTypeList.value = ok.data
         if (ok.data) {
-          dynamicsFormRef.value?.formRef?.setFieldValue('modelType', ok.data[0].code)
+          const current = formData.value.modelType
+          if (!current || !ok.data.some((t: any) => t.code === current)) {
+            setField('modelType', ok.data[0].code)
+          }
         }
       })
     }
@@ -264,16 +274,18 @@ watch(
   { immediate: true }
 )
 
-watch(resourceId, () => {
-  get()
-})
+watch(resourceId, () => get())
+
 const get = () => {
   treeCommonAPI.getResource(resourceId.value).then((ok) => {
     model.value = ok.data
-    dynamicsFormRef.value?.formRef?.setFieldValue('modelName', ok.data.modelName)
-    dynamicsFormRef.value?.formRef?.setFieldValue('modelParameterForm', ok.data.modelParameterForm)
+    if (ok.data.provider) setField('provider', ok.data.provider)
+    if (ok.data.modelType) setField('modelType', ok.data.modelType)
+    if (ok.data.modelName) setField('modelName', ok.data.modelName)
+    if (ok.data.modelParameterForm) setField('modelParameterForm', ok.data.modelParameterForm)
   })
 }
+
 onMounted(() => {
   ModelAPI.getProvider().then((ok) => {
     providerList.value = ok.data
@@ -281,9 +293,4 @@ onMounted(() => {
   get()
 })
 </script>
-<style lang="scss" scoped>
-:deep(.provider-radio .p-card),
-:deep(.model-type-radio .p-card) {
-  padding: 5px;
-}
-</style>
+<style lang="scss" scoped></style>

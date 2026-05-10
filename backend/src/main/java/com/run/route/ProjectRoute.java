@@ -1,6 +1,9 @@
 package com.run.route;
 
+import com.run.auth.AggregatePermission;
+import com.run.auth.Authenticator;
 import com.run.auth.TokenBasicAuthHandler;
+import com.run.auth.constants.PermissionConstants;
 import com.run.common.route.IRoute;
 import com.run.handler.project.IProjectFolderHandler;
 import com.run.handler.project.IProjectHandler;
@@ -46,6 +49,14 @@ public class ProjectRoute implements IRoute {
     public void initRoute() {
         apiRoute.get("/project/resources/:resourceId")
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.PROJECT_READ)
+                                .addPermission(PermissionConstants.PROJECT_READ.getResourcePermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(iProjectHandler::get);
 
 //        apiRoute.put("/note/resources/:resourceId")
@@ -55,42 +66,114 @@ public class ProjectRoute implements IRoute {
 
         apiRoute.delete("/project/resources/:resourceId")
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.PROJECT_DELETE)
+                                .addPermission(PermissionConstants.PROJECT_DELETE.getResourcePermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(iProjectHandler::delete);
 
         apiRoute.post("/project/resources/:resourceId/modify-name")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.PROJECT_EDIT)
+                                .addPermission(PermissionConstants.PROJECT_EDIT.getResourcePermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(iProjectHandler::rename);
 
         apiRoute.post("/project/folders/:folderId/modify-name")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.PROJECT_EDIT)
+                                .addPermission(PermissionConstants.PROJECT_EDIT.getResourcePermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(iProjectFolderHandler::rename);
 
         apiRoute.get("/project/folders/:folderId")
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.PROJECT_READ)
+                                .addPermission(PermissionConstants.PROJECT_READ.getResourcePermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(iProjectFolderHandler::get);
 
         apiRoute.delete("/project/folders/:folderId")
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.PROJECT_DELETE)
+                                .addPermission(PermissionConstants.PROJECT_DELETE.getResourcePermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(iProjectFolderHandler::delete);
 
         apiRoute.post("/project/folders/:folderId")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.PROJECT_CREATE)
+                                .addPermission(PermissionConstants.PROJECT_CREATE.getResourcePermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(iProjectFolderHandler::create);
 
         apiRoute.get("/project/folders/:folderId/subtree")
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.PROJECT_READ)
+                                .addPermission(PermissionConstants.PROJECT_READ.getResourcePermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(iProjectHandler::tree);
 
         apiRoute.get("/project/folders/:folderId/resources")
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.PROJECT_READ)
+                                .addPermission(PermissionConstants.PROJECT_READ.getResourcePermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(iProjectHandler::list);
 
         apiRoute.post("/project/folders/:folderId/resources")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.PROJECT_CREATE)
+                                .addPermission(PermissionConstants.PROJECT_CREATE.getResourcePermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(iProjectHandler::create);
 
         apiRoute.get("/project/permissions/:userId")

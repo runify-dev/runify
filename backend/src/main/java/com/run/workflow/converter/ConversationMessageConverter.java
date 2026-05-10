@@ -127,35 +127,32 @@ public class ConversationMessageConverter {
                     ChatCompletionUserMessageParam.builder().content(text).build()));
         }
 
-        // 3. assistant 消息（text + tool_calls）+ tool 结果消息
+        // 3. assistant 消息（text）+ 每个 tool 生成独立的 assistant + tool 消息对
         if (!textItems.isEmpty() || !toolItems.isEmpty()) {
             String text = textItems.stream()
                     .map(obj -> convertConfig.extract(ContentTypeConstants.TEXT, obj))
                     .filter(s -> !isBlank(s))
                     .collect(Collectors.joining());
 
-            JsonObject assistantMessage = new JsonObject().put("role", "assistant");
-            if (!isBlank(text)) {
-                assistantMessage.put("content", text);
-            } else if (toolItems.isEmpty()) {
-                assistantMessage.put("content", "");
-            }
-
             if (!toolItems.isEmpty()) {
-                JsonArray toolCalls = new JsonArray();
-                for (JsonObject obj : toolItems) {
-                    toolCalls.add(buildToolCall(obj));
-                }
-                assistantMessage.put("tool_calls", toolCalls);
-            }
-
-            result.add(ChatCompletionMessageParam.fromJsonObject(assistantMessage));
-
-            // 每个 tool 结果生成一条 tool 消息
-            for (JsonObject tc : toolItems) {
-                if (!isBlank(tc.getString("result"))) {
+                boolean textIncluded = false;
+                for (JsonObject tc : toolItems) {
+                    JsonObject assistantMsg = new JsonObject()
+                            .put("role", "assistant")
+                            .put("tool_calls", new JsonArray().add(buildToolCall(tc)));
+                    if (!textIncluded && !isBlank(text)) {
+                        assistantMsg.put("content", text);
+                        textIncluded = true;
+                    }
+                    result.add(ChatCompletionMessageParam.fromJsonObject(assistantMsg));
                     result.add(ChatCompletionMessageParam.fromJsonObject(buildToolMessage(tc)));
                 }
+            } else if (!isBlank(text)) {
+                result.add(ChatCompletionMessageParam.fromJsonObject(
+                        new JsonObject().put("role", "assistant").put("content", text)));
+            } else {
+                result.add(ChatCompletionMessageParam.fromJsonObject(
+                        new JsonObject().put("role", "assistant").put("content", "")));
             }
         }
 

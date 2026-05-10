@@ -145,22 +145,6 @@ const submit = () => {
       }
     })
 }
-const databaseCollectionPoolList = ref<Array<any>>()
-const getDatabasePool = () => {
-  if (databaseCollectionPoolList.value) {
-    return Promise.resolve(
-      databaseCollectionPoolList.value.map((item: any) => {
-        return { label: item.name, value: item.id }
-      })
-    )
-  }
-  return databaseConnectionPoolAPI.query(props.processor.projectId, {}).then((ok) => {
-    databaseCollectionPoolList.value = ok.data
-    return ok.data.map((item: any) => {
-      return { label: item.name, value: item.id }
-    })
-  })
-}
 
 const parameters = computed(() => {
   return formRef.value?.getFieldState('parameters')?.value || []
@@ -196,20 +180,13 @@ const bodyFieldList = computed(() => {
   return result
 })
 const updateFieldList = () => {
-  getDatabasePool().then((ok) => {
-    model.properties.field_list = [
-      ...parameters.value.map((item: any) => ({
-        label: item.description,
-        value: item.field
-      })),
-      ...bodyFieldList.value,
-      {
-        label: '连接池',
-        value: 'pools',
-        children: ok
-      }
-    ]
-  })
+  model.properties.field_list = [
+    ...parameters.value.map((item: any) => ({
+      label: item.description,
+      value: item.field
+    })),
+    ...bodyFieldList.value
+  ]
 }
 onMounted(() => {
   nextTick(() => {

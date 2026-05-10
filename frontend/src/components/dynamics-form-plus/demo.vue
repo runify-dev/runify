@@ -55,7 +55,7 @@
                 <Tag :value="item.type" severity="info" />
                 <span>{{ item.field }}</span>
                 <span class="text-muted-color">-</span>
-                <span class="text-muted-color">{{ item.label }}</span>
+                <span class="text-muted-color">{{ typeof item.label === 'object' ? item.label.value : item.label }}</span>
                 <span v-if="item.required" class="text-red-500 text-xs">*必填</span>
               </div>
               <Button

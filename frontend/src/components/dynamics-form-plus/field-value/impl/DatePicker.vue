@@ -1,6 +1,7 @@
 <template>
   <DatePicker
-    :name="field"
+    :modelValue="val"
+    @update:modelValue="onUpdate"
     :placeholder="placeholder"
     :dateFormat="dateFormat"
     :showTime="showTime"
@@ -15,17 +16,18 @@ import type { FormField } from '@/components/dynamics-form-plus/type'
 
 const props = defineProps<{
   formField: FormField
-  otherParams: any
   formFieldList: Array<FormField>
-  field: any
-  form: any
+  formValue: Record<string, any>
 }>()
+const emit = defineEmits(['change'])
 
 const field = computed(() => props.formField.field)
+const val = computed(() => props.formValue[field.value])
 const attrs = computed(() => props.formField.attrs || {})
 const placeholder = computed(() => attrs.value.placeholder || '请选择日期')
 const dateFormat = computed(() => attrs.value.dateFormat || 'yy-mm-dd')
 const showTime = computed(() => attrs.value.showTime ?? false)
 const hourFormat = computed(() => attrs.value.hourFormat || '24')
+const onUpdate = (v: any) => emit('change', field.value, v)
 </script>
 <style lang="scss" scoped></style>

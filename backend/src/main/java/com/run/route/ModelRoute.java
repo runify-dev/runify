@@ -1,6 +1,9 @@
 package com.run.route;
 
+import com.run.auth.AggregatePermission;
+import com.run.auth.Authenticator;
 import com.run.auth.TokenBasicAuthHandler;
+import com.run.auth.constants.PermissionConstants;
 import com.run.common.route.IRoute;
 import com.run.handler.model.IModelHandler;
 import com.run.handler.model.impl.ModelFolderHandlerImpl;
@@ -55,51 +58,139 @@ public class ModelRoute implements IRoute {
 
         apiRoute.get("/model/resources/:resourceId")
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.MODEL_READ)
+                                .addPermission(PermissionConstants.MODEL_READ.getResourcePermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(modelHandler::get);
 
         apiRoute.put("/model/resources/:resourceId")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.MODEL_EDIT)
+                                .addPermission(PermissionConstants.MODEL_EDIT.getResourcePermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(modelHandler::edit);
 
         apiRoute.delete("/model/resources/:resourceId")
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.MODEL_DELETE)
+                                .addPermission(PermissionConstants.MODEL_DELETE.getResourcePermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(modelHandler::delete);
 
         apiRoute.post("/model/resources/:resourceId/modify-name")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.MODEL_EDIT)
+                                .addPermission(PermissionConstants.MODEL_EDIT.getResourcePermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(modelHandler::rename);
 
         apiRoute.post("/model/folders/:folderId/modify-name")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.MODEL_EDIT)
+                                .addPermission(PermissionConstants.MODEL_EDIT.getResourcePermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(modelFolderHandler::rename);
 
         apiRoute.get("/model/folders/:folderId")
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.MODEL_READ)
+                                .addPermission(PermissionConstants.MODEL_READ.getResourcePermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(modelFolderHandler::get);
 
         apiRoute.delete("/model/folders/:folderId")
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.MODEL_DELETE)
+                                .addPermission(PermissionConstants.MODEL_DELETE.getResourcePermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(modelFolderHandler::delete);
 
         apiRoute.post("/model/folders/:folderId")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.MODEL_CREATE)
+                                .addPermission(PermissionConstants.MODEL_CREATE.getResourcePermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(modelFolderHandler::create);
 
         apiRoute.get("/model/folders/:folderId/subtree")
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.MODEL_READ)
+                                .addPermission(PermissionConstants.MODEL_READ.getResourcePermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(modelHandler::tree);
 
         apiRoute.get("/model/folders/:folderId/resources")
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.MODEL_READ)
+                                .addPermission(PermissionConstants.MODEL_READ.getResourcePermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(modelHandler::list);
 
         apiRoute.post("/model/folders/:folderId/resources")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.MODEL_CREATE)
+                                .addPermission(PermissionConstants.MODEL_CREATE.getResourcePermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(modelHandler::create);
 
         apiRoute.get("/model/permissions/:userId")

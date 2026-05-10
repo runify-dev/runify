@@ -31,7 +31,8 @@
       <Column expander style="width: 5rem"></Column>
       <Column field="name" header="数据源名称"></Column>
       <Column field="desc" header="数据源描述"></Column>
-      <Column field="protocol" header="数据源协议"></Column>
+      <Column field="dataSourceType" header="数据源类型"></Column>
+      <Column field="provider" header="供应商"></Column>
       <Column field="operate" header="操作">
         <template #body="scope">
           <Button
@@ -85,7 +86,7 @@ const query = ref<QueryPageDatabaseCollectionPoolVO>({
   currentPage: 1,
   pageSize: 10,
   name: '',
-  protocol: '',
+  provider: '',
   desc: ''
 })
 const openEditDatabaseCollectionPollDialog = (data: any) => {

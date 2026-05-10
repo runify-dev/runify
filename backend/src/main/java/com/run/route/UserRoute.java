@@ -1,7 +1,10 @@
 package com.run.route;
 
 
+import com.run.auth.AggregatePermission;
+import com.run.auth.Authenticator;
 import com.run.auth.TokenBasicAuthHandler;
+import com.run.auth.constants.PermissionConstants;
 import com.run.common.openapi.CommonOpenAPI;
 import com.run.common.route.IRoute;
 import com.run.handler.user.IUserHandler;
@@ -52,14 +55,35 @@ public class UserRoute implements IRoute {
 
         apiRoute.post("/user").handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.USER_MANAGEMENT_CREATE)
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(iUserHandler::createUser);
         apiRoute.delete("/user/:id")
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.USER_MANAGEMENT_DELETE)
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(iUserHandler::deleteUser);
 
         apiRoute.put("/user/:id")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.USER_MANAGEMENT_EDIT)
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(iUserHandler::updateUser);
 
         apiRoute.post("/login")
@@ -72,6 +96,13 @@ public class UserRoute implements IRoute {
 
         apiRoute.get("/user")
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.USER_MANAGEMENT_READ)
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(iUserHandler::query);
     }
 

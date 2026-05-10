@@ -71,10 +71,19 @@ export const javaScriptNode = {
     isHovered: false,
     field_list: [
       {
-        label: '回答',
-        value: 'content'
+        label: '结果',
+        value: 'result'
       }
-    ]
+    ],
+    nodeData: {
+      mode: 'script',
+      codeLocation: 'customize',
+      codeReference: [],
+      functionName: '',
+      code: '',
+      allowIO: false,
+      parameters: []
+    }
   }
 }
 
@@ -89,7 +98,82 @@ export const databaseSearchNode = {
     height: 50,
     name: '数据库检索',
     isHovered: false,
-    field_list: []
+    field_list: [],
+    nodeData: {
+      poolId: '',
+      location: 'customize',
+      reference: [],
+      template: '',
+      parameters: []
+    }
+  }
+}
+
+export const databaseInsertNode = {
+  type: 'database-insert-node',
+  text: '',
+  x: 0,
+  y: 0,
+  label: '数据库插入',
+  properties: {
+    width: 200,
+    height: 50,
+    name: '数据库插入',
+    isHovered: false,
+    field_list: [],
+    nodeData: {
+      poolId: '',
+      location: 'customize',
+      reference: [],
+      template: '',
+      parameters: []
+    }
+  }
+}
+
+export const cacheQueryNode = {
+  type: 'cache-query-node',
+  text: '',
+  x: 0,
+  y: 0,
+  label: '缓存查询',
+  properties: {
+    width: 200,
+    height: 50,
+    name: '缓存查询',
+    isHovered: false,
+    field_list: [{ label: '结果', value: 'result' }],
+    nodeData: {
+      cacheId: '',
+      keyLocation: 'customize',
+      keyReference: [],
+      key: ''
+    }
+  }
+}
+
+export const cacheWriteNode = {
+  type: 'cache-write-node',
+  text: '',
+  x: 0,
+  y: 0,
+  label: '缓存写入',
+  properties: {
+    width: 200,
+    height: 50,
+    name: '缓存写入',
+    isHovered: false,
+    field_list: [{ label: '成功', value: 'success' }],
+    nodeData: {
+      cacheId: '',
+      keyLocation: 'customize',
+      keyReference: [],
+      key: '',
+      valueLocation: 'customize',
+      valueReference: [],
+      value: '',
+      ttl: null
+    }
   }
 }
 

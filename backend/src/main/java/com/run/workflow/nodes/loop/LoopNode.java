@@ -145,6 +145,11 @@ public class LoopNode extends INode<LoopNode, LoopNodeData> {
                                 return;
                             }
                         }
+                        if (content instanceof FailureContent failureContent) {
+                            isBreak.set(true);
+                            node.end(NodeStatus.FAIL);
+                            return;
+                        }
                         if (content instanceof ApprovalContent approvalContent) {
                             isBreak.set(true);
                             node.end(NodeStatus.SUCCESS);

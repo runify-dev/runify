@@ -1,15 +1,15 @@
 package com.run.common.project;
 
-import com.run.common.constants.DatabaseConnectionProtocolConstants;
 import com.run.common.constants.ProcessorProtocolConstants;
 import com.run.common.keyvalue.DefaultKeyValue;
 import com.run.common.project.executor.HttpProcessorExecutor;
 import com.run.common.project.executor.ProcessorExecutor;
-import com.run.common.project.pool.PostgreSQL;
-import com.run.dao.entity.DatabaseConnectionPool;
+import com.run.datasources.DatasourceProviderConstants;
+import com.run.datasources.SqlProvider;
+import com.run.dao.entity.Datasource;
 import com.run.dao.entity.Processor;
 import com.run.dao.entity.Project;
-import com.run.dao.mapper.DatabaseConnectionPoolMapper;
+import com.run.dao.mapper.DatasourceMapper;
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.Router;
 import io.vertx.sqlclient.Pool;
@@ -28,14 +28,13 @@ import static com.run.sql.DSL.field;
 public class ProjectManage {
     private static Router mainRouter;
     private static Vertx vertx;
-    private static DatabaseConnectionPoolMapper databaseConnectionPoolMapper;
+    private static DatasourceMapper datasourceMapper;
     private static Supplier<Router> getChildRouter;
     private static final Map<ProcessorProtocolConstants, BiFunction<Processor, ProjectExecutor, ProcessorExecutor>> processorExecutorNewInstanceMap = Map.of(ProcessorProtocolConstants.HTTP, HttpProcessorExecutor::new);
-    private static final Map<DatabaseConnectionProtocolConstants, BiFunction<DatabaseConnectionPool, Vertx, Pool>> poolNewInstance = Map.of(DatabaseConnectionProtocolConstants.POSTGRESQL, PostgreSQL::toPool);
     private static final ConcurrentMap<UUID, ProjectExecutor> processorMap = new ConcurrentHashMap<>();
 
-    public static void setDatabaseConnectionPoolMapper(DatabaseConnectionPoolMapper databaseConnectionPoolMapper) {
-        ProjectManage.databaseConnectionPoolMapper = databaseConnectionPoolMapper;
+    public static void setDatasourceMapper(DatasourceMapper datasourceMapper) {
+        ProjectManage.datasourceMapper = datasourceMapper;
     }
 
     public static void setRouter(Router router) {
@@ -55,7 +54,7 @@ public class ProjectManage {
         return projectExecutor.generateProcessorExecutor(processor.getId(), processor);
     }
 
-    public static Boolean updatePool(UUID projectId, DatabaseConnectionPool pool) {
+    public static Boolean updatePool(UUID projectId, Datasource pool) {
         ProjectExecutor projectExecutor = processorMap.get(projectId);
         if (projectExecutor == null) {
             return Boolean.FALSE;
@@ -92,8 +91,9 @@ public class ProjectManage {
         private final ConcurrentMap<String, Pool> pools = new ConcurrentHashMap<>();
         private final ConcurrentMap<UUID, ProcessorExecutor> processorMap = new ConcurrentHashMap<>();
 
-        public Boolean updatePool(DatabaseConnectionPool pool) {
-            Pool p = poolNewInstance.get(pool.getProtocol()).apply(pool, vertx);
+        public Boolean updatePool(Datasource pool) {
+            SqlProvider provider = (SqlProvider) pool.getProvider().getProvider();
+            Pool p = provider.createPool(pool, vertx);
             pools.put(pool.getId().toString(), p);
             return Boolean.TRUE;
         }
@@ -104,15 +104,6 @@ public class ProjectManage {
             String path = this.project.getPath() + "/*";
             this.router = getChildRouter.get();
             mainRouter.route(path).subRouter(this.router);
-            databaseConnectionPoolMapper
-                    .search(field(DatabaseConnectionPool::getProjectId).eq(this.project.getId().toString()),
-                            Map.of())
-                    .onSuccess(poolList -> {
-                        Map<String, Pool> collect = poolList.stream()
-                                .map(databaseConnectionPool -> new DefaultKeyValue<>(databaseConnectionPool.getId().toString(), poolNewInstance.get(databaseConnectionPool.getProtocol()).apply(databaseConnectionPool, vertx)))
-                                .collect(Collectors.toMap(DefaultKeyValue::getKey, DefaultKeyValue::getValue));
-                        pools.putAll(collect);
-                    });
         }
 
         public ProcessorExecutor generateProcessorExecutor(UUID processorId, Processor processor) {

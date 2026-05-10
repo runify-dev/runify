@@ -55,17 +55,17 @@
                   </div>
 
                   <div class="min-w-0">
-                    <CascadeSelect
-                      :modelValue="findOptionByPath(options, condition.variable)"
+                    <Cascader
+                      :config="{ labelKey: 'label', valueKey: 'value' }"
                       :options="options"
-                      :optionGroupChildren="optionGroupChildren"
+                      :model-value="condition.variable"
+                      @update:model-value="(v) => condition.variable = v"
                       optionLabel="label"
-                      optionGroupLabel="label"
+                      optionGroupChildren="children"
                       placeholder="请选择"
                       size="small"
                       class="variable-select w-full"
                       :class="{ 'p-invalid': showError(condition, 'variable') }"
-                      @update:modelValue="(value) => onVariableChange(condition, value)"
                     />
 
                     <div
@@ -95,20 +95,18 @@
                         :class="{ 'p-invalid': showError(condition, 'value') }"
                       />
 
-                      <CascadeSelect
+                      <Cascader
                         v-else
-                        :modelValue="
-                          findOptionByPath(options, parseVariableExpression(condition.value))
-                        "
+                        :config="{ labelKey: 'label', valueKey: 'value' }"
                         :options="options"
-                        :optionGroupChildren="optionGroupChildren"
+                        :model-value="parseVariableExpression(condition.value)"
+                        @update:model-value="(v) => onValueVariableChange(condition, v)"
                         optionLabel="label"
-                        optionGroupLabel="label"
+                        optionGroupChildren="children"
                         placeholder="请选择变量"
                         size="small"
                         class="value-input min-w-0 flex-1"
                         :class="{ 'p-invalid': showError(condition, 'value') }"
-                        @update:modelValue="(value) => onValueVariableChange(condition, value)"
                       />
                     </div>
 
@@ -166,7 +164,7 @@ import cloneDeep from 'lodash/cloneDeep'
 import Button from 'primevue/button'
 import Select from 'primevue/select'
 import InputText from 'primevue/inputtext'
-import CascadeSelect from 'primevue/cascadeselect'
+import Cascader from '@/components/cascader/index.vue'
 
 import {
   type BranchLogic,
@@ -174,12 +172,9 @@ import {
   type FormErrors,
   type JudgeCondition,
   type ValueMode,
-  buildOptionGroupChildren,
   compareOptions,
   createCondition,
   createFormResult,
-  findOptionByPath,
-  getCascaderOptionPath,
   getConditionErrors,
   logicOptions,
   needRightValue,
@@ -197,10 +192,6 @@ const getNodeFieldOptions = inject('getNodeFieldOptions') as () => CascaderOptio
 const options = computed<CascaderOption[]>(() => {
   const result = getNodeFieldOptions?.()
   return Array.isArray(result) ? result : []
-})
-
-const optionGroupChildren = computed(() => {
-  return buildOptionGroupChildren(options.value)
 })
 
 const conditions = ref<JudgeCondition[]>([])
@@ -235,8 +226,8 @@ function removeCondition(conditionId: string) {
   conditions.value = conditions.value.filter((item) => item.id !== conditionId)
 }
 
-function onVariableChange(condition: JudgeCondition, value: unknown) {
-  condition.variable = getCascaderOptionPath(options.value, value)
+function onVariableChange(condition: JudgeCondition, value: string[]) {
+  condition.variable = value
 }
 
 function onCompareChange(condition: JudgeCondition) {
@@ -250,13 +241,12 @@ function onValueModeChange(condition: JudgeCondition, mode: ValueMode) {
   condition.value = ''
 }
 
-function onValueVariableChange(condition: JudgeCondition, value: unknown) {
-  const path = getCascaderOptionPath(options.value, value)
-  if (!path.length) {
+function onValueVariableChange(condition: JudgeCondition, value: string[]) {
+  if (!value.length) {
     condition.value = ''
     return
   }
-  condition.value = `\${${path.join('.')}}`
+  condition.value = `\${${value.join('.')}}`
 }
 
 function getValueMode(condition: JudgeCondition): ValueMode {

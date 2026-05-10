@@ -1,135 +1,91 @@
 <template>
-  <Form ref="formRef" @submit.stop class="flex flex-col gap-4" v-slot="$form">
-    <slot v-bind="$form"></slot>
+  <div class="flex flex-col gap-4">
+    <slot v-bind="formValue"></slot>
     <template v-for="item in formFieldList" :key="item.field">
       <FormFieldItem
-        ref="formFieldRef"
-        :key="item.field"
         v-if="show(item)"
         :formField="item"
-        :form-field-list="formFieldList"
-        :otherParams="otherParams"
-        :form="$form"
-      >
-      </FormFieldItem>
+        :formFieldList="formFieldList"
+        :formValue="formValue"
+        @change="onChange"
+      />
     </template>
     <slot name="after" v-bind="formValue"></slot>
-  </Form>
+  </div>
 </template>
 <script lang="ts" setup>
-import type { Dict } from '@/api/type/common'
 import FormFieldItem from './form-field-item/index.vue'
 import type { FormField } from './type'
-import { nextTick, ref } from 'vue'
-import { Form, type FormInstance } from '@primevue/forms'
-import type Result from '@/request/Result'
+import { ref, nextTick } from 'vue'
 import _ from 'lodash'
 
 defineOptions({ name: 'dynamicsFormPlus' })
-withDefaults(
+
+const props = withDefaults(
   defineProps<{
-    // 其他参数
-    otherParams?: any
+    modelValue?: Record<string, any>
   }>(),
-  { otherParams: () => ({}) }
+  { modelValue: () => ({}) }
 )
+
 const emit = defineEmits(['update:modelValue'])
-const formValue = ref<Dict<any>>({})
 
-const loading = ref<boolean>(false)
+const formValue = ref<Record<string, any>>({ ...props.modelValue })
+const formFieldList = ref<FormField[]>([])
+const formFieldItemRefs = ref<InstanceType<typeof FormFieldItem>[]>([])
 
-const formFieldList = ref<Array<FormField>>([])
-
-const formRef = ref<FormInstance>()
-
-const formFieldRef = ref<Array<InstanceType<typeof FormFieldItem>>>([])
-/**
- * 当前 field是否展示
- * @param field
- */
 const show = (field: FormField) => {
   if (field.relationShowFieldDict) {
     const keys = Object.keys(field.relationShowFieldDict)
-    for (const index in keys) {
-      const key = keys[index]
+    for (const key of keys) {
       const v = _.get(formValue.value, key)
-      if (v && v !== undefined && v !== null) {
+      if (v !== undefined && v !== null) {
         const values = field.relationShowFieldDict[key]
         if (values && values.length > 0) {
           return values.includes(v)
-        } else {
-          return true
         }
-      } else {
-        return false
+        return true
       }
+      return false
     }
   }
   return true
 }
 
-/**
- * 表单字段修改
- * @param field
- * @param value
- */
-const change = (field: FormField, value: any) => {
-  formValue.value[field.field] = value
-  emit('update:modelValue', formValue.value)
+const setFieldValue = (field: string, value: any) => {
+  formValue.value[field] = value
+  emit('update:modelValue', { ...formValue.value })
 }
 
-const render = (
-  render_data: string | Array<FormField> | Promise<Result<Array<FormField>>>,
-  data?: Dict<any>
-) => {
-  if (render_data instanceof Array) {
-    formFieldList.value = render_data
-  }
-  data = data ? data : {}
+const onChange = (field: string, value: any) => {
+  setFieldValue(field, value)
+}
 
+const render = (fields: FormField[], data?: Record<string, any>) => {
+  formFieldList.value = fields
+  data = data || {}
   nextTick(() => {
-    formFieldList.value.forEach((item: any) => {
-      const _v = _.get(data, item.field)
-      if (_v !== undefined) {
-        if (item.valueField && item.optionList && item.optionList.length > 0) {
-          const value_field = item.valueField
-          const find = item.optionList?.find((i: any) => {
-            if (typeof data[item.field] === 'string') {
-              return i[value_field] === data[item.field]
-            } else {
-              return data[item.field].indexOf([value_field]) === -1
-            }
-          })
-          if (find) {
-            formRef.value?.setFieldValue(item.field, find)
-          }
-        } else {
-          formRef.value?.setFieldValue(item.field, _v)
-        }
-      } else {
-        if (item.showDefaultValue === true && item.showDefaultValue) {
-          formRef.value?.setFieldValue(item.field, item.defaultValue)
-        }
+    fields.forEach((item) => {
+      const v = _.get(data, item.field)
+      if (v !== undefined) {
+        formValue.value[item.field] = v
+      } else if (item.showDefaultValue && item.defaultValue !== undefined) {
+        formValue.value[item.field] = item.defaultValue
       }
     })
+    emit('update:modelValue', { ...formValue.value })
   })
 }
-/**
- * 校验函数
- */
-const validate = () => {
-  return Promise.all([
-    ...formFieldRef.value.map((item: any) => item.validate()),
-    formRef.value ? formRef.value.validate() : Promise.resolve()
-  ])
+
+const validate = (): { values: Record<string, any>; errors: Record<string, string> } => {
+  const errors: Record<string, string> = {}
+  formFieldItemRefs.value.forEach((item) => {
+    const fieldErrors = item.validate()
+    Object.assign(errors, fieldErrors)
+  })
+  return { values: { ...formValue.value }, errors }
 }
 
-// 暴露获取当前表单数据函数
-defineExpose({
-  validate,
-  render,
-  formRef
-})
+defineExpose({ validate, render, formValue, setFieldValue })
 </script>
-
 <style lang="scss"></style>

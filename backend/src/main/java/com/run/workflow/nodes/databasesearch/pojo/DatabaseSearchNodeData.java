@@ -3,6 +3,7 @@ package com.run.workflow.nodes.databasesearch.pojo;
 import lombok.Data;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * {@code @Author:张少虎}
@@ -12,7 +13,12 @@ import java.util.List;
  */
 @Data
 public class DatabaseSearchNodeData {
-    private List<String> pool;
+    private UUID poolId;
+    /**
+     * reference / customize
+     */
+    private String location;
+    private List<String> reference;
     private String template;
     private List<Parameter> parameters;
 

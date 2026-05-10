@@ -127,6 +127,12 @@ const items = ref([
     icon: 'pi pi-search',
     name: 'project',
     permissions: [PermissionConstants.PROJECT_READ, Role.ADMIN, Role.USER]
+  },
+  {
+    label: '数据源',
+    icon: 'pi pi-database',
+    name: 'datasource',
+    permissions: [PermissionConstants.PROJECT_READ, Role.ADMIN, Role.USER]
   }
 ])
 const menus = computed(() => {

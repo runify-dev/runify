@@ -33,6 +33,14 @@ public enum PermissionConstants {
     MODEL_DELETE(new Permission(Group.MODEL, Group.MODEL, Operate.DELETE, 2), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
     MODEL_CREATE(new Permission(Group.MODEL, Group.MODEL, Operate.CREATE, 3), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
 
+    DATASOURCE_READ(new Permission(Group.DATASOURCE, Group.DATASOURCE, Operate.READ, 0), List.of(ResourcePermissionGroup.VIEW, ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    DATASOURCE_EDIT(new Permission(Group.DATASOURCE, Group.DATASOURCE, Operate.EDIT, 1), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    DATASOURCE_DELETE(new Permission(Group.DATASOURCE, Group.DATASOURCE, Operate.DELETE, 2), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    DATASOURCE_CREATE(new Permission(Group.DATASOURCE, Group.DATASOURCE, Operate.CREATE, 3), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    DATASOURCE_FOLDER_EDIT(new Permission(Group.DATASOURCE, Group.FOLDER, Operate.EDIT, 4), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    DATASOURCE_FOLDER_DELETE(new Permission(Group.DATASOURCE, Group.FOLDER, Operate.DELETE, 5), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    DATASOURCE_FOLDER_CREATE(new Permission(Group.DATASOURCE, Group.FOLDER, Operate.CREATE, 6), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+
     PROJECT_READ(new Permission(Group.PROJECT, Group.PROJECT, Operate.READ, 0), List.of(ResourcePermissionGroup.VIEW, ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
     PROJECT_EDIT(new Permission(Group.PROJECT, Group.PROJECT, Operate.EDIT, 1), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
     PROJECT_DELETE(new Permission(Group.PROJECT, Group.PROJECT, Operate.DELETE, 2), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
@@ -64,6 +72,7 @@ public enum PermissionConstants {
         NOTE,
         PROJECT,
         MODEL,
+        DATASOURCE,
         USER_MANAGEMENT,
         ROLE_MANAGEMENT,
         /*--------下面是子菜单 -------------------- */

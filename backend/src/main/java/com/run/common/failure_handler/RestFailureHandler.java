@@ -1,5 +1,6 @@
 package com.run.common.failure_handler;
 
+import com.run.common.apispec.ValidationException;
 import com.run.common.exception.ApiException;
 import com.run.common.exception.ForbiddenException;
 import com.run.common.exception.NotFoundException;
@@ -35,6 +36,9 @@ public class RestFailureHandler implements Handler<RoutingContext> {
         } else if (failure instanceof NotFoundException notFoundException) {
             context.response().setStatusCode(notFoundException.getCode());
             context.end(Result.error(notFoundException.code, failure.getMessage()).toBuffer());
+        } else if (failure instanceof ValidationException validationException) {
+            context.response().setStatusCode(validationException.getCode());
+            context.end(validationException.toResponse().toBuffer());
         } else if (failure instanceof ApiException apiException) {
             context.end(Result.error(apiException.code, failure.getMessage()).toBuffer());
         } else {

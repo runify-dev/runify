@@ -1,6 +1,9 @@
 package com.run.route;
 
+import com.run.auth.AggregatePermission;
+import com.run.auth.Authenticator;
 import com.run.auth.TokenBasicAuthHandler;
+import com.run.auth.constants.PermissionConstants;
 import com.run.common.route.IRoute;
 import com.run.handler.role.IRoleHandler;
 import com.run.handler.role.impl.RoleHandlerImpl;
@@ -36,39 +39,95 @@ public class RoleRoute implements IRoute {
     public void initRoute() {
         apiRoute.get("/role")
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.ROLE_MANAGEMENT_READ)
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(roleHandler::query);
 
         apiRoute.delete("/role/:roleId")
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.ROLE_MANAGEMENT_DELETE)
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(roleHandler::delete);
 
         apiRoute.post("/role")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.ROLE_MANAGEMENT_CREATE)
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(roleHandler::create);
 
         apiRoute.post("/role/:roleId/user")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.ROLE_MANAGEMENT_EDIT)
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(roleHandler::addUser);
 
         apiRoute.delete("/role/:roleId/user")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.ROLE_MANAGEMENT_EDIT)
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(roleHandler::removeUser);
 
 
         apiRoute.get("/role/:roleId/user")
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.ROLE_MANAGEMENT_READ)
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(roleHandler::users);
 
         apiRoute.get("/role/:roleId/permissions")
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.ROLE_MANAGEMENT_READ)
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(roleHandler::permissions);
 
         apiRoute.post("/role/:roleId/permissions")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.ROLE_MANAGEMENT_EDIT)
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(roleHandler::modifyPermissions);
     }
 

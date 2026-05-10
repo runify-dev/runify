@@ -15,10 +15,8 @@ import type { FormField } from '@/components/dynamics-form-plus/type'
 
 const props = defineProps<{
   formField: FormField
-  otherParams: any
   formFieldList: Array<FormField>
-  field: any
-  form: any
+  formValue: Record<string, any>
 }>()
 
 const label = computed(() => props.formField.label?.value ?? props.formField.label ?? '')

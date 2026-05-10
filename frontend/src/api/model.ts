@@ -26,7 +26,6 @@ const listModelType: (
 }
 
 const edit: (
-  folderId: string,
   resourceId: string,
   model: any,
   loading?: Ref<boolean>

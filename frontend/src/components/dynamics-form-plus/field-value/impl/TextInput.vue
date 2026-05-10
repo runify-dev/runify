@@ -1,25 +1,19 @@
 <template>
-  <InputText :name="field" />
+  <InputText :modelValue="val" @update:modelValue="onUpdate" />
 </template>
 <script setup lang="ts">
-import InputText from 'primevue/inputtext'
 import { computed } from 'vue'
 import type { FormField } from '@/components/dynamics-form-plus/type'
-const props = defineProps<{
-  // 表单Item
-  formField: FormField
-  // 其他参数
-  otherParams: any
-  // 所有字段
-  formFieldList: Array<FormField>
-  // FormField v-slot="$field"
-  field: any
-  // Form v-slot="$form"
-  form: any
-}>()
 
-const field = computed(() => {
-  return props.formField.field
-})
+const props = defineProps<{
+  formField: FormField
+  formFieldList: Array<FormField>
+  formValue: Record<string, any>
+}>()
+const emit = defineEmits(['change'])
+
+const field = computed(() => props.formField.field)
+const val = computed(() => props.formValue[field.value])
+const onUpdate = (v: any) => emit('change', field.value, v)
 </script>
-<style lang="scss"></style>
+<style lang="scss" scoped></style>

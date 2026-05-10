@@ -21,10 +21,7 @@ import org.apache.commons.lang3.Strings;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -155,23 +152,23 @@ public class WorkFlowManage {
         }
     }
 
-    public void nextFailInvoke(INode<?, ?> upINode) {
+    public void nextFailInvoke(INode<?, ?> upINode, Throwable throwable) {
         String id = upINode.node.getId();
         List<DefaultKeyValue<Edge, Node>> nextList = getNextList(id);
         Boolean errorCaptureEnabled = upINode.node.getProperties().getBoolean("errorCaptureEnabled");
         Supplier<List<Node>> handle;
-        if (errorCaptureEnabled) {
+        if (errorCaptureEnabled != null && errorCaptureEnabled) {
             handle = () -> nextList.stream().filter(edgeNodeDefaultKeyValue -> {
                         Edge edge = edgeNodeDefaultKeyValue.getKey();
                         return Strings.CS.equals(edge.getSourceNodeId() + "_right" + "_main" + "_fail", edge.getString("sourceAnchorId"));
                     })
                     .map(DefaultKeyValue::getValue)
                     .toList();
+            nextInvoke(upINode, handle);
         } else {
-            handle = ArrayList::new;
+            write(upINode, new FailureContent(throwable.getMessage(), upINode, (String) this.params.get("workflowRunId"), UUID.randomUUID().toString()));
+            this.assertionEnd();
         }
-
-        nextInvoke(upINode, handle);
     }
 
     /**

@@ -2,10 +2,9 @@
   <component
     :is="impl[type]"
     :formField="formField"
-    :otherParams="otherParams"
     :formFieldList="formFieldList"
-    :field="field"
-    :form="form"
+    :formValue="formValue"
+    @change="(field: string, value: any) => emit('change', field, value)"
   ></component>
 </template>
 <script setup lang="ts">
@@ -20,17 +19,11 @@ const impl: Record<string, any> = Object.fromEntries(
   ).map(([path, module]) => [path.replace(/^.*\/(.+)\.vue$/, '$1'), module.default])
 )
 const props = defineProps<{
-  // 表单Item
   formField: FormField
-  // 其他参数
-  otherParams: any
-  // 所有字段
   formFieldList: Array<FormField>
-  // FormField v-slot="$field"
-  field: any
-  // Form v-slot="$form"
-  form: any
+  formValue: Record<string, any>
 }>()
+const emit = defineEmits(['change'])
 const type: any = computed(() => {
   return props.formField.type
 })

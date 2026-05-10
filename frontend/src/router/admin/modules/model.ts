@@ -46,18 +46,6 @@ const modelRouter = {
         }
       },
       component: () => import('@/views/model/Details.vue')
-    },
-    {
-      path: 'resources/:id/edit',
-      name: 'modelEdit',
-      meta: {
-        title: 'common.fileUpload.document',
-        activeMenu: 'model',
-        permission: (to: any) => {
-          return [buildBaseResourcePermission(PermissionConstants.MODEL_EDIT, String(to.params.id))]
-        }
-      },
-      component: () => import('@/views/model/Edit.vue')
     }
   ]
 }

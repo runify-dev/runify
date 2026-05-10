@@ -213,13 +213,7 @@ const isFlipped = ref<boolean>(
   )
 )
 const items = ref([
-  {
-    name: 'databaseCollectionPool',
-    label: '数据库连接池',
-    icon: 'pi pi-fw pi-objects-column p-1',
-    shortcut: '',
-    activeNames: ['databaseCollectionPool']
-  },
+
   {
     name: 'projectProcessor',
     label: '处理器',
@@ -261,7 +255,7 @@ const nodeSelect = (treeNode?: TreeNode) => {
   } else {
     flipCardRef.value?.flip()
     if (!['projectPublic', 'projectProcessor'].includes(route.name as string)) {
-      router.push({ name: 'databaseCollectionPool', params: { id: treeNode.key } })
+      router.push({ name: 'projectProcessor', params: { id: treeNode.key } })
     } else {
       router.push({ name: route.name, params: { id: treeNode.key } })
     }

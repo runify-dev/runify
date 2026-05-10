@@ -2,10 +2,8 @@
   <component
     :is="impl[type]"
     :formField="formField"
-    :otherParams="otherParams"
     :formFieldList="formFieldList"
-    :field="field"
-    :form="field"
+    :formValue="formValue"
   ></component>
 </template>
 <script setup lang="ts">
@@ -20,20 +18,13 @@ const impl: Record<string, any> = Object.fromEntries(
   ).map(([path, module]) => [path.replace(/^.*\/(.+)\.vue$/, '$1'), module.default])
 )
 const props = defineProps<{
-  // 表单Item
   formField: FormField
-  // 其他参数
-  otherParams: any
-  // 所有字段
   formFieldList: Array<FormField>
-  // FormField v-slot="$field"
-  field: any
-  // Form v-slot="$form"
-  form: any
+  formValue: Record<string, any>
 }>()
 
 const type: any = computed(() => {
-  return props.formField.label.type
+  return props.formField.label?.type || 'TextLabel'
 })
 </script>
 <style lang="scss"></style>

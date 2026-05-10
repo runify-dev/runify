@@ -5,11 +5,11 @@
       :key="item[valueField]"
       class="border rounded-lg p-3 cursor-pointer transition-all text-center text-sm"
       :class="
-        field?.value === item[valueField]
+        val === item[valueField]
           ? 'border-primary-color text-primary-color'
           : 'border-surface-border text-color hover:border-primary-color'
       "
-      @click="select(item[valueField])"
+      @click="onUpdate(item[valueField])"
     >
       {{ item[labelField] }}
     </div>
@@ -21,18 +21,16 @@ import type { FormField } from '@/components/dynamics-form-plus/type'
 
 const props = defineProps<{
   formField: FormField
-  otherParams: any
   formFieldList: Array<FormField>
-  field: any
-  form: any
+  formValue: Record<string, any>
 }>()
+const emit = defineEmits(['change'])
 
+const field = computed(() => props.formField.field)
+const val = computed(() => props.formValue[field.value])
 const labelField = computed(() => props.formField.labelField || 'label')
 const valueField = computed(() => props.formField.valueField || 'value')
 const optionList = computed(() => props.formField.optionList || [])
-
-const select = (value: any) => {
-  props.form?.setFieldValue(props.formField.field, value)
-}
+const onUpdate = (v: any) => emit('change', field.value, v)
 </script>
 <style lang="scss" scoped></style>

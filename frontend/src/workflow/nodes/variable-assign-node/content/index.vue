@@ -179,12 +179,12 @@ const validate = () => {
 }
 
 const submit = () => {
-  return validate().then(({ values, errors }) => {
+  return validate().then(({ errors }) => {
     if (Object.keys(errors).length === 0) {
       model.properties.nodeData = { variables: variables.value }
-      return Promise.resolve({ variables: variables.value })
+      return {} as Record<string, string>
     }
-    return Promise.resolve(errors)
+    return errors
   })
 }
 

@@ -1,23 +1,32 @@
 package com.run.workflow.nodes.databasesearch;
 
 
+import com.run.RunApplication;
 import com.run.common.keyvalue.DefaultKeyValue;
 import com.run.common.util.CommonUtils;
+import com.run.dao.mapper.DatasourceMapper;
+import com.run.dao.mapper.ModelMapper;
+import com.run.datasources.DataSourceManage;
+import com.run.datasources.SimpleCache;
 import com.run.workflow.*;
 import com.run.workflow.entity.Node;
 import com.run.workflow.entity.NodeResult;
 import com.run.workflow.message.struct.FailureContent;
 import com.run.workflow.nodes.databasesearch.pojo.DatabaseSearchNodeData;
+import io.vertx.core.Future;
+import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.Pool;
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.templates.SqlTemplate;
 import jakarta.validation.Validator;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
@@ -52,35 +61,67 @@ public class DatabaseSearchNode extends INode<DatabaseSearchNode, DatabaseSearch
         @Override
         public Supplier<List<Node>> apply(WorkFlowManage workFlowManage, DatabaseSearchNode node) {
             DatabaseSearchNodeData databaseSearchNodeData = node.params;
-            Pool pool = (Pool) workFlowManage.getContextVariable(databaseSearchNodeData.getPool());
-            HashMap<String, Object> params = new HashMap<>();
-            for (DatabaseSearchNodeData.Parameter parameter : databaseSearchNodeData.getParameters()) {
-                String location = parameter.getLocation();
-                if (Strings.CS.equals(location, "reference")) {
-                    List<String> reference = (List<String>) parameter.getValue();
-                    params.put(parameter.getField(), workFlowManage.getContextVariable(reference));
-                } else {
-                    params.put(parameter.getField(), parameter.getValue());
-                }
-            }
-            SqlTemplate.forQuery(pool, databaseSearchNodeData.getTemplate())
-                    .execute(params).onSuccess(ok -> {
-                        List<Map<String, Object>> result = ok.stream().map(Row::toJson).map(JsonObject::getMap).toList();
-                        workFlowManage.writeContext(node, "result", result);
-                        node.status = NodeStatus.SUCCESS;
-                        workFlowManage.nextInvoke(node, () -> workFlowManage
-                                .getNextList(node.node.getId())
-                                .stream()
-                                .map(DefaultKeyValue::getValue)
-                                .toList());
-                    }).onFailure(e -> {
-                        node.status = NodeStatus.FAIL;
+            UUID poolId = databaseSearchNodeData.getPoolId();
+            DatasourceMapper datasourceMapper = RunApplication.appComponent.dataSourceMapper();
+            Vertx vertx = RunApplication.appComponent.vertx();
+            Future<Pool> cacheAsync = DataSourceManage.getPoolAsync(poolId, (uuid, dm) -> dm.getById(uuid.toString()), datasourceMapper, vertx);
+            cacheAsync.onSuccess(pool -> {
 
-                        workFlowManage.write(node, new FailureContent(e.getMessage(), node,
-                                (String) workFlowManage.getParams().get("workflowRunId"),
-                                CommonUtils.uuid7().toString()));
-                        workFlowManage.end();
-                    });
+                HashMap<String, Object> params = new HashMap<>();
+                for (DatabaseSearchNodeData.Parameter parameter : databaseSearchNodeData.getParameters()) {
+                    String location = parameter.getLocation();
+                    if (Strings.CS.equals(location, "reference")) {
+                        List<String> reference = (List<String>) parameter.getValue();
+                        params.put(parameter.getField(), workFlowManage.getContextVariable(reference));
+                    } else {
+                        params.put(parameter.getField(), parameter.getValue());
+                    }
+                }
+                // 解析SQL模板
+                String sql;
+                String location = databaseSearchNodeData.getLocation();
+                if (location == null) {
+                    location = "customize";
+                }
+                if (Strings.CS.equals(location, "reference")) {
+                    List<String> reference = databaseSearchNodeData.getReference();
+                    if (reference == null || reference.isEmpty()) {
+                        sql = "";
+                    } else {
+                        Object refValue = workFlowManage.getContextVariable(reference);
+                        sql = refValue != null ? refValue.toString() : "";
+                    }
+                } else {
+                    sql = databaseSearchNodeData.getTemplate();
+                    if (sql == null) {
+                        sql = "";
+                    }
+                }
+                if (StringUtils.isEmpty(sql)) {
+                    workFlowManage.nextFailInvoke(node, new RuntimeException("sql错误"));
+                    return;
+                }
+
+                SqlTemplate.forQuery(pool, sql)
+                        .execute(params).onSuccess(ok -> {
+                            List<Map<String, Object>> result = ok.stream().map(Row::toJson).map(JsonObject::getMap).toList();
+                            workFlowManage.writeContext(node, "result", result);
+                            node.status = NodeStatus.SUCCESS;
+                            workFlowManage.nextInvoke(node, () -> workFlowManage
+                                    .getNextList(node.node.getId())
+                                    .stream()
+                                    .map(DefaultKeyValue::getValue)
+                                    .toList());
+                        }).onFailure(e -> {
+                            node.status = NodeStatus.FAIL;
+
+                            workFlowManage.write(node, new FailureContent(e.getMessage(), node,
+                                    (String) workFlowManage.getParams().get("workflowRunId"),
+                                    CommonUtils.uuid7().toString()));
+                            workFlowManage.end();
+                        });
+
+            });
             return null;
         }
     }

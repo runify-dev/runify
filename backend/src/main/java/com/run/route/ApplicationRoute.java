@@ -60,7 +60,6 @@ public class ApplicationRoute implements IRoute {
                                 .addPermission(PermissionConstants.APPLICATION_EDIT)
                                 .addPermission(PermissionConstants.APPLICATION_EDIT.getResourcePermission())
                                 .compare(PermissionConstants.Compare.AND).build())
-                        .addRole(PermissionConstants.Role.USER)
                         .addRole(PermissionConstants.Role.ADMIN)
                         .compare(PermissionConstants.Compare.OR)
                         .build())

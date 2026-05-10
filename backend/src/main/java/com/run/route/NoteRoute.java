@@ -1,7 +1,10 @@
 package com.run.route;
 
 
+import com.run.auth.AggregatePermission;
+import com.run.auth.Authenticator;
 import com.run.auth.TokenBasicAuthHandler;
+import com.run.auth.constants.PermissionConstants;
 import com.run.common.openapi.CommonOpenAPI;
 import com.run.common.route.IRoute;
 import com.run.handler.note.INoteFolderHandler;
@@ -57,51 +60,139 @@ public class NoteRoute implements IRoute {
     public void initRoute() {
         apiRoute.get("/note/resources/:resourceId")
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.NOTE_READ)
+                                .addPermission(PermissionConstants.NOTE_READ.getResourcePermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(iNoteHandler::get);
 
         apiRoute.put("/note/resources/:resourceId")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.NOTE_EDIT)
+                                .addPermission(PermissionConstants.NOTE_EDIT.getResourcePermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(iNoteHandler::edit);
 
         apiRoute.delete("/note/resources/:resourceId")
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.NOTE_DELETE)
+                                .addPermission(PermissionConstants.NOTE_DELETE.getResourcePermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(iNoteHandler::delete);
 
         apiRoute.post("/note/resources/:resourceId/modify-name")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.NOTE_EDIT)
+                                .addPermission(PermissionConstants.NOTE_EDIT.getResourcePermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(iNoteHandler::rename);
 
         apiRoute.post("/note/folders/:folderId/modify-name")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.NOTE_EDIT)
+                                .addPermission(PermissionConstants.NOTE_EDIT.getResourcePermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(iNoteFolderHandler::rename);
 
         apiRoute.get("/note/folders/:folderId")
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.NOTE_READ)
+                                .addPermission(PermissionConstants.NOTE_READ.getResourcePermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(iNoteFolderHandler::get);
 
         apiRoute.delete("/note/folders/:folderId")
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.NOTE_DELETE)
+                                .addPermission(PermissionConstants.NOTE_DELETE.getResourcePermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(iNoteFolderHandler::delete);
 
         apiRoute.post("/note/folders/:folderId")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.NOTE_CREATE)
+                                .addPermission(PermissionConstants.NOTE_CREATE.getResourcePermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(iNoteFolderHandler::create);
 
         apiRoute.get("/note/folders/:folderId/subtree")
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.NOTE_READ)
+                                .addPermission(PermissionConstants.NOTE_READ.getResourcePermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(iNoteHandler::tree);
 
         apiRoute.get("/note/folders/:folderId/resources")
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.NOTE_READ)
+                                .addPermission(PermissionConstants.NOTE_READ.getResourcePermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(iNoteHandler::list);
 
         apiRoute.post("/note/folders/:folderId/resources")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.NOTE_CREATE)
+                                .addPermission(PermissionConstants.NOTE_CREATE.getResourcePermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(iNoteHandler::create);
 
         apiRoute.get("/note/permissions/:userId")

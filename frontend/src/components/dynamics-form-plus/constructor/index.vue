@@ -120,13 +120,13 @@ const getData = () => {
 
   if (states) {
     return {
-      label: { value: states.label.value, tooltip: states.tooltip.value, type: 'TooltipLabel' },
-      required: states.required.value,
-      field: states.field.value,
-      type: states.type.value,
-      defaultValue: states.defaultValue.value,
-      showDefaultValue: states.showDefaultValue.value,
-      ...componentFormRef.value.getData()
+      label: { value: states.label?.value, tooltip: states.tooltip?.value, type: 'TooltipLabel' },
+      required: states.required?.value,
+      field: states.field?.value,
+      type: states.type?.value,
+      defaultValue: states.defaultValue?.value,
+      showDefaultValue: states.showDefaultValue?.value,
+      ...componentFormRef.value?.getData?.()
     }
   }
   return {}

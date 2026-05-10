@@ -53,25 +53,25 @@ public class ToolNode extends INode<ToolNode, ToolNodeData> {
         public Supplier<List<Node>> apply(WorkFlowManage workFlowManage, ToolNode node) {
 
             ToolNodeData toolNodeData = node.params;
-            try (Context context = Context.newBuilder("js").allowHostAccess(HostAccess.EXPLICIT).build()) {
+            boolean ioEnabled = Boolean.TRUE.equals(toolNodeData.getAllowIO());
+            try (Context context = Context.newBuilder("js")
+                    .allowHostAccess(HostAccess.EXPLICIT)
+                    .allowAllAccess(ioEnabled)
+                    .allowCreateProcess(ioEnabled)
+                    .build()) {
                 context.getBindings("js").putMember("api", new CommonAPI());
-                context.eval("js", toolNodeData.getCode());
-                Value greetFunc = context.getBindings("js")
-                        .getMember(toolNodeData.getFunctionName());
-                Map<String, Object> input = new HashMap<>();
-                for (ToolNodeData.Parameter parameter : toolNodeData.getParameters()) {
-                    String location = parameter.getLocation();
-                    if (Strings.CS.equals(location, "reference")) {
-                        input.put(parameter.getField(), workFlowManage.getContextVariable((List<String>) parameter.getValue()));
-                    } else {
-                        input.put(parameter.getField(), parameter.getValue());
-                    }
+
+                String code = resolveCode(workFlowManage, toolNodeData);
+                boolean isScript = !"function".equals(toolNodeData.getMode());
+                Object result;
+
+                if (isScript) {
+                    result = executeScript(workFlowManage, toolNodeData, code, context);
+                } else {
+                    result = executeFunction(workFlowManage, toolNodeData, code, context);
                 }
-                String json = JacksonUtils.toJson(input);
-                Value param = context.eval("js", "(" + json + ")");
-                Value value = greetFunc.execute(param);
-                Object o = ConvertValueUtil.convertValue(value);
-                workFlowManage.writeContext(node, "result", o);
+
+                workFlowManage.writeContext(node, "result", result);
                 node.status = NodeStatus.SUCCESS;
             }
             return () -> workFlowManage
@@ -79,7 +79,61 @@ public class ToolNode extends INode<ToolNode, ToolNodeData> {
                     .stream()
                     .map(DefaultKeyValue::getValue)
                     .toList();
+        }
 
+        /**
+         * 解析代码: reference 从上下文取, customize 直接返回
+         */
+        private String resolveCode(WorkFlowManage workFlowManage, ToolNodeData toolNodeData) {
+            String location = toolNodeData.getCodeLocation();
+            if ("reference".equals(location)) {
+                if (toolNodeData.getCodeReference() != null && !toolNodeData.getCodeReference().isEmpty()) {
+                    Object val = workFlowManage.getContextVariable(toolNodeData.getCodeReference());
+                    return val != null ? val.toString() : null;
+                }
+                return null;
+            }
+            return toolNodeData.getCode();
+        }
+
+        /**
+         * 脚本模式: 参数注入为顶层变量, 代码直接执行
+         */
+        private Object executeScript(WorkFlowManage workFlowManage, ToolNodeData toolNodeData, String code, Context context) {
+            if (toolNodeData.getParameters() != null) {
+                for (ToolNodeData.Parameter parameter : toolNodeData.getParameters()) {
+                    Object value = resolveParameterValue(workFlowManage, parameter);
+                    context.getBindings("js").putMember(parameter.getField(), value);
+                }
+            }
+            Value result = context.eval("js", "(function(){" + code + "})()");
+            return ConvertValueUtil.convertValue(result);
+        }
+
+        /**
+         * 函数模式: 注册函数 -> 按名取函数 -> 传参调用
+         */
+        private Object executeFunction(WorkFlowManage workFlowManage, ToolNodeData toolNodeData, String code, Context context) {
+            context.eval("js", code);
+            Value func = context.getBindings("js").getMember(toolNodeData.getFunctionName());
+            Map<String, Object> input = new HashMap<>();
+            if (toolNodeData.getParameters() != null) {
+                for (ToolNodeData.Parameter parameter : toolNodeData.getParameters()) {
+                    input.put(parameter.getField(), resolveParameterValue(workFlowManage, parameter));
+                }
+            }
+            String json = JacksonUtils.toJson(input);
+            Value param = context.eval("js", "(" + json + ")");
+            Value value = func.execute(param);
+            return ConvertValueUtil.convertValue(value);
+        }
+
+        private Object resolveParameterValue(WorkFlowManage workFlowManage, ToolNodeData.Parameter parameter) {
+            String location = parameter.getLocation();
+            if (Strings.CS.equals(location, "reference")) {
+                return workFlowManage.getContextVariable((List<String>) parameter.getValue());
+            }
+            return parameter.getValue();
         }
     }
 

@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
+import java.util.stream.IntStream;
 
 /**
  * {@code @Author:张少虎}
@@ -121,6 +122,7 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
                     );
                 }
             }
+            List<Object> messages1 = messages;
 
             List<ChatCompletionMessageParam> _messages = ConversationMessageConverter.toOpenAiMessage(messages);
             if (StringUtils.isNotEmpty(node.params.getSystem())) {
@@ -143,7 +145,11 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
                 if (toolsList != null) {
                     map.put("tools", toolsList);
                 }
-
+                JsonArray modelParameterForm = model.getModelParameterForm();
+                for (int i = 0; i < modelParameterForm.size(); i++) {
+                    JsonObject jsonObject = modelParameterForm.getJsonObject(i);
+                    map.put("max_tokens", jsonObject.getValue("defaultValue"));
+                }
                 Boolean stream = Optional.ofNullable(map.get("stream")).map(v -> (Boolean) v).orElse(true);
                 ChatModel llm = provider.getModel(model.getModelType(), model.getModelName(), map, Map.of(), ChatModel.class);
                 if (stream) {
@@ -183,7 +189,7 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
                                     if (error.isPresent()) {
                                         node.status = NodeStatus.FAIL;
                                         workFlowManage.writeContext(node, "finishReason", "error");
-                                        workFlowManage.nextFailInvoke(node);
+                                        workFlowManage.nextFailInvoke(node, error.get());
                                     } else {
                                         node.status = NodeStatus.SUCCESS;
                                         ChatCompletionAccumulator.AccumulatedResult complete = chatCompletionAccumulator.complete();

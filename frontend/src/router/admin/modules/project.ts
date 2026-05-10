@@ -36,14 +36,9 @@ const projectRouter = {
       name: 'projectDetails',
       meta: { title: 'common.fileUpload.document', activeMenu: 'project' },
       component: () => import('@/views/project/Details.vue'),
-      redirect: { name: 'databaseCollectionPool' },
+      redirect: { name: 'projectProcessor' },
       children: [
-        {
-          path: 'database-collection-pool',
-          name: 'databaseCollectionPool',
-          meta: { title: '数据库连接池', activeMenu: 'project' },
-          component: () => import('@/views/project/database-collection-pool/index.vue')
-        },
+        
         {
           path: 'processor',
           name: 'projectProcessor',

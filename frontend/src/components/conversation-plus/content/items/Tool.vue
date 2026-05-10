@@ -109,6 +109,8 @@ const onAfterEnter = (el: Element) => {
   font-family: inherit;
   color: var(--t3);
   transition: color 0.15s;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .tc-head:hover {
@@ -146,6 +148,8 @@ const onAfterEnter = (el: Element) => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
+  max-width: 400px;
 }
 
 /* ── 展开动画 ─────────────────────────────────────────────────────── */

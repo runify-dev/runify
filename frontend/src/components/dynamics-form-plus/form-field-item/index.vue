@@ -1,88 +1,89 @@
 <template>
-  <FormField v-slot="$field" :resolver="resolver" :name="field" class="flex flex-col gap-1">
+  <div class="flex flex-col gap-1">
     <FieldLabel
-      :field="$field"
-      :form="form"
       :formField="formField"
-      :otherParams="otherParams"
       :formFieldList="formFieldList"
-    >
-    </FieldLabel>
+      :formValue="formValue"
+    />
     <FieldValue
-      :field="$field"
-      :form="form"
       :formField="formField"
-      :otherParams="otherParams"
       :formFieldList="formFieldList"
-    ></FieldValue>
-    <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">{{
-      $field.error?.message
-    }}</Message>
-  </FormField>
+      :formValue="formValue"
+      @change="onFieldChange"
+    />
+    <Message v-if="errorMsg" severity="error" size="small" variant="simple">
+      {{ errorMsg }}
+    </Message>
+  </div>
 </template>
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import type { FormField } from '@/components/dynamics-form-plus/type'
 import FieldLabel from '@/components/dynamics-form-plus/field-label/index.vue'
 import FieldValue from '@/components/dynamics-form-plus/field-value/index.vue'
-import bus from '@/bus'
-import { t } from '@/locales'
-import { zodResolver } from '@primevue/forms/resolvers/zod'
 import { z } from 'zod'
+
 const props = defineProps<{
-  // 表单Item
   formField: FormField
-  // 其他参数
-  otherParams: any
-  // 所有字段
   formFieldList: Array<FormField>
-  // Form v-slot="$form"
-  form: any
+  formValue: Record<string, any>
 }>()
+
 const emit = defineEmits(['change'])
 
-const componentFormRef = ref<any>()
+const errorMsg = ref<string>('')
 
-const props_info = computed(() => {
-  return props.formField?.propsInfo ? props.formField.propsInfo : {}
-})
-
-/**
- * 校验
- */
-const resolver = computed(() => {
+const buildSchema = () => {
+  const info = props.formField.propsInfo
   let schema: any
-  try {
-    if (props_info.value.resolver) {
-      const r = props_info.value.resolver
-      const code = Array.isArray(r) ? r.join('\n') : r
+
+  if (info?.resolver) {
+    try {
+      const code = Array.isArray(info.resolver) ? info.resolver.join('\n') : info.resolver
       schema = new Function('z', `return ${code}`)(z)
+    } catch {
+      // fallback
     }
-  } catch {
-    // fallback below
   }
+
   if (!schema) {
     schema = props.formField.required
-      ? z.any().refine(
-          (val) => val !== undefined && val !== '' && val !== null,
-          {
+      ? z
+          .any()
+          .refine((val) => val !== undefined && val !== '' && val !== null, {
             message: (props.formField.label?.value || props.formField.label || props.formField.field) + ' 此项必填'
-          }
-        )
+          })
       : z.any()
   }
-  return zodResolver(schema)
-})
 
-const validate = () => {
-  if (componentFormRef.value) {
-    return componentFormRef.value.validate()
-  }
-  return Promise.resolve()
+  return schema
 }
-const field = computed(() => {
-  return props.formField.field
-})
+
+const validateField = () => {
+  const schema = buildSchema()
+  const val = props.formValue[props.formField.field]
+  const result = schema.safeParse(val)
+  if (result.success) {
+    errorMsg.value = ''
+    return true
+  }
+  errorMsg.value = result.error.issues?.[0]?.message || '校验失败'
+  return false
+}
+
+const onFieldChange = (field: string, value: any) => {
+  emit('change', field, value)
+  validateField()
+}
+
+const validate = (): Record<string, string> => {
+  validateField()
+  if (errorMsg.value) {
+    return { [props.formField.field]: errorMsg.value }
+  }
+  return {}
+}
+
 defineExpose({ validate })
 </script>
 <style lang="scss" scoped></style>

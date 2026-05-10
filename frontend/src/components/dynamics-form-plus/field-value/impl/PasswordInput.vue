@@ -1,32 +1,27 @@
 <template>
   <Password
-    type="text"
-    placeholder="Password"
-    autocomplete="off"
-    :name="field"
+    :modelValue="val"
+    @update:modelValue="onUpdate"
     :feedback="false"
     toggleMask
     fluid
+    autocomplete="off"
   />
 </template>
 <script setup lang="ts">
 import { computed } from 'vue'
 import Password from 'primevue/password'
 import type { FormField } from '@/components/dynamics-form-plus/type'
+
 const props = defineProps<{
-  // 表单Item
   formField: FormField
-  // 其他参数
-  otherParams: any
-  // 所有字段
   formFieldList: Array<FormField>
-  // FormField v-slot="$field"
-  field: any
-  // Form v-slot="$form"
-  form: any
+  formValue: Record<string, any>
 }>()
-const field = computed(() => {
-  return props.formField.field
-})
+const emit = defineEmits(['change'])
+
+const field = computed(() => props.formField.field)
+const val = computed(() => props.formValue[field.value])
+const onUpdate = (v: any) => emit('change', field.value, v)
 </script>
-<style lang="scss"></style>
+<style lang="scss" scoped></style>

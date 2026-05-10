@@ -5,151 +5,212 @@
     :header="current ? '修改连接池' : '创建连接池'"
     :style="{ width: '50rem' }"
   >
-    <Form ref="formRef" v-slot="$form" @submit="submit">
-      <FormField v-slot="$field" name="name" :resolver="resolvers.name">
-        <IftaLabel>
-          <label>名称</label>
-          <InputText type="text" fluid />
-          <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">{{
-            $field.error?.message
-          }}</Message>
-        </IftaLabel>
-      </FormField>
-      <FormField v-slot="$field" name="desc" class="mt-4" :resolver="resolvers.desc">
-        <IftaLabel>
-          <label>描述</label>
-          <InputText type="text" fluid />
-          <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">{{
-            $field.error?.message
-          }}</Message>
-        </IftaLabel>
-      </FormField>
-      <FormField v-slot="$field: any" name="protocol" class="mt-4" :resolver="resolvers.protocol">
-        <label>协议</label>
+    <div class="flex flex-col gap-4">
+      <div class="flex flex-col gap-1">
+        <label class="text-sm font-semibold text-color">名称</label>
+        <InputText v-model="formData.name" type="text" fluid />
+      </div>
+      <div class="flex flex-col gap-1">
+        <label class="text-sm font-semibold text-color">描述</label>
+        <InputText v-model="formData.desc" type="text" fluid />
+      </div>
+      <div class="flex flex-col gap-1">
+        <label class="text-sm font-semibold text-color">数据源类型</label>
         <RadioCard
-          style="--el-card-padding: 5px"
-          body-class="p-0"
-          v-bind:model-value="$field.value"
-          @update:model-value="(v) => $field.onChange({ value: v })"
-          :option-list="protocolOptions"
-          value-field="value"
+          grid-class="grid-cols-2 sm:grid-cols-3 md:grid-cols-4"
+          :model-value="formData.dataSourceType"
+          @update:model-value="setDataSourceType"
+          :option-list="dataSourceTypeList"
+          value-field="code"
         >
           <template v-slot="item">
-            <div class="w-full h-full flex items-center justify-center content-center">
-              <component :is="item.icon" style="height: 20px; width: 20px" class="mr-4"></component>
-              {{ item.label }}
+            <div class="flex items-center gap-2">
+              <div :innerHTML="item.icon" class="h-5 w-5 shrink-0 [&_svg]:w-full [&_svg]:h-full" />
+              <span class="text-sm">{{ item.message }}</span>
             </div>
           </template>
         </RadioCard>
-        <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">{{
-          $field.error?.message
-        }}</Message>
-      </FormField>
-      <component
-        v-if="$form.protocol?.value"
-        :is="kw[$form.protocol.value]"
-        ref="protocolInstanceRef"
-        :setFieldValue="setFieldValue"
-      ></component>
-    </Form>
+      </div>
+      <div v-if="formData.dataSourceType" class="flex flex-col gap-1">
+        <label class="text-sm font-semibold text-color">供应商</label>
+        <RadioCard
+          grid-class="grid-cols-2 sm:grid-cols-3 md:grid-cols-4"
+          :model-value="formData.protocol"
+          @update:model-value="setField('protocol', $event)"
+          :option-list="providerList"
+          value-field="provider"
+        >
+          <template v-slot="item">
+            <div class="flex items-center gap-2">
+              <div :innerHTML="item.icon" class="h-5 w-5 shrink-0 [&_svg]:w-full [&_svg]:h-full" />
+              <span class="text-sm">{{ item.name }}</span>
+            </div>
+          </template>
+        </RadioCard>
+      </div>
+      <DynamicsForm
+        v-if="formData.protocol"
+        ref="dynamicsFormRef"
+        :modelValue="metaData"
+        @update:modelValue="metaData = $event"
+      />
+    </div>
     <template #footer>
-      <Button @click="formRef?.submit()">保存</Button>
-      <Button>取消</Button>
+      <Button @click="submit">保存</Button>
+      <Button @click="close">取消</Button>
     </template>
   </Dialog>
 </template>
 <script setup lang="ts">
-import { nextTick, ref } from 'vue'
-import PostgreSql from './postgresql/index.vue'
+import { nextTick, ref, watch, computed, onMounted } from 'vue'
+import DynamicsForm from '@/components/dynamics-form-plus/index.vue'
 import RadioCard from '@/components/radio-card/index.vue'
-import PostgreSQLIcon from '@/views/project/database-collection-pool/icons/postgres-icon.vue'
-import type { CreateDatabaseCollectionPoolVO } from '@/api/type/database-connection-pool'
-import { zodResolver } from '@primevue/forms/resolvers/zod'
-import { z } from 'zod'
-import dtabaseCollectionPoolAPI from '@/api/database-connection-pool'
-import type { FormInstance } from '@primevue/forms'
+import databaseConnectionPoolAPI from '@/api/database-connection-pool'
 import bus from '@/bus'
+
 const emit = defineEmits(['refresh'])
-const protocolInstanceRef = ref<any>()
 const props = defineProps<{
   projectId: string
 }>()
-const formRef = ref<FormInstance>()
-const protocolOptions = [
-  {
-    icon: PostgreSQLIcon,
-    label: 'PostgreSQL',
-    value: 'POSTGRESQL'
-  }
-]
 
-const resolvers = {
-  name: zodResolver(z.string().min(1, { error: '请输入名称' })),
-  desc: zodResolver(z.string().min(1, { error: '请输入描述' })),
-  protocol: zodResolver(z.string().min(1, { error: '请选择连接池协议' }))
-}
-const kw: any = {
-  POSTGRESQL: PostgreSql
-}
+const dynamicsFormRef = ref<InstanceType<typeof DynamicsForm>>()
 const visible = ref<boolean>(false)
+const current = ref<any>()
+const dataSourceTypeList = ref<Array<any>>([])
+const providerList = ref<Array<any>>([])
+const formData = ref<Record<string, any>>({
+  name: '',
+  desc: '',
+  dataSourceType: '',
+  protocol: ''
+})
+const metaData = ref<Record<string, any>>({})
+
+const setField = (field: string, value: any) => {
+  formData.value = { ...formData.value, [field]: value }
+}
+
+const setDataSourceType = (value: string) => {
+  formData.value = { ...formData.value, dataSourceType: value, protocol: '' }
+  providerList.value = []
+  loadProviders(value)
+}
+
+const dataSourceType = computed(() => formData.value.dataSourceType)
+const protocol = computed(() => formData.value.protocol)
+
+watch(protocol, () => {
+  if (protocol.value) {
+    loadFormDefinition(protocol.value)
+  }
+})
+
+const loadProviders = (type: string) => {
+  databaseConnectionPoolAPI.getProviders(type).then((ok) => {
+    providerList.value = ok.data
+  })
+}
+
+const loadFormDefinition = (provider: string) => {
+  databaseConnectionPoolAPI.getProviderForm(provider).then((ok) => {
+    if (ok.data) {
+      const fields = ok.data.map((item: any) => ({
+        ...item,
+        field: item.field
+      }))
+      nextTick(() => {
+        dynamicsFormRef.value?.render(fields, current.value?.meta || {})
+      })
+    }
+  })
+}
+
+const open = (databaseCollectionPool?: any) => {
+  visible.value = true
+  current.value = databaseCollectionPool
+  metaData.value = {}
+  providerList.value = []
+
+  const loadData = () => {
+    if (databaseCollectionPool) {
+      const dsType = databaseCollectionPool.dataSourceType || ''
+      const provider = databaseCollectionPool.provider || ''
+      formData.value = {
+        name: databaseCollectionPool.name,
+        desc: databaseCollectionPool.desc,
+        dataSourceType: dsType,
+        protocol: provider
+      }
+      // 如果有 dataSourceType，加载对应的供应商列表
+      if (dsType) {
+        loadProviders(dsType)
+      }
+    } else {
+      formData.value = {
+        name: '',
+        desc: '',
+        dataSourceType: '',
+        protocol: ''
+      }
+    }
+  }
+
+  if (dataSourceTypeList.value.length === 0) {
+    databaseConnectionPoolAPI.getDataSourceTypes().then((ok) => {
+      dataSourceTypeList.value = ok.data
+      nextTick(loadData)
+    })
+  } else {
+    loadData()
+  }
+}
+
 const close = () => {
   visible.value = false
   current.value = undefined
+  formData.value = { name: '', desc: '', dataSourceType: '', protocol: '' }
+  metaData.value = {}
+  providerList.value = []
 }
-const current = ref<any>()
-const open = (databaseCollectionPool?: any) => {
-  visible.value = true
-  if (databaseCollectionPool) {
-    nextTick(() => {
-      formRef.value?.setValues({
-        name: databaseCollectionPool.name,
-        desc: databaseCollectionPool.desc,
-        protocol: databaseCollectionPool.protocol
-      })
 
-      nextTick(() => {
-        protocolInstanceRef.value.setValues(databaseCollectionPool.meta)
-      })
-    })
+const submit = () => {
+  const { values, errors } = dynamicsFormRef.value?.validate() || { values: {}, errors: {} }
+  if (Object.keys(errors).length > 0) {
+    return
+  }
 
-    current.value = databaseCollectionPool
+  const payload = {
+    name: formData.value.name,
+    desc: formData.value.desc,
+    dataSourceType: formData.value.dataSourceType,
+    provider: formData.value.protocol,
+    meta: values || {}
+  }
+
+  if (current.value) {
+    databaseConnectionPoolAPI
+      .edit(props.projectId, current.value.id, payload)
+      .then(() => {
+        bus.emit('message:success', ['修改连接池', '成功'])
+        emit('refresh')
+        close()
+      })
+  } else {
+    databaseConnectionPoolAPI
+      .create(props.projectId, payload)
+      .then(() => {
+        emit('refresh')
+        bus.emit('message:success', ['创建连接池', '成功'])
+        close()
+      })
   }
 }
-const setFieldValue = (field: string, value: any) => {
-  formRef.value?.setFieldValue(field, value)
-}
 
-const submit = ({ valid, values }: any) => {
-  if (valid) {
-    if (current.value) {
-      dtabaseCollectionPoolAPI
-        .edit(props.projectId, current.value.id, {
-          name: values.name,
-          desc: values.desc,
-          protocol: values.protocol,
-          meta: values.meta
-        })
-        .then((ok) => {
-          bus.emit('message:success', ['修改连接池', '成功'])
-          emit('refresh')
-          close()
-        })
-    } else {
-      return dtabaseCollectionPoolAPI
-        .create(props.projectId, {
-          name: values.name,
-          desc: values.desc,
-          protocol: values.protocol,
-          meta: values.meta
-        })
-        .then((ok) => {
-          emit('refresh')
-          bus.emit('message:success', ['创建连接池', '成功'])
-          close()
-        })
-    }
-  }
-}
+onMounted(() => {
+  databaseConnectionPoolAPI.getDataSourceTypes().then((ok) => {
+    dataSourceTypeList.value = ok.data
+  })
+})
 
 defineExpose({ open, close })
 </script>

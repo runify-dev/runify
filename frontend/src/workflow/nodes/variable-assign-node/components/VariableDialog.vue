@@ -261,7 +261,7 @@ function submit() {
     variable: [...formData.variable],
     type: formData.type,
     reference: formData.type === 'reference' ? [...formData.reference] : undefined,
-    dataType: formData.type === 'constant' ? formData.dataType : undefined,
+    dataType: formData.type === 'constant' ? (formData.dataType as VariableItem['dataType']) : undefined,
     value: formData.type === 'constant' ? formData.value : undefined
   }
 

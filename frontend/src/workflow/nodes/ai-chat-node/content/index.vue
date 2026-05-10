@@ -194,7 +194,7 @@ const validate = () => {
 }
 
 const submit = () => {
-  return validate().then(({ values, errors }) => {
+  return validate().then(({ values, errors }:any) => {
     if (Object.keys(errors).length == 0) {
       values.tools = JSON.parse(JSON.stringify(toolsConfig.value))
       model.properties.nodeData = values
