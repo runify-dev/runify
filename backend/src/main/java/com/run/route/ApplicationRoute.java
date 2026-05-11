@@ -48,6 +48,10 @@ public class ApplicationRoute implements IRoute {
 
     @Override
     public void initRoute() {
+        apiRoute.get("/application/resources/:resourceId/export")
+                .handler(tokenBasicAuthHandler)
+                .handler(applicationHandler::exportApplication);
+
         apiRoute.get("/application/resources/:resourceId")
                 .handler(tokenBasicAuthHandler)
                 .handler(applicationHandler::get);
@@ -104,6 +108,11 @@ public class ApplicationRoute implements IRoute {
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
                 .handler(applicationHandler::create);
+
+        apiRoute.post("/application/folders/:folderId/resources/import")
+                .handler(BodyHandler.create().setUploadsDirectory(System.getProperty("java.io.tmpdir")))
+                .handler(tokenBasicAuthHandler)
+                .handler(applicationHandler::importApplication);
 
         apiRoute.get("/application/permissions/:userId")
                 .handler(tokenBasicAuthHandler)

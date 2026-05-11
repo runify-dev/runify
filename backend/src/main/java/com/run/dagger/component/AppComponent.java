@@ -3,6 +3,7 @@ package com.run.dagger.component;
 import com.run.common.initialization.AppInitialization;
 import com.run.dagger.module.*;
 import com.run.dao.mapper.DatasourceMapper;
+import com.run.dao.mapper.FileMapper;
 import com.run.dao.mapper.ModelMapper;
 import dagger.Component;
 import io.vertx.core.Vertx;
@@ -28,6 +29,8 @@ public interface AppComponent {
     ModelMapper modelMapper();
 
     DatasourceMapper dataSourceMapper();
+
+    FileMapper fileMapper();
 
     Vertx vertx();
 }

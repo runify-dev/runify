@@ -177,6 +177,31 @@ export const cacheWriteNode = {
   }
 }
 
+export const fileUploadNode = {
+  type: 'file-upload-node',
+  text: '',
+  x: 0,
+  y: 0,
+  label: '文件上传',
+  properties: {
+    width: 200,
+    height: 50,
+    name: '文件上传',
+    isHovered: false,
+    field_list: [
+      { label: '文件ID', value: 'fileId' },
+      { label: '文件名', value: 'fileName' },
+      { label: '文件大小', value: 'fileSize' }
+    ],
+    nodeData: {
+      pathLocation: 'customize',
+      pathReference: [],
+      path: '',
+      fileName: ''
+    }
+  }
+}
+
 export const jsonResponseNode = {
   type: 'response-node',
   text: '',

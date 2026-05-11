@@ -4,17 +4,17 @@
       <Button label="格式化" size="small" text severity="secondary" @click="format" />
     </div>
     <Textarea
-      :modelValue="val"
-      @update:modelValue="onUpdate"
+      v-model="text"
       :placeholder="placeholder"
       rows="5"
       fluid
       class="font-mono"
+      @blur="syncToValue"
     />
   </div>
 </template>
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, watch, computed } from 'vue'
 import Textarea from 'primevue/textarea'
 import type { FormField } from '@/components/dynamics-form-plus/type'
 
@@ -26,15 +26,46 @@ const props = defineProps<{
 const emit = defineEmits(['change'])
 
 const field = computed(() => props.formField.field)
-const val = computed(() => props.formValue[field.value])
 const placeholder = computed(() => props.formField.attrs?.placeholder || '请输入 JSON')
-const onUpdate = (v: any) => emit('change', field.value, v)
+
+const text = ref('')
+
+// formValue 变化时同步到 text（对象→字符串）
+watch(
+  () => props.formValue[field.value],
+  (val) => {
+    if (val === undefined || val === null) {
+      text.value = ''
+    } else if (typeof val === 'object') {
+      text.value = JSON.stringify(val, null, 2)
+    } else {
+      text.value = String(val)
+    }
+  },
+  { immediate: true }
+)
+
+// 失焦时把 text 解析为对象存入 formValue
+const syncToValue = () => {
+  const raw = text.value.trim()
+  if (!raw) {
+    emit('change', field.value, undefined)
+    return
+  }
+  try {
+    emit('change', field.value, JSON.parse(raw))
+  } catch {
+    // 无效 JSON，保留字符串让校验层报错
+    emit('change', field.value, raw)
+  }
+}
 
 const format = () => {
-  const raw = props.formValue[props.formField.field]
+  const raw = text.value.trim()
   if (!raw) return
   try {
-    emit('change', field.value, JSON.stringify(JSON.parse(raw), null, 2))
+    text.value = JSON.stringify(JSON.parse(raw), null, 2)
+    emit('change', field.value, JSON.parse(text.value))
   } catch {
     // invalid json
   }

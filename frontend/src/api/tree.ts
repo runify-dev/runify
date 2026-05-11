@@ -1,5 +1,5 @@
 import { Result } from '@/request/Result'
-import { get, post, put, del } from '@/request/admin/index'
+import { get, post, put, del, request } from '@/request/admin/index'
 import type {
   CreateFolderPojo
 } from '@/api/type/tree'
@@ -170,6 +170,27 @@ export class TreeCommonAPI {
     loading?: Ref<boolean>
   ) => Promise<Result<Array<Node>>> = (userId, target, permission, loading) => {
     return put(`/${this.resource}/permissions/${userId}/authorization/${target}/${permission}`, {}, loading)
+  }
+
+  exportResource: (
+    resourceId: string,
+    loading?: Ref<boolean>
+  ) => Promise<any> = (resourceId, loading) => {
+    return request({
+      url: `/${this.resource}/resources/${resourceId}/export`,
+      method: 'get',
+      responseType: 'blob'
+    }).then((res) => res.data)
+  }
+
+  importResource: (
+    folderId: string,
+    file: File,
+    loading?: Ref<boolean>
+  ) => Promise<Result<Node>> = (folderId, file, loading) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return post(`/${this.resource}/folders/${folderId}/resources/import`, formData, undefined, loading)
   }
 }
 

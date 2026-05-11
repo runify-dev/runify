@@ -87,7 +87,7 @@ const TOOL = (prev: any, chunk: any) => {
   return {
     type: 'TOOL',
     id: chunk.id ?? prev.id,
-    toolName:(prev.toolName || '') + (chunk.toolName || ''), 
+    toolName: chunk.toolName, 
     functionArguments:(prev.functionArguments || '') + (chunk.functionArguments || ''), 
     content: (prev.content || '') + (chunk.content || ''),
     status: chunk.status ?? prev.status,

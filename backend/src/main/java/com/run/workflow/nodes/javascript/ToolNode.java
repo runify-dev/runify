@@ -4,6 +4,7 @@ package com.run.workflow.nodes.javascript;
 import com.run.common.keyvalue.DefaultKeyValue;
 import com.run.common.safeapi.CommonAPI;
 import com.run.common.util.ConvertValueUtil;
+import com.run.common.util.ChatCompletionAccumulator;
 import com.run.common.util.JacksonUtils;
 import com.run.workflow.*;
 import com.run.workflow.entity.Node;
@@ -103,10 +104,16 @@ public class ToolNode extends INode<ToolNode, ToolNodeData> {
             if (toolNodeData.getParameters() != null) {
                 for (ToolNodeData.Parameter parameter : toolNodeData.getParameters()) {
                     Object value = resolveParameterValue(workFlowManage, parameter);
-                    context.getBindings("js").putMember(parameter.getField(), value);
+                    if (value instanceof Map || value instanceof JsonObject) {
+                        String json = JacksonUtils.toJson(value);
+                        Value jsObj = context.eval("js", "(" + json + ")");
+                        context.getBindings("js").putMember(parameter.getField(), jsObj);
+                    } else {
+                        context.getBindings("js").putMember(parameter.getField(), value);
+                    }
                 }
             }
-            Value result = context.eval("js", "(function(){" + code + "})()");
+            Value result = context.eval("js", code);
             return ConvertValueUtil.convertValue(result);
         }
 
@@ -131,7 +138,14 @@ public class ToolNode extends INode<ToolNode, ToolNodeData> {
         private Object resolveParameterValue(WorkFlowManage workFlowManage, ToolNodeData.Parameter parameter) {
             String location = parameter.getLocation();
             if (Strings.CS.equals(location, "reference")) {
-                return workFlowManage.getContextVariable((List<String>) parameter.getValue());
+                Object val = workFlowManage.getContextVariable((List<String>) parameter.getValue());
+                if (val instanceof JsonObject jo) {
+                    return jo.getMap();
+                }
+                if (val instanceof ChatCompletionAccumulator.AccumulatedToolCall call) {
+                    return JacksonUtils.fromJson(JacksonUtils.toJson(call), Map.class);
+                }
+                return val;
             }
             return parameter.getValue();
         }

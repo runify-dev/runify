@@ -9,10 +9,7 @@ import com.run.ai.openai.chat.ChatCompletionChunk;
 import com.run.ai.openai.chat.ChatCompletionMessageParam;
 import com.run.ai.openai.chat.ChatCompletionUserMessageParam;
 import com.run.common.keyvalue.DefaultKeyValue;
-import com.run.common.util.ChatCompletionAccumulator;
-import com.run.common.util.CommonUtils;
-import com.run.common.util.JacksonUtils;
-import com.run.common.util.RSAUtil;
+import com.run.common.util.*;
 import com.run.dao.entity.ConversationMessage;
 import com.run.dao.mapper.ModelMapper;
 import com.run.models.ChatModel;
@@ -24,16 +21,14 @@ import com.run.workflow.entity.Node;
 import com.run.workflow.entity.NodeResult;
 import com.run.workflow.message.struct.ReasoningContent;
 import com.run.workflow.message.struct.TextContent;
+import com.run.workflow.message.struct.ToolCallContent;
 import com.run.workflow.nodes.aichat.entity.AIChatNodeData;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import jakarta.validation.Validator;
 import org.apache.commons.lang3.StringUtils;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
@@ -50,6 +45,7 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
      */
     public final static String type = "ai-chat-node";
     public final static List<WorkflowType> supportWorkflow = List.of(WorkflowType.CHAT_WORKFLOW, WorkflowType.CHAT_WORKFLOW_LOOP);
+    static final Set<String> streamingFunctions = Set.of("terminal");
 
     public AIChat(Node node, JsonObject params, List<String> upNodeIdList, String salt, INode<?, ?> upNode) {
         super(node, params, upNodeIdList, salt, upNode);
@@ -148,7 +144,7 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
                 JsonArray modelParameterForm = model.getModelParameterForm();
                 for (int i = 0; i < modelParameterForm.size(); i++) {
                     JsonObject jsonObject = modelParameterForm.getJsonObject(i);
-                    map.put("max_tokens", jsonObject.getValue("defaultValue"));
+                    map.put(jsonObject.getString("field"), jsonObject.getValue("defaultValue"));
                 }
                 Boolean stream = Optional.ofNullable(map.get("stream")).map(v -> (Boolean) v).orElse(true);
                 ChatModel llm = provider.getModel(model.getModelType(), model.getModelName(), map, Map.of(), ChatModel.class);
@@ -179,8 +175,31 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
                                             workFlowManage.write(node, new TextContent(content, node, (String) workFlowManage.getParams().get("workflowRunId"),
                                                     chunkId));
                                         });
-
                                     }
+
+                                    chatCompletionAccumulator.onArgumentFieldDelta(streamingFunctions, Set.of("code"), (call, arguments) -> {
+                                        String id = call.getId();
+                                        String code = arguments.get("code");
+                                        if (StringUtils.isNotEmpty(code)) {
+                                            String functionName = call.getFunctionName();
+                                            workFlowManage.write(node, new ToolCallContent(functionName, "", code, NodeStatus.RUNNING, node, (String) workFlowManage.getParams().get("workflowRunId"),
+                                                    id));
+                                        }
+
+                                    }).onArgumentComplete(
+                                            tc -> tc.getFunctionName() != null && !streamingFunctions.contains(tc.getFunctionName()),
+                                            (call, fullArgsJson) -> {
+                                                workFlowManage.write(node, new ToolCallContent(
+                                                        call.getFunctionName(),
+                                                        "",
+                                                        fullArgsJson,  // 完整 JSON 字符串
+                                                        NodeStatus.RUNNING,
+                                                        node,
+                                                        (String) workFlowManage.getParams().get("workflowRunId"),
+                                                        call.getId()
+                                                ));
+                                            }
+                                    );
                                     chatCompletionAccumulator.append(chatCompletionChunk);
                                 }
 

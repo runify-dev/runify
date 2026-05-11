@@ -27,6 +27,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Function;
 
 import static com.run.sql.DSL.field;
@@ -293,6 +294,68 @@ public class FileMapper extends BaseMapper<FileEntity> {
         } else {
             return new FileReadStream(vertx, fileEntity.getPath(), offset, 1024 * 64L, Math.min(fileEntity.getSize(), size));
         }
+    }
+
+    /**
+     * 上传文件到存储并保存元数据（公共方法）
+     *
+     * @param fileName 文件名
+     * @param size     文件大小
+     * @param refType  资源类型（可为null）
+     * @param ref      资源标识（可为null）
+     * @param file     本地文件
+     * @return FileEntity 异步任务
+     */
+    public Future<FileEntity> upload(String fileName, long size, String refType, String ref, File file) {
+        FileEntity fileEntity = new FileEntity();
+        fileEntity.setId(UUID.randomUUID());
+        fileEntity.setSize(size);
+        fileEntity.setFileName(fileName);
+        fileEntity.setCreateTime(java.time.LocalDateTime.now());
+        fileEntity.setUpdateTime(java.time.LocalDateTime.now());
+        fileEntity.setMeta(new io.vertx.core.json.JsonObject());
+        fileEntity.setRefType(refType);
+        fileEntity.setRef(ref);
+
+        if (dbType == SQLDialect.POSTGRESQL) {
+            return save(fileEntity, file, 1024 * 1024).map(fileEntity);
+        } else {
+            return vertx.executeBlocking(() -> {
+                String sha256 = CommonUtils.getSHA256(file);
+                fileEntity.setSha256Hash(sha256);
+                return sha256;
+            }, false).compose(sha256 -> search(
+                    field(FileEntity::getSha256Hash).eq(sha256),
+                    Map.of()
+            ).compose(rows -> vertx.executeBlocking(() -> {
+                if (rows.size() == 0) {
+                    java.nio.file.Path ossPath = CommonUtils.getOssPath();
+                    copyToOss(fileEntity, file.getAbsolutePath(), ossPath);
+                } else {
+                    String path = rows.iterator().next().getPath();
+                    if (org.apache.commons.lang3.StringUtils.isEmpty(path)) {
+                        java.nio.file.Path ossPath = CommonUtils.getOssPath();
+                        copyToOss(fileEntity, file.getAbsolutePath(), ossPath);
+                    } else {
+                        java.nio.file.Path target = java.nio.file.Paths.get(path);
+                        if (!java.nio.file.Files.exists(target)) {
+                            copyToOss(fileEntity, file.getAbsolutePath(), target);
+                        } else {
+                            fileEntity.setPath(path);
+                        }
+                    }
+                }
+                return fileEntity;
+            }, false)).compose(entity -> save(entity).map(entity)));
+        }
+    }
+
+    private void copyToOss(FileEntity fileEntity, String sourcePath, java.nio.file.Path targetPath) throws java.io.IOException {
+        if (!java.nio.file.Files.exists(targetPath.getParent())) {
+            java.nio.file.Files.createDirectories(targetPath.getParent());
+        }
+        fileEntity.setPath(targetPath.toString());
+        java.nio.file.Files.copy(java.nio.file.Paths.get(sourcePath), targetPath);
     }
 
     /**

@@ -14,8 +14,12 @@
         />
       </InputGroup>
 
-      <!-- 新建按钮 -->
-      <Button icon="pi pi-plus" label="新建应用" @click="openCreateApplication" class="shrink-0" />
+      <!-- 操作按钮组 -->
+      <div class="flex items-center gap-2 shrink-0">
+        <input ref="fileInputRef" type="file" accept=".json" class="hidden" @change="handleImport" />
+        <Button icon="pi pi-upload" label="导入应用" severity="secondary" @click="fileInputRef?.click()" />
+        <Button icon="pi pi-plus" label="新建应用" @click="openCreateApplication" />
+      </div>
     </div>
 
     <!-- 应用网格 -->
@@ -113,6 +117,7 @@ const folder = ref<Node>()
 const searchText = ref<string>('')
 const menuRef = ref()
 const activeItem = ref<Node | null>(null)
+const fileInputRef = ref<HTMLInputElement>()
 
 const filteredList = computed(() =>
   searchText.value
@@ -144,6 +149,12 @@ const menuItems = computed(() => [
     icon: 'pi pi-trash',
     class: '!text-red-500 [&_.p-menuitem-icon]:!text-red-500',
     command: () => activeItem.value && handleDelete(activeItem.value)
+  },
+  { separator: true },
+  {
+    label: '导出',
+    icon: 'pi pi-download',
+    command: () => activeItem.value && handleExport(activeItem.value)
   }
 ])
 
@@ -179,6 +190,28 @@ const handleDelete = (item: Node) => {
         toast.add({ severity: 'success', summary: '删除成功', life: 2000 })
       })
     }
+  })
+}
+
+const handleExport = (item: Node) => {
+  treeCommonAPI.exportResource(item.id).then((blob: Blob) => {
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `${item.name}.json`
+    link.click()
+    window.URL.revokeObjectURL(url)
+  })
+}
+
+const handleImport = (event: Event) => {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  treeCommonAPI.importResource(folderId.value, file).then(() => {
+    lisResource()
+    toast.add({ severity: 'success', summary: '导入成功', life: 2000 })
+    input.value = ''
   })
 }
 

@@ -1,6 +1,7 @@
 package com.run.workflow.nodes.terminal;
 
 import com.run.common.keyvalue.DefaultKeyValue;
+import com.run.common.util.ChatCompletionAccumulator;
 import com.run.common.util.CommonUtils;
 import com.run.common.util.JacksonUtils;
 import com.run.workflow.*;
@@ -14,6 +15,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
@@ -45,10 +47,11 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
 
         @Override
         public Supplier<List<Node>> apply(WorkFlowManage workFlowManage, TerminalNode node) {
-            String code = resolveValue(node.params.getLocation(), node.params.getReference(), node.params.getCode(), workFlowManage);
+            Code code = resolveCode(node.params.getLocation(), node.params.getReference(), node.params.getCode(), workFlowManage);
+
             int timeout = resolveTimeout(node.params, workFlowManage);
 
-            if (StringUtils.isEmpty(code)) {
+            if (code == null || StringUtils.isEmpty(code.code)) {
                 node.status = NodeStatus.FAIL;
                 workFlowManage.writeContext(node, "result", "代码为空");
                 workFlowManage.writeContext(node, "stdout", "");
@@ -58,11 +61,12 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
             }
 
             try {
-                String id = CommonUtils.uuid7().toString();
-                workFlowManage.write(node, new ToolCallContent("Terminal", "", code, NodeStatus.RUNNING, node, (String) workFlowManage.getParams().get("workflowRunId"), id));
-
+                String id = code.id;
+                if (code.withWriteArguments) {
+                    workFlowManage.write(node, new ToolCallContent("terminal", "", code.code, NodeStatus.RUNNING, node, (String) workFlowManage.getParams().get("workflowRunId"), id));
+                }
                 ProcessBuilder processBuilder = new ProcessBuilder();
-                processBuilder.command("sh", "-c", code);
+                processBuilder.command("sh", "-c", code.code);
                 processBuilder.redirectErrorStream(false);
 
                 Process process = processBuilder.start();
@@ -73,7 +77,7 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
                     String line;
                     while ((line = reader.readLine()) != null) {
                         stdoutBuilder.append(line).append("\n");
-                        workFlowManage.write(node, new ToolCallContent("", line + "\n", "", NodeStatus.RUNNING, node, (String) workFlowManage.getParams().get("workflowRunId"), id));
+                        workFlowManage.write(node, new ToolCallContent("terminal", line + "\n", "", NodeStatus.RUNNING, node, (String) workFlowManage.getParams().get("workflowRunId"), id));
                     }
                 }
 
@@ -101,8 +105,8 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
                     workFlowManage.writeContext(node, "stdout", stdout);
                     workFlowManage.writeContext(node, "stderr", timeoutMsg);
                     workFlowManage.writeContext(node, "exitCode", -1);
-                    workFlowManage.write(node, new ToolCallContent("", "", "", NodeStatus.FAIL, node, (String) workFlowManage.getParams().get("workflowRunId"), id));
-                    workFlowManage.writeContext(node, "tool", JacksonUtils.toJson(new ToolCallContent("Terminal", timeoutMsg, JacksonUtils.toJson(Map.of("code", code)), NodeStatus.FAIL, node, (String) workFlowManage.getParams().get("workflowRunId"), id)));
+                    workFlowManage.write(node, new ToolCallContent("terminal", "", "", NodeStatus.FAIL, node, (String) workFlowManage.getParams().get("workflowRunId"), id));
+                    workFlowManage.writeContext(node, "tool", JacksonUtils.toJson(new ToolCallContent("terminal", timeoutMsg, JacksonUtils.toJson(Map.of("code", code)), NodeStatus.FAIL, node, (String) workFlowManage.getParams().get("workflowRunId"), id)));
                 } else {
                     int exitCode = process.exitValue();
                     workFlowManage.writeContext(node, "result", exitCode == 0 ? stdout : stderr);
@@ -110,8 +114,8 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
                     workFlowManage.writeContext(node, "stderr", stderr);
                     workFlowManage.writeContext(node, "exitCode", exitCode);
                     node.status = exitCode == 0 ? NodeStatus.SUCCESS : NodeStatus.FAIL;
-                    workFlowManage.write(node, new ToolCallContent("", "", "", node.status, node, (String) workFlowManage.getParams().get("workflowRunId"), id));
-                    workFlowManage.writeContext(node, "tool", JacksonUtils.toJson(new ToolCallContent("Terminal", exitCode == 0 ? stdout : stderr, JacksonUtils.toJson(Map.of("code", code)), node.status, node, (String) workFlowManage.getParams().get("workflowRunId"), id)));
+                    workFlowManage.write(node, new ToolCallContent("terminal", "", "", node.status, node, (String) workFlowManage.getParams().get("workflowRunId"), id));
+                    workFlowManage.writeContext(node, "tool", JacksonUtils.toJson(new ToolCallContent("terminal", exitCode == 0 ? stdout : stderr, JacksonUtils.toJson(Map.of("code", code.code)), node.status, node, (String) workFlowManage.getParams().get("workflowRunId"), id)));
                 }
             } catch (Exception e) {
                 node.status = NodeStatus.FAIL;
@@ -142,6 +146,10 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
             }
         }
 
+        public record Code(String id, String code, Boolean withWriteArguments) {
+
+        }
+
         /**
          * 通用值解析：reference 从上下文取，customize 直接返回
          */
@@ -154,6 +162,32 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
                 return null;
             }
             return customValue;
+        }
+
+        /**
+         * 通用值解析：reference 从上下文取，customize 直接返回
+         */
+        private Code resolveCode(String location, List<String> reference, String customValue, WorkFlowManage workFlowManage) {
+            if ("reference".equals(location)) {
+                if (reference != null && !reference.isEmpty()) {
+                    Object val = workFlowManage.getContextVariable(reference);
+                    if (val instanceof JsonObject v) {
+                        String id = v.getString("id");
+                        JsonObject string = JacksonUtils.fromJson(v.getString("arguments"), JsonObject.class);
+                        return new Code(id, string.getString("code"), Boolean.FALSE);
+                    }
+                    if (val instanceof String v) {
+                        return new Code(CommonUtils.uuid7().toString(), v, Boolean.TRUE);
+                    }
+                    if (val instanceof ChatCompletionAccumulator.AccumulatedToolCall call) {
+                        JsonObject string = JacksonUtils.fromJson(call.getFunctionArguments(), JsonObject.class);
+                        return new Code(call.getId(), string.getString("code"), Boolean.FALSE);
+                    }
+                    return null;
+                }
+                return null;
+            }
+            return new Code(CommonUtils.uuid7().toString(), customValue, Boolean.TRUE);
         }
     }
 

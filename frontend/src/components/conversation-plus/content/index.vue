@@ -1,5 +1,5 @@
 <template>
-  <component :is="commands[type]" :content="content"> </component>
+  <component v-if="commands[type]" :is="commands[type]" :content="content"> </component>
 </template>
 <script setup lang="ts">
 const nodes: any = import.meta.glob('./items/*.vue', { eager: true })

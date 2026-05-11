@@ -12,6 +12,7 @@ import com.run.common.queue.MessageQueue;
 import com.run.common.result.Result;
 import com.run.common.util.CommonUtils;
 import com.run.common.util.JacksonUtils;
+import com.run.common.util.TreeUtil;
 import com.run.dao.entity.*;
 import com.run.dao.mapper.*;
 import com.run.handler.application.IApplicationHandler;
@@ -20,6 +21,7 @@ import com.run.handler.application.pojo.ConversationQuery;
 import com.run.handler.application.pojo.EditApplicationPojo;
 import com.run.handler.application.vo.ConversationVO;
 import com.run.handler.application.vo.CreateConversationVO;
+import com.run.handler.common.Tool;
 import com.run.handler.common.impl.ResourceHandlerImpl;
 import com.run.handler.common.pojo.SimpleNodePojo;
 import com.run.sql.DSL;
@@ -44,6 +46,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 
 import javax.inject.Inject;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
@@ -303,6 +309,58 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
             context.response().write(Buffer.buffer(messageString, "utf-8"));
         }, kv.getKey());
         workFlowManage.invoke();
+    }
+
+    @Override
+    public void exportApplication(RoutingContext context) {
+        String resourceId = context.pathParam("resourceId");
+        applicationMapper.getById(resourceId).onSuccess(application -> {
+            JsonObject exportData = new JsonObject()
+                    .put("name", application.getName())
+                    .put("desc", application.getDesc())
+                    .put("icon", application.getIcon())
+                    .put("workflow", application.getWorkflow())
+                    .put("setting", application.getSetting());
+            String fileName = application.getName() + ".json";
+            String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8).replace("+", "%20");
+            context.response()
+                    .putHeader("Content-Type", "application/json;charset=utf-8")
+                    .putHeader("Content-Disposition", "attachment;filename*=UTF-8''" + encodedFileName)
+                    .end(exportData.encodePrettily());
+        }).onFailure(context::fail);
+    }
+
+    @Override
+    public void importApplication(RoutingContext context) {
+        String folderId = context.pathParam("folderId");
+        List<io.vertx.ext.web.FileUpload> uploads = context.fileUploads();
+        if (uploads.isEmpty()) {
+            context.fail(400);
+            return;
+        }
+        io.vertx.ext.web.FileUpload upload = uploads.getFirst();
+        try {
+            String content = Files.readString(Path.of(upload.uploadedFileName()));
+            JsonObject importData = new JsonObject(content);
+            UUID resourceId = UUID.randomUUID();
+            UUID parentUuId = TreeUtil.getParentUuId(folderId);
+            String name = importData.getString("name", "导入应用");
+            Application application = new Application(
+                    resourceId, parentUuId, name,
+                    importData.getString("desc", ""),
+                    importData.getString("icon", ""),
+                    importData.getJsonObject("workflow", new JsonObject()),
+                    importData.getJsonObject("setting", new JsonObject()),
+                    false, false,
+                    LocalDateTime.now(), LocalDateTime.now());
+            Tool.getNodeRelation(relationMapper, parentUuId, resourceId, this::newRelation, this::getAncestorId, this::getDepth)
+                    .compose(relationMapper::batch_save)
+                    .compose(_ -> applicationMapper.save(application))
+                    .onSuccess(_ -> context.end(Result.success(application).toBuffer()))
+                    .onFailure(context::fail);
+        } catch (Exception e) {
+            context.fail(e);
+        }
     }
 
     public Condition getConversationQuery(ConversationQuery query) {

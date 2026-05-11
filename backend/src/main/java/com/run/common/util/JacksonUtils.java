@@ -8,15 +8,21 @@ package com.run.common.util;
  */
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.List;
+import java.util.Map;
 import java.util.TimeZone;
 
 /**
@@ -41,6 +47,56 @@ public class JacksonUtils {
         SimpleModule simpleModule = new SimpleModule();
         simpleModule.addSerializer(Long.class, ToStringSerializer.instance);
         simpleModule.addSerializer(Long.TYPE, ToStringSerializer.instance);
+        OBJECT_MAPPER.registerModule(simpleModule);
+
+// Long 转 String
+        simpleModule.addSerializer(Long.class, ToStringSerializer.instance);
+        simpleModule.addSerializer(Long.TYPE, ToStringSerializer.instance);
+
+// Vert.x JsonObject 序列化
+        simpleModule.addSerializer(JsonObject.class, new JsonSerializer<JsonObject>() {
+            @Override
+            public void serialize(JsonObject value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
+                if (value == null) {
+                    gen.writeNull();
+                    return;
+                }
+                gen.writeObject(value.getMap());
+            }
+        });
+
+// Vert.x JsonArray 序列化
+        simpleModule.addSerializer(JsonArray.class, new JsonSerializer<JsonArray>() {
+            @Override
+            public void serialize(JsonArray value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
+                if (value == null) {
+                    gen.writeNull();
+                    return;
+                }
+                gen.writeObject(value.getList());
+            }
+        });
+
+// Vert.x JsonObject 反序列化
+        simpleModule.addDeserializer(JsonObject.class, new JsonDeserializer<JsonObject>() {
+            @Override
+            public JsonObject deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
+                Map<String, Object> map = p.getCodec().readValue(p, new TypeReference<Map<String, Object>>() {
+                });
+                return new JsonObject(map);
+            }
+        });
+
+// Vert.x JsonArray 反序列化
+        simpleModule.addDeserializer(JsonArray.class, new JsonDeserializer<JsonArray>() {
+            @Override
+            public JsonArray deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
+                List<Object> list = p.getCodec().readValue(p, new TypeReference<List<Object>>() {
+                });
+                return new JsonArray(list);
+            }
+        });
+
         OBJECT_MAPPER.registerModule(simpleModule);
     }
 
@@ -71,6 +127,13 @@ public class JacksonUtils {
      */
     public static <T> T fromJson(String json, Class<T> clazz) {
         try {
+            if (clazz == JsonObject.class) {
+                return clazz.cast(new JsonObject(json));
+            }
+
+            if (clazz == JsonArray.class) {
+                return clazz.cast(new JsonArray(json));
+            }
             return OBJECT_MAPPER.readValue(json, clazz);
         } catch (IOException e) {
             throw new RuntimeException("JSON字符串转对象失败", e);

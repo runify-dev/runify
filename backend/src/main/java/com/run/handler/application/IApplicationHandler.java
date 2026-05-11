@@ -47,4 +47,18 @@ public interface IApplicationHandler extends IResourceHandler<Application> {
      */
     void pageConversationMessage(RoutingContext context);
 
+    /**
+     * 导出应用
+     *
+     * @param context 上下文
+     */
+    void exportApplication(RoutingContext context);
+
+    /**
+     * 导入应用
+     *
+     * @param context 上下文
+     */
+    void importApplication(RoutingContext context);
+
 }
