@@ -1,10 +1,10 @@
 <template>
-  <div class="editor-root flex h-full min-h-0 w-full flex-col">
+  <div class="editor-root flex h-full min-h-0 min-w-0 w-full flex-col">
     <div
-      class="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-lg border border-[var(--p-content-border-color)] bg-[var(--p-content-background)] shadow-sm"
+      class="flex h-full min-h-0 min-w-0 w-full flex-col overflow-hidden rounded-lg border border-[var(--p-content-border-color)] bg-[var(--p-content-background)] shadow-sm"
     >
-      <div class="relative flex min-h-0 w-full flex-1 flex-col" @click.self="focusEditor">
-        <div ref="cmContainer" class="flex min-h-0 flex-1 flex-col overflow-hidden" />
+      <div class="relative flex min-h-0 min-w-0 w-full flex-1 flex-col" @click.self="focusEditor">
+        <div ref="cmContainer" class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden" />
         <div class="pointer-events-none absolute bottom-2 right-2 z-10">
           <AppIcon
             class="pointer-events-auto cursor-pointer text-base text-[color:var(--p-text-muted-color)] hover:opacity-70"
@@ -503,10 +503,13 @@ function buildExtensions(onChange?: (v: string) => void) {
     basicSetup,
     markdown(),
     oneDark,
+    EditorView.lineWrapping,
     varHighlightPlugin,
     EditorView.theme({
-      '&': { height: '100%', display: 'flex', flexDirection: 'column' },
-      '.cm-scroller': { flex: '1', overflow: 'auto' },
+      '&': { height: '100%', width: '100%', maxWidth: '100%', display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' },
+      '.cm-content': { minWidth: 0 },
+      '.cm-line': { minWidth: 0 },
+      '.cm-scroller': { flex: '1', overflow: 'auto', minWidth: 0 },
       '.cm-var-token': {
         background: 'rgba(56, 189, 248, 0.15)',
         color: '#38bdf8 !important',

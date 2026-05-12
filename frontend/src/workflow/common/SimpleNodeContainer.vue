@@ -1,5 +1,6 @@
 <template>
   <div
+   @click="openContent"
     class="custom-node-wrap custom-node-wrap-start"
     :class="model.isSelected ? 'p-node-selected' : ''"
   >
@@ -49,7 +50,7 @@
 </template>
 <script setup lang="ts">
 import { BaseNodeModel } from '@logicflow/core'
-import { inject, ref } from 'vue'
+import { inject, ref, watch } from 'vue'
 import NodeContentContainer from '@/workflow/common/NodeContentContainer.vue'
 import DropdownMenu from '@/components/dropdown-menu/index.vue'
 import { iconComponent } from '../icons'
@@ -76,6 +77,8 @@ const nodeContentContainerRef = ref<InstanceType<typeof NodeContentContainer>>()
 const openContent = () => {
   nodeContentContainerRef.value?.open(model)
 }
+
+
 defineExpose({ openContent })
 </script>
 <style lang="scss" scope>

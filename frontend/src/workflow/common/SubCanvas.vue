@@ -371,7 +371,7 @@ defineExpose({getGraphData, render, centerContent, setFullscreen, setSubCanvasMo
 .sub-canvas-toolbar {
   position: absolute;
   bottom: 8px;
-  left: 8px;
+  right: 8px;
   z-index: 10;
 }
 </style>

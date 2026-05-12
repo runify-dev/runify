@@ -524,7 +524,7 @@ function movePanelBack() {
 .loop-panel-toolbar {
   position: absolute;
   bottom: 12px;
-  left: 12px;
+  right: 12px;
   display: flex;
   align-items: center;
   gap: 2px;

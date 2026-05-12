@@ -4,7 +4,10 @@
     :header="name"
     direction="rtl"
     append-to-body
-    :style="{ width: '25rem' }"
+    :modal="false"
+    class="node-setting-drawer"
+    :style="{ width: '30rem' }"
+    :pt="{ root: { class: 'max-sm:!w-full' } }"
   >
     <template #default>
       <NodeContent v-if="drawer" :validate="validate">
@@ -14,9 +17,9 @@
       </NodeContent>
     </template>
     <template #footer>
-      <div style="flex: auto">
-        <Button @click="close">取消</Button>
-        <Button @click="confirm">确认</Button>
+      <div class="flex justify-end gap-2">
+        <Button label="取消" severity="secondary" @click="close" />
+        <Button label="确认" @click="confirm" />
       </div>
     </template>
   </Drawer>
@@ -62,6 +65,13 @@ defineExpose({ open, close })
 .lf-node-selected {
   .node-container {
     outline-color: var(--p-primary-color);
+  }
+}
+.node-setting-drawer.p-drawer {
+  overflow: hidden;
+  .p-drawer-content {
+    overflow-x: hidden !important;
+    overflow-y: auto;
   }
 }
 </style>

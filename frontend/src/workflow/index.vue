@@ -182,25 +182,24 @@ function toggleFullscreen() {
       toolbar.style.position = 'fixed'
       toolbar.style.zIndex = '1000'
       toolbar.style.bottom = '16px'
-      toolbar.style.left = '16px'
+      toolbar.style.right = '16px'
       document.body.appendChild(toolbar)
     }
   } else {
-    Object.assign(el.style, {
-      position: 'relative',
-      top: '',
-      left: '',
-      width: '100%',
-      height: '100%',
-      zIndex: '',
-    })
+    // 清除内联样式，恢复到 CSS 类定义的样式
+    el.style.position = ''
+    el.style.top = ''
+    el.style.left = ''
+    el.style.width = ''
+    el.style.height = ''
+    el.style.zIndex = ''
     // 工具栏移回原位
     const toolbar = document.body.querySelector('.canvas-toolbar') as HTMLElement
     if (toolbar && toolbarOriginalParent) {
       toolbar.style.position = ''
       toolbar.style.zIndex = ''
       toolbar.style.bottom = ''
-      toolbar.style.left = ''
+      toolbar.style.right = ''
       toolbarOriginalParent.appendChild(toolbar)
       toolbarOriginalParent = null
     }
@@ -381,7 +380,7 @@ defineExpose({ init, render, getGraphData, validateWorkflow })
 <style lang="scss">
 .workflow-toolbar {
   position: absolute;
-  left: 16px;
+  right: 16px;
   bottom: 16px;
   z-index: 10;
 }

@@ -1,17 +1,18 @@
 <template>
-  <div
-    class="absolute z-10 right-6 top-14 items-center space-x-0 bg-white border border-gray-300 rounded-full p-px inline-flex"
-  >
-    <button @click="save" class="px-3 py-1 text-sm text-gray-600 hover:bg-gray-200/30 rounded-full">
-      保存
-    </button>
-    <button
-      @click="debugFn"
-      class="px-3 py-1 text-sm text-gray-600 hover:bg-gray-200/30 rounded-full"
+  <div class="relative h-full">
+    <div
+      class="absolute z-10 right-6 top-4 items-center space-x-0 bg-white border border-gray-300 rounded-full p-px inline-flex"
     >
-      调试
-    </button>
-  </div>
+      <button @click="save" class="px-2 py-0.5 text-sm text-gray-600 hover:bg-gray-200/30 rounded-full">
+        保存
+      </button>
+      <button
+        @click="debugFn"
+        class="px-2 py-0.5 text-sm text-gray-600 hover:bg-gray-200/30 rounded-full"
+      >
+        调试
+      </button>
+    </div>
 
     <DebugConversation
       v-if="debug"
@@ -20,7 +21,8 @@
       :application="application"
     ></DebugConversation>
 
-  <Workflow ref="workflowRef"></Workflow>
+    <Workflow ref="workflowRef"></Workflow>
+  </div>
 </template>
 <script setup lang="ts">
 import { onMounted, ref, computed, inject, provide } from 'vue'
@@ -72,4 +74,15 @@ onMounted(() => {
   })
 })
 </script>
-<style lang="scss"></style>
+<style lang="scss">
+.layout-main {
+  padding: 0 !important;
+  border: 1px solid var(--surface-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.layout-content-height {
+  height: calc(100dvh - var(--app-content-height-offset) + 3rem - 2px);
+}
+</style>
