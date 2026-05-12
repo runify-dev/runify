@@ -23,6 +23,7 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -86,6 +87,11 @@ public class WorkFlowManage {
     @Getter
     private List<INode<?, ?>> nodes;
 
+    /**
+     * 工作流是否已取消
+     */
+    private final AtomicBoolean cancelled = new AtomicBoolean(false);
+
     public WorkFlowManage(WorkFlow workFlow,
                           Map<String, Object> params,
                           Map<String, Map<String, Object>> context,
@@ -127,6 +133,7 @@ public class WorkFlowManage {
      * @param getNextNode 获取下一个节点的函数
      */
     public void nextInvoke(INode<?, ?> upINode, Supplier<List<Node>> getNextNode) {
+        if (this.cancelled.get()) this.assertionEnd();
         try {
             List<Node> nodes = getNextNode.get();
             if (nodes.size() == 1) {
@@ -179,6 +186,7 @@ public class WorkFlowManage {
      */
     @SneakyThrows
     public void invoke(Node node, INode<?, ?> upINode) {
+        if (this.cancelled.get()) return;
         List<String> upNodeIdList = List.of();
         if (upINode != null) {
             upNodeIdList = new ArrayList<>(upINode.getUpNodeIdList());
@@ -255,6 +263,25 @@ public class WorkFlowManage {
         this.write.write(this, null, null, true);
     }
 
+    /**
+     * 取消整个工作流
+     * 取消所有正在运行的节点
+     */
+    public void cancel() {
+        this.cancelled.set(true);
+        for (INode<?, ?> node : this.nodes) {
+            node.cancel();
+        }
+
+    }
+
+    /**
+     * 工作流是否已取消
+     */
+    public boolean isCancelled() {
+        return this.cancelled.get();
+    }
+
     public void assertionEnd() {
         List<NodeStatus> running = List.of(NodeStatus.RUNNING, NodeStatus.BEFORE_RUNNING);
         boolean b = this.nodes.stream().anyMatch(iNode -> running.contains(iNode.status));
@@ -288,18 +315,6 @@ public class WorkFlowManage {
         return null;
     }
 
-    /**
-     * 恢复中断工作流执行
-     *
-     * @param workFlow        工作流对象
-     * @param workflowDetails 工作流执行信息
-     * @param restoreNodeId   需要恢复节点id
-     * @return 工作流管理器
-     */
-    public static WorkFlowManage restore(WorkFlow workFlow, JsonObject workflowDetails, String restoreNodeId) {
-
-        return null;
-    }
 
     public float getRuntime() {
         long executionTime = ChronoUnit.MILLIS.between(this.startTime, LocalDateTime.now());

@@ -26,6 +26,8 @@ public class ConversationMessageConverter {
     private ConversationMessageConverter() {
     }
 
+    // ── ConversationMessage 入口 ──
+
     public static List<ChatCompletionMessageParam> toOpenAiMessages(List<ConversationMessage> messages) {
         return toOpenAiMessages(messages, ContentConvertConfig.defaultConfig());
     }
@@ -81,99 +83,173 @@ public class ConversationMessageConverter {
     }
 
     // ── 核心转换逻辑 ──
-    // 扁平内容列表可能包含多种类型（如 [QUESTION, TOOL, TOOL]），
-    // 需要按类型分组后分别生成对应的 OpenAI 消息。
+    //
+    // 严格保留原始顺序，同类型相邻自动合并：
+    //   - 连续 SYSTEM     -> 合并为一条 system
+    //   - 连续 QUESTION   -> 合并为一条 user
+    //   - 连续 TEXT       -> 合并为一条 assistant.content
+    //   - 连续 TOOL       -> 一条 ToolCallContent 拆成 assistant.tool_calls 项 + tool 消息；
+    //                       多条相邻 TOOL 共用同一条 assistant，tool 消息按顺序紧跟
+    //
+    // 严格符合 OpenAI 协议：
+    //   - 每个 tool 消息紧跟在声明对应 tool_call_id 的 assistant 之后
+    //   - tool_calls 之后再出现 TEXT，会开启新的一轮 assistant
+    //   - 允许 user 之后直接是 tool_calls（assistant 可以只有 tool_calls 没有 content）
 
     private static List<ChatCompletionMessageParam> convert(List<Object> contents, ContentConvertConfig config) {
-        ContentConvertConfig convertConfig = config == null ? ContentConvertConfig.defaultConfig() : config;
+        ContentConvertConfig cfg = config == null ? ContentConvertConfig.defaultConfig() : config;
         List<ChatCompletionMessageParam> result = new ArrayList<>();
 
-        // 按消息类型分组
-        List<JsonObject> questionItems = new ArrayList<>();
-        List<JsonObject> systemItems = new ArrayList<>();
-        List<JsonObject> textItems = new ArrayList<>();
-        List<JsonObject> toolItems = new ArrayList<>();
+        StringBuilder systemBuf = new StringBuilder();
+        StringBuilder userBuf = new StringBuilder();
+        StringBuilder assistantTextBuf = new StringBuilder();
+        List<JsonObject> pendingToolCalls = new ArrayList<>();
 
         for (JsonObject obj : streamContent(contents).toList()) {
             ContentTypeConstants type = parseType(obj);
-            if (type == null) continue;
+            if (type == null) {
+                continue;
+            }
+            String extracted = cfg.extract(type, obj);
+
             switch (type) {
-                case QUESTION -> questionItems.add(obj);
-                case SYSTEM -> systemItems.add(obj);
-                case TEXT -> textItems.add(obj);
-                case TOOL -> toolItems.add(obj);
-            }
-        }
-
-        // 1. system 消息
-        if (!systemItems.isEmpty()) {
-            String text = systemItems.stream()
-                    .map(obj -> convertConfig.extract(ContentTypeConstants.SYSTEM, obj))
-                    .filter(s -> !isBlank(s))
-                    .collect(Collectors.joining());
-            if (!isBlank(text)) {
-                result.add(ChatCompletionMessageParam.ofSystem(
-                        ChatCompletionSystemMessageParam.builder().content(text).build()));
-            }
-        }
-
-        // 2. user 消息
-        if (!questionItems.isEmpty()) {
-            String text = questionItems.stream()
-                    .map(obj -> convertConfig.extract(ContentTypeConstants.QUESTION, obj))
-                    .filter(s -> !isBlank(s))
-                    .collect(Collectors.joining());
-            result.add(ChatCompletionMessageParam.ofUser(
-                    ChatCompletionUserMessageParam.builder().content(text).build()));
-        }
-
-        // 3. assistant 消息（text）+ 每个 tool 生成独立的 assistant + tool 消息对
-        if (!textItems.isEmpty() || !toolItems.isEmpty()) {
-            String text = textItems.stream()
-                    .map(obj -> convertConfig.extract(ContentTypeConstants.TEXT, obj))
-                    .filter(s -> !isBlank(s))
-                    .collect(Collectors.joining());
-
-            if (!toolItems.isEmpty()) {
-                boolean textIncluded = false;
-                for (JsonObject tc : toolItems) {
-                    JsonObject assistantMsg = new JsonObject()
-                            .put("role", "assistant")
-                            .put("tool_calls", new JsonArray().add(buildToolCall(tc)));
-                    if (!textIncluded && !isBlank(text)) {
-                        assistantMsg.put("content", text);
-                        textIncluded = true;
+                case SYSTEM -> {
+                    flushUser(userBuf, result);
+                    flushAssistantAndTools(assistantTextBuf, pendingToolCalls, result);
+                    if (!isBlank(extracted)) {
+                        systemBuf.append(extracted);
                     }
-                    result.add(ChatCompletionMessageParam.fromJsonObject(assistantMsg));
-                    result.add(ChatCompletionMessageParam.fromJsonObject(buildToolMessage(tc)));
                 }
-            } else if (!isBlank(text)) {
-                result.add(ChatCompletionMessageParam.fromJsonObject(
-                        new JsonObject().put("role", "assistant").put("content", text)));
-            } else {
-                result.add(ChatCompletionMessageParam.fromJsonObject(
-                        new JsonObject().put("role", "assistant").put("content", "")));
+                case QUESTION -> {
+                    flushSystem(systemBuf, result);
+                    flushAssistantAndTools(assistantTextBuf, pendingToolCalls, result);
+                    if (!isBlank(extracted)) {
+                        userBuf.append(extracted);
+                    }
+                }
+                case TEXT -> {
+                    flushSystem(systemBuf, result);
+                    flushUser(userBuf, result);
+                    // 已有 pendingToolCalls 意味着上一轮 assistant 已封口，
+                    // 当前 TEXT 是 tool 结果之后新一轮 assistant 发言
+                    if (!pendingToolCalls.isEmpty()) {
+                        flushAssistantAndTools(assistantTextBuf, pendingToolCalls, result);
+                    }
+                    if (!isBlank(extracted)) {
+                        assistantTextBuf.append(extracted);
+                    }
+                }
+                case TOOL -> {
+                    flushSystem(systemBuf, result);
+                    flushUser(userBuf, result);
+                    pendingToolCalls.add(obj);
+                }
             }
         }
+
+        // 收尾
+        flushSystem(systemBuf, result);
+        flushUser(userBuf, result);
+        flushAssistantAndTools(assistantTextBuf, pendingToolCalls, result);
 
         return result;
     }
 
+    // ── flush 辅助方法 ──
+
+    private static void flushSystem(StringBuilder buf, List<ChatCompletionMessageParam> result) {
+        if (buf.length() == 0) {
+            return;
+        }
+        result.add(ChatCompletionMessageParam.ofSystem(
+                ChatCompletionSystemMessageParam.builder().content(buf.toString()).build()));
+        buf.setLength(0);
+    }
+
+    private static void flushUser(StringBuilder buf, List<ChatCompletionMessageParam> result) {
+        if (buf.length() == 0) {
+            return;
+        }
+        result.add(ChatCompletionMessageParam.ofUser(
+                ChatCompletionUserMessageParam.builder().content(buf.toString()).build()));
+        buf.setLength(0);
+    }
+
+    private static void flushAssistantAndTools(StringBuilder textBuf,
+                                               List<JsonObject> pendingToolCalls,
+                                               List<ChatCompletionMessageParam> result) {
+        if (textBuf.length() == 0 && pendingToolCalls.isEmpty()) {
+            return;
+        }
+
+        JsonObject assistantMsg = new JsonObject().put("role", "assistant");
+
+        if (textBuf.length() > 0) {
+            assistantMsg.put("content", textBuf.toString());
+        }
+
+        if (!pendingToolCalls.isEmpty()) {
+            // 多条相邻 TOOL 全部合并到这一条 assistant 的 tool_calls 数组
+            JsonArray toolCallsArr = new JsonArray();
+            for (JsonObject tc : pendingToolCalls) {
+                toolCallsArr.add(buildToolCall(tc));
+            }
+            assistantMsg.put("tool_calls", toolCallsArr);
+        } else if (textBuf.length() == 0) {
+            // 兜底：没有 tool_calls 也没有 content 时给空串，避免 content=null
+            assistantMsg.put("content", "");
+        }
+
+        result.add(ChatCompletionMessageParam.fromJsonObject(assistantMsg));
+
+        // 紧跟着按顺序输出每条 tool 消息，与 tool_calls 一一对应
+        for (JsonObject tc : pendingToolCalls) {
+            result.add(ChatCompletionMessageParam.fromJsonObject(buildToolMessage(tc)));
+        }
+
+        textBuf.setLength(0);
+        pendingToolCalls.clear();
+    }
+
+    // ── ToolCallContent -> OpenAI tool_call / tool message ──
+    //
+    // ToolCallContent 字段映射：
+    //   toolName            -> function.name
+    //   functionArguments   -> function.arguments
+    //   content             -> tool message 的 content（即工具执行结果）
+    //   id                  -> tool_call_id
+
     private static JsonObject buildToolCall(JsonObject obj) {
+        String id = obj.getString("id");
+        String name = obj.getString("toolName");
+        String arguments = obj.getString("functionArguments");
+        if (isBlank(arguments)) {
+            arguments = "{}";
+        }
         return new JsonObject()
-                .put("id", obj.getString("id"))
+                .put("id", id == null ? "" : id)
                 .put("type", "function")
                 .put("function", new JsonObject()
-                        .put("name", obj.getString("functionName"))
-                        .put("arguments", obj.getString("arguments", "{}"))
+                        .put("name", name == null ? "" : name)
+                        .put("arguments", arguments)
                 );
     }
 
     private static JsonObject buildToolMessage(JsonObject obj) {
+        String id = obj.getString("id");
+        Object rawContent = obj.getValue("content");
+        String content;
+        if (rawContent == null) {
+            content = "";
+        } else if (rawContent instanceof String s) {
+            content = s;
+        } else {
+            content = rawContent.toString();
+        }
         return new JsonObject()
                 .put("role", "tool")
-                .put("tool_call_id", obj.getString("id"))
-                .put("content", obj.getString("result", ""));
+                .put("tool_call_id", id == null ? "" : id)
+                .put("content", content);
     }
 
     // ── 工具方法 ──
@@ -188,6 +264,7 @@ public class ConversationMessageConverter {
                 .filter(Objects::nonNull);
     }
 
+    @SuppressWarnings("unchecked")
     private static JsonObject toJsonObject(Object obj) {
         if (obj instanceof JsonObject jo) {
             return jo;

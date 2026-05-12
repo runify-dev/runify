@@ -55,7 +55,7 @@ import Loading from '@/components/conversation-plus/loading/index.vue'
 const props = defineProps<{ content: any }>()
 
 const loading = computed(() => props.content.status === 'RUNNING')
-const isTerminal = computed(() => props.content.toolName === 'Terminal')
+const isTerminal = computed(() => props.content.toolName.toLocaleLowerCase() === 'terminal')
 const isExpanded = ref(props.content.status === 'RUNNING')
 
 const commandText = computed(() => {
@@ -70,7 +70,7 @@ const commandText = computed(() => {
 })
 
 const displayTitle = computed(() => {
-  if (isTerminal.value) return commandText.value || 'Terminal'
+  if (isTerminal.value) return commandText.value || 'terminal'
   return props.content.toolName || 'Tool'
 })
 

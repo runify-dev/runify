@@ -219,7 +219,11 @@ export function useChatStore() {
     const index = getStoredStreamIndex(cid)
     return conversationAPI.resumeStream(cid, index)
   }
-
+  const cancel=()=>{
+     const cid = conversationId.value
+    if (!cid) throw new Error('conversationId is empty')
+    return conversationAPI.cancel(cid)
+  }
   const setStreamIndex = (index: number) => {
     const cid = conversationId.value
     if (cid) setStoredStreamIndex(cid, index)
@@ -278,7 +282,7 @@ export function useChatStore() {
     resumeStream,
     setStreamIndex,
     clearStreamIndex,
-
+    cancel,
     // stream manager（供 chat-panel 直接调用）
     startStream: streamManager.startStream,
     cancelStream: streamManager.cancelStream,

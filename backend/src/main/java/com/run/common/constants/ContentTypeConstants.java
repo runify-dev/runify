@@ -1,5 +1,9 @@
 package com.run.common.constants;
 
+import java.util.Arrays;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 public enum ContentTypeConstants {
     /**
      * 文本
@@ -55,4 +59,9 @@ public enum ContentTypeConstants {
      * 已提交
      */
     APPROVAL_SUBMIT;
+    private static final Set<String> NAMES = Arrays.stream(values()).map(ContentTypeConstants::name).collect(Collectors.toSet());
+
+    public static boolean contains(String name) {
+        return NAMES.contains(name);
+    }
 }

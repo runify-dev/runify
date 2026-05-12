@@ -141,4 +141,11 @@ public abstract class INode<T extends INode, NodeData> {
         this.status = status;
     }
 
+    /**
+     * 取消节点执行
+     */
+    public void cancel() {
+        this.status = NodeStatus.CANCELLED;
+    }
+
 }

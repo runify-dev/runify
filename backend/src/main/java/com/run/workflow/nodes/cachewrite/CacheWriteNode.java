@@ -20,6 +20,7 @@ import org.apache.commons.lang3.Strings;
 import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
@@ -29,12 +30,20 @@ public class CacheWriteNode extends INode<CacheWriteNode, CacheWriteNodeData> {
 
     public final static List<WorkflowType> supportWorkflow = List.of(WorkflowType.PROCESSOR_HTTP, WorkflowType.PROCESSOR_HTTP_LOOP, WorkflowType.CHAT_WORKFLOW_LOOP, WorkflowType.CHAT_WORKFLOW);
 
+    private final AtomicBoolean cancelled = new AtomicBoolean(false);
+
     public CacheWriteNode(Node node, JsonObject params, List<String> upNodeIdList, String salt, INode<?, ?> upNode) {
         super(node, params, upNodeIdList, salt, upNode);
     }
 
     public CacheWriteNode(Node node, JsonObject params, List<String> upNodeIdList, String salt, JsonObject context, Validator validator, INode<?, ?> upNode) {
         super(node, params, upNodeIdList, salt, context, validator, upNode);
+    }
+
+    @Override
+    public void cancel() {
+        super.cancel();
+        cancelled.set(true);
     }
 
     public static class Handle implements BiFunction<WorkFlowManage, CacheWriteNode, Supplier<List<Node>>> {
@@ -47,6 +56,7 @@ public class CacheWriteNode extends INode<CacheWriteNode, CacheWriteNodeData> {
 
             DataSourceManage.getCacheAsync(UUID.fromString(data.getCacheId()), (uuid, dm) -> dm.getById(uuid.toString()), mapper, vertx)
                     .onSuccess(cache -> {
+                        if (node.cancelled.get()) return;
                         String cacheKey = (String) resolveValue(data.getKeyLocation(), data.getKeyReference(), data.getKey(), workFlowManage);
                         Object cacheValue = resolveValue(data.getValueLocation(), data.getValueReference(), data.getValue(), workFlowManage);
 
@@ -57,6 +67,7 @@ public class CacheWriteNode extends INode<CacheWriteNode, CacheWriteNodeData> {
 
                         cache.set(cacheKey, cacheValue, options)
                                 .thenAccept(_ -> {
+                                    if (node.cancelled.get()) return;
                                     workFlowManage.writeContext(node, "success", true);
                                     node.status = NodeStatus.SUCCESS;
                                     workFlowManage.nextInvoke(node, () -> workFlowManage
@@ -66,6 +77,7 @@ public class CacheWriteNode extends INode<CacheWriteNode, CacheWriteNodeData> {
                                             .toList());
                                 })
                                 .exceptionally(e -> {
+                                    if (node.cancelled.get()) return null;
                                     node.status = NodeStatus.FAIL;
                                     workFlowManage.write(node, new FailureContent(e.getMessage(), node,
                                             (String) workFlowManage.getParams().get("workflowRunId"),
@@ -75,6 +87,7 @@ public class CacheWriteNode extends INode<CacheWriteNode, CacheWriteNodeData> {
                                 });
                     })
                     .onFailure(e -> {
+                        if (node.cancelled.get()) return;
                         node.status = NodeStatus.FAIL;
                         workFlowManage.write(node, new FailureContent(e.getMessage(), node,
                                 (String) workFlowManage.getParams().get("workflowRunId"),

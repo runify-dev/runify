@@ -33,6 +33,7 @@ import {
   cacheQueryNode,
   cacheWriteNode,
   fileUploadNode,
+  noteSearchNode,
   jsonResponseNode,
   judgeNode,
   loopNode,
@@ -53,7 +54,7 @@ const groups = [
     value: '1',
     label: '数据',
     icon: 'pi pi-database',
-    nodes: [databaseSearchNode, databaseInsertNode, cacheQueryNode, cacheWriteNode, fileUploadNode]
+    nodes: [databaseSearchNode, databaseInsertNode, cacheQueryNode, cacheWriteNode, fileUploadNode, noteSearchNode]
   },
   {
     value: '2',

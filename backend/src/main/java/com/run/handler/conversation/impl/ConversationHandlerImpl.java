@@ -30,6 +30,7 @@ import com.run.sql.model.Field;
 import com.run.sql.model.Param;
 import com.run.workflow.INode;
 import com.run.workflow.WorkFlowManage;
+import com.run.workflow.WorkflowRunRegistry;
 import com.run.workflow.WorkflowType;
 import com.run.workflow.entity.NodeSerialize;
 import com.run.workflow.entity.WorkFlow;
@@ -264,6 +265,16 @@ public class ConversationHandlerImpl implements IConversationHandler {
         messageQueue.exists(conversationId, ok -> {
             context.end(Result.success(Map.of("status", ok)).toBuffer());
         });
+    }
+
+    @Override
+    public void cancel(RoutingContext context) {
+        String conversationId = context.pathParam("conversationId");
+        Thread.startVirtualThread(() -> {
+            WorkflowRunRegistry.cancel(conversationId);
+            context.end(Result.success(Boolean.TRUE).toBuffer());
+        });
+
     }
 
     public void resumeStream(RoutingContext context) {

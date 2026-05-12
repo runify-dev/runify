@@ -13,6 +13,9 @@ import io.vertx.core.json.JsonObject;
 import jakarta.validation.Validator;
 import org.apache.commons.lang3.StringUtils;
 
+import java.io.File;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -34,12 +37,23 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
 
     private static final int DEFAULT_TIMEOUT = 30;
 
+    private volatile Process process;
+
     public TerminalNode(Node node, JsonObject params, List<String> upNodeIdList, String salt, INode<?, ?> upNode) {
         super(node, params, upNodeIdList, salt, upNode);
     }
 
     public TerminalNode(Node node, JsonObject params, List<String> upNodeIdList, String salt, JsonObject context, Validator validator, INode<?, ?> upNode) {
         super(node, params, upNodeIdList, salt, context, validator, upNode);
+    }
+
+    @Override
+    public void cancel() {
+        super.cancel();
+        Process p = this.process;
+        if (p != null && p.isAlive()) {
+            p.destroyForcibly();
+        }
     }
 
 
@@ -57,7 +71,8 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
                 workFlowManage.writeContext(node, "stdout", "");
                 workFlowManage.writeContext(node, "stderr", "代码为空");
                 workFlowManage.writeContext(node, "exitCode", 1);
-                return () -> workFlowManage.getNextList(node.node.getId()).stream().map(DefaultKeyValue::getValue).toList();
+                workFlowManage.nextFailInvoke(node, new RuntimeException("代码为空"));
+                return null;
             }
 
             try {
@@ -66,27 +81,42 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
                     workFlowManage.write(node, new ToolCallContent("terminal", "", code.code, NodeStatus.RUNNING, node, (String) workFlowManage.getParams().get("workflowRunId"), id));
                 }
                 ProcessBuilder processBuilder = new ProcessBuilder();
+                UUID conversationId = (UUID) workFlowManage.getParams().getOrDefault("conversationId", CommonUtils.uuid7());
+
+                File file = new File(System.getProperty("user.home") + "/.runify/" + conversationId);
+                if (!file.exists()) {
+                    file.mkdirs();
+                }
+                processBuilder.directory(file);
                 processBuilder.command("sh", "-c", code.code);
                 processBuilder.redirectErrorStream(false);
 
                 Process process = processBuilder.start();
+                node.process = process;
 
                 // 实时读取标准输出
                 StringBuilder stdoutBuilder = new StringBuilder();
-                try (var reader = new java.io.BufferedReader(new java.io.InputStreamReader(process.getInputStream()))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        stdoutBuilder.append(line).append("\n");
-                        workFlowManage.write(node, new ToolCallContent("terminal", line + "\n", "", NodeStatus.RUNNING, node, (String) workFlowManage.getParams().get("workflowRunId"), id));
+                try (var reader = new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8)) {
+                    char[] buf = new char[4096];
+                    int n;
+                    while ((n = reader.read(buf)) != -1) {
+                        String chunk = new String(buf, 0, n);
+                        stdoutBuilder.append(chunk);
+                        workFlowManage.write(node, new ToolCallContent(
+                                "terminal", chunk, "", NodeStatus.RUNNING, node,
+                                (String) workFlowManage.getParams().get("workflowRunId"), id
+                        ));
                     }
                 }
 
                 // 实时读取错误输出
                 StringBuilder stderrBuilder = new StringBuilder();
-                try (var reader = new java.io.BufferedReader(new java.io.InputStreamReader(process.getErrorStream()))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        stderrBuilder.append(line).append("\n");
+                try (var reader = new InputStreamReader(process.getErrorStream(), StandardCharsets.UTF_8)) {
+                    char[] buf = new char[4096];
+                    int n;
+                    while ((n = reader.read(buf)) != -1) {
+                        String chunk = new String(buf, 0, n);
+                        stderrBuilder.append(chunk);
                     }
                 }
 
@@ -106,7 +136,8 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
                     workFlowManage.writeContext(node, "stderr", timeoutMsg);
                     workFlowManage.writeContext(node, "exitCode", -1);
                     workFlowManage.write(node, new ToolCallContent("terminal", "", "", NodeStatus.FAIL, node, (String) workFlowManage.getParams().get("workflowRunId"), id));
-                    workFlowManage.writeContext(node, "tool", JacksonUtils.toJson(new ToolCallContent("terminal", timeoutMsg, JacksonUtils.toJson(Map.of("code", code)), NodeStatus.FAIL, node, (String) workFlowManage.getParams().get("workflowRunId"), id)));
+                    ToolCallContent toolCallContent = new ToolCallContent("terminal", timeoutMsg, JacksonUtils.toJson(Map.of("code", code)), NodeStatus.FAIL, node, (String) workFlowManage.getParams().get("workflowRunId"), id);
+                    workFlowManage.writeContext(node, "tool", JsonObject.mapFrom(toolCallContent));
                 } else {
                     int exitCode = process.exitValue();
                     workFlowManage.writeContext(node, "result", exitCode == 0 ? stdout : stderr);
@@ -115,7 +146,7 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
                     workFlowManage.writeContext(node, "exitCode", exitCode);
                     node.status = exitCode == 0 ? NodeStatus.SUCCESS : NodeStatus.FAIL;
                     workFlowManage.write(node, new ToolCallContent("terminal", "", "", node.status, node, (String) workFlowManage.getParams().get("workflowRunId"), id));
-                    workFlowManage.writeContext(node, "tool", JacksonUtils.toJson(new ToolCallContent("terminal", exitCode == 0 ? stdout : stderr, JacksonUtils.toJson(Map.of("code", code.code)), node.status, node, (String) workFlowManage.getParams().get("workflowRunId"), id)));
+                    workFlowManage.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("terminal", exitCode == 0 ? stdout : stderr, JacksonUtils.toJson(Map.of("code", code.code)), node.status, node, (String) workFlowManage.getParams().get("workflowRunId"), id)));
                 }
             } catch (Exception e) {
                 node.status = NodeStatus.FAIL;

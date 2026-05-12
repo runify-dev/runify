@@ -201,6 +201,11 @@ export function useChatStore() {
     if (!cid) throw new Error('conversationId is empty')
     return applicationAPI.statusStream(applicationId.value, cid)
   }
+  const cancel=()=>{
+      const cid = conversationId.value
+    if (!cid) throw new Error('conversationId is empty')
+    return applicationAPI.cancel(applicationId.value, cid)
+  }
 
   const resumeStream = () => {
     const cid = conversationId.value
@@ -270,7 +275,7 @@ export function useChatStore() {
     resumeStream,
     setStreamIndex,
     clearStreamIndex,
-
+    cancel,
     // stream manager
     startStream: streamManager.startStream,
     cancelStream: streamManager.cancelStream,

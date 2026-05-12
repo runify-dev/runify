@@ -28,6 +28,7 @@ import com.run.sql.DSL;
 import com.run.sql.condition.Condition;
 import com.run.workflow.INode;
 import com.run.workflow.WorkFlowManage;
+import com.run.workflow.WorkflowRunRegistry;
 import com.run.workflow.WorkflowType;
 import com.run.workflow.entity.Node;
 import com.run.workflow.entity.NodeSerialize;
@@ -281,6 +282,7 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
                         "workflowRunId", workflowRunId.toString())),
                 kv.getValue(), (wm, node, chunk, isEnd) -> {
             if (isEnd) {
+                WorkflowRunRegistry.unregister(conversationId.toString());
                 List<Content> chunks = wm.getChunks();
                 List<INode<?, ?>> nodes = wm.getNodes();
                 List<ConversationMessage> messageArrayList = new ArrayList<>();
@@ -308,6 +310,7 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
             messageQueue.publish(conversationId.toString(), message.index(), messageString);
             context.response().write(Buffer.buffer(messageString, "utf-8"));
         }, kv.getKey());
+        WorkflowRunRegistry.register(conversationId.toString(), workFlowManage);
         workFlowManage.invoke();
     }
 
@@ -447,6 +450,15 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
                 });
 
             }
+        });
+
+    }
+
+    public void cancel(RoutingContext context) {
+        String conversationId = context.pathParam("conversationId");
+        Thread.startVirtualThread(() -> {
+            WorkflowRunRegistry.cancel(conversationId);
+            context.end(Result.success(Boolean.TRUE).toBuffer());
         });
 
     }

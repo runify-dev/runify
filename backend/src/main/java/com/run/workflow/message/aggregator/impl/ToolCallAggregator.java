@@ -3,6 +3,7 @@ package com.run.workflow.message.aggregator.impl;
 import com.run.workflow.message.aggregator.ContentAggregator;
 import com.run.workflow.message.struct.QuestionContent;
 import com.run.workflow.message.struct.ToolCallContent;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * {@code @Author:张少虎}
@@ -34,7 +35,7 @@ public class ToolCallAggregator implements ContentAggregator<ToolCallContent> {
 
         String prevToolName = prev.getToolName() != null ? prev.getToolName() : "";
         String chunkToolName = chunk.getToolName() != null ? chunk.getToolName() : "";
-        result.setToolName(prevToolName + chunkToolName);
+        result.setToolName(StringUtils.isEmpty(chunkToolName) ? prevToolName : chunkToolName);
         return result;
     }
 }

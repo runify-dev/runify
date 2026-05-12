@@ -1,26 +1,35 @@
 <template>
-  <!-- 整体背景和居中容器 -->
-  <div class="h-screen gradient-bg text-white flex items-center justify-center font-inter">
-    <!-- 登录主容器 -->
+  <div class="login-layout h-screen text-white flex items-center justify-center">
     <div
-      class="flex bg-white/5 backdrop-blur-sm rounded-2xl shadow-2xl overflow-hidden w-[1000px] h-[600px] max-w-[95vw] max-h-[95vh]"
+      ref="cardRef"
+      class="login-card flex backdrop-blur-sm rounded-2xl shadow-2xl overflow-hidden w-[1000px] h-[600px] max-w-[95vw] max-h-[95vh]"
+      :style="{ transform: `rotateX(${tiltX}deg) rotateY(${tiltY}deg)` }"
+      @mousemove="onMouseMove"
+      @mouseleave="onMouseLeave"
     >
-      <!-- 左侧背景区域 (仅在中等屏幕及以上显示) -->
       <div
         class="left-bg hidden md:flex flex-1 flex-col items-center justify-center text-center relative"
       >
+        <ParticleNetwork />
         <div class="left-overlay absolute inset-0"></div>
         <div class="relative z-10 px-8">
-          <h1 class="text-5xl font-bold mb-5 tracking-wider">Runify</h1>
-          <p class="text-lg leading-relaxed opacity-90 max-w-[300px]">
-            让每一次知识检索<br />都丝滑如流
+          <h1 class="login-title text-5xl font-bold mb-5 tracking-wider">
+            <span
+              v-for="(ch, i) in 'Runify'"
+              :key="i"
+              class="title-letter"
+              :data-char="ch"
+              :style="{ '--enter-delay': `${0.3 + i * 0.08}s` }"
+            >{{ ch }}</span>
+          </h1>
+          <p class="login-subtitle text-lg leading-relaxed opacity-90 max-w-[300px]">
+            {{ t('login.subtitle') }}
           </p>
         </div>
       </div>
 
-      <!-- 右侧内容区域 -->
       <div
-        class="flex-1 md:flex-none md:w-[400px] min-h-[600px] p-10 md:p-[60px_45px] bg-white/10 backdrop-blur-lg border-l border-white/10 flex flex-col justify-center"
+        class="flex-1 md:flex-none md:w-[400px] min-h-[600px] p-10 md:p-[60px_45px] backdrop-blur-lg flex flex-col justify-center"
       >
         <slot></slot>
       </div>
@@ -29,29 +38,170 @@
   </div>
 </template>
 <script setup lang="ts">
-defineProps({
-  lang: {
-    type: Boolean,
-    default: true
-  }
-})
+import { ref } from 'vue'
+import { t } from '@/locales'
+import ParticleNetwork from '@/views/login/ParticleNetwork.vue'
+
 defineOptions({ name: 'LoginLayout' })
-</script>
-<style lang="scss" scope>
-.gradient-bg {
-  background: linear-gradient(135deg, rgb(29 43 100 / 79%), rgb(248, 205, 218));
-  //另一种背景变色#f8cdda  #feedf3
+
+const cardRef = ref<HTMLElement>()
+const tiltX = ref(0)
+const tiltY = ref(0)
+let rafId = 0
+
+const MAX_TILT = 4
+const SPEED = 0.08
+const RESET_SPEED = 0.05
+
+let targetX = 0
+let targetY = 0
+let currentX = 0
+let currentY = 0
+
+function update() {
+  currentX += (targetX - currentX) * (targetX === 0 ? RESET_SPEED : SPEED)
+  currentY += (targetY - currentY) * (targetY === 0 ? RESET_SPEED : SPEED)
+
+  tiltX.value = currentX
+  tiltY.value = currentY
+
+  if (Math.abs(currentX) > 0.01 || Math.abs(currentY) > 0.01 || targetX !== 0 || targetY !== 0) {
+    rafId = requestAnimationFrame(update)
+  }
 }
 
-.left-bg {
+function onMouseMove(e: MouseEvent) {
+  const card = cardRef.value
+  if (!card) return
+  const rect = card.getBoundingClientRect()
+  const x = (e.clientX - rect.left) / rect.width - 0.5
+  const y = (e.clientY - rect.top) / rect.height - 0.5
+
+  targetX = -y * MAX_TILT
+  targetY = x * MAX_TILT
+
+  cancelAnimationFrame(rafId)
+  rafId = requestAnimationFrame(update)
+}
+
+function onMouseLeave() {
+  targetX = 0
+  targetY = 0
+  cancelAnimationFrame(rafId)
+  rafId = requestAnimationFrame(update)
+}
+</script>
+<style lang="scss" scoped>
+.login-layout {
+  background: linear-gradient(
+    135deg,
+    var(--login-bg-start) 0%,
+    var(--login-bg-end) 100%
+  );
+  perspective: 1200px;
+}
+
+.login-card {
+  transform-style: preserve-3d;
+  transition: box-shadow 0.3s ease;
+  will-change: transform;
+}
+
+.left-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
   background: url('/ui/login.jpg') no-repeat center center;
   background-size: cover;
+  animation: ken-burns 20s ease-in-out infinite alternate;
 }
 
 .left-overlay::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, rgba(29, 43, 100, 0.6) 0%, rgba(29, 43, 100, 0.3) 100%);
+  background: linear-gradient(
+    90deg,
+    var(--login-overlay-start) 0%,
+    var(--login-overlay-end) 100%
+  );
 }
+
+.login-title {
+  display: inline-flex;
+  overflow: hidden;
+}
+
+.title-letter {
+  display: inline-block;
+  animation: letter-enter 0.6s cubic-bezier(0.16, 1, 0.3, 1) var(--enter-delay) both;
+  position: relative;
+
+  &::after {
+    content: attr(data-char);
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      105deg,
+      transparent 30%,
+      rgba(255, 255, 255, 0.6) 50%,
+      transparent 70%
+    );
+    background-size: 300% 100%;
+    background-position: 200% 0;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: shimmer 3s ease-in-out 1.2s infinite;
+  }
+}
+
+.login-subtitle {
+  animation: text-enter 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.7s both;
+}
+
+@keyframes ken-burns {
+  0% {
+    transform: scale(1) translate(0, 0);
+  }
+  100% {
+    transform: scale(1.1) translate(-2%, -1%);
+  }
+}
+
+@keyframes text-enter {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes letter-enter {
+  from {
+    opacity: 0;
+    transform: translateY(40px) rotateX(-60deg);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) rotateX(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
 </style>

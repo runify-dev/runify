@@ -44,6 +44,8 @@ public class LoopNode extends INode<LoopNode, LoopNodeData> {
             WorkflowType.CHAT_WORKFLOW_LOOP
     );
 
+    private volatile WorkFlowManage subWorkFlowManage;
+
 
     public LoopNode(Node node, JsonObject params, List<String> upNodeIdList, String salt, INode<?, ?> upNode) {
         super(node, params, upNodeIdList, salt, upNode);
@@ -51,6 +53,15 @@ public class LoopNode extends INode<LoopNode, LoopNodeData> {
 
     public LoopNode(Node node, JsonObject params, List<String> upNodeIdList, String salt, JsonObject context, Validator validator, INode<?, ?> upNode) {
         super(node, params, upNodeIdList, salt, context, validator, upNode);
+    }
+
+    @Override
+    public void cancel() {
+        super.cancel();
+        WorkFlowManage subWm = this.subWorkFlowManage;
+        if (subWm != null) {
+            subWm.cancel();
+        }
     }
 
     public static class Handle implements BiFunction<WorkFlowManage, LoopNode, Supplier<List<Node>>> {
@@ -124,6 +135,7 @@ public class LoopNode extends INode<LoopNode, LoopNodeData> {
                              List<Node> children, List<com.run.workflow.entity.Edge> edges,
                              WorkflowType loopWfType, Node startNode,
                              List<Object> items, int index) {
+            if (node.status == NodeStatus.CANCELLED) parentWm.nextInvoke(node, () -> getNextNodes(parentWm, node));
             if (items != null && index >= items.size()) {
                 node.end(NodeStatus.SUCCESS);
                 parentWm.nextInvoke(node, () -> getNextNodes(parentWm, node));
@@ -198,6 +210,7 @@ public class LoopNode extends INode<LoopNode, LoopNodeData> {
                     functionMapDefaultKeyValue.getValue(),
                     loopWrite, parentWm, wm -> wm.getContext().computeIfAbsent(node.node.getId(), k -> new HashMap<>()),
                     functionMapDefaultKeyValue.getKey());
+            node.subWorkFlowManage = subWm;
             try {
                 subWm.invoke();
             } catch (Exception e) {
@@ -267,6 +280,9 @@ public class LoopNode extends INode<LoopNode, LoopNodeData> {
                 Object variable = wm.getContextVariable(data.getLoopVariable());
                 if (variable instanceof Collection<?> collection) {
                     return new ArrayList<>(collection);
+                }
+                if (variable instanceof JsonArray jsonArray) {
+                    return jsonArray.getList();
                 }
                 if (variable != null) {
                     return List.of(variable);

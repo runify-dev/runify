@@ -68,4 +68,6 @@ public interface IConversationHandler {
     void resumeStream(RoutingContext context);
 
     void statusStream(RoutingContext context);
+
+    void cancel(RoutingContext routingContext);
 }

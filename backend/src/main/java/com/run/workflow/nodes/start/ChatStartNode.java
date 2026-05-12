@@ -60,12 +60,11 @@ public class ChatStartNode extends INode<ChatStartNode, StartNodeData> {
                 }
             }
 
-
-            List<Map<String, Object>> messages = new ArrayList<>();
+            JsonArray messages = new JsonArray();
             for (ConversationMessage conversationMessage : node.params.messages.subList(0, node.params.messages.size() - 1)) {
                 JsonArray content = conversationMessage.getContent();
-                for (int i = 0; i < content.size(); i++) {
-                    messages.add(content.getJsonObject(i).getMap());
+                for (Object o : content) {
+                    messages.add(o);
                 }
             }
             workFlowManage.writeContext(node, "messages", messages);

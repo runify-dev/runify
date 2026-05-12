@@ -62,6 +62,9 @@ const delConversation: (
 const resumeStream = (conversationId: string, index: number) => {
   return postStream(`/conversation/api/conversation/${conversationId}/resume-stream`, {}, { 'Last-Event-ID': index })
 }
+const cancel=( conversationId: string)=>{
+  return post(`/conversation/api/conversation/${conversationId}/cancel`,{}, {})
+}
 const statusStream = (conversationId: string) => {
   return get(`/conversation/${conversationId}/status`)
 }
@@ -75,5 +78,6 @@ export default {
   modifyName,
   delConversation,
   resumeStream,
-  statusStream
+  statusStream,
+  cancel
 }

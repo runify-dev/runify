@@ -64,7 +64,7 @@ export default defineConfig(({ mode }) => {
     target: `http://127.0.0.1:8080`,
     changeOrigin: true,
   }
-  proxyConf['^/www/.*'] = {
+  proxyConf['^/huhu/.*'] = {
     target: `http://127.0.0.1:8080`,
     changeOrigin: true,
   }

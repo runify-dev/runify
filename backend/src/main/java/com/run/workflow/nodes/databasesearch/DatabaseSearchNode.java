@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
@@ -46,6 +47,8 @@ public class DatabaseSearchNode extends INode<DatabaseSearchNode, DatabaseSearch
      */
     public final static List<WorkflowType> supportWorkflow = List.of(WorkflowType.PROCESSOR_HTTP);
 
+    private final AtomicBoolean cancelled = new AtomicBoolean(false);
+
 
     public DatabaseSearchNode(Node node, JsonObject params, List<String> upNodeIdList, String salt, INode<?, ?> upNode) {
         super(node, params, upNodeIdList, salt, upNode);
@@ -53,6 +56,12 @@ public class DatabaseSearchNode extends INode<DatabaseSearchNode, DatabaseSearch
 
     public DatabaseSearchNode(Node node, JsonObject params, List<String> upNodeIdList, String salt, JsonObject context, Validator validator, INode<?, ?> upNode) {
         super(node, params, upNodeIdList, salt, context, validator, upNode);
+    }
+
+    @Override
+    public void cancel() {
+        super.cancel();
+        cancelled.set(true);
     }
 
 
@@ -104,6 +113,7 @@ public class DatabaseSearchNode extends INode<DatabaseSearchNode, DatabaseSearch
 
                 SqlTemplate.forQuery(pool, sql)
                         .execute(params).onSuccess(ok -> {
+                            if (node.cancelled.get()) return;
                             List<Map<String, Object>> result = ok.stream().map(Row::toJson).map(JsonObject::getMap).toList();
                             workFlowManage.writeContext(node, "result", result);
                             node.status = NodeStatus.SUCCESS;
@@ -113,6 +123,7 @@ public class DatabaseSearchNode extends INode<DatabaseSearchNode, DatabaseSearch
                                     .map(DefaultKeyValue::getValue)
                                     .toList());
                         }).onFailure(e -> {
+                            if (node.cancelled.get()) return;
                             node.status = NodeStatus.FAIL;
 
                             workFlowManage.write(node, new FailureContent(e.getMessage(), node,

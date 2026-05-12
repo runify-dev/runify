@@ -64,6 +64,9 @@ const createConversation = (applicationId: string, name: string) => {
 const resumeStream = (applicationId: string, conversationId: string, index: number) => {
   return postStream(`/admin/api/application/${applicationId}/conversation/${conversationId}/resume-stream`, {}, { 'Last-Event-ID': index })
 }
+const cancel=(applicationId: string, conversationId: string,)=>{
+  return post(`/application/${applicationId}/conversation/${conversationId}/cancel`,{}, {})
+}
 const statusStream = (applicationId: string, conversationId: string) => {
   return get(`/application/${applicationId}/conversation/${conversationId}/status`)
 }
@@ -82,5 +85,6 @@ export default {
   pageConversationMessage,
   statusStream,
   resumeStream,
-  getApplicationInfo
+  getApplicationInfo,
+  cancel
 }

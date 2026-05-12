@@ -119,6 +119,13 @@ public class ContextPushNode extends INode<ContextPushNode, ContextPushNodeData>
             if ("reference".equals(item.getMode())) {
                 if (item.getReference() != null && !item.getReference().isEmpty()) {
                     Object refValue = workFlowManage.getContextVariable(item.getReference());
+                    if (refValue instanceof JsonObject v) {
+                        if (v.containsKey("type")) {
+                            if (ContentTypeConstants.contains(v.getString("type"))) {
+                                return v;
+                            }
+                        }
+                    }
                     content = refValue != null ? refValue.toString() : null;
                 } else {
                     return null;
@@ -149,7 +156,7 @@ public class ContextPushNode extends INode<ContextPushNode, ContextPushNodeData>
                     element.put("id", CommonUtils.uuid7().toString());
                     element.put("functionName", toolContent.getOrDefault("toolName", ""));
                     element.put("arguments", toolContent.getOrDefault("functionArguments", "{}"));
-                    element.put("result", toolContent.getOrDefault("content", ""));
+                    element.put("content", toolContent.getOrDefault("content", ""));
                 } catch (Exception e) {
                     element.put("content", content);
                 }

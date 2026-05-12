@@ -7,6 +7,7 @@ import com.run.ai.openai.AsyncStreamResponse;
 import com.run.ai.openai.JsonValue;
 import com.run.ai.openai.chat.ChatCompletionChunk;
 import com.run.ai.openai.chat.ChatCompletionMessageParam;
+import com.run.ai.openai.chat.ChatCompletionSystemMessageParam;
 import com.run.ai.openai.chat.ChatCompletionUserMessageParam;
 import com.run.common.keyvalue.DefaultKeyValue;
 import com.run.common.util.*;
@@ -47,12 +48,26 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
     public final static List<WorkflowType> supportWorkflow = List.of(WorkflowType.CHAT_WORKFLOW, WorkflowType.CHAT_WORKFLOW_LOOP);
     static final Set<String> streamingFunctions = Set.of("terminal");
 
+    /**
+     * 流式响应引用，用于取消操作
+     */
+    private volatile AsyncStreamResponse<?> streamResponse;
+
     public AIChat(Node node, JsonObject params, List<String> upNodeIdList, String salt, INode<?, ?> upNode) {
         super(node, params, upNodeIdList, salt, upNode);
     }
 
     public AIChat(Node node, JsonObject params, List<String> upNodeIdList, String salt, JsonObject context, Validator validator, INode<?, ?> upNode) {
         super(node, params, upNodeIdList, salt, context, validator, upNode);
+    }
+
+    @Override
+    public void cancel() {
+        super.cancel();
+        AsyncStreamResponse<?> response = this.streamResponse;
+        if (response != null) {
+            response.cancel();
+        }
     }
 
     public static class Handle implements BiFunction<WorkFlowManage, AIChat, Supplier<List<Node>>> {
@@ -110,26 +125,19 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
                 messages = startMessages instanceof List ? (List<Object>) startMessages : new ArrayList<>();
             }
 
-            // 应用轮次限制
-            if (contextConfig != null && contextConfig.getContextNumber() != null && contextConfig.getContextNumber() > 0) {
-                int limit = contextConfig.getContextNumber() * 2; // 每轮包含 user + assistant
-                if (messages.size() > limit) {
-                    messages = messages.subList(messages.size() - limit, messages.size()
-                    );
-                }
-            }
-            List<Object> messages1 = messages;
 
             List<ChatCompletionMessageParam> _messages = ConversationMessageConverter.toOpenAiMessage(messages);
+            _messages = getChatCompletionMessageParams(contextConfig, _messages);
             if (StringUtils.isNotEmpty(node.params.getSystem())) {
                 String system = workFlowManage.generatePrompt(node.params.getSystem());
-                _messages.addFirst(ChatCompletionMessageParam.ofUser(ChatCompletionUserMessageParam.builder().content(system).build()));
+                _messages.addFirst(ChatCompletionMessageParam.ofSystem(ChatCompletionSystemMessageParam.builder().content(system).build()));
             }
             if (StringUtils.isNotEmpty(node.params.getUser())) {
                 String user = workFlowManage.generatePrompt(node.params.getUser());
                 _messages.add(ChatCompletionMessageParam.ofUser(ChatCompletionUserMessageParam.builder().content(user).build()));
             }
             ModelMapper modelMapper = RunApplication.appComponent.modelMapper();
+            List<ChatCompletionMessageParam> final_messages = _messages;
             modelMapper.getById(node.params.getModelId()).onSuccess(model -> {
                 IProvider provider = ModelProvideConstants.valueOf(model.getProvider()).getProvider();
                 String decrypt = RSAUtil.decrypt(model.getCredential());
@@ -151,80 +159,91 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
                 if (stream) {
                     String chunkId = CommonUtils.uuid7().toString();
 
-                    llm.stream(_messages, new JsonObject(map))
-                            .subscribe(new AsyncStreamResponse.Handler<>() {
-                                Boolean isReasoning = false;
-                                Boolean reasoningEnd = false;
+                    AsyncStreamResponse<ChatCompletionChunk> streamResp = llm.stream(final_messages, new JsonObject(map));
+                    node.streamResponse = streamResp;
+                    streamResp.subscribe(new AsyncStreamResponse.Handler<>() {
+                        Boolean isReasoning = false;
+                        Boolean reasoningEnd = false;
 
-                                @Override
-                                public void onNext(ChatCompletionChunk chatCompletionChunk) {
-                                    for (ChatCompletionChunk.Choice choice : chatCompletionChunk.choices()) {
-                                        JsonValue reasoningContent = choice.delta()._additionalProperties().get("reasoning_content");
-                                        if (reasoningContent != null && !reasoningEnd) {
-                                            isReasoning = true;
-                                            String reasoning = reasoningContent.convert(String.class);
-                                            if (StringUtils.isNotEmpty(reasoning)) {
-                                                workFlowManage.write(node, new ReasoningContent(reasoning, NodeStatus.RUNNING, node, (String) workFlowManage.getParams().get("workflowRunId"), chunkId));
-                                            }
-                                        }
-                                        choice.delta().content().ifPresent(content -> {
-                                            if (isReasoning && !reasoningEnd) {
-                                                reasoningEnd = true;
-                                                workFlowManage.write(node, new ReasoningContent("", NodeStatus.SUCCESS, node, (String) workFlowManage.getParams().get("workflowRunId"), chunkId));
-                                            }
-                                            workFlowManage.write(node, new TextContent(content, node, (String) workFlowManage.getParams().get("workflowRunId"),
-                                                    chunkId));
-                                        });
-                                    }
-
-                                    chatCompletionAccumulator.onArgumentFieldDelta(streamingFunctions, Set.of("code"), (call, arguments) -> {
-                                        String id = call.getId();
-                                        String code = arguments.get("code");
-                                        if (StringUtils.isNotEmpty(code)) {
-                                            String functionName = call.getFunctionName();
-                                            workFlowManage.write(node, new ToolCallContent(functionName, "", code, NodeStatus.RUNNING, node, (String) workFlowManage.getParams().get("workflowRunId"),
-                                                    id));
-                                        }
-
-                                    }).onArgumentComplete(
-                                            tc -> tc.getFunctionName() != null && !streamingFunctions.contains(tc.getFunctionName()),
-                                            (call, fullArgsJson) -> {
-                                                workFlowManage.write(node, new ToolCallContent(
-                                                        call.getFunctionName(),
-                                                        "",
-                                                        fullArgsJson,  // 完整 JSON 字符串
-                                                        NodeStatus.RUNNING,
-                                                        node,
-                                                        (String) workFlowManage.getParams().get("workflowRunId"),
-                                                        call.getId()
-                                                ));
-                                            }
-                                    );
-                                    chatCompletionAccumulator.append(chatCompletionChunk);
-                                }
-
-                                @Override
-                                public void onComplete(Optional<Throwable> error) {
-                                    if (error.isPresent()) {
-                                        node.status = NodeStatus.FAIL;
-                                        workFlowManage.writeContext(node, "finishReason", "error");
-                                        workFlowManage.nextFailInvoke(node, error.get());
-                                    } else {
-                                        node.status = NodeStatus.SUCCESS;
-                                        ChatCompletionAccumulator.AccumulatedResult complete = chatCompletionAccumulator.complete();
-                                        workFlowManage.writeContext(node, "content", complete.getContent());
-                                        workFlowManage.writeContext(node, "reasoningContent", complete.getAdditionalProperty("reasoning_content").orElse(null));
-                                        workFlowManage.writeContext(node, "refusal", complete.getRefusal());
-                                        workFlowManage.writeContext(node, "isRefusal", complete.isRefusal());
-                                        workFlowManage.writeContext(node, "toolCalls", complete.getToolCalls());
-                                        workFlowManage.writeContext(node, "finishReason", complete.getFinishReason());
-                                        workFlowManage.nextInvoke(node, () -> workFlowManage.getNextList(node.node.getId()).stream().map(DefaultKeyValue::getValue).toList());
-
+                        @Override
+                        public void onNext(ChatCompletionChunk chatCompletionChunk) {
+                            for (ChatCompletionChunk.Choice choice : chatCompletionChunk.choices()) {
+                                JsonValue reasoningContent = choice.delta()._additionalProperties().get("reasoning_content");
+                                if (reasoningContent != null && !reasoningEnd) {
+                                    isReasoning = true;
+                                    String reasoning = reasoningContent.convert(String.class);
+                                    if (StringUtils.isNotEmpty(reasoning)) {
+                                        workFlowManage.write(node, new ReasoningContent(reasoning, NodeStatus.RUNNING, node, (String) workFlowManage.getParams().get("workflowRunId"), chunkId));
                                     }
                                 }
-                            }).onCompleteFuture();
+                                choice.delta().content().ifPresent(content -> {
+                                    if (isReasoning && !reasoningEnd) {
+                                        reasoningEnd = true;
+                                        workFlowManage.write(node, new ReasoningContent("", NodeStatus.SUCCESS, node, (String) workFlowManage.getParams().get("workflowRunId"), chunkId));
+                                    }
+                                    workFlowManage.write(node, new TextContent(content, node, (String) workFlowManage.getParams().get("workflowRunId"),
+                                            chunkId));
+                                });
+                            }
+                            try {
+                                chatCompletionAccumulator.onArgumentFieldDelta(streamingFunctions, Set.of("code"), (call, arguments) -> {
+                                    String id = call.getId();
+                                    String code = arguments.get("code");
+                                    if (StringUtils.isNotEmpty(code)) {
+                                        String functionName = call.getFunctionName();
+                                        workFlowManage.write(node, new ToolCallContent(functionName, "", code, NodeStatus.RUNNING, node, (String) workFlowManage.getParams().get("workflowRunId"),
+                                                id));
+                                    }
+
+                                }).onArgumentComplete(
+                                        tc -> tc.getFunctionName() != null && !streamingFunctions.contains(tc.getFunctionName()),
+                                        (call, fullArgsJson) -> {
+                                            workFlowManage.write(node, new ToolCallContent(
+                                                    call.getFunctionName(),
+                                                    "",
+                                                    fullArgsJson,  // 完整 JSON 字符串
+                                                    NodeStatus.RUNNING,
+                                                    node,
+                                                    (String) workFlowManage.getParams().get("workflowRunId"),
+                                                    call.getId()
+                                            ));
+                                        }
+                                );
+                            } catch (Exception e) {
+                                System.out.println(e);
+                            }
+
+                            chatCompletionAccumulator.append(chatCompletionChunk);
+                        }
+
+                        @Override
+                        public void onComplete(Optional<Throwable> error) {
+                            if (error.isPresent()) {
+                                System.out.println(final_messages);
+                                node.status = NodeStatus.FAIL;
+                                workFlowManage.writeContext(node, "finishReason", "error");
+                                workFlowManage.nextFailInvoke(node, error.get());
+                            } else {
+                                node.status = NodeStatus.SUCCESS;
+                                ChatCompletionAccumulator.AccumulatedResult complete = chatCompletionAccumulator.complete();
+                                workFlowManage.writeContext(node, "content", complete.getContent());
+                                workFlowManage.writeContext(node, "reasoningContent", complete.getAdditionalProperty("reasoning_content").orElse(null));
+                                workFlowManage.writeContext(node, "refusal", complete.getRefusal());
+                                workFlowManage.writeContext(node, "isRefusal", complete.isRefusal());
+                                workFlowManage.writeContext(node, "toolCalls", complete.getToolCalls());
+                                workFlowManage.writeContext(node, "finishReason", complete.getFinishReason());
+                                workFlowManage.nextInvoke(node, () -> workFlowManage.getNextList(node.node.getId()).stream().map(DefaultKeyValue::getValue).toList());
+
+                            }
+                        }
+
+                        @Override
+                        public void onCancel() {
+                            workFlowManage.assertionEnd();
+                        }
+                    }).onCompleteFuture();
                 } else {
-                    llm.invoke(_messages, new JsonObject(map)).thenAcceptAsync(chatCompletion -> {
+                    llm.invoke(final_messages, new JsonObject(map)).thenAcceptAsync(chatCompletion -> {
                         chatCompletionAccumulator.append(chatCompletion);
                         node.status = NodeStatus.SUCCESS;
                         ChatCompletionAccumulator.AccumulatedResult complete = chatCompletionAccumulator.complete();
@@ -244,6 +263,35 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
             });
             return null;
         }
+    }
+
+    private static List<ChatCompletionMessageParam> getChatCompletionMessageParams(
+            AIChatNodeData.ContextConfig contextConfig,
+            List<ChatCompletionMessageParam> messages) {
+
+        if (contextConfig == null
+                || contextConfig.getContextNumber() == null
+                || contextConfig.getContextNumber() <= 0) {
+            return messages;
+        }
+
+        int limit = contextConfig.getContextNumber() * 2;
+        if (messages.size() <= limit) {
+            return messages;
+        }
+
+        int startIndex = messages.size() - limit;
+
+        // 跳过截断点开头的孤立 tool 消息
+        while (startIndex < messages.size() && "tool".equals(messages.get(startIndex).role())) {
+            startIndex++;
+        }
+
+        if (startIndex >= messages.size()) {
+            return new ArrayList<>();
+        }
+
+        return messages.subList(startIndex, messages.size());
     }
 
     @Override

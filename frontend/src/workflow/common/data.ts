@@ -202,6 +202,37 @@ export const fileUploadNode = {
   }
 }
 
+export const noteSearchNode = {
+  type: 'note-search-node',
+  text: '',
+  x: 0,
+  y: 0,
+  label: '笔记检索',
+  properties: {
+    width: 200,
+    height: 50,
+    name: '笔记检索',
+    isHovered: false,
+    field_list: [
+      { label: '结果列表', value: 'hits' },
+      { label: '总数', value: 'total' },
+      { label: '最高分', value: 'topScore' }
+    ],
+    nodeData: {
+      folderIds: [],
+      keywordLocation: 'customize',
+      keywordReference: [],
+      keyword: '',
+      pageNoLocation: 'customize',
+      pageNoReference: [],
+      pageNo: 1,
+      pageSizeLocation: 'customize',
+      pageSizeReference: [],
+      pageSize: 10
+    }
+  }
+}
+
 export const jsonResponseNode = {
   type: 'response-node',
   text: '',

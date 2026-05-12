@@ -15,8 +15,8 @@ public class AppConfig {
     private DataBase database;
 
     private System system;
-
     private Cache cache;
+    private Search search;
 
     public static AppConfig getDefault() {
         DataBase dataBase = new DataBase();
@@ -28,6 +28,8 @@ public class AppConfig {
         appConfig.setSystem(s);
         Cache c = new Cache();
         c.setType(CacheType.LOCAL);
+        Search search = new Search();
+        search.setType(SearchType.LOCAL);
         return appConfig;
     }
 }

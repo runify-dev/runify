@@ -145,9 +145,10 @@
             @blur="focused = false"
           />
           <button
+            v-if="!streamLoading"
             class="sbtn"
-            :class="{ on: hasContent && !streamLoading }"
-            :disabled="!hasContent || streamLoading"
+            :class="{ on: hasContent }"
+            :disabled="!hasContent"
             @click="conversation(question)"
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -158,6 +159,15 @@
                 stroke-linecap="round"
                 stroke-linejoin="round"
               />
+            </svg>
+          </button>
+          <button
+            v-else
+            class="sbtn stop"
+            @click="handleStop"
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <rect x="2" y="2" width="10" height="10" rx="2" fill="currentColor"/>
             </svg>
           </button>
         </div>
@@ -192,6 +202,7 @@ const {
 
   streamLoading,
   startStream,
+  cancel,
   cancelStream,
   switchConversation,
 
@@ -205,6 +216,10 @@ const focused = ref(false)
 const msgBox = ref<HTMLElement | null>(null)
 const editorRef = ref<InstanceType<typeof MdEditor> | null>(null)
 const question = ref<any>({ content: '' })
+
+const handleStop = () => {
+  cancel()
+}
 const pendingApproval = computed(() => {
   const lastMsg = messages.value[messages.value.length - 1]
   if (!lastMsg || !Array.isArray(lastMsg.content)) return null
@@ -1004,6 +1019,20 @@ onUnmounted(() => {
 }
 
 .sbtn.on:active {
+  transform: scale(0.92);
+}
+
+.sbtn.stop {
+  background: #ef4444;
+  color: #fff;
+  cursor: pointer;
+}
+
+.sbtn.stop:hover {
+  background: #dc2626;
+}
+
+.sbtn.stop:active {
   transform: scale(0.92);
 }
 

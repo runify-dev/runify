@@ -26,5 +26,9 @@ public enum NodeStatus {
     /**
      * 运行前
      */
-    BEFORE_RUNNING
+    BEFORE_RUNNING,
+    /**
+     * 已取消
+     */
+    CANCELLED
 }

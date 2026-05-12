@@ -39,12 +39,23 @@ public class ToolNode extends INode<ToolNode, ToolNodeData> {
      */
     public final static List<WorkflowType> supportWorkflow = List.of(WorkflowType.CHAT_WORKFLOW, WorkflowType.CHAT_WORKFLOW_LOOP, WorkflowType.PROCESSOR_HTTP);
 
+    private volatile Context graalContext;
+
     public ToolNode(Node node, JsonObject params, List<String> upNodeIdList, String salt, INode<?, ?> upNode) {
         super(node, params, upNodeIdList, salt, upNode);
     }
 
     public ToolNode(Node node, JsonObject params, List<String> upNodeIdList, String salt, JsonObject context, Validator validator, INode<?, ?> upNode) {
         super(node, params, upNodeIdList, salt, context, validator, upNode);
+    }
+
+    @Override
+    public void cancel() {
+        super.cancel();
+        Context ctx = this.graalContext;
+        if (ctx != null) {
+            ctx.close(true);
+        }
     }
 
 
@@ -60,6 +71,7 @@ public class ToolNode extends INode<ToolNode, ToolNodeData> {
                     .allowAllAccess(ioEnabled)
                     .allowCreateProcess(ioEnabled)
                     .build()) {
+                node.graalContext = context;
                 context.getBindings("js").putMember("api", new CommonAPI());
 
                 String code = resolveCode(workFlowManage, toolNodeData);

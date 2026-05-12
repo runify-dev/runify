@@ -20,6 +20,7 @@ import org.apache.commons.lang3.Strings;
 import java.io.File;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
@@ -29,12 +30,20 @@ public class FileUploadNode extends INode<FileUploadNode, FileUploadNodeData> {
 
     public final static List<WorkflowType> supportWorkflow = List.of(WorkflowType.PROCESSOR_HTTP, WorkflowType.CHAT_WORKFLOW, WorkflowType.CHAT_WORKFLOW_LOOP, WorkflowType.PROCESSOR_HTTP_LOOP);
 
+    private final AtomicBoolean cancelled = new AtomicBoolean(false);
+
     public FileUploadNode(Node node, JsonObject params, List<String> upNodeIdList, String salt, INode<?, ?> upNode) {
         super(node, params, upNodeIdList, salt, upNode);
     }
 
     public FileUploadNode(Node node, JsonObject params, List<String> upNodeIdList, String salt, JsonObject context, Validator validator, INode<?, ?> upNode) {
         super(node, params, upNodeIdList, salt, context, validator, upNode);
+    }
+
+    @Override
+    public void cancel() {
+        super.cancel();
+        cancelled.set(true);
     }
 
     public static class Handle implements BiFunction<WorkFlowManage, FileUploadNode, Supplier<List<Node>>> {
@@ -76,6 +85,7 @@ public class FileUploadNode extends INode<FileUploadNode, FileUploadNodeData> {
             String id = resolved.id();
             fileMapper.upload(fileName, file.length(), null, null, file)
                     .onSuccess(entity -> {
+                        if (node.cancelled.get()) return;
                         workFlowManage.writeContext(node, "url", "./api/storage/file/" + entity.getId().toString());
                         workFlowManage.writeContext(node, "fileId", entity.getId().toString());
                         workFlowManage.writeContext(node, "fileName", entity.getFileName());
@@ -111,6 +121,7 @@ public class FileUploadNode extends INode<FileUploadNode, FileUploadNodeData> {
                                 .toList());
                     })
                     .onFailure(e -> {
+                        if (node.cancelled.get()) return;
                         node.status = NodeStatus.FAIL;
                         workFlowManage.write(node, new FailureContent(e.getMessage(), node,
                                 (String) workFlowManage.getParams().get("workflowRunId"),

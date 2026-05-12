@@ -18,6 +18,7 @@ import org.apache.commons.lang3.Strings;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
@@ -27,12 +28,20 @@ public class CacheQueryNode extends INode<CacheQueryNode, CacheQueryNodeData> {
 
     public final static List<WorkflowType> supportWorkflow = List.of(WorkflowType.PROCESSOR_HTTP);
 
+    private final AtomicBoolean cancelled = new AtomicBoolean(false);
+
     public CacheQueryNode(Node node, JsonObject params, List<String> upNodeIdList, String salt, INode<?, ?> upNode) {
         super(node, params, upNodeIdList, salt, upNode);
     }
 
     public CacheQueryNode(Node node, JsonObject params, List<String> upNodeIdList, String salt, JsonObject context, Validator validator, INode<?, ?> upNode) {
         super(node, params, upNodeIdList, salt, context, validator, upNode);
+    }
+
+    @Override
+    public void cancel() {
+        super.cancel();
+        cancelled.set(true);
     }
 
     public static class Handle implements BiFunction<WorkFlowManage, CacheQueryNode, Supplier<List<Node>>> {
@@ -45,9 +54,11 @@ public class CacheQueryNode extends INode<CacheQueryNode, CacheQueryNodeData> {
 
             DataSourceManage.getCacheAsync(UUID.fromString(data.getCacheId()), (uuid, dm) -> dm.getById(uuid.toString()), mapper, vertx)
                     .onSuccess(cache -> {
+                        if (node.cancelled.get()) return;
                         String cacheKey = resolveKey(data, workFlowManage);
                         cache.get(cacheKey, Object.class)
                                 .thenAccept(optional -> {
+                                    if (node.cancelled.get()) return;
                                     Object result = optional.orElse(null);
                                     workFlowManage.writeContext(node, "result", result);
                                     node.status = NodeStatus.SUCCESS;
@@ -58,6 +69,7 @@ public class CacheQueryNode extends INode<CacheQueryNode, CacheQueryNodeData> {
                                             .toList());
                                 })
                                 .exceptionally(e -> {
+                                    if (node.cancelled.get()) return null;
                                     node.status = NodeStatus.FAIL;
                                     workFlowManage.write(node, new FailureContent(e.getMessage(), node,
                                             (String) workFlowManage.getParams().get("workflowRunId"),
@@ -67,6 +79,7 @@ public class CacheQueryNode extends INode<CacheQueryNode, CacheQueryNodeData> {
                                 });
                     })
                     .onFailure(e -> {
+                        if (node.cancelled.get()) return;
                         node.status = NodeStatus.FAIL;
                         workFlowManage.write(node, new FailureContent(e.getMessage(), node,
                                 (String) workFlowManage.getParams().get("workflowRunId"),

@@ -54,6 +54,9 @@ public class ChatRoute implements IRoute {
         apiRoute.post("/application/:applicationId/conversation/:conversationId/resume-stream")
                 .handler(applicationHandler::resumeStream);
 
+        apiRoute.post("/application/:applicationId/conversation/:conversationId/cancel")
+                .handler(applicationHandler::cancel);
+
         apiRoute.get("/application/:applicationId/conversation")
                 .handler(tokenBasicAuthHandler)
                 .handler(applicationHandler::pageConversation);

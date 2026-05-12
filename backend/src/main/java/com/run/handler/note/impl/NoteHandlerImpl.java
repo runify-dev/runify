@@ -5,7 +5,11 @@ import com.run.auth.constants.PermissionConstants;
 import com.run.auth.dto.UserProfile;
 import com.run.common.cache.CacheStore;
 import com.run.common.result.Result;
+import com.run.common.search.SearchClient;
+import com.run.common.search.SearchDocument;
+import com.run.common.search.SearchQuery;
 import com.run.common.util.CommonUtils;
+import com.run.common.util.MarkdownChunker;
 import com.run.dao.entity.Note;
 import com.run.dao.entity.NoteFolder;
 import com.run.dao.entity.NotePermission;
@@ -18,11 +22,14 @@ import com.run.handler.common.impl.ResourceHandlerImpl;
 import com.run.handler.common.pojo.SimpleNodePojo;
 import com.run.handler.note.INoteHandler;
 import com.run.handler.note.pojo.EditNote;
+import io.vertx.core.Future;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.inject.Inject;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -32,16 +39,18 @@ import java.util.UUID;
  * {@code @注释: }
  */
 public class NoteHandlerImpl extends ResourceHandlerImpl<Note, NoteFolder, NotePermission, NoteRelation, NoteMapper, NoteFolderMapper, NotePermissionMapper, NoteRelationMapper> implements INoteHandler {
+    private final SearchClient searchClient;
 
     @Inject
     public NoteHandlerImpl(NoteMapper noteMapper,
                            NoteFolderMapper noteFolderMapper,
                            NoteRelationMapper noteRelationMapper,
                            NotePermissionMapper notePermissionMapper,
-                           CacheStore cacheStore
+                           CacheStore cacheStore,
+                           SearchClient searchClient
     ) {
         super(noteMapper, noteFolderMapper, noteRelationMapper, notePermissionMapper, cacheStore);
-
+        this.searchClient = searchClient;
 
     }
 
@@ -127,15 +136,34 @@ public class NoteHandlerImpl extends ResourceHandlerImpl<Note, NoteFolder, NoteP
     public void edit(RoutingContext context) {
         String resourceId = context.pathParam("resourceId");
         EditNote editNote = context.body().asPojo(EditNote.class);
-        Note note = new Note();
-        note.setId(UUID.fromString(resourceId));
-        note.setContent(editNote.getContent());
-        if (StringUtils.isNotEmpty(editNote.getContent())) {
-            note.setExcerpt(editNote.getContent().substring(0, Math.min(editNote.getContent().length(), 64)));
-        }
-        resourceMapper.update(note).
-                onSuccess(ok -> {
-                    context.end(Result.success(note).toBuffer());
+        List<MarkdownChunker.MarkdownChunk> markdownChunks = MarkdownChunker.splitToChunks(editNote.getContent(), 300, 50);
+        resourceMapper.getById(resourceId).compose(n -> {
+                    n.setContent(editNote.getContent());
+                    if (StringUtils.isNotEmpty(editNote.getContent())) {
+                        n.setExcerpt(editNote.getContent().substring(0, Math.min(editNote.getContent().length(), 64)));
+                    }
+                    return resourceMapper.update(n).compose(_ -> Future.succeededFuture(n));
+                }).
+                onSuccess(n -> {
+                    context.end(Result.success(n).toBuffer());
+                    searchClient.deleteByQuery(SearchQuery.builder("note").exactFilter("noteId", resourceId).build())
+                            .thenAccept(_ -> {
+                                List<SearchDocument> list = markdownChunks.stream().map(item -> {
+                                    return new SearchDocument(
+                                            "note",
+                                            CommonUtils.uuid7().toString(),
+                                            Map.of(
+                                                    "title", item.titlePath(),
+                                                    "content", item.content(),
+                                                    "folderId", n.getParentId() == null ? "root" : n.getParentId().toString(),
+                                                    "noteId", resourceId
+                                            )
+                                    );
+                                }).toList();
+                                searchClient.bulkIndex(list);
+                            });
+
+
                 }).onFailure(context::fail);
     }
 }

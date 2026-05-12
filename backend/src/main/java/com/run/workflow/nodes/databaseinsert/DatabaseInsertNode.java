@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
@@ -33,12 +34,20 @@ public class DatabaseInsertNode extends INode<DatabaseInsertNode, DatabaseInsert
 
     public final static List<WorkflowType> supportWorkflow = List.of(WorkflowType.PROCESSOR_HTTP);
 
+    private final AtomicBoolean cancelled = new AtomicBoolean(false);
+
     public DatabaseInsertNode(Node node, JsonObject params, List<String> upNodeIdList, String salt, INode<?, ?> upNode) {
         super(node, params, upNodeIdList, salt, upNode);
     }
 
     public DatabaseInsertNode(Node node, JsonObject params, List<String> upNodeIdList, String salt, JsonObject context, Validator validator, INode<?, ?> upNode) {
         super(node, params, upNodeIdList, salt, context, validator, upNode);
+    }
+
+    @Override
+    public void cancel() {
+        super.cancel();
+        cancelled.set(true);
     }
 
     public static class Handle implements BiFunction<WorkFlowManage, DatabaseInsertNode, Supplier<List<Node>>> {
@@ -51,6 +60,7 @@ public class DatabaseInsertNode extends INode<DatabaseInsertNode, DatabaseInsert
             Vertx vertx = RunApplication.appComponent.vertx();
             Future<Pool> cacheAsync = DataSourceManage.getPoolAsync(UUID.fromString(poolId), (uuid, dm) -> dm.getById(uuid.toString()), datasourceMapper, vertx);
             cacheAsync.onSuccess(pool -> {
+                if (node.cancelled.get()) return;
                 HashMap<String, Object> params = new HashMap<>();
                 if (data.getParameters() != null) {
                     for (DatabaseSearchNodeData.Parameter parameter : data.getParameters()) {
@@ -95,6 +105,7 @@ public class DatabaseInsertNode extends INode<DatabaseInsertNode, DatabaseInsert
 
                 SqlTemplate.forQuery(pool, sql)
                         .execute(params).onSuccess(ok -> {
+                            if (node.cancelled.get()) return;
                             int affectedRows = ok.rowCount();
                             workFlowManage.writeContext(node, "affectedRows", affectedRows);
                             node.status = NodeStatus.SUCCESS;
@@ -104,6 +115,7 @@ public class DatabaseInsertNode extends INode<DatabaseInsertNode, DatabaseInsert
                                     .map(DefaultKeyValue::getValue)
                                     .toList());
                         }).onFailure(e -> {
+                            if (node.cancelled.get()) return;
                             node.status = NodeStatus.FAIL;
                             workFlowManage.write(node, new FailureContent(e.getMessage(), node,
                                     (String) workFlowManage.getParams().get("workflowRunId"),
