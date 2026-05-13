@@ -5,8 +5,10 @@
     direction="rtl"
     append-to-body
     :modal="false"
+    :dismissable="false"
+    :auto-z-index="false"
     class="node-setting-drawer"
-    :style="{ width: '30rem' }"
+    :style="{ width: '30rem', zIndex: 100 }"
     :pt="{ root: { class: 'max-sm:!w-full' } }"
   >
     <template #default>
@@ -68,7 +70,6 @@ defineExpose({ open, close })
   }
 }
 .node-setting-drawer.p-drawer {
-  overflow: hidden;
   .p-drawer-content {
     overflow-x: hidden !important;
     overflow-y: auto;

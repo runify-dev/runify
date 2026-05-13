@@ -46,7 +46,7 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
      */
     public final static String type = "ai-chat-node";
     public final static List<WorkflowType> supportWorkflow = List.of(WorkflowType.CHAT_WORKFLOW, WorkflowType.CHAT_WORKFLOW_LOOP);
-    static final Set<String> streamingFunctions = Set.of("terminal");
+    static final Set<String> streamingFunctions = Set.of("run_command", "read_file", "apply_patch", "list_dir");
 
     /**
      * 流式响应引用，用于取消操作
@@ -230,7 +230,13 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
                                 workFlowManage.writeContext(node, "reasoningContent", complete.getAdditionalProperty("reasoning_content").orElse(null));
                                 workFlowManage.writeContext(node, "refusal", complete.getRefusal());
                                 workFlowManage.writeContext(node, "isRefusal", complete.isRefusal());
-                                workFlowManage.writeContext(node, "toolCalls", complete.getToolCalls());
+                                JsonArray toolCalls = new JsonArray();
+                                for (ChatCompletionAccumulator.AccumulatedToolCall toolCall : complete.getToolCalls()) {
+                                    JsonObject entries = JsonObject.mapFrom(toolCall);
+                                    entries.put("functionArguments", new JsonObject(toolCall.getFunctionArguments()));
+                                    toolCalls.add(entries);
+                                }
+                                workFlowManage.writeContext(node, "toolCalls", toolCalls);
                                 workFlowManage.writeContext(node, "finishReason", complete.getFinishReason());
                                 workFlowManage.nextInvoke(node, () -> workFlowManage.getNextList(node.node.getId()).stream().map(DefaultKeyValue::getValue).toList());
 

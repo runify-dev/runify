@@ -429,6 +429,165 @@ export const approvalNode = {
   }
 }
 
+export const globNode = {
+  type: 'glob-node',
+  text: '',
+  x: 0,
+  y: 0,
+  label: '文件搜索',
+  properties: {
+    width: 200,
+    height: 50,
+    name: '文件搜索',
+    isHovered: false,
+    field_list: [
+      { label: '文件列表', value: 'content' },
+      { label: '摘要', value: 'summary' },
+      { label: '文件数', value: 'files' }
+    ],
+    nodeData: {
+      location: 'customize', reference: [],
+      patternLocation: 'customize', patternReference: [], pattern: '',
+      pathLocation: 'customize', pathReference: [], path: '',
+      maxResultsLocation: 'customize', maxResultsReference: [], maxResults: null
+    }
+  }
+}
+
+export const grepNode = {
+  type: 'grep-node',
+  text: '',
+  x: 0,
+  y: 0,
+  label: '内容搜索',
+  properties: {
+    width: 200,
+    height: 50,
+    name: '内容搜索',
+    isHovered: false,
+    field_list: [
+      { label: '搜索结果', value: 'content' },
+      { label: '摘要', value: 'summary' },
+      { label: '匹配数', value: 'matches' },
+      { label: '文件数', value: 'files' }
+    ],
+    nodeData: {
+      location: 'customize', reference: [],
+      patternLocation: 'customize', patternReference: [], pattern: '',
+      pathLocation: 'customize', pathReference: [], path: '',
+      filePatternLocation: 'customize', filePatternReference: [], filePattern: '',
+      contextLinesLocation: 'customize', contextLinesReference: [], contextLines: null,
+      maxResultsLocation: 'customize', maxResultsReference: [], maxResults: null
+    }
+  }
+}
+
+export const extractNode = {
+  type: 'extract-node',
+  text: '',
+  x: 0,
+  y: 0,
+  label: '参数提取',
+  properties: {
+    width: 200,
+    height: 50,
+    name: '参数提取',
+    isHovered: false,
+    field_list: [],
+    nodeData: {
+      sourceReference: [],
+      rules: []
+    }
+  }
+}
+
+export const listDirNode = {
+  type: 'list-dir-node',
+  text: '',
+  x: 0,
+  y: 0,
+  label: '目录列表',
+  properties: {
+    width: 200,
+    height: 50,
+    name: '目录列表',
+    isHovered: false,
+    field_list: [
+      { label: '目录树', value: 'content' },
+      { label: '摘要', value: 'summary' },
+      { label: '文件数', value: 'files' },
+      { label: '目录数', value: 'dirs' }
+    ],
+    nodeData: {
+      location: 'customize',
+      reference: [],
+      pathLocation: 'customize',
+      pathReference: [],
+      path: '',
+      depthLocation: 'customize',
+      depthReference: [],
+      depth: null
+    }
+  }
+}
+
+export const readFileNode = {
+  type: 'read-file-node',
+  text: '',
+  x: 0,
+  y: 0,
+  label: '读取文件',
+  properties: {
+    width: 200,
+    height: 50,
+    name: '读取文件',
+    isHovered: false,
+    field_list: [
+      { label: '带行号内容', value: 'content' },
+      { label: '原始内容', value: 'rawContent' },
+      { label: '总行数', value: 'totalLines' },
+      { label: '读取行数', value: 'lines' }
+    ],
+    nodeData: {
+      location: 'customize',
+      reference: [],
+      pathLocation: 'customize',
+      pathReference: [],
+      path: '',
+      offsetLocation: 'customize',
+      offsetReference: [],
+      offset: null,
+      limitLocation: 'customize',
+      limitReference: [],
+      limit: null
+    }
+  }
+}
+
+export const applyPatchNode = {
+  type: 'apply-patch-node',
+  text: '',
+  x: 0,
+  y: 0,
+  label: '数据修补',
+  properties: {
+    width: 200,
+    height: 50,
+    name: '数据修补',
+    isHovered: false,
+    field_list: [
+      { label: '执行结果', value: 'result' },
+      { label: '标准输出', value: 'stdout' },
+      { label: '错误输出', value: 'stderr' }
+    ],
+    nodeData: {
+      location: 'customize',
+      reference: [],
+      patch: ''
+    }
+  }
+}
+
 export const contextPushNode = {
   type: 'context-push-node',
   text: '',

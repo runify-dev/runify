@@ -78,7 +78,7 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
             try {
                 String id = code.id;
                 if (code.withWriteArguments) {
-                    workFlowManage.write(node, new ToolCallContent("terminal", "", code.code, NodeStatus.RUNNING, node, (String) workFlowManage.getParams().get("workflowRunId"), id));
+                    workFlowManage.write(node, new ToolCallContent("run_command", "", code.code, NodeStatus.RUNNING, node, (String) workFlowManage.getParams().get("workflowRunId"), id));
                 }
                 ProcessBuilder processBuilder = new ProcessBuilder();
                 UUID conversationId = (UUID) workFlowManage.getParams().getOrDefault("conversationId", CommonUtils.uuid7());
@@ -103,7 +103,7 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
                         String chunk = new String(buf, 0, n);
                         stdoutBuilder.append(chunk);
                         workFlowManage.write(node, new ToolCallContent(
-                                "terminal", chunk, "", NodeStatus.RUNNING, node,
+                                "run_command", chunk, "", NodeStatus.RUNNING, node,
                                 (String) workFlowManage.getParams().get("workflowRunId"), id
                         ));
                     }
@@ -135,8 +135,8 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
                     workFlowManage.writeContext(node, "stdout", stdout);
                     workFlowManage.writeContext(node, "stderr", timeoutMsg);
                     workFlowManage.writeContext(node, "exitCode", -1);
-                    workFlowManage.write(node, new ToolCallContent("terminal", "", "", NodeStatus.FAIL, node, (String) workFlowManage.getParams().get("workflowRunId"), id));
-                    ToolCallContent toolCallContent = new ToolCallContent("terminal", timeoutMsg, JacksonUtils.toJson(Map.of("code", code)), NodeStatus.FAIL, node, (String) workFlowManage.getParams().get("workflowRunId"), id);
+                    workFlowManage.write(node, new ToolCallContent("run_command", "", "", NodeStatus.FAIL, node, (String) workFlowManage.getParams().get("workflowRunId"), id));
+                    ToolCallContent toolCallContent = new ToolCallContent("run_command", timeoutMsg, JacksonUtils.toJson(Map.of("code", code)), NodeStatus.FAIL, node, (String) workFlowManage.getParams().get("workflowRunId"), id);
                     workFlowManage.writeContext(node, "tool", JsonObject.mapFrom(toolCallContent));
                 } else {
                     int exitCode = process.exitValue();
@@ -145,8 +145,8 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
                     workFlowManage.writeContext(node, "stderr", stderr);
                     workFlowManage.writeContext(node, "exitCode", exitCode);
                     node.status = exitCode == 0 ? NodeStatus.SUCCESS : NodeStatus.FAIL;
-                    workFlowManage.write(node, new ToolCallContent("terminal", "", "", node.status, node, (String) workFlowManage.getParams().get("workflowRunId"), id));
-                    workFlowManage.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("terminal", exitCode == 0 ? stdout : stderr, JacksonUtils.toJson(Map.of("code", code.code)), node.status, node, (String) workFlowManage.getParams().get("workflowRunId"), id)));
+                    workFlowManage.write(node, new ToolCallContent("run_command", "", "", node.status, node, (String) workFlowManage.getParams().get("workflowRunId"), id));
+                    workFlowManage.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("run_command", exitCode == 0 ? stdout : stderr, JacksonUtils.toJson(Map.of("code", code.code)), node.status, node, (String) workFlowManage.getParams().get("workflowRunId"), id)));
                 }
             } catch (Exception e) {
                 node.status = NodeStatus.FAIL;

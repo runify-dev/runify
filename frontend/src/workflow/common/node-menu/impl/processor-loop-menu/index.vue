@@ -41,7 +41,13 @@ import {
   loopBreakNode,
   variableAssignNode,
   contextPushNode,
-  approvalNode
+  approvalNode,
+  applyPatchNode,
+  readFileNode,
+  globNode,
+  grepNode,
+  extractNode,
+  listDirNode
 } from '@/workflow/common/data'
 
 const groups = [
@@ -53,21 +59,27 @@ const groups = [
   },
   {
     value: '1',
-    label: '数据',
-    icon: 'pi pi-database',
-    nodes: [databaseSearchNode, databaseInsertNode, cacheQueryNode, cacheWriteNode, fileUploadNode, noteSearchNode]
+    label: 'AI 工具',
+    icon: 'pi pi-bolt',
+    nodes: [terminalNode, readFileNode, listDirNode, globNode, grepNode, applyPatchNode, fileUploadNode]
   },
   {
     value: '2',
+    label: '数据',
+    icon: 'pi pi-database',
+    nodes: [databaseSearchNode, databaseInsertNode, cacheQueryNode, cacheWriteNode, noteSearchNode]
+  },
+  {
+    value: '3',
     label: '控制流',
     icon: 'pi pi-directions',
     nodes: [loopNode, loopContinueNode, loopBreakNode]
   },
   {
-    value: '3',
+    value: '4',
     label: '工具',
     icon: 'pi pi-wrench',
-    nodes: [javaScriptNode, terminalNode, variableAssignNode, contextPushNode, approvalNode, jsonResponseNode]
+    nodes: [javaScriptNode, extractNode, variableAssignNode, contextPushNode, approvalNode, jsonResponseNode]
   }
 ]
 

@@ -3,6 +3,8 @@
     v-model:visible="visible"
     :header="isEditing ? '编辑上下文' : '添加上下文'"
     modal
+    append-to-body
+    :base-z-index="9999"
     style="width: 600px"
   >
     <div class="flex flex-col gap-3">

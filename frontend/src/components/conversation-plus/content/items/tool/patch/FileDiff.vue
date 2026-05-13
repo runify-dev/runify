@@ -1,0 +1,167 @@
+<template>
+  <div class="fd">
+    <div class="fd-code-wrap">
+      <table class="fd-table">
+        <tbody>
+          <tr
+            v-for="(line, index) in displayLines"
+            :key="index"
+            class="fd-row"
+            :class="`fd-row-${line.type}`"
+          >
+            <template v-if="line.type === 'hunk'">
+              <td class="fd-hunk" colspan="3">{{ line.content }}</td>
+            </template>
+            <template v-else>
+              <td class="fd-ln">{{ line.displayLineNumber ?? '' }}</td>
+              <td class="fd-prefix">{{ line.prefix }}</td>
+              <td class="fd-code"><code>{{ line.content || ' ' }}</code></td>
+            </template>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div v-if="!displayLines.length" class="fd-empty">仅文件状态变化，无代码内容变更。</div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed } from 'vue'
+import type { PatchFileInfo, PatchLine } from './patchTypes'
+
+const props = withDefaults(
+  defineProps<{
+    file: PatchFileInfo
+    showMeta?: boolean
+    showHunk?: boolean
+  }>(),
+  {
+    showMeta: false,
+    showHunk: false
+  }
+)
+
+const displayLines = computed(() =>
+  props.file.lines.filter(line => {
+    if (!props.showMeta && line.type === 'meta') return false
+    if (!props.showHunk && line.type === 'hunk') return false
+    return true
+  })
+)
+</script>
+
+<style scoped>
+.fd {
+  background: var(--bg);
+}
+
+.fd-code-wrap {
+  overflow: hidden;
+}
+
+.fd-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'JetBrains Mono NL', monospace;
+  font-size: 11px;
+  line-height: 1.45;
+  table-layout: fixed;
+}
+
+.fd-row {
+  height: 20px;
+}
+
+.fd-ln {
+  width: 40px;
+  min-width: 40px;
+  padding: 0 8px 0 10px;
+  color: var(--t3);
+  text-align: right;
+  user-select: none;
+  vertical-align: top;
+  border-right: 1px solid var(--bd);
+}
+
+.fd-prefix {
+  width: 20px;
+  min-width: 20px;
+  padding: 0 3px;
+  text-align: center;
+  user-select: none;
+  vertical-align: top;
+  font-weight: 600;
+}
+
+.fd-code {
+  padding: 0 12px 0 4px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  vertical-align: top;
+  color: var(--t1);
+}
+.fd-code code {
+  display: inline;
+  color: inherit;
+  font: inherit;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* 行背景 */
+.fd-row-add {
+  background: #daf5e2;
+}
+.fd-row-add .fd-ln,
+.fd-row-add .fd-prefix {
+  color: #16a34a;
+}
+
+.fd-row-remove {
+  background: #fde8ec;
+}
+.fd-row-remove .fd-ln,
+.fd-row-remove .fd-prefix {
+  color: var(--danger-text);
+}
+
+.fd-row-context,
+.fd-row-empty {
+  background: var(--bg);
+}
+
+.fd-hunk {
+  padding: 2px 10px;
+  color: var(--t2);
+  background: #e8f4fd;
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-size: 10px;
+}
+
+.fd-empty {
+  padding: 16px;
+  color: var(--t2);
+  text-align: center;
+  font-size: 12px;
+}
+
+@media (max-width: 640px) {
+  .fd-table {
+    min-width: 360px;
+    font-size: 11px;
+  }
+  .fd-row {
+    height: 22px;
+  }
+  .fd-ln {
+    width: 36px;
+    min-width: 36px;
+    padding-left: 6px;
+  }
+  .fd-prefix {
+    width: 20px;
+    min-width: 20px;
+  }
+}
+</style>
