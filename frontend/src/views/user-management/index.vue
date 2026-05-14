@@ -6,17 +6,36 @@
       dataKey="id"
       filterDisplay="menu"
       :loading="loading"
+      scrollable
+      scrollHeight="calc(100vh - 200px)"
       @update:filters="filtersData"
     >
       <template #header>
         <div class="flex items-center justify-between gap-2">
           <Button label="创建用户" icon="pi pi-plus" size="small" @click="openCreateUser" />
-          <IconField>
-            <InputIcon>
-              <i class="pi pi-search" />
-            </InputIcon>
-            <InputText v-model="filters['username'].value" placeholder="关键字搜索" size="small" />
-          </IconField>
+          <div class="flex items-center gap-2">
+            <InputGroup>
+              <InputGroupAddon>
+                <Button type="button" icon="pi pi-search" text />
+              </InputGroupAddon>
+              <InputText v-model="filters['username'].value" placeholder="关键字搜索" size="small" />
+            </InputGroup>
+            <Button
+              ref="settingsButtonRef"
+              icon="pi pi-cog"
+              severity="secondary"
+              text
+              rounded
+              size="small"
+              @click="toggleSettingsMenu"
+            />
+            <Menu
+              ref="settingsMenuRef"
+              :model="columnMenuItems"
+              :popup="true"
+              :appendTo="'body'"
+            />
+          </div>
         </div>
       </template>
 
@@ -29,6 +48,7 @@
         :showFilterMatchModes="false"
         sortable
         class="min-w-[10rem]"
+        v-if="visibleColumns.username"
       >
         <template #body="{ data }">{{ data.username }}</template>
         <template #filter="{ filterModel }">
@@ -42,6 +62,7 @@
         :showFilterMatchModes="false"
         sortable
         class="min-w-[10rem]"
+        v-if="visibleColumns.nickname"
       >
         <template #body="{ data }">{{ data.nickname }}</template>
         <template #filter="{ filterModel }">
@@ -49,7 +70,7 @@
         </template>
       </Column>
 
-      <Column field="icon" header="头像" :showFilterMatchModes="false" class="min-w-[6rem]">
+      <Column field="icon" header="头像" :showFilterMatchModes="false" class="min-w-[6rem]" v-if="visibleColumns.icon">
         <template #body="{ data }">
           <div
             class="relative group cursor-pointer w-9 h-9"
@@ -77,6 +98,7 @@
         :showFilterMatchModes="false"
         sortable
         class="min-w-[10rem]"
+        v-if="visibleColumns.phone"
       >
         <template #body="{ data }">{{ data.phone }}</template>
         <template #filter="{ filterModel }">
@@ -90,6 +112,7 @@
         :showFilterMatchModes="false"
         sortable
         class="min-w-[12rem]"
+        v-if="visibleColumns.email"
       >
         <template #body="{ data }">{{ data.email }}</template>
         <template #filter="{ filterModel }">
@@ -102,36 +125,43 @@
         header="创建时间"
         :showFilterMatchModes="false"
         sortable
-        class="min-w-[12rem]"
+        class="min-w-[15rem]"
+        v-if="visibleColumns.createTime"
       >
         <template #body="{ data }">{{ data.createTime }}</template>
       </Column>
 
-      <Column field="operate" header="操作" class="min-w-[8rem]">
+      <Column field="operate" header="操作" frozen alignFrozen="right" class="min-w-[8rem]">
         <template #body="{ data }">
           <div class="flex items-center gap-2">
             <Button
-              icon="pi pi-share-alt"
+              icon="pi pi-pencil"
               severity="secondary"
               text
               rounded
               size="small"
-              v-tooltip.top="'授权'"
               @click="openEditUser(data)"
             />
             <Button
-              icon="pi pi-trash"
-              severity="danger"
+              icon="pi pi-ellipsis-v"
+              severity="secondary"
               text
               rounded
               size="small"
-              v-tooltip.top="'删除'"
-              @click="deleteUser(data.id)"
+              @click="(event) => toggleMoreMenu(data, event)"
             />
+
           </div>
         </template>
       </Column>
     </DataTable>
+
+    <Menu
+      ref="moreMenuRef"
+      :model="getMoreMenuItems(activeMoreUser)"
+      :popup="true"
+      :appendTo="'body'"
+    />
 
     <div class="flex justify-end mt-2">
       <Paginator
@@ -160,10 +190,22 @@
 
   <CreateUser ref="createUserRef" @success="pageUser" />
   <ResourceAuthDrawer ref="resourceAuthDrawerRef"></ResourceAuthDrawer>
+  <Dialog v-model:visible="passwordDialogVisible" header="修改密码" modal :style="{ width: '24rem' }">
+    <div class="flex flex-col gap-4">
+      <div class="flex flex-col gap-2">
+        <label for="newPassword">新密码</label>
+        <Password id="newPassword" v-model="newPassword" placeholder="请输入新密码" :feedback="false" toggleMask fluid />
+      </div>
+    </div>
+    <template #footer>
+      <Button label="取消" severity="secondary" @click="passwordDialogVisible = false" />
+      <Button label="确认" @click="confirmPasswordChange" />
+    </template>
+  </Dialog>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, reactive, computed } from 'vue'
 import UserAPI from '@/api/user'
 import CreateUser from '@/views/user-management/components/CreateUserDialog.vue'
 import type { User } from '@/api/type/user'
@@ -173,6 +215,12 @@ import { type DataTableFilterMeta } from 'primevue/datatable'
 import bus from '@/bus'
 import fileAPI from '@/api/file'
 import ResourceAuthDrawer from '@/views/user-management/components/ResourceAuthDrawer.vue'
+import Menu from 'primevue/menu'
+import Dialog from 'primevue/dialog'
+import Password from 'primevue/password'
+import InputGroup from 'primevue/inputgroup'
+import InputGroupAddon from 'primevue/inputgroupaddon'
+
 const loading = ref<boolean>(false)
 const userList = ref<Array<User>>([])
 const currentPage = ref<number>(1)
@@ -187,13 +235,108 @@ const filters = ref<any>({
   nickname: { value: null, matchMode: FilterMatchMode.CONTAINS }
 })
 
+const visibleColumns = reactive({
+  username: true,
+  nickname: true,
+  icon: true,
+  phone: true,
+  email: true,
+  createTime: true
+})
+
+const columnMenuItems = computed(() => [
+  {
+    label: visibleColumns.username ? '用户名 ✓' : '用户名',
+    command: () => { visibleColumns.username = !visibleColumns.username }
+  },
+  {
+    label: visibleColumns.nickname ? '昵称 ✓' : '昵称',
+    command: () => { visibleColumns.nickname = !visibleColumns.nickname }
+  },
+  {
+    label: visibleColumns.icon ? '头像 ✓' : '头像',
+    command: () => { visibleColumns.icon = !visibleColumns.icon }
+  },
+  {
+    label: visibleColumns.phone ? '手机号 ✓' : '手机号',
+    command: () => { visibleColumns.phone = !visibleColumns.phone }
+  },
+  {
+    label: visibleColumns.email ? '邮箱 ✓' : '邮箱',
+    command: () => { visibleColumns.email = !visibleColumns.email }
+  },
+  {
+    label: visibleColumns.createTime ? '创建时间 ✓' : '创建时间',
+    command: () => { visibleColumns.createTime = !visibleColumns.createTime }
+  }
+])
+
+const settingsButtonRef = ref()
+const settingsMenuRef = ref<InstanceType<typeof Menu>>()
+
+const toggleSettingsMenu = (event: Event) => {
+  settingsMenuRef.value?.toggle(event)
+}
+
+const moreMenuRef = ref<InstanceType<typeof Menu>>()
+const activeMoreUser = ref<User | null>(null)
+
+const toggleMoreMenu = (user: User, event: Event) => {
+  activeMoreUser.value = user
+  moreMenuRef.value?.toggle(event)
+}
+
 const filtersData = (event: DataTableFilterMeta) => {
   const query = getActiveFilters(event)
   pageUser(query)
 }
 
 const openCreateUser = () => createUserRef.value?.open()
-const openEditUser = (user: User) => resourceAuthDrawerRef.value?.open(user.id)
+const openEditUser = (user: User) => createUserRef.value?.open(user)
+const openResourceAuth = (user: User) => resourceAuthDrawerRef.value?.open(user.id)
+const passwordDialogVisible = ref<boolean>(false)
+const newPassword = ref<string>('')
+const passwordChangeUserId = ref<string>('')
+
+const getMoreMenuItems = (user: User | null) => {
+  if (!user) return []
+  const isAdmin = user.username === 'admin'
+  return [
+    {
+      label: '修改密码',
+      icon: 'pi pi-lock',
+      command: () => openPasswordDialog(user.id)
+    },
+    {
+      label: '授权',
+      icon: 'pi pi-share-alt',
+      command: () => openResourceAuth(user)
+    },
+    {
+      label: '删除',
+      icon: 'pi pi-trash',
+      command: () => deleteUser(user.id),
+      disabled: isAdmin
+    }
+  ]
+}
+
+const openPasswordDialog = (userId: string) => {
+  passwordChangeUserId.value = userId
+  newPassword.value = ''
+  passwordDialogVisible.value = true
+}
+
+const confirmPasswordChange = () => {
+  if (!newPassword.value || newPassword.value.length < 6) {
+    bus.emit('message:error', '密码长度至少为6位')
+    return
+  }
+  UserAPI.updateUser(passwordChangeUserId.value, { password: newPassword.value }).then(() => {
+    bus.emit('message:success', '密码修改成功')
+    passwordDialogVisible.value = false
+  })
+}
 
 const pageUser = (query?: any) => {
   if (!query) {
@@ -213,6 +356,11 @@ const pageUser = (query?: any) => {
 }
 
 const deleteUser = (userId: string) => {
+  const user = userList.value.find(u => u.id === userId)
+  if (user?.username === 'admin') {
+    bus.emit('message:error', 'admin账号不允许删除')
+    return
+  }
   UserAPI.deleteUser(userId).then(() => {
     bus.emit('message:success', '删除成功')
     pageUser()
@@ -248,5 +396,46 @@ onMounted(() => pageUser())
 <style lang="scss" scoped>
 :deep(.p-datatable-header-cell) {
   padding: 0.3rem 0.5rem;
+  font-size: 14px;
 }
+
+:deep(.p-button) {
+  font-size: 14px;
+}
+
+:deep(.p-inputtext) {
+  font-size: 14px;
+}
+
+:deep(.p-datatable-column-filter) {
+  .p-button {
+    padding: 0.25rem;
+    .p-icon {
+      width: 12.25px;
+      height: 12.25px;
+    }
+  }
+}
+
+:deep(.p-sortable-column-icon) {
+  width: 12.25px;
+  height: 12.25px;
+}
+
+:deep(.p-datatable-scrollable .p-datatable-frozen-right) {
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.05);
+}
+
+:deep(.p-datatable-scrollable .p-datatable-frozen-right .p-datatable-header-cell) {
+  background: #f8f9fa !important;
+}
+
+:deep(.p-datatable-scrollable .p-datatable-frozen-right .p-datatable-body-cell) {
+  background: white;
+}
+
+:deep(.p-paginator) {
+  font-size: 14px;
+}
+
 </style>
