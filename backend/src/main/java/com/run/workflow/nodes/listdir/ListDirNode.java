@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -51,7 +52,7 @@ public class ListDirNode extends INode<ListDirNode, ListDirNodeData> {
             try {
                 String dirPath;
                 int maxDepth;
-
+                AtomicReference<String> chunkId = new AtomicReference<>(CommonUtils.uuid7().toString());
                 if ("tool_call".equals(node.params.getLocation())) {
                     if (node.params.getReference() == null || node.params.getReference().isEmpty()) {
                         node.status = NodeStatus.FAIL;
@@ -64,6 +65,9 @@ public class ListDirNode extends INode<ListDirNode, ListDirNodeData> {
                         node.status = NodeStatus.FAIL;
                         workFlowManage.nextFailInvoke(node, new RuntimeException("引用变量格式错误"));
                         return null;
+                    }
+                    if (toolCall.containsKey("id")) {
+                        chunkId.set(toolCall.getString("id"));
                     }
                     String args = toolCall.getString("functionArguments");
                     if (StringUtils.isEmpty(args)) {
@@ -105,15 +109,19 @@ public class ListDirNode extends INode<ListDirNode, ListDirNodeData> {
                 StringBuilder tree = new StringBuilder();
                 int[] fileCount = {0};
                 int[] dirCount = {0};
+                String argsJson = JacksonUtils.toJson(Map.of("path", dirPath, "depth", maxDepth));
 
-                tree.append(dirPath.isEmpty() ? "." : dirPath).append("/\n");
-                buildTree(targetDir, tree, "", maxDepth, 0, fileCount, dirCount);
+
+                String rootLine = (dirPath.isEmpty() ? "." : dirPath) + "/\n";
+                tree.append(rootLine);
+                workFlowManage.write(node, new ToolCallContent("list_dir", rootLine, "",
+                        NodeStatus.SUCCESS, node, runId, chunkId.get()));
+                buildTree(targetDir, tree, "", maxDepth, 0, fileCount, dirCount, workFlowManage, node, argsJson, chunkId.get(), runId);
 
                 String content = tree.toString();
                 String summary = dirCount[0] + " 个目录, " + fileCount[0] + " 个文件";
 
-                String argsJson = JacksonUtils.toJson(Map.of("path", dirPath, "depth", maxDepth));
-                ToolCallContent toolContent = new ToolCallContent("list_dir", content, argsJson,
+                ToolCallContent toolContent = new ToolCallContent("list_dir", content, "",
                         NodeStatus.SUCCESS, node, runId, CommonUtils.uuid7().toString());
                 workFlowManage.writeContext(node, "content", content);
                 workFlowManage.writeContext(node, "summary", summary);
@@ -130,11 +138,14 @@ public class ListDirNode extends INode<ListDirNode, ListDirNodeData> {
             return next(workFlowManage, node);
         }
 
-        private void buildTree(Path dir, StringBuilder tree, String prefix, int maxDepth, int currentDepth, int[] fileCount, int[] dirCount) throws IOException {
+        private void buildTree(Path dir, StringBuilder tree, String prefix, int maxDepth, int currentDepth,
+                               int[] fileCount, int[] dirCount, WorkFlowManage wfm, ListDirNode node,
+                               String argsJson, String chunkId, String runId) throws IOException {
             if (currentDepth >= maxDepth) return;
 
+            List<Path> entries;
             try (Stream<Path> stream = Files.list(dir)) {
-                List<Path> entries = stream
+                entries = stream
                         .filter(p -> {
                             String name = p.getFileName().toString();
                             return !IGNORED_DIRS.contains(name) && !name.startsWith(".");
@@ -146,23 +157,44 @@ public class ListDirNode extends INode<ListDirNode, ListDirNodeData> {
                             return a.getFileName().toString().compareToIgnoreCase(b.getFileName().toString());
                         })
                         .toList();
+            } catch (AccessDeniedException e) {
+                String line = prefix + "└── [permission denied]\n";
+                tree.append(line);
+                wfm.write(node, new ToolCallContent("list_dir", line, "",
+                        NodeStatus.RUNNING, node, runId, chunkId));
+                return;
+            }
 
-                for (int i = 0; i < entries.size(); i++) {
-                    Path entry = entries.get(i);
-                    boolean isLast = (i == entries.size() - 1);
-                    String connector = isLast ? "└── " : "├── ";
-                    String childPrefix = isLast ? "    " : "│   ";
-                    String name = entry.getFileName().toString();
+            for (int i = 0; i < entries.size(); i++) {
+                if (node.getStatus() == NodeStatus.CANCELLED) return;
+                Path entry = entries.get(i);
+                boolean isLast = (i == entries.size() - 1);
+                String connector = isLast ? "└── " : "├── ";
+                String childPrefix = isLast ? "    " : "│   ";
+                String name = entry.getFileName().toString();
 
+                try {
                     if (Files.isDirectory(entry)) {
                         dirCount[0]++;
-                        tree.append(prefix).append(connector).append(name).append("/\n");
-                        buildTree(entry, tree, prefix + childPrefix, maxDepth, currentDepth + 1, fileCount, dirCount);
+                        String line = prefix + connector + name + "/\n";
+                        tree.append(line);
+                        wfm.write(node, new ToolCallContent("list_dir", line, "",
+                                NodeStatus.RUNNING, node, runId, chunkId));
+                        buildTree(entry, tree, prefix + childPrefix, maxDepth, currentDepth + 1,
+                                fileCount, dirCount, wfm, node, argsJson, chunkId, runId);
                     } else {
                         fileCount[0]++;
                         long size = Files.size(entry);
-                        tree.append(prefix).append(connector).append(name).append("  ").append(formatSize(size)).append("\n");
+                        String line = prefix + connector + name + "  " + formatSize(size) + "\n";
+                        tree.append(line);
+                        wfm.write(node, new ToolCallContent("list_dir", line, argsJson,
+                                NodeStatus.RUNNING, node, runId, chunkId));
                     }
+                } catch (AccessDeniedException e) {
+                    String line = prefix + connector + name + "  [permission denied]\n";
+                    tree.append(line);
+                    wfm.write(node, new ToolCallContent("list_dir", line, "",
+                            NodeStatus.RUNNING, node, runId, chunkId));
                 }
             }
         }

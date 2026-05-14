@@ -1,6 +1,6 @@
 <template>
   <div
-   @click="openContent"
+   @dblclick="openContent"
     class="custom-node-wrap custom-node-wrap-start"
     :class="model.isSelected ? 'p-node-selected' : ''"
   >

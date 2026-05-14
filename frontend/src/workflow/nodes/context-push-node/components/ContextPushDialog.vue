@@ -2,9 +2,9 @@
   <Dialog
     v-model:visible="visible"
     :header="isEditing ? '编辑上下文' : '添加上下文'"
-    modal
     append-to-body
-    :base-z-index="9999"
+    :modal="false"
+    :dismissable="false"
     style="width: 600px"
   >
     <div class="flex flex-col gap-3">
@@ -110,6 +110,7 @@ import CodeEditor from '@/components/code-editor/index.vue'
 import type { ContextPushItem } from '../content/type'
 import { modeOptions, roleOptions, toolCallTemplate } from '../content/type'
 import bus from '@/bus'
+import Drawer from "primevue/drawer";
 
 const emit = defineEmits<{
   (e: 'submit', item: ContextPushItem): void

@@ -47,31 +47,39 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
 
     // ── 结构体 ──
 
-    public record FileChange(String operation, String path, int linesAdded, int linesRemoved) {}
+    public record FileChange(String operation, String path, int linesAdded, int linesRemoved) {
+    }
 
-    public record Failure(String path, String reason, String suggestion) {}
+    public record Failure(String path, String reason, String suggestion) {
+    }
 
-    public record Result(boolean success, String summary, List<FileChange> applied, List<Failure> failures) {}
+    public record Result(boolean success, String summary, List<FileChange> applied, List<Failure> failures) {
+    }
 
-    private record StagedChange(String operation, Path target, List<String> newLines, int added, int removed) {}
+    private record StagedChange(String operation, Path target, List<String> newLines, int added, int removed) {
+    }
 
     // ── 执行 ──
+
+    record PatchConfig(String id, String patch, Path workDir, boolean withWriteArguments) {
+    }
 
     public static class Handle implements BiFunction<WorkFlowManage, ApplyPatchNode, Supplier<List<Node>>> {
 
         @Override
         public Supplier<List<Node>> apply(WorkFlowManage workFlowManage, ApplyPatchNode node) {
-            String patchStr = resolveValue(node.params.getLocation(), node.params.getReference(), node.params.getPatch(), workFlowManage);
             String runId = (String) workFlowManage.getParams().get("workflowRunId");
+            PatchConfig config = resolvePatchConfig(node, workFlowManage);
 
-            if (StringUtils.isEmpty(patchStr)) {
+            if (config == null || StringUtils.isEmpty(config.patch())) {
                 node.status = NodeStatus.FAIL;
-                writeResult(workFlowManage, node, runId, patchStr,
-                        new Result(false, "patch 内容为空", List.of(), List.of()));
-                return next(workFlowManage, node);
+                workFlowManage.nextFailInvoke(node, new RuntimeException("patch 内容为空"));
+                return null;
             }
 
-            Path workDir = Path.of(System.getProperty("user.dir"));
+            String patchStr = config.patch();
+            Path workDir = config.workDir();
+            String id = config.id();
 
             try {
                 // 解析 unified diff
@@ -80,9 +88,8 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
 
                 if (diff.getFiles().isEmpty()) {
                     node.status = NodeStatus.FAIL;
-                    writeResult(workFlowManage, node, runId, patchStr,
-                            new Result(false, "Patch 中没有可识别的文件改动", List.of(), List.of()));
-                    return next(workFlowManage, node);
+                    workFlowManage.nextFailInvoke(node, new RuntimeException("Patch 中没有可识别的文件改动"));
+                    return null;
                 }
 
                 // 干跑：先全部 stage，收集错误
@@ -90,6 +97,7 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
                 List<Failure> failures = new ArrayList<>();
 
                 for (UnifiedDiffFile file : diff.getFiles()) {
+                    if (node.getStatus() == NodeStatus.CANCELLED) return next(workFlowManage, node);
                     try {
                         staged.add(stage(workDir, file));
                     } catch (Exception e) {
@@ -98,32 +106,38 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
                     }
                 }
 
-                // 有失败则全部回滚
-                if (!failures.isEmpty()) {
-                    node.status = NodeStatus.FAIL;
-                    String summary = "应用失败（已回滚）: " + failures.size() + " 个文件";
-                    writeResult(workFlowManage, node, runId, patchStr,
-                            new Result(false, summary, List.of(), failures));
+                // 取消检查
+                if (node.getStatus() == NodeStatus.CANCELLED) {
                     return next(workFlowManage, node);
                 }
 
-                // 写盘
+                // 有失败则全部回滚
+                if (!failures.isEmpty()) {
+                    node.status = NodeStatus.FAIL;
+                    String errMsg = failures.stream().map(f -> f.path() + ": " + f.reason()).reduce("", (a, b) -> a.isEmpty() ? b : a + "\n" + b);
+                    workFlowManage.nextFailInvoke(node, new RuntimeException("应用失败（已回滚）:\n" + errMsg));
+                    return null;
+                }
+
+                // 写盘（流式输出每个文件）
                 List<FileChange> applied = new ArrayList<>();
                 for (StagedChange sc : staged) {
                     writeToDisk(sc);
-                    applied.add(new FileChange(sc.operation, workDir.relativize(sc.target).toString(), sc.added, sc.removed));
+                    String relPath = workDir.relativize(sc.target).toString();
+                    applied.add(new FileChange(sc.operation, relPath, sc.added, sc.removed));
+                    String verb = "created".equals(sc.operation) ? "Created" : "modified".equals(sc.operation) ? "Modified" : "Deleted";
+                    workFlowManage.write(node, new ToolCallContent("apply_patch", verb + " " + relPath + "\n",
+                            config.withWriteArguments ? JacksonUtils.toJson(Map.of("patch", patchStr)) : "", NodeStatus.RUNNING, node, runId, id));
                 }
 
                 String summary = "成功应用 " + applied.size() + " 个文件的改动";
                 Result result = new Result(true, summary, applied, List.of());
-                writeResult(workFlowManage, node, runId, patchStr, result);
+                writeResult(workFlowManage, node, runId, patchStr, result, id);
                 node.status = NodeStatus.SUCCESS;
 
             } catch (Exception e) {
                 node.status = NodeStatus.FAIL;
-                writeResult(workFlowManage, node, runId, patchStr,
-                        new Result(false, "解析 patch 失败: " + e.getMessage(), List.of(),
-                                List.of(new Failure("", e.getMessage(), "检查 patch 格式是否正确"))));
+                workFlowManage.nextFailInvoke(node, e);
             }
 
             return next(workFlowManage, node);
@@ -196,33 +210,82 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
             return resolved;
         }
 
-        private void writeResult(WorkFlowManage wfm, ApplyPatchNode node, String runId, String patchStr, Result result) {
+        private void writeResult(WorkFlowManage wfm, ApplyPatchNode node, String runId, String patchStr, Result result, String id) {
             wfm.writeContext(node, "result", result.success());
             wfm.writeContext(node, "stdout", result.summary());
             wfm.writeContext(node, "stderr", result.failures().stream()
                     .map(f -> f.path() + ": " + f.reason())
                     .reduce("", (a, b) -> a.isEmpty() ? b : a + "\n" + b));
-            wfm.write(node, new ToolCallContent("apply-patch", result.summary(),
+            wfm.write(node, new ToolCallContent("apply_patch", result.summary(),
                     JacksonUtils.toJson(Map.of("patch", patchStr)),
                     result.success() ? NodeStatus.SUCCESS : NodeStatus.FAIL,
-                    node, runId, CommonUtils.uuid7().toString()));
-            wfm.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("apply-patch",
+                    node, runId, id));
+            wfm.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("apply_patch",
                     result.summary(), JacksonUtils.toJson(Map.of("patch", patchStr)),
                     result.success() ? NodeStatus.SUCCESS : NodeStatus.FAIL,
-                    node, runId, CommonUtils.uuid7().toString())));
+                    node, runId, id)));
         }
 
         private Supplier<List<Node>> next(WorkFlowManage wfm, ApplyPatchNode node) {
             return () -> wfm.getNextList(node.node.getId()).stream().map(DefaultKeyValue::getValue).toList();
         }
 
-        private String resolveValue(String location, List<String> reference, String customValue, WorkFlowManage wfm) {
-            if ("reference".equals(location)) {
-                if (reference != null && !reference.isEmpty()) {
-                    Object val = wfm.getContextVariable(reference);
-                    return val != null ? val.toString() : null;
+        private PatchConfig resolvePatchConfig(ApplyPatchNode node, WorkFlowManage wfm) {
+            if ("tool_call".equals(node.params.getLocation())) {
+                if (node.params.getReference() == null || node.params.getReference().isEmpty()) return null;
+                Object val = wfm.getContextVariable(node.params.getReference());
+                if (val == null) return null;
+
+                String id = null;
+                String args = null;
+                if (val instanceof JsonObject jo) {
+                    id = jo.getString("id");
+                    args = jo.getString("functionArguments");
                 }
-                return null;
+                if (args == null) return null;
+
+                JsonObject parsed = new JsonObject(args);
+                String patch = parsed.getString("patch");
+                String toolPath = parsed.getString("path");
+
+                Path workDir;
+                if (!StringUtils.isEmpty(toolPath)) {
+                    workDir = Path.of(toolPath).isAbsolute() ? Path.of(toolPath) : Path.of(System.getProperty("user.dir")).resolve(toolPath).normalize();
+                } else {
+                    workDir = resolveWorkDir(node.params.getPathLocation(), node.params.getPathReference(), node.params.getPath(), wfm);
+                }
+
+                return new PatchConfig(
+                        StringUtils.isEmpty(id) ? CommonUtils.uuid7().toString() : id,
+                        patch, workDir, false);
+            }
+
+            String patch = resolveValue(node.params.getPatchLocation(), node.params.getPatchReference(), node.params.getPatch(), wfm);
+            Path workDir = resolveWorkDir(node.params.getPathLocation(), node.params.getPathReference(), node.params.getPath(), wfm);
+            return new PatchConfig(CommonUtils.uuid7().toString(), patch, workDir, true);
+        }
+
+        private Path resolveWorkDir(String location, List<String> reference, String customValue, WorkFlowManage wfm) {
+            String workDirStr = resolveValue(location, reference, customValue, wfm);
+            if (StringUtils.isEmpty(workDirStr)) return Path.of(System.getProperty("user.dir"));
+            return Path.of(workDirStr).isAbsolute() ? Path.of(workDirStr) : Path.of(System.getProperty("user.dir")).resolve(workDirStr).normalize();
+        }
+
+        private String resolveValue(String location, List<String> reference, String customValue, WorkFlowManage wfm) {
+            if ("tool_call".equals(location)) {
+                if (reference == null || reference.isEmpty()) return null;
+                Object val = wfm.getContextVariable(reference);
+                if (val == null) return null;
+                String args = null;
+                if (val instanceof JsonObject jo) {
+                    args = jo.getString("functionArguments");
+                }
+                if (args == null) return val.toString();
+                try {
+                    return new JsonObject(args).getString("patch");
+                } catch (Exception e) {
+                    return args;
+                }
             }
             return customValue;
         }
@@ -236,7 +299,16 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
         if (jsonObject.getJsonArray("reference") != null) {
             data.setReference(jsonObject.getJsonArray("reference").stream().map(Object::toString).toList());
         }
+        data.setPatchLocation(jsonObject.getString("patchLocation"));
+        if (jsonObject.getJsonArray("patchReference") != null) {
+            data.setPatchReference(jsonObject.getJsonArray("patchReference").stream().map(Object::toString).toList());
+        }
         data.setPatch(jsonObject.getString("patch"));
+        data.setPath(jsonObject.getString("path"));
+        data.setPathLocation(jsonObject.getString("pathLocation"));
+        if (jsonObject.getJsonArray("pathReference") != null) {
+            data.setPathReference(jsonObject.getJsonArray("pathReference").stream().map(Object::toString).toList());
+        }
         return data;
     }
 

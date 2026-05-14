@@ -32,6 +32,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import Loading from '@/components/conversation-plus/loading/index.vue'
+import { extractPartialJsonField } from '@/utils/extract-partial-json'
 
 const props = defineProps<{ content: any; loading: boolean; expanded: boolean }>()
 defineEmits<{ toggle: [] }>()
@@ -39,12 +40,7 @@ defineEmits<{ toggle: [] }>()
 const commandText = computed(() => {
   const raw = props.content.functionArguments
   if (!raw) return ''
-  try {
-    const obj = JSON.parse(raw)
-    return obj.command || obj.cmd || raw
-  } catch {
-    return raw
-  }
+  return extractPartialJsonField(raw, 'command') || extractPartialJsonField(raw, 'cmd') || raw
 })
 
 const onAfterEnter = (el: Element) => {

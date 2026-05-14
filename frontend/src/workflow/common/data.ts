@@ -194,6 +194,8 @@ export const fileUploadNode = {
       { label: '文件大小', value: 'fileSize' }
     ],
     nodeData: {
+      location: 'customize',
+      reference: [],
       pathLocation: 'customize',
       pathReference: [],
       path: '',
@@ -583,6 +585,11 @@ export const applyPatchNode = {
     nodeData: {
       location: 'customize',
       reference: [],
+      pathLocation: 'customize',
+      pathReference: [],
+      path: '',
+      patchLocation: 'customize',
+      patchReference: [],
       patch: ''
     }
   }

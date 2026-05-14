@@ -55,21 +55,21 @@ public class ReadFileNode extends INode<ReadFileNode, ReadFileNodeData> {
                     // tool_call 模式：从引用的 AccumulatedToolCall 中解析
                     if (node.params.getReference() == null || node.params.getReference().isEmpty()) {
                         node.status = NodeStatus.FAIL;
-                        writeResult(workFlowManage, node, runId, "", "", 0, 0, "未指定引用变量");
-                        return next(workFlowManage, node);
+                        workFlowManage.nextFailInvoke(node, new RuntimeException("未指定引用变量"));
+                        return null;
                     }
                     Object ref = workFlowManage.getContextVariable(node.params.getReference());
                     JsonObject toolCall = toJsonObject(ref);
                     if (toolCall == null) {
                         node.status = NodeStatus.FAIL;
-                        writeResult(workFlowManage, node, runId, "", "", 0, 0, "引用变量格式错误");
-                        return next(workFlowManage, node);
+                        workFlowManage.nextFailInvoke(node, new RuntimeException("引用变量格式错误"));
+                        return null;
                     }
                     String args = toolCall.getString("functionArguments");
                     if (StringUtils.isEmpty(args)) {
                         node.status = NodeStatus.FAIL;
-                        writeResult(workFlowManage, node, runId, "", "", 0, 0, "functionArguments 为空");
-                        return next(workFlowManage, node);
+                        workFlowManage.nextFailInvoke(node, new RuntimeException("functionArguments 为空"));
+                        return null;
                     }
                     JsonObject parsed = new JsonObject(args);
                     filePath = parsed.getString("path");
@@ -90,8 +90,8 @@ public class ReadFileNode extends INode<ReadFileNode, ReadFileNodeData> {
 
                 if (StringUtils.isEmpty(filePath)) {
                     node.status = NodeStatus.FAIL;
-                    writeResult(workFlowManage, node, runId, "", "", 0, 0, "文件路径为空");
-                    return next(workFlowManage, node);
+                    workFlowManage.nextFailInvoke(node, new RuntimeException("文件路径为空"));
+                    return null;
                 }
 
                 Path basePath = Path.of(System.getProperty("user.dir"));
@@ -99,8 +99,8 @@ public class ReadFileNode extends INode<ReadFileNode, ReadFileNodeData> {
 
                 if (!Files.exists(targetPath)) {
                     node.status = NodeStatus.FAIL;
-                    writeResult(workFlowManage, node, runId, filePath, "", 0, 0, "文件不存在: " + filePath);
-                    return next(workFlowManage, node);
+                    workFlowManage.nextFailInvoke(node, new RuntimeException("文件不存在: " + filePath));
+                    return null;
                 }
 
                 List<String> allLines = Files.readAllLines(targetPath);
@@ -110,21 +110,25 @@ public class ReadFileNode extends INode<ReadFileNode, ReadFileNodeData> {
                 int end = limit > 0 ? Math.min(start + limit, totalLines) : totalLines;
                 List<String> readLines = allLines.subList(start, end);
 
-                // 原始内容（不带行号）
-                String rawContent = String.join("\n", readLines);
-
                 // 带行号输出：右对齐行号 + → + 内容
                 int maxLineNum = end;
                 int width = String.valueOf(maxLineNum).length();
+                String argsJson = JacksonUtils.toJson(Map.of("path", filePath, "offset", start, "limit", limit));
+                String chunkId = CommonUtils.uuid7().toString();
+
                 StringBuilder sb = new StringBuilder();
                 for (int i = 0; i < readLines.size(); i++) {
-                    if (i > 0) sb.append('\n');
                     int lineNum = start + i + 1;
-                    sb.append(String.format("%" + width + "d→%s", lineNum, readLines.get(i)));
+                    String line = String.format("%" + width + "d→%s", lineNum, readLines.get(i));
+                    if (i > 0) sb.append('\n');
+                    sb.append(line);
+                    // 流式输出每行
+                    workFlowManage.write(node, new ToolCallContent("read_file", line + "\n", argsJson,
+                            NodeStatus.RUNNING, node, runId, chunkId));
                 }
                 String content = sb.toString();
+                String rawContent = String.join("\n", readLines);
 
-                String argsJson = JacksonUtils.toJson(Map.of("path", filePath, "offset", start, "limit", limit));
                 ToolCallContent toolContent = new ToolCallContent("read_file", content, argsJson,
                         NodeStatus.SUCCESS, node, runId, CommonUtils.uuid7().toString());
 
@@ -139,10 +143,10 @@ public class ReadFileNode extends INode<ReadFileNode, ReadFileNodeData> {
 
             } catch (IOException e) {
                 node.status = NodeStatus.FAIL;
-                writeResult(workFlowManage, node, runId, "", "", 0, 0, "IO 异常: " + e.getMessage());
+                workFlowManage.nextFailInvoke(node, e);
             } catch (Exception e) {
                 node.status = NodeStatus.FAIL;
-                writeResult(workFlowManage, node, runId, "", "", 0, 0, "读取失败: " + e.getMessage());
+                workFlowManage.nextFailInvoke(node, e);
             }
 
             return next(workFlowManage, node);
@@ -150,19 +154,6 @@ public class ReadFileNode extends INode<ReadFileNode, ReadFileNodeData> {
 
         private Supplier<List<Node>> next(WorkFlowManage wfm, ReadFileNode node) {
             return () -> wfm.getNextList(node.node.getId()).stream().map(DefaultKeyValue::getValue).toList();
-        }
-
-        private void writeResult(WorkFlowManage wfm, ReadFileNode node, String runId,
-                                 String path, String content, int totalLines, int lines, String error) {
-            wfm.writeContext(node, "content", content);
-            wfm.writeContext(node, "totalLines", totalLines);
-            wfm.writeContext(node, "lines", lines);
-            if (error != null) {
-                wfm.writeContext(node, "error", error);
-                wfm.write(node, new ToolCallContent("read_file", error,
-                        JacksonUtils.toJson(Map.of("path", path)),
-                        NodeStatus.FAIL, node, runId, CommonUtils.uuid7().toString()));
-            }
         }
 
         private JsonObject toJsonObject(Object ref) {

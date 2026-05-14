@@ -7,7 +7,15 @@ import java.util.List;
 @Data
 public class FileUploadNodeData {
     /**
-     * 路径来源: reference 或 customize
+     * 顶层模式: tool_call 或 customize
+     */
+    private String location;
+    /**
+     * tool_call 引用变量路径
+     */
+    private List<String> reference;
+    /**
+     * 路径子模式: reference 或 customize
      */
     private String pathLocation;
     /**

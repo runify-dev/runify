@@ -103,6 +103,12 @@
                             ]
                           },
                           {
+                            label: '重命名',
+                            command: () => {
+                              openRenameDialog(node)
+                            }
+                          },
+                          {
                             label: '删除',
                             command: () => {
                               removeTreeNode(node)
@@ -182,6 +188,11 @@
         ref="createFolderDialogRef"
         :api="treeCommonAPI"
       ></CreateFolderDialog>
+      <RenameDialog
+        @rename:success="renameSuccess"
+        ref="renameDialogRef"
+        :api="treeCommonAPI"
+      ></RenameDialog>
     </template>
 
     <RouterView :key="route.name"></RouterView>
@@ -191,6 +202,7 @@
 import AppMenuContent from '@/layout-plus/app-menu-content/index.vue'
 import CreateResourceDialog from '@/components/create-resource-dialog/index.vue'
 import CreateFolderDialog from '@/components/create-folder-dialog/index.vue'
+import RenameDialog from '@/components/rename-dialog/index.vue'
 import DropdownMenu from '@/components/dropdown-menu/index.vue'
 import { onMounted, ref, computed, onBeforeUnmount } from 'vue'
 import Tree, { type TreeSelectionKeys } from 'primevue/tree'
@@ -310,11 +322,18 @@ const createFolderSuccess = (key: string, node: any) => {
 }
 const createResourceDialogRef = ref<InstanceType<typeof CreateResourceDialog>>()
 const createFolderDialogRef = ref<InstanceType<typeof CreateFolderDialog>>()
+const renameDialogRef = ref<InstanceType<typeof RenameDialog>>()
 const openCreateApplicationDialog = (node?: TreeNode) => {
   createResourceDialogRef.value?.open(node)
 }
 const openCreateFolderDialog = (node?: TreeNode) => {
   createFolderDialogRef.value?.open(node)
+}
+const openRenameDialog = (node: TreeNode) => {
+  renameDialogRef.value?.open(node.key, node.label, node.data.type === 'folder' ? 'folder' : 'resource')
+}
+const renameSuccess = (key: string, node: any) => {
+  treeManage.value?.updateLabel(key, node.name)
 }
 const removeTreeNode = (node: TreeNode) => {
   ;(node.data.type === 'folder'

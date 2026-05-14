@@ -5,6 +5,8 @@ import { parseZodResult } from '@/workflow/common/validator-utils'
 export const schema = z.object({
   location: z.string(),
   reference: z.array(z.string()).optional(),
+  codeLocation: z.string().optional(),
+  codeReference: z.array(z.string()).optional(),
   code: z.string().optional(),
   timeoutLocation: z.string().optional(),
   timeoutReference: z.array(z.string()).optional(),
@@ -15,13 +17,19 @@ export function validate(nodeData: Record<string, any> | undefined): ValidationR
   const data = nodeData ?? {}
 
   // 代码校验
-  if (data.location === 'reference') {
+  if (data.location === 'tool_call') {
     if (!data.reference || !Array.isArray(data.reference) || data.reference.length === 0) {
       return { valid: false, errors: { reference: '请选择引用变量' } }
     }
   } else {
-    if (!data.code || typeof data.code !== 'string' || data.code.trim().length === 0) {
-      return { valid: false, errors: { code: '请输入代码' } }
+    if (data.codeLocation === 'reference') {
+      if (!data.codeReference || !Array.isArray(data.codeReference) || data.codeReference.length === 0) {
+        return { valid: false, errors: { codeReference: '请选择代码变量' } }
+      }
+    } else {
+      if (!data.code || typeof data.code !== 'string' || data.code.trim().length === 0) {
+        return { valid: false, errors: { code: '请输入代码' } }
+      }
     }
   }
 

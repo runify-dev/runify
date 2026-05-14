@@ -61,11 +61,17 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
 
         @Override
         public Supplier<List<Node>> apply(WorkFlowManage workFlowManage, TerminalNode node) {
-            Code code = resolveCode(node.params.getLocation(), node.params.getReference(), node.params.getCode(), workFlowManage);
+            Code code;
+            if ("tool_call".equals(node.params.getLocation())) {
+                code = resolveCode("tool_call", node.params.getReference(), null, workFlowManage);
+            } else {
+                // customize 模式：用 codeLocation/codeReference 解析代码
+                code = resolveCode(node.params.getCodeLocation(), node.params.getCodeReference(), node.params.getCode(), workFlowManage);
+            }
 
             int timeout = resolveTimeout(node.params, workFlowManage);
 
-            if (code == null || StringUtils.isEmpty(code.code)) {
+            if (code == null || StringUtils.isEmpty(code.command)) {
                 node.status = NodeStatus.FAIL;
                 workFlowManage.writeContext(node, "result", "代码为空");
                 workFlowManage.writeContext(node, "stdout", "");
@@ -78,7 +84,7 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
             try {
                 String id = code.id;
                 if (code.withWriteArguments) {
-                    workFlowManage.write(node, new ToolCallContent("run_command", "", code.code, NodeStatus.RUNNING, node, (String) workFlowManage.getParams().get("workflowRunId"), id));
+                    workFlowManage.write(node, new ToolCallContent("run_command", "", code.command, NodeStatus.RUNNING, node, (String) workFlowManage.getParams().get("workflowRunId"), id));
                 }
                 ProcessBuilder processBuilder = new ProcessBuilder();
                 UUID conversationId = (UUID) workFlowManage.getParams().getOrDefault("conversationId", CommonUtils.uuid7());
@@ -88,7 +94,7 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
                     file.mkdirs();
                 }
                 processBuilder.directory(file);
-                processBuilder.command("sh", "-c", code.code);
+                processBuilder.command("sh", "-c", code.command);
                 processBuilder.redirectErrorStream(false);
 
                 Process process = processBuilder.start();
@@ -146,7 +152,7 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
                     workFlowManage.writeContext(node, "exitCode", exitCode);
                     node.status = exitCode == 0 ? NodeStatus.SUCCESS : NodeStatus.FAIL;
                     workFlowManage.write(node, new ToolCallContent("run_command", "", "", node.status, node, (String) workFlowManage.getParams().get("workflowRunId"), id));
-                    workFlowManage.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("run_command", exitCode == 0 ? stdout : stderr, JacksonUtils.toJson(Map.of("code", code.code)), node.status, node, (String) workFlowManage.getParams().get("workflowRunId"), id)));
+                    workFlowManage.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("run_command", exitCode == 0 ? stdout : stderr, JacksonUtils.toJson(Map.of("command", code.command)), node.status, node, (String) workFlowManage.getParams().get("workflowRunId"), id)));
                 }
             } catch (Exception e) {
                 node.status = NodeStatus.FAIL;
@@ -177,7 +183,7 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
             }
         }
 
-        public record Code(String id, String code, Boolean withWriteArguments) {
+        public record Code(String id, String command, Boolean withWriteArguments) {
 
         }
 
@@ -199,20 +205,41 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
          * 通用值解析：reference 从上下文取，customize 直接返回
          */
         private Code resolveCode(String location, List<String> reference, String customValue, WorkFlowManage workFlowManage) {
+            if ("tool_call".equals(location)) {
+                if (reference == null || reference.isEmpty()) return null;
+                Object val = workFlowManage.getContextVariable(reference);
+                if (val == null) return null;
+                String args = null;
+                String id = null;
+                if (val instanceof JsonObject jo) {
+                    args = jo.getString("functionArguments");
+                    id = jo.getString("id");
+                } else if (val instanceof ChatCompletionAccumulator.AccumulatedToolCall call) {
+                    args = call.getFunctionArguments();
+                }
+                if (args != null) {
+                    try {
+                        JsonObject parsed = new JsonObject(args);
+                        return new Code(StringUtils.isEmpty(id) ? CommonUtils.uuid7().toString() : id, parsed.getString("command"), Boolean.FALSE);
+                    } catch (Exception ignored) {
+                    }
+                }
+                return new Code(CommonUtils.uuid7().toString(), val.toString(), Boolean.TRUE);
+            }
             if ("reference".equals(location)) {
                 if (reference != null && !reference.isEmpty()) {
                     Object val = workFlowManage.getContextVariable(reference);
                     if (val instanceof JsonObject v) {
                         String id = v.getString("id");
                         JsonObject string = JacksonUtils.fromJson(v.getString("arguments"), JsonObject.class);
-                        return new Code(id, string.getString("code"), Boolean.FALSE);
+                        return new Code(id, string.getString("command"), Boolean.FALSE);
                     }
                     if (val instanceof String v) {
                         return new Code(CommonUtils.uuid7().toString(), v, Boolean.TRUE);
                     }
                     if (val instanceof ChatCompletionAccumulator.AccumulatedToolCall call) {
                         JsonObject string = JacksonUtils.fromJson(call.getFunctionArguments(), JsonObject.class);
-                        return new Code(call.getId(), string.getString("code"), Boolean.FALSE);
+                        return new Code(call.getId(), string.getString("command"), Boolean.FALSE);
                     }
                     return null;
                 }
@@ -230,6 +257,12 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
         data.setLocation(jsonObject.getString("location"));
         if (jsonObject.getJsonArray("reference") != null) {
             data.setReference(jsonObject.getJsonArray("reference").stream()
+                    .map(Object::toString)
+                    .toList());
+        }
+        data.setCodeLocation(jsonObject.getString("codeLocation"));
+        if (jsonObject.getJsonArray("codeReference") != null) {
+            data.setCodeReference(jsonObject.getJsonArray("codeReference").stream()
                     .map(Object::toString)
                     .toList());
         }

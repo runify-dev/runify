@@ -11,7 +11,6 @@ import ListDir from './tool/ListDir.vue'
 import Grep from './tool/Grep.vue'
 import Glob from './tool/Glob.vue'
 import DefaultTool from './tool/index.vue'
-
 const props = defineProps<{ content: any }>()
 
 const loading = computed(() => props.content.status === 'RUNNING')

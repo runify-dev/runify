@@ -131,14 +131,17 @@ public class GrepNode extends INode<GrepNode, GrepNodeData> {
 
                 List<Match> matches = new ArrayList<>();
                 Set<String> matchedFiles = new LinkedHashSet<>();
+                String argsJson = JacksonUtils.toJson(Map.of("pattern", pattern, "path", searchPath,
+                        "file_pattern", filePattern != null ? filePattern : "*", "max_results", maxResults));
+                String chunkId = CommonUtils.uuid7().toString();
 
                 if (Files.isRegularFile(target)) {
-                    searchFile(target, basePath, regex, contextLines, maxResults, matches, matchedFiles);
+                    searchFile(target, basePath, regex, contextLines, maxResults, matches, matchedFiles, node, workFlowManage, argsJson, chunkId, runId);
                 } else {
-                    searchDir(target, basePath, regex, filePattern, contextLines, maxResults, matches, matchedFiles);
+                    searchDir(target, basePath, regex, filePattern, contextLines, maxResults, matches, matchedFiles, node, workFlowManage, argsJson, chunkId, runId);
                 }
 
-                // 格式化输出
+                // 格式化完整输出
                 StringBuilder sb = new StringBuilder();
                 for (int i = 0; i < matches.size(); i++) {
                     Match m = matches.get(i);
@@ -154,9 +157,6 @@ public class GrepNode extends INode<GrepNode, GrepNodeData> {
 
                 String content = sb.toString().stripTrailing();
                 String summary = matches.size() + " 处匹配, " + matchedFiles.size() + " 个文件";
-
-                String argsJson = JacksonUtils.toJson(Map.of("pattern", pattern, "path", searchPath,
-                        "file_pattern", filePattern != null ? filePattern : "*", "max_results", maxResults));
 
                 ToolCallContent toolContent = new ToolCallContent("grep", content, argsJson,
                         NodeStatus.SUCCESS, node, runId, CommonUtils.uuid7().toString());
@@ -179,47 +179,61 @@ public class GrepNode extends INode<GrepNode, GrepNodeData> {
             return next(workFlowManage, node);
         }
 
-        private void searchDir(Path dir, Path basePath, Pattern regex, String filePattern, int ctx, int max, List<Match> matches, Set<String> matchedFiles) throws IOException {
-            if (matches.size() >= max) return;
+        private void searchDir(Path dir, Path basePath, Pattern regex, String filePattern, int ctx, int max,
+                              List<Match> matches, Set<String> matchedFiles, GrepNode node,
+                              WorkFlowManage wfm, String argsJson, String chunkId, String runId) throws IOException {
+            if (matches.size() >= max || node.getStatus() == NodeStatus.CANCELLED) return;
             try (Stream<Path> stream = Files.walk(dir, 20)) {
                 stream.filter(p -> {
                     if (!Files.isRegularFile(p)) return false;
                     String name = p.getFileName().toString();
-                    // 跳过隐藏目录中的文件
                     for (Path part : dir.relativize(p)) {
                         String partName = part.toString();
                         if (IGNORED_DIRS.contains(partName) || partName.startsWith(".")) return false;
                     }
-                    // 跳过二进制文件
                     String ext = getExtension(name);
                     if (BINARY_EXTS.contains(ext)) return false;
-                    // 文件模式过滤
                     if (!StringUtils.isEmpty(filePattern)) {
                         return matchGlob(name, filePattern);
                     }
                     return true;
                 }).forEach(p -> {
-                    if (matches.size() >= max) return;
+                    if (matches.size() >= max || node.getStatus() == NodeStatus.CANCELLED) return;
                     try {
-                        searchFile(p, basePath, regex, ctx, max, matches, matchedFiles);
+                        searchFile(p, basePath, regex, ctx, max, matches, matchedFiles, node, wfm, argsJson, chunkId, runId);
                     } catch (IOException ignored) {}
                 });
             }
         }
 
-        private void searchFile(Path file, Path basePath, Pattern regex, int ctx, int max, List<Match> matches, Set<String> matchedFiles) throws IOException {
-            if (matches.size() >= max) return;
+        private void searchFile(Path file, Path basePath, Pattern regex, int ctx, int max,
+                               List<Match> matches, Set<String> matchedFiles, GrepNode node,
+                               WorkFlowManage wfm, String argsJson, String chunkId, String runId) throws IOException {
+            if (matches.size() >= max || node.getStatus() == NodeStatus.CANCELLED) return;
             List<String> lines = Files.readAllLines(file);
             String relPath = basePath.relativize(file).toString();
 
             for (int i = 0; i < lines.size() && matches.size() < max; i++) {
+                if (node.getStatus() == NodeStatus.CANCELLED) return;
                 if (regex.matcher(lines.get(i)).find()) {
                     matchedFiles.add(relPath);
                     List<String> before = new ArrayList<>();
                     List<String> after = new ArrayList<>();
                     for (int b = Math.max(0, i - ctx); b < i; b++) before.add(lines.get(b));
                     for (int a = i + 1; a <= Math.min(lines.size() - 1, i + ctx); a++) after.add(lines.get(a));
-                    matches.add(new Match(relPath, i + 1, lines.get(i), before, after));
+                    Match m = new Match(relPath, i + 1, lines.get(i), before, after);
+                    matches.add(m);
+                    // 流式输出每个匹配
+                    StringBuilder chunk = new StringBuilder();
+                    for (String cb : m.contextBefore) {
+                        chunk.append(m.file).append("-").append(m.lineNum - m.contextBefore.size() + m.contextBefore.indexOf(cb) + 1).append("- ").append(cb).append("\n");
+                    }
+                    chunk.append(m.file).append(":").append(m.lineNum).append(": ").append(m.line).append("\n");
+                    for (int j = 0; j < m.contextAfter.size(); j++) {
+                        chunk.append(m.file).append("-").append(m.lineNum + j + 1).append("- ").append(m.contextAfter.get(j)).append("\n");
+                    }
+                    wfm.write(node, new ToolCallContent("grep", chunk.toString(), argsJson,
+                            NodeStatus.RUNNING, node, runId, chunkId));
                 }
             }
         }

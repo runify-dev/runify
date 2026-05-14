@@ -6,9 +6,8 @@
     append-to-body
     :modal="false"
     :dismissable="false"
-    :auto-z-index="false"
     class="node-setting-drawer"
-    :style="{ width: '30rem', zIndex: 100 }"
+    :style="{ width: '30rem'  }"
     :pt="{ root: { class: 'max-sm:!w-full' } }"
   >
     <template #default>

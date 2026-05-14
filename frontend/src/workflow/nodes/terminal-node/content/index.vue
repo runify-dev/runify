@@ -1,8 +1,9 @@
 <template>
   <Form ref="formRef" v-slot="$form" :resolver="zodResolver(schema)">
-    <Fieldset legend="执行代码">
+    <Fieldset legend="基本信息">
       <FormField name="location" initial-value="customize">
         <div class="flex items-center justify-between mb-2">
+          <label>模式</label>
           <SelectButton
             :options="locationOptions"
             option-label="label"
@@ -12,17 +13,17 @@
         </div>
       </FormField>
 
-      <!-- 引用模式 -->
+      <!-- tool_call 模式 -->
       <FormField
-        v-if="$form.location?.value === 'reference'"
+        v-if="$form.location?.value === 'tool_call'"
         class="mt-2"
         v-slot="$field: any"
         name="reference"
         :initial-value="[]"
       >
-        <label class="mb-1 block">选择变量</label>
+        <label class="mb-1 block">选择 tool_call 变量</label>
         <Cascader
-          placeholder="请选择代码变量"
+          placeholder="请选择 tool_call 变量"
           :config="{ labelKey: 'label', valueKey: 'value' }"
           :options="fieldOptions"
           :model-value="$field.value"
@@ -37,84 +38,116 @@
       </FormField>
 
       <!-- 自定义模式 -->
-      <FormField
-        v-if="$form.location?.value === 'customize'"
-        class="mt-2"
-        v-slot="$field: any"
-        name="code"
-        initial-value=""
-      >
-        <label class="mb-1 block">输入代码</label>
-        <TemplateEditor
-          :model-value="$field.value"
-          @update:model-value="(v) => $field.onChange({ value: v })"
-          :variables="variables"
-          title="代码"
-          style="height: 300px"
-        />
-        <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">
-          {{ $field.error?.message }}
-        </Message>
-      </FormField>
-    </Fieldset>
+      <template v-if="$form.location?.value === 'customize'">
+        <!-- 代码 -->
+        <FormField name="codeLocation" initial-value="customize">
+          <div class="flex items-center justify-between mb-2 mt-2">
+            <label>代码</label>
+            <SelectButton
+              :options="fieldLocationOptions"
+              option-label="label"
+              option-value="value"
+              size="small"
+            />
+          </div>
+        </FormField>
 
-    <Fieldset legend="超时设置" class="mt-4">
-      <FormField name="timeoutLocation" initial-value="customize">
-        <div class="flex items-center justify-between mb-2">
-          <SelectButton
-            :options="locationOptions"
-            option-label="label"
-            option-value="value"
-            size="small"
+        <FormField
+          v-if="$form.codeLocation?.value === 'reference'"
+          class="mt-2"
+          v-slot="$field: any"
+          name="codeReference"
+          :initial-value="[]"
+        >
+          <Cascader
+            placeholder="请选择代码变量"
+            :config="{ labelKey: 'label', valueKey: 'value' }"
+            :options="fieldOptions"
+            :model-value="$field.value"
+            @update:model-value="(v) => $field.onChange({ value: v })"
+            optionLabel="label"
+            optionGroupChildren="children"
+            class="w-full"
           />
-        </div>
-      </FormField>
+          <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">
+            {{ $field.error?.message }}
+          </Message>
+        </FormField>
 
-      <!-- 引用模式 -->
-      <FormField
-        v-if="$form.timeoutLocation?.value === 'reference'"
-        class="mt-2"
-        v-slot="$field: any"
-        name="timeoutReference"
-        :initial-value="[]"
-      >
-        <label class="mb-1 block">选择超时变量</label>
-        <Cascader
-          placeholder="请选择超时时间变量（秒）"
-          :config="{ labelKey: 'label', valueKey: 'value' }"
-          :options="fieldOptions"
-          :model-value="$field.value"
-          @update:model-value="(v) => $field.onChange({ value: v })"
-          optionLabel="label"
-          optionGroupChildren="children"
-          class="w-full"
-        />
-        <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">
-          {{ $field.error?.message }}
-        </Message>
-      </FormField>
+        <FormField
+          v-if="$form.codeLocation?.value === 'customize'"
+          class="mt-2"
+          v-slot="$field: any"
+          name="code"
+          initial-value=""
+        >
+          <TemplateEditor
+            :model-value="$field.value"
+            @update:model-value="(v) => $field.onChange({ value: v })"
+            :variables="variables"
+            title="代码"
+            style="height: 300px"
+          />
+          <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">
+            {{ $field.error?.message }}
+          </Message>
+        </FormField>
 
-      <!-- 自定义模式 -->
-      <FormField
-        v-if="$form.timeoutLocation?.value === 'customize'"
-        class="mt-2"
-        v-slot="$field: any"
-        name="timeout"
-        :initial-value="30"
-      >
-        <label class="mb-1 block">超时时间（秒）</label>
-        <InputNumber
-          :model-value="$field.value"
-          @update:model-value="(v) => $field.onChange({ value: v })"
-          :min="1"
-          :max="3600"
-          placeholder="默认 30 秒"
-          class="w-full"
-        />
-        <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">
-          {{ $field.error?.message }}
-        </Message>
-      </FormField>
+        <!-- 超时 -->
+        <FormField name="timeoutLocation" initial-value="customize">
+          <div class="flex items-center justify-between mb-2 mt-3">
+            <label>超时时间（秒）</label>
+            <SelectButton
+              :options="fieldLocationOptions"
+              option-label="label"
+              option-value="value"
+              size="small"
+            />
+          </div>
+        </FormField>
+
+        <FormField
+          v-if="$form.timeoutLocation?.value === 'reference'"
+          class="mt-2"
+          v-slot="$field: any"
+          name="timeoutReference"
+          :initial-value="[]"
+        >
+          <Cascader
+            placeholder="请选择超时变量"
+            :config="{ labelKey: 'label', valueKey: 'value' }"
+            :options="fieldOptions"
+            :model-value="$field.value"
+            @update:model-value="(v) => $field.onChange({ value: v })"
+            optionLabel="label"
+            optionGroupChildren="children"
+            class="w-full"
+          />
+          <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">
+            {{ $field.error?.message }}
+          </Message>
+        </FormField>
+
+        <FormField
+          v-if="$form.timeoutLocation?.value === 'customize'"
+          class="mt-2"
+          v-slot="$field: any"
+          name="timeout"
+          :initial-value="30"
+        >
+          <InputNumber
+            :model-value="$field.value"
+            @update:model-value="(v) => $field.onChange({ value: v })"
+            :min="1"
+            :max="3600"
+            placeholder="默认 30 秒"
+            class="w-full"
+          />
+          <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">
+            {{ $field.error?.message }}
+          </Message>
+        </FormField>
+      </template>
     </Fieldset>
   </Form>
 </template>
@@ -127,7 +160,7 @@ import { zodResolver } from '@primevue/forms/resolvers/zod'
 import { schema, validate as validateNodeData } from './validator'
 import Cascader from '@/components/cascader/index.vue'
 import TemplateEditor from '@/components/template-editor/index.vue'
-import { locationOptions } from './type'
+import { locationOptions, fieldLocationOptions } from './type'
 import { cloneDeep } from 'lodash'
 
 const getModel = inject('getModel') as () => BaseNodeModel
@@ -165,6 +198,7 @@ onMounted(() => {
   if (model.properties.nodeData) {
     const data = cloneDeep(model.properties.nodeData)
     formRef.value?.setFieldValue('location', data.location)
+    formRef.value?.setFieldValue('codeLocation', data.codeLocation || 'customize')
     formRef.value?.setFieldValue('timeoutLocation', data.timeoutLocation || 'customize')
     nextTick(() => {
       formRef.value?.setValues(data)
@@ -173,6 +207,8 @@ onMounted(() => {
     model.properties.nodeData = {
       location: 'customize',
       reference: [],
+      codeLocation: 'customize',
+      codeReference: [],
       code: '',
       timeoutLocation: 'customize',
       timeoutReference: [],
