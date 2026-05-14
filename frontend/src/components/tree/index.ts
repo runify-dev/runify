@@ -275,6 +275,13 @@ class TreeManager {
   }
 
   /**
+   * 更新节点标签 - 直接修改原树
+   */
+  updateLabel(key: string, label: string): boolean {
+    return this.updateNode(key, { label });
+  }
+
+  /**
    * 更新节点数据 - 直接修改原树
    */
   updateNode(key: string, updates: Partial<TreeNode>): boolean {

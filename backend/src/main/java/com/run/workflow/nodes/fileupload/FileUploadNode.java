@@ -56,7 +56,12 @@ public class FileUploadNode extends INode<FileUploadNode, FileUploadNodeData> {
             FileUploadNodeData data = node.params;
             FileMapper fileMapper = RunApplication.appComponent.fileMapper();
 
-            Resolved resolved = resolveValue(data.getPathLocation(), data.getPathReference(), data.getPath(), workFlowManage);
+            Resolved resolved;
+            if ("tool_call".equals(data.getLocation())) {
+                resolved = resolveValue("tool_call", data.getReference(), null, workFlowManage);
+            } else {
+                resolved = resolveValue(data.getPathLocation(), data.getPathReference(), data.getPath(), workFlowManage);
+            }
 
             if (resolved == null || resolved.filePath() == null || resolved.filePath().isEmpty()) {
                 node.status = NodeStatus.FAIL;
@@ -92,7 +97,7 @@ public class FileUploadNode extends INode<FileUploadNode, FileUploadNodeData> {
                         workFlowManage.writeContext(node, "fileSize", entity.getSize());
                         node.status = NodeStatus.SUCCESS;
                         if (resolved.withWriteArguments()) {
-                            workFlowManage.write(node, new ToolCallContent("FileUpload", "", JacksonUtils.toJson(Map.of("filePath", filePath)), NodeStatus.RUNNING, node, (String) workFlowManage.getParams().get("workflowRunId"), id));
+                            workFlowManage.write(node, new ToolCallContent("FileUpload", "", JacksonUtils.toJson(Map.of("path", filePath)), NodeStatus.RUNNING, node, (String) workFlowManage.getParams().get("workflowRunId"), id));
                         }
                         workFlowManage.write(node, new ToolCallContent("fileUpload",
                                 JacksonUtils.toJson(Map.of(
@@ -111,7 +116,7 @@ public class FileUploadNode extends INode<FileUploadNode, FileUploadNodeData> {
                                         "fileSize", entity.getSize(),
                                         "url", "./api/storage/file/" + entity.getId()
                                 )),
-                                JacksonUtils.toJson(Map.of("filePath", filePath)),
+                                JacksonUtils.toJson(Map.of("path", filePath)),
                                 NodeStatus.SUCCESS, node,
                                 (String) workFlowManage.getParams().get("workflowRunId"), id)));
                         workFlowManage.nextInvoke(node, () -> workFlowManage
@@ -136,17 +141,38 @@ public class FileUploadNode extends INode<FileUploadNode, FileUploadNodeData> {
          */
         private Resolved resolveValue(String location, List<String> reference, String customValue, WorkFlowManage workFlowManage) {
             if (location == null) location = "customize";
+            if ("tool_call".equals(location)) {
+                if (reference == null || reference.isEmpty()) return null;
+                Object val = workFlowManage.getContextVariable(reference);
+                if (val instanceof JsonObject v) {
+                    String id = v.getString("id");
+                    String args = v.getString("functionArguments");
+                    if (args != null) {
+                        JsonObject parsed = new JsonObject(args);
+                        return new Resolved(id, parsed.getString("path"), Boolean.FALSE);
+                    }
+                    return new Resolved(id, v.getString("path"), Boolean.FALSE);
+                }
+                if (val instanceof ChatCompletionAccumulator.AccumulatedToolCall call) {
+                    JsonObject args = JacksonUtils.fromJson(call.getFunctionArguments(), JsonObject.class);
+                    return new Resolved(call.getId(), args.getString("path"), Boolean.FALSE);
+                }
+                if (val instanceof String v) {
+                    return new Resolved(CommonUtils.uuid7().toString(), v, Boolean.TRUE);
+                }
+                return null;
+            }
             if (Strings.CS.equals(location, "reference")) {
                 if (reference != null && !reference.isEmpty()) {
                     Object val = workFlowManage.getContextVariable(reference);
                     if (val instanceof JsonObject v) {
                         String id = v.getString("id");
                         JsonObject args = JacksonUtils.fromJson(v.getString("arguments"), JsonObject.class);
-                        return new Resolved(id, args.getString("filePath"), Boolean.FALSE);
+                        return new Resolved(id, args.getString("path"), Boolean.FALSE);
                     }
                     if (val instanceof ChatCompletionAccumulator.AccumulatedToolCall call) {
                         JsonObject args = JacksonUtils.fromJson(call.getFunctionArguments(), JsonObject.class);
-                        return new Resolved(call.getId(), args.getString("filePath"), Boolean.FALSE);
+                        return new Resolved(call.getId(), args.getString("path"), Boolean.FALSE);
                     }
                     if (val instanceof String v) {
                         return new Resolved(CommonUtils.uuid7().toString(), v, Boolean.TRUE);

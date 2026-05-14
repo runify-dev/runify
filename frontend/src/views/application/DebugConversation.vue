@@ -1,10 +1,11 @@
 <template>
-  <div
-    class="debug-panel"
-    :class="{ expanded }"
-    :style="toggleStyle"
-  >
-    <Conversation defaultMode="drawer" :defaultOpen="false" @close="$emit('close')" type="DEBUG">
+    <Teleport to="body">
+      <div
+        class="debug-panel"
+        :class="{ expanded }"
+        :style="toggleStyle"
+      >
+      <Conversation defaultMode="drawer" :defaultOpen="false" @close="$emit('close')" type="DEBUG">
       <template #header>
         <button class="hbtn" @click="toggle">
           <i class="pi pi-arrow-up-right-and-arrow-down-left-from-center"></i>
@@ -22,7 +23,8 @@
         </button>
       </template>
     </Conversation>
-  </div>
+      </div>
+    </Teleport>
 </template>
 <script setup lang="ts">
 import { computed, provide, ref } from 'vue'

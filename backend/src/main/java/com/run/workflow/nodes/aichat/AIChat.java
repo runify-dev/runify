@@ -186,29 +186,11 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
                                 });
                             }
                             try {
-                                chatCompletionAccumulator.onArgumentFieldDelta(streamingFunctions, Set.of("code"), (call, arguments) -> {
+                                chatCompletionAccumulator.onToolCallChunk(call -> {
                                     String id = call.getId();
-                                    String code = arguments.get("code");
-                                    if (StringUtils.isNotEmpty(code)) {
-                                        String functionName = call.getFunctionName();
-                                        workFlowManage.write(node, new ToolCallContent(functionName, "", code, NodeStatus.RUNNING, node, (String) workFlowManage.getParams().get("workflowRunId"),
-                                                id));
-                                    }
-
-                                }).onArgumentComplete(
-                                        tc -> tc.getFunctionName() != null && !streamingFunctions.contains(tc.getFunctionName()),
-                                        (call, fullArgsJson) -> {
-                                            workFlowManage.write(node, new ToolCallContent(
-                                                    call.getFunctionName(),
-                                                    "",
-                                                    fullArgsJson,  // 完整 JSON 字符串
-                                                    NodeStatus.RUNNING,
-                                                    node,
-                                                    (String) workFlowManage.getParams().get("workflowRunId"),
-                                                    call.getId()
-                                            ));
-                                        }
-                                );
+                                    workFlowManage.write(node, new ToolCallContent(call.getFunctionName(), "", call.getFunctionArguments(), NodeStatus.RUNNING, node, (String) workFlowManage.getParams().get("workflowRunId"),
+                                            id));
+                                });
                             } catch (Exception e) {
                                 System.out.println(e);
                             }

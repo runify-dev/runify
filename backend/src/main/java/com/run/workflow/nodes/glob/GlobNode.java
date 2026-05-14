@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
@@ -52,6 +53,7 @@ public class GlobNode extends INode<GlobNode, GlobNodeData> {
                 String searchPath;
                 int maxResults;
 
+                AtomicReference<String> chunkId = new AtomicReference<>(CommonUtils.uuid7().toString());
                 if ("tool_call".equals(node.params.getLocation())) {
                     if (node.params.getReference() == null || node.params.getReference().isEmpty()) {
                         node.status = NodeStatus.FAIL;
@@ -65,6 +67,7 @@ public class GlobNode extends INode<GlobNode, GlobNodeData> {
                         workFlowManage.nextFailInvoke(node, new RuntimeException("引用变量格式错误"));
                         return null;
                     }
+                    chunkId.set(toolCall.getString("id"));
                     String args = toolCall.getString("functionArguments");
                     if (StringUtils.isEmpty(args)) {
                         node.status = NodeStatus.FAIL;
@@ -98,9 +101,20 @@ public class GlobNode extends INode<GlobNode, GlobNodeData> {
                     return null;
                 }
 
-                // 构建 PathMatcher
-                PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + globPattern);
+                // 构建 PathMatcher：同时匹配当前目录和递归子目录
+                boolean hasSlash = globPattern.contains("/");
+                final PathMatcher matcher;
+                final PathMatcher rootMatcher;
+                if (hasSlash) {
+                    matcher = FileSystems.getDefault().getPathMatcher("glob:" + globPattern);
+                    rootMatcher = null;
+                } else {
+                    matcher = FileSystems.getDefault().getPathMatcher("glob:**/" + globPattern);
+                    rootMatcher = FileSystems.getDefault().getPathMatcher("glob:" + globPattern);
+                }
                 List<String> matched = new ArrayList<>();
+                String argsJson = JacksonUtils.toJson(Map.of("pattern", globPattern, "path", searchPath != null ? searchPath : ".", "max_results", maxResults));
+
 
                 Files.walkFileTree(searchDir, new SimpleFileVisitor<>() {
                     @Override
@@ -114,33 +128,33 @@ public class GlobNode extends INode<GlobNode, GlobNodeData> {
 
                     @Override
                     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+                        if (node.getStatus() == NodeStatus.CANCELLED) return FileVisitResult.TERMINATE;
                         if (matched.size() >= maxResults) return FileVisitResult.TERMINATE;
                         Path relative = searchDir.relativize(file);
-                        if (matcher.matches(relative) || matcher.matches(file.getFileName())) {
-                            matched.add(basePath.relativize(file).toString());
+                        boolean hit = matcher.matches(relative) || matcher.matches(file.getFileName())
+                                || (rootMatcher != null && rootMatcher.matches(relative));
+                        if (hit) {
+                            String rel = basePath.relativize(file).toString();
+                            matched.add(rel);
+                            // 流式输出每个匹配项（不带 functionArguments，避免重复拼接）
+                            workFlowManage.write(node, new ToolCallContent("glob", rel + "\n", "",
+                                    NodeStatus.RUNNING, node, runId, chunkId.get()));
                         }
                         return FileVisitResult.CONTINUE;
                     }
                 });
 
-                // 按字母排序
-                Collections.sort(matched);
-
                 String content = String.join("\n", matched);
                 String summary = matched.size() + " 个文件";
-
-                String argsJson = JacksonUtils.toJson(Map.of("pattern", globPattern, "path", searchPath != null ? searchPath : ".", "max_results", maxResults));
-                ToolCallContent toolContent = new ToolCallContent("glob", content, argsJson,
-                        NodeStatus.SUCCESS, node, runId, CommonUtils.uuid7().toString());
-
                 workFlowManage.writeContext(node, "content", content);
                 workFlowManage.writeContext(node, "summary", summary);
                 workFlowManage.writeContext(node, "files", matched.size());
-                workFlowManage.writeContext(node, "tool", JsonObject.mapFrom(toolContent));
+                workFlowManage.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("glob", content, argsJson,
+                        NodeStatus.SUCCESS, node, runId, chunkId.get())));
                 node.status = NodeStatus.SUCCESS;
 
-                workFlowManage.write(node, toolContent);
-
+                workFlowManage.write(node, new ToolCallContent("glob", "", "",
+                        NodeStatus.SUCCESS, node, runId, chunkId.get()));
             } catch (Exception e) {
                 node.status = NodeStatus.FAIL;
                 workFlowManage.nextFailInvoke(node, e);
@@ -173,7 +187,11 @@ public class GlobNode extends INode<GlobNode, GlobNodeData> {
 
         private int parseInt(String s, int defaultVal) {
             if (StringUtils.isEmpty(s)) return defaultVal;
-            try { return Integer.parseInt(s.trim()); } catch (NumberFormatException e) { return defaultVal; }
+            try {
+                return Integer.parseInt(s.trim());
+            } catch (NumberFormatException e) {
+                return defaultVal;
+            }
         }
 
         private Supplier<List<Node>> next(WorkFlowManage wfm, GlobNode node) {

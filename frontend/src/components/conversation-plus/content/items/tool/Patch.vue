@@ -73,15 +73,16 @@ import Loading from '@/components/conversation-plus/loading/index.vue'
 import FileDiff from './patch/FileDiff.vue'
 import { parsePatch } from './patch/parsePatch'
 import type { PatchFileStatus } from './patch/patchTypes'
-
+import {
+  extractPartialJsonField,
+} from '@/utils/extract-partial-json.ts'
 const props = defineProps<{ content: any; loading: boolean; expanded: boolean }>()
 
 const patchDiff = computed(() => {
   const raw = props.content.functionArguments
   if (!raw) return ''
   try {
-    const obj = JSON.parse(raw)
-    return obj.patch || ''
+    return extractPartialJsonField(raw,'patch')
   } catch {
     return raw
   }

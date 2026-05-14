@@ -2,7 +2,8 @@
   <Dialog
     v-model:visible="visible"
     :header="isEditing ? '编辑函数' : '添加函数'"
-    modal
+    :modal="false"
+    :dismissable="false"
     style="width: 600px"
   >
     <Form ref="formRef" :resolver="resolver">
@@ -135,6 +136,7 @@ import type { Parameter, Tool } from './type'
 import { paramTypes } from './type'
 import type { FormInstance } from '@primevue/forms'
 import bus from '@/bus'
+import Drawer from "primevue/drawer";
 
 const props = defineProps<{
   existingNames?: string[]

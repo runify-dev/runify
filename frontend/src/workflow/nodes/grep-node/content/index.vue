@@ -20,7 +20,7 @@
         <!-- 搜索模式 -->
         <div class="mb-3">
           <div class="flex items-center justify-between mb-2">
-            <label>搜索模式（支持正则）</label>
+            <label>搜索内容</label>
             <SelectButton v-model="formData.patternLocation" :options="fieldLocationOptions" option-label="label" option-value="value" size="small" />
           </div>
           <Cascader v-if="formData.patternLocation === 'reference'" placeholder="请选择变量" :config="{ labelKey: 'label', valueKey: 'value' }" :options="fieldOptions" v-model="formData.patternReference" optionLabel="label" optionGroupChildren="children" class="w-full" />

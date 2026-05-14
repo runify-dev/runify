@@ -8,8 +8,6 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import lombok.Getter;
 
-import java.util.*;
-import java.util.function.BiConsumer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -21,7 +19,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.function.Predicate;
+import java.util.function.Consumer;
 
 /**
  * {@code @Author:张少虎}
@@ -29,8 +27,6 @@ import java.util.function.Predicate;
  * {@code @Version 1.0}
  * {@code @注释: 适配自用轻量 openai chat sdk}
  */
-
-
 public class ChatCompletionAccumulator {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -48,27 +44,16 @@ public class ChatCompletionAccumulator {
     private final Set<String> trackedKeys;
     private final Map<String, StringBuilder> additionalProperties = new LinkedHashMap<>();
 
-    // ---------- 增量字段提取配置 ----------
+    // ---------- tool_call chunk 回调配置 ----------
 
     /**
-     * 增量回调：只对 streamingFilter 命中的 tool_call 启用 JsonStringFieldsStreamExtractor。
+     * 每收到一个有效的 tool_call arguments/input chunk，触发一次。
+     * <p>
+     * 只有 id / type / functionName 都已经解析到时才触发回调。
+     * 回调参数里的 index / id / originalId / type / functionName 每次都返回已知完整值；
+     * functionArguments 只表示当前 chunk 的 arguments/input 片段，不包含之前已经收到的内容。
      */
-    private Predicate<AccumulatedToolCall> streamingFilter;
-    private Set<String> argumentFieldsToExtract;
-    private BiConsumer<AccumulatedToolCall, Map<String, String>> onArgumentFieldDelta;
-
-    // ---------- 完整 arguments 回调配置 ----------
-
-    /**
-     * 完成回调：在 arguments 累加完整（JSON 合法）后触发一次。
-     */
-    private Predicate<AccumulatedToolCall> completeFilter;
-    private BiConsumer<AccumulatedToolCall, String> onArgumentComplete;
-
-    /**
-     * 已经触发过 complete 回调的 tool_call index，防止重复触发。
-     */
-    private final Set<Integer> completedToolCalls = new HashSet<>();
+    private Consumer<ToolCallChunk> onToolCallChunk;
 
     // ---------- id 重映射配置 ----------
 
@@ -93,85 +78,17 @@ public class ChatCompletionAccumulator {
         return this;
     }
 
-    // ==================== 增量回调注册 API ====================
+    // ==================== tool_call chunk 回调注册 API ====================
 
     /**
-     * 完整版增量回调注册。
-     *
-     * @param filter          只对哪些 tool_call 启用流式增量提取（按 functionName 等过滤）
-     * @param fieldsToExtract 要提取的字段名（null/空 = 所有顶层字符串字段）
-     * @param callback        (toolCall, 字段增量Map) -> void
-     */
-    public ChatCompletionAccumulator onArgumentFieldDelta(
-            Predicate<AccumulatedToolCall> filter,
-            Set<String> fieldsToExtract,
-            BiConsumer<AccumulatedToolCall, Map<String, String>> callback) {
-        this.streamingFilter = filter;
-        this.argumentFieldsToExtract = fieldsToExtract;
-        this.onArgumentFieldDelta = callback;
-        return this;
-    }
-
-    /**
-     * 便捷重载：只按函数名集合过滤。
-     */
-    public ChatCompletionAccumulator onArgumentFieldDelta(
-            Set<String> streamingFunctionNames,
-            Set<String> fieldsToExtract,
-            BiConsumer<AccumulatedToolCall, Map<String, String>> callback) {
-        Predicate<AccumulatedToolCall> filter = tc ->
-                streamingFunctionNames != null
-                        && tc.getFunctionName() != null
-                        && streamingFunctionNames.contains(tc.getFunctionName());
-        return onArgumentFieldDelta(filter, fieldsToExtract, callback);
-    }
-
-    /**
-     * 便捷重载：所有 tool_call 都走增量，提取所有顶层字符串字段。
-     */
-    public ChatCompletionAccumulator onArgumentFieldDelta(
-            BiConsumer<AccumulatedToolCall, Map<String, String>> callback) {
-        return onArgumentFieldDelta((Predicate<AccumulatedToolCall>) null, null, callback);
-    }
-
-    // ==================== 完成回调注册 API ====================
-
-    /**
-     * 在 arguments 累加完整（JSON 合法）后触发一次的回调。
+     * 每收到一个有效的 tool_call arguments/input chunk，触发一次。
      * <p>
-     * 触发时机：每收到新增的 arguments 后检测 JSON 合法性；一旦合法立即触发并标记，
-     * 后续即使再来 chunk 也不会重复触发。
-     *
-     * @param filter   只对哪些 tool_call 触发完成回调
-     * @param callback (toolCall, 完整 arguments JSON 字符串) -> void
+     * 注意：id / type / functionName 为空时不会回调；functionArguments 不是累计值。
      */
-    public ChatCompletionAccumulator onArgumentComplete(
-            Predicate<AccumulatedToolCall> filter,
-            BiConsumer<AccumulatedToolCall, String> callback) {
-        this.completeFilter = filter;
-        this.onArgumentComplete = callback;
+    public ChatCompletionAccumulator onToolCallChunk(
+            Consumer<ToolCallChunk> callback) {
+        this.onToolCallChunk = callback;
         return this;
-    }
-
-    /**
-     * 便捷重载：所有 tool_call 都触发完成回调。
-     */
-    public ChatCompletionAccumulator onArgumentComplete(
-            BiConsumer<AccumulatedToolCall, String> callback) {
-        return onArgumentComplete((Predicate<AccumulatedToolCall>) null, callback);
-    }
-
-    /**
-     * 便捷重载：只对指定函数名集合触发完成回调。
-     */
-    public ChatCompletionAccumulator onArgumentComplete(
-            Set<String> functionNames,
-            BiConsumer<AccumulatedToolCall, String> callback) {
-        Predicate<AccumulatedToolCall> filter = tc ->
-                functionNames != null
-                        && tc.getFunctionName() != null
-                        && functionNames.contains(tc.getFunctionName());
-        return onArgumentComplete(filter, callback);
     }
 
     // ==================== id 映射查询 ====================
@@ -196,6 +113,32 @@ public class ChatCompletionAccumulator {
     // ==================== 内部数据结构 ====================
 
     @Getter
+    public static class ToolCallChunk {
+        private int index;
+        private String id;
+        private String originalId;
+        private String type;
+        private String functionName;
+        private String functionArguments;
+
+        public String getFunctionArguments() {
+            return functionArguments == null ? "" : functionArguments;
+        }
+
+        @Override
+        public String toString() {
+            return "ToolCallChunk{" +
+                    "index=" + index +
+                    ", id='" + id + '\'' +
+                    ", originalId='" + originalId + '\'' +
+                    ", type='" + type + '\'' +
+                    ", functionName='" + functionName + '\'' +
+                    ", functionArguments='" + getFunctionArguments() + '\'' +
+                    '}';
+        }
+    }
+
+    @Getter
     public static class AccumulatedToolCall {
         private int index;
         private String id;
@@ -204,19 +147,8 @@ public class ChatCompletionAccumulator {
         private String functionName;
         private final StringBuilder functionArguments = new StringBuilder();
 
-        private JsonStringFieldsStreamExtractor extractor;
-
         public String getFunctionArguments() {
             return functionArguments.toString();
-        }
-
-        JsonStringFieldsStreamExtractor getOrCreateExtractor(Set<String> fieldsToExtract) {
-            if (extractor == null) {
-                extractor = (fieldsToExtract == null || fieldsToExtract.isEmpty())
-                        ? new JsonStringFieldsStreamExtractor()
-                        : new JsonStringFieldsStreamExtractor(fieldsToExtract);
-            }
-            return extractor;
         }
 
         @Override
@@ -411,6 +343,9 @@ public class ChatCompletionAccumulator {
         Integer rawIndex = tc.getInteger("index");
         int index = rawIndex != null ? rawIndex : fallbackIndex;
 
+        ToolCallChunk currentChunk = new ToolCallChunk();
+        currentChunk.index = index;
+
         AccumulatedToolCall merged = toolCalls.computeIfAbsent(index, i -> {
             AccumulatedToolCall m = new AccumulatedToolCall();
             m.index = i;
@@ -418,13 +353,16 @@ public class ChatCompletionAccumulator {
         });
 
         String rawId = tc.getString("id");
-        if (merged.originalId == null && !isBlank(rawId)) {
-            merged.originalId = rawId;
-            merged.id = resolveId(rawId);
+        if (!isBlank(rawId)) {
+            String resolvedId = resolveId(rawId);
+            if (merged.originalId == null) {
+                merged.originalId = rawId;
+                merged.id = resolvedId;
+            }
         }
 
         String type = tc.getString("type");
-        if (merged.type == null && !isBlank(type)) {
+        if (!isBlank(type) && merged.type == null) {
             merged.type = type;
         }
 
@@ -433,15 +371,14 @@ public class ChatCompletionAccumulator {
             if (merged.type == null) merged.type = "function";
 
             String name = function.getString("name");
-            if (merged.functionName == null && !isBlank(name)) {
+            if (!isBlank(name) && merged.functionName == null) {
                 merged.functionName = name;
             }
 
             String arguments = function.getString("arguments");
             if (!isEmpty(arguments)) {
+                currentChunk.functionArguments = arguments;
                 merged.functionArguments.append(arguments);
-                emitArgumentDelta(merged, arguments);
-                tryEmitArgumentComplete(merged);
             }
         }
 
@@ -450,17 +387,24 @@ public class ChatCompletionAccumulator {
             if (merged.type == null) merged.type = "custom";
 
             String name = custom.getString("name");
-            if (merged.functionName == null && !isBlank(name)) {
+            if (!isBlank(name) && merged.functionName == null) {
                 merged.functionName = name;
             }
 
             String input = custom.getString("input");
             if (!isEmpty(input)) {
+                currentChunk.functionArguments = input;
                 merged.functionArguments.append(input);
-                emitArgumentDelta(merged, input);
-                tryEmitArgumentComplete(merged);
             }
         }
+
+        // 元信息每次都返回已知的完整值；functionArguments 只返回当前 chunk 片段。
+        currentChunk.id = merged.id;
+        currentChunk.originalId = merged.originalId;
+        currentChunk.type = merged.type;
+        currentChunk.functionName = merged.functionName;
+
+        emitToolCallChunk(currentChunk);
     }
 
     private String resolveId(String originalId) {
@@ -470,53 +414,18 @@ public class ChatCompletionAccumulator {
     }
 
     /**
-     * 触发增量字段回调（只对 streamingFilter 命中的 tool_call 启用）。
+     * 触发 tool_call chunk 回调。
+     * <p>
+     * 只有 id / type / functionName 都已经解析到，且当前 chunk 存在 arguments/input 片段时才回调。
      */
-    private void emitArgumentDelta(AccumulatedToolCall toolCall, String delta) {
-        if (onArgumentFieldDelta == null) return;
-
-        // 函数名/类型还没解析出来时，先不启用流式提取（避免给错的 extractor）
-        if (toolCall.getFunctionName() == null) return;
-
-        // 过滤：streamingFilter 为 null 表示对所有 tool_call 启用
-        if (streamingFilter != null && !streamingFilter.test(toolCall)) {
-            return;
-        }
-
-        Map<String, String> incremental = toolCall
-                .getOrCreateExtractor(argumentFieldsToExtract)
-                .feed(delta);
-
-        if (incremental.isEmpty()) return;
+    private void emitToolCallChunk(ToolCallChunk chunk) {
+        if (onToolCallChunk == null) return;
+        if (chunk == null) return;
+        if (isBlank(chunk.id) || isBlank(chunk.type) || isBlank(chunk.functionName)) return;
+        if (isEmpty(chunk.functionArguments)) return;
 
         try {
-            onArgumentFieldDelta.accept(toolCall, incremental);
-        } catch (Exception ignored) {
-            // 回调异常不影响累加流程
-        }
-    }
-
-    /**
-     * 检查 arguments 是否累加完整（JSON 合法）。
-     * 一旦合法且通过 completeFilter，触发 onArgumentComplete 回调一次。
-     */
-    private void tryEmitArgumentComplete(AccumulatedToolCall toolCall) {
-        if (onArgumentComplete == null) return;
-        if (completedToolCalls.contains(toolCall.getIndex())) return;
-        if (toolCall.getFunctionName() == null) return;
-
-        // 过滤：completeFilter 为 null 表示对所有 tool_call 触发
-        if (completeFilter != null && !completeFilter.test(toolCall)) {
-            return;
-        }
-
-        String args = toolCall.getFunctionArguments();
-        if (!isValidJson(args)) return;
-
-        completedToolCalls.add(toolCall.getIndex());
-
-        try {
-            onArgumentComplete.accept(toolCall, args);
+            onToolCallChunk.accept(chunk);
         } catch (Exception ignored) {
             // 回调异常不影响累加流程
         }

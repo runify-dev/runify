@@ -35,17 +35,16 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import Loading from '@/components/conversation-plus/loading/index.vue'
+import { extractPartialJsonField } from '@/utils/extract-partial-json'
 
 const props = defineProps<{ content: any; loading: boolean; expanded: boolean }>()
 defineEmits<{ toggle: [] }>()
 
-const args = computed(() => {
+const filePath = computed(() => {
   const raw = props.content.functionArguments
-  if (!raw) return {} as any
-  try { return JSON.parse(raw) } catch { return {} as any }
+  if (!raw) return ''
+  return extractPartialJsonField(raw, 'path')
 })
-
-const filePath = computed(() => args.value.path || '')
 
 const parsedLines = computed(() => {
   const raw = props.content.content

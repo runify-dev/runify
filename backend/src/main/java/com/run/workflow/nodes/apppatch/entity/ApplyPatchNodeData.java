@@ -9,15 +9,35 @@ import java.util.List;
 @Setter
 public class ApplyPatchNodeData {
     /**
-     * patch 来源: reference 或 customize
+     * 顶层模式: tool_call 或 customize
      */
     private String location;
     /**
-     * patch 引用变量路径
+     * tool_call 引用变量路径
      */
     private List<String> reference;
+    /**
+     * patch 子模式: reference 或 customize
+     */
+    private String patchLocation;
+    /**
+     * patch 引用变量路径
+     */
+    private List<String> patchReference;
     /**
      * 自定义 patch 字符串
      */
     private String patch;
+    /**
+     * 工作目录（patch 中相对路径的基准目录）
+     */
+    private String path;
+    /**
+     * 工作目录子模式: reference 或 customize
+     */
+    private String pathLocation;
+    /**
+     * 工作目录引用变量路径
+     */
+    private List<String> pathReference;
 }

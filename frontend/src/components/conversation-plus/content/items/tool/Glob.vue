@@ -13,6 +13,10 @@
         </svg>
       </span>
       <span class="tc-name">{{ pattern || 'glob' }}</span>
+      <span class="tc-param" v-if="dirPath">
+        <span class="tc-param-short">{{ dirPath }}/</span>
+        <span class="tc-param-full">{{ (args.path || '') + '/' }}</span>
+      </span>
       <span class="tc-lines" v-if="summary">{{ summary }}</span>
     </button>
 
@@ -29,17 +33,25 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import Loading from '@/components/conversation-plus/loading/index.vue'
+import { extractPartialJsonFields } from '@/utils/extract-partial-json'
 
 const props = defineProps<{ content: any; loading: boolean; expanded: boolean }>()
 defineEmits<{ toggle: [] }>()
 
 const args = computed(() => {
   const raw = props.content.functionArguments
-  if (!raw) return {} as any
-  try { return JSON.parse(raw) } catch { return {} as any }
+  if (!raw) return {} as Record<string, string>
+  return extractPartialJsonFields(raw, ['pattern', 'path'])
 })
 
 const pattern = computed(() => args.value.pattern || '')
+const dirPath = computed(() => {
+  const p = args.value.path || ''
+  if (!p) return ''
+  // 路径太长只保留最后两级
+  const parts = p.replace(/\/$/, '').split('/')
+  return parts.length > 2 ? '.../' + parts.slice(-2).join('/') : p
+})
 const summary = computed(() => props.content.summary || '')
 </script>
 
@@ -65,6 +77,27 @@ const summary = computed(() => props.content.summary || '')
   font-size: 13px; font-weight: 500;
   font-family: 'JetBrains Mono NL', monospace;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.tc-param {
+  font-size: 11px; color: var(--t3);
+  font-family: 'JetBrains Mono NL', monospace;
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  cursor: default;
+}
+
+.tc-param-full {
+  display: none;
+}
+
+.tc-param:hover .tc-param-short {
+  display: none;
+}
+
+.tc-param:hover .tc-param-full {
+  display: inline;
 }
 
 .tc-lines {
