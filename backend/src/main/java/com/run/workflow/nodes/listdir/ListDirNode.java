@@ -1,6 +1,5 @@
 package com.run.workflow.nodes.listdir;
 
-import com.run.common.keyvalue.DefaultKeyValue;
 import com.run.common.util.CommonUtils;
 import com.run.common.util.JacksonUtils;
 import com.run.workflow.*;
@@ -14,9 +13,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
 import java.nio.file.*;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -39,108 +36,123 @@ public class ListDirNode extends INode<ListDirNode, ListDirNodeData> {
         super(node, params, upNodeIdList, salt, context, validator, upNode);
     }
 
+    record ListDirConfig(String chunkId, String dirPath, int maxDepth, boolean withWriteArguments) {
+        String toArguments() {
+            return JacksonUtils.toJson(Map.of("path", dirPath, "depth", maxDepth));
+        }
+    }
+
     public static class Handle implements BiFunction<WorkFlowManage, ListDirNode, Supplier<List<Node>>> {
 
         private static final Set<String> IGNORED_DIRS = Set.of(
                 ".git", "node_modules", ".next", "dist", "build", "__pycache__", ".idea", ".vscode", "target"
         );
 
+        private Supplier<List<Node>> invokeFail(WorkFlowManage wfm, ListDirNode node, ListDirConfig config, String runId, Throwable e) {
+            String chunkId = config != null ? config.chunkId() : CommonUtils.uuid7().toString();
+            wfm.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("list_dir", e.getMessage(), "",
+                    NodeStatus.FAIL, node, runId, chunkId)));
+            return node.handleFail(wfm, e);
+        }
+
         @Override
         public Supplier<List<Node>> apply(WorkFlowManage workFlowManage, ListDirNode node) {
             String runId = (String) workFlowManage.getParams().get("workflowRunId");
+            ListDirConfig config = resolveListDirConfig(node, workFlowManage);
+
+            if (config == null) {
+                return invokeFail(workFlowManage, node, null, runId, new RuntimeException("配置解析失败"));
+            }
+            if (StringUtils.isEmpty(config.dirPath())) {
+                return invokeFail(workFlowManage, node, config, runId, new RuntimeException("目录路径为空"));
+            }
 
             try {
-                String dirPath;
-                int maxDepth;
-                AtomicReference<String> chunkId = new AtomicReference<>(CommonUtils.uuid7().toString());
-                if ("tool_call".equals(node.params.getLocation())) {
-                    if (node.params.getReference() == null || node.params.getReference().isEmpty()) {
-                        node.status = NodeStatus.FAIL;
-                        workFlowManage.nextFailInvoke(node, new RuntimeException("未指定引用变量"));
-                        return null;
-                    }
-                    Object ref = workFlowManage.getContextVariable(node.params.getReference());
-                    JsonObject toolCall = toJsonObject(ref);
-                    if (toolCall == null) {
-                        node.status = NodeStatus.FAIL;
-                        workFlowManage.nextFailInvoke(node, new RuntimeException("引用变量格式错误"));
-                        return null;
-                    }
-                    if (toolCall.containsKey("id")) {
-                        chunkId.set(toolCall.getString("id"));
-                    }
-                    String args = toolCall.getString("functionArguments");
-                    if (StringUtils.isEmpty(args)) {
-                        node.status = NodeStatus.FAIL;
-                        workFlowManage.nextFailInvoke(node, new RuntimeException("functionArguments 为空"));
-                        return null;
-                    }
-                    JsonObject parsed = new JsonObject(args);
-                    dirPath = parsed.getString("path");
-                    maxDepth = parsed.getInteger("depth", 3);
-                } else {
-                    dirPath = resolveValue(node.params.getPathLocation(), node.params.getPathReference(), node.params.getPath(), workFlowManage);
-                    String depthStr = resolveValue(node.params.getDepthLocation(), node.params.getDepthReference(),
-                            node.params.getDepth() != null ? String.valueOf(node.params.getDepth()) : null, workFlowManage);
-                    maxDepth = parseInt(depthStr, 3);
+                UUID conversationId = (UUID) workFlowManage.getParams().getOrDefault("conversationId", CommonUtils.uuid7());
+                Path basePath = Path.of(System.getProperty("user.home") + "/.runify/" + conversationId);
+                if (!Files.exists(basePath)) {
+                    Files.createDirectories(basePath);
                 }
-
-                if (StringUtils.isEmpty(dirPath)) {
-                    node.status = NodeStatus.FAIL;
-                    workFlowManage.nextFailInvoke(node, new RuntimeException("目录路径为空"));
-                    return next(workFlowManage, node);
-                }
-
-                Path basePath = Path.of(System.getProperty("user.dir"));
-                Path targetDir = basePath.resolve(dirPath).normalize();
+                Path targetDir = basePath.resolve(config.dirPath()).normalize();
 
                 if (!Files.exists(targetDir)) {
-                    node.status = NodeStatus.FAIL;
-                    workFlowManage.nextFailInvoke(node, new RuntimeException("目录不存在: " + dirPath));
-                    return null;
+                    return invokeFail(workFlowManage, node, config, runId, new RuntimeException("目录不存在: " + config.dirPath()));
                 }
 
                 if (!Files.isDirectory(targetDir)) {
-                    node.status = NodeStatus.FAIL;
-                    workFlowManage.nextFailInvoke(node, new RuntimeException("不是目录: " + dirPath));
-                    return next(workFlowManage, node);
+                    return invokeFail(workFlowManage, node, config, runId, new RuntimeException("不是目录: " + config.dirPath()));
+                }
+
+                if (config.withWriteArguments()) {
+                    workFlowManage.write(node, new ToolCallContent("list_dir", "",
+                            config.toArguments(), NodeStatus.RUNNING, node, runId, config.chunkId()));
                 }
 
                 StringBuilder tree = new StringBuilder();
                 int[] fileCount = {0};
                 int[] dirCount = {0};
-                String argsJson = JacksonUtils.toJson(Map.of("path", dirPath, "depth", maxDepth));
 
-
-                String rootLine = (dirPath.isEmpty() ? "." : dirPath) + "/\n";
+                String rootLine = (config.dirPath().isEmpty() ? "." : config.dirPath()) + "/\n";
                 tree.append(rootLine);
                 workFlowManage.write(node, new ToolCallContent("list_dir", rootLine, "",
-                        NodeStatus.SUCCESS, node, runId, chunkId.get()));
-                buildTree(targetDir, tree, "", maxDepth, 0, fileCount, dirCount, workFlowManage, node, argsJson, chunkId.get(), runId);
+                        NodeStatus.RUNNING, node, runId, config.chunkId()));
+                buildTree(targetDir, tree, "", config.maxDepth(), 0, fileCount, dirCount, workFlowManage, node, config.chunkId(), runId);
+
+                if (node.getStatus() == NodeStatus.CANCELLED) {
+                    return workFlowManage.nextCancelNodeSupplier();
+                }
 
                 String content = tree.toString();
                 String summary = dirCount[0] + " 个目录, " + fileCount[0] + " 个文件";
 
-                ToolCallContent toolContent = new ToolCallContent("list_dir", content, "",
-                        NodeStatus.SUCCESS, node, runId, CommonUtils.uuid7().toString());
                 workFlowManage.writeContext(node, "content", content);
                 workFlowManage.writeContext(node, "summary", summary);
                 workFlowManage.writeContext(node, "files", fileCount[0]);
                 workFlowManage.writeContext(node, "dirs", dirCount[0]);
-                workFlowManage.writeContext(node, "tool", JsonObject.mapFrom(toolContent));
+                workFlowManage.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("list_dir", content, config.toArguments(),
+                        NodeStatus.SUCCESS, node, runId, config.chunkId())));
                 node.status = NodeStatus.SUCCESS;
+
+                workFlowManage.write(node, new ToolCallContent("list_dir", "", "",
+                        NodeStatus.SUCCESS, node, runId, config.chunkId()));
             } catch (Exception e) {
-                node.status = NodeStatus.FAIL;
-                workFlowManage.nextFailInvoke(node, e);
-                return null;
+                return invokeFail(workFlowManage, node, config, runId, e);
             }
 
-            return next(workFlowManage, node);
+            return workFlowManage.nextNodeSupplier(node.node.getId());
+        }
+
+        private ListDirConfig resolveListDirConfig(ListDirNode node, WorkFlowManage wfm) {
+            if ("tool_call".equals(node.params.getLocation())) {
+                if (node.params.getReference() == null || node.params.getReference().isEmpty()) return null;
+                Object ref = wfm.getContextVariable(node.params.getReference());
+                JsonObject toolCall = toJsonObject(ref);
+                if (toolCall == null) return null;
+
+                String id = toolCall.containsKey("id") ? toolCall.getString("id") : null;
+                String args = toolCall.getString("functionArguments");
+                if (StringUtils.isEmpty(args)) return null;
+
+                JsonObject parsed = new JsonObject(args);
+                String dirPath = parsed.getString("path");
+                int maxDepth = parsed.getInteger("depth", 3);
+                boolean withWriteArguments = StringUtils.isEmpty(id);
+                String chunkId = withWriteArguments ? CommonUtils.uuid7().toString() : id;
+
+                return new ListDirConfig(chunkId, dirPath, maxDepth, withWriteArguments);
+            }
+
+            String dirPath = resolveValue(node.params.getPathLocation(), node.params.getPathReference(), node.params.getPath(), wfm);
+            String depthStr = resolveValue(node.params.getDepthLocation(), node.params.getDepthReference(),
+                    node.params.getDepth() != null ? String.valueOf(node.params.getDepth()) : null, wfm);
+            int maxDepth = parseInt(depthStr, 3);
+
+            return new ListDirConfig(CommonUtils.uuid7().toString(), dirPath, maxDepth, true);
         }
 
         private void buildTree(Path dir, StringBuilder tree, String prefix, int maxDepth, int currentDepth,
                                int[] fileCount, int[] dirCount, WorkFlowManage wfm, ListDirNode node,
-                               String argsJson, String chunkId, String runId) throws IOException {
+                               String chunkId, String runId) throws IOException {
             if (currentDepth >= maxDepth) return;
 
             List<Path> entries;
@@ -181,13 +193,13 @@ public class ListDirNode extends INode<ListDirNode, ListDirNodeData> {
                         wfm.write(node, new ToolCallContent("list_dir", line, "",
                                 NodeStatus.RUNNING, node, runId, chunkId));
                         buildTree(entry, tree, prefix + childPrefix, maxDepth, currentDepth + 1,
-                                fileCount, dirCount, wfm, node, argsJson, chunkId, runId);
+                                fileCount, dirCount, wfm, node, chunkId, runId);
                     } else {
                         fileCount[0]++;
                         long size = Files.size(entry);
                         String line = prefix + connector + name + "  " + formatSize(size) + "\n";
                         tree.append(line);
-                        wfm.write(node, new ToolCallContent("list_dir", line, argsJson,
+                        wfm.write(node, new ToolCallContent("list_dir", line, "",
                                 NodeStatus.RUNNING, node, runId, chunkId));
                     }
                 } catch (AccessDeniedException e) {
@@ -233,11 +245,6 @@ public class ListDirNode extends INode<ListDirNode, ListDirNodeData> {
             } catch (NumberFormatException e) {
                 return defaultVal;
             }
-        }
-
-
-        private Supplier<List<Node>> next(WorkFlowManage wfm, ListDirNode node) {
-            return () -> wfm.getNextList(node.node.getId()).stream().map(DefaultKeyValue::getValue).toList();
         }
     }
 

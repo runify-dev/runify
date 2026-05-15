@@ -1,6 +1,5 @@
 package com.run.workflow.nodes.terminal;
 
-import com.run.common.keyvalue.DefaultKeyValue;
 import com.run.common.util.ChatCompletionAccumulator;
 import com.run.common.util.CommonUtils;
 import com.run.common.util.JacksonUtils;
@@ -57,35 +56,42 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
     }
 
 
+    record TerminalConfig(String id, String command, boolean withWriteArguments) {
+        String toArguments() {
+            return JacksonUtils.toJson(Map.of("command", command));
+        }
+    }
+
     public static class Handle implements BiFunction<WorkFlowManage, TerminalNode, Supplier<List<Node>>> {
+
+        private Supplier<List<Node>> invokeFail(WorkFlowManage wfm, TerminalNode node, TerminalConfig config, String runId, String result, String stderr, int exitCode, Throwable e) {
+            String id = config != null ? config.id() : CommonUtils.uuid7().toString();
+            node.status = NodeStatus.FAIL;
+            wfm.writeContext(node, "result", result);
+            wfm.writeContext(node, "stdout", "");
+            wfm.writeContext(node, "stderr", stderr);
+            wfm.writeContext(node, "exitCode", exitCode);
+            wfm.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("run_command", result, "",
+                    NodeStatus.FAIL, node, runId, id)));
+            return node.handleFail(wfm, e);
+        }
 
         @Override
         public Supplier<List<Node>> apply(WorkFlowManage workFlowManage, TerminalNode node) {
-            Code code;
-            if ("tool_call".equals(node.params.getLocation())) {
-                code = resolveCode("tool_call", node.params.getReference(), null, workFlowManage);
-            } else {
-                // customize 模式：用 codeLocation/codeReference 解析代码
-                code = resolveCode(node.params.getCodeLocation(), node.params.getCodeReference(), node.params.getCode(), workFlowManage);
-            }
-
+            String runId = (String) workFlowManage.getParams().get("workflowRunId");
+            TerminalConfig config = resolveConfig(node.params, workFlowManage);
             int timeout = resolveTimeout(node.params, workFlowManage);
 
-            if (code == null || StringUtils.isEmpty(code.command)) {
-                node.status = NodeStatus.FAIL;
-                workFlowManage.writeContext(node, "result", "代码为空");
-                workFlowManage.writeContext(node, "stdout", "");
-                workFlowManage.writeContext(node, "stderr", "代码为空");
-                workFlowManage.writeContext(node, "exitCode", 1);
-                workFlowManage.nextFailInvoke(node, new RuntimeException("代码为空"));
-                return null;
+            if (config == null || StringUtils.isEmpty(config.command())) {
+                return invokeFail(workFlowManage, node, config, runId, "代码为空", "代码为空", 1, new RuntimeException("代码为空"));
             }
 
             try {
-                String id = code.id;
-                if (code.withWriteArguments) {
-                    workFlowManage.write(node, new ToolCallContent("run_command", "", code.command, NodeStatus.RUNNING, node, (String) workFlowManage.getParams().get("workflowRunId"), id));
+                if (config.withWriteArguments()) {
+                    workFlowManage.write(node, new ToolCallContent("run_command", "",
+                            config.toArguments(), NodeStatus.RUNNING, node, runId, config.id()));
                 }
+
                 ProcessBuilder processBuilder = new ProcessBuilder();
                 UUID conversationId = (UUID) workFlowManage.getParams().getOrDefault("conversationId", CommonUtils.uuid7());
 
@@ -94,13 +100,12 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
                     file.mkdirs();
                 }
                 processBuilder.directory(file);
-                processBuilder.command("sh", "-c", code.command);
+                processBuilder.command("sh", "-c", config.command());
                 processBuilder.redirectErrorStream(false);
 
                 Process process = processBuilder.start();
                 node.process = process;
 
-                // 实时读取标准输出
                 StringBuilder stdoutBuilder = new StringBuilder();
                 try (var reader = new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8)) {
                     char[] buf = new char[4096];
@@ -108,73 +113,99 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
                     while ((n = reader.read(buf)) != -1) {
                         String chunk = new String(buf, 0, n);
                         stdoutBuilder.append(chunk);
-                        workFlowManage.write(node, new ToolCallContent(
-                                "run_command", chunk, "", NodeStatus.RUNNING, node,
-                                (String) workFlowManage.getParams().get("workflowRunId"), id
-                        ));
+                        workFlowManage.write(node, new ToolCallContent("run_command", chunk, "",
+                                NodeStatus.RUNNING, node, runId, config.id()));
                     }
                 }
 
-                // 实时读取错误输出
                 StringBuilder stderrBuilder = new StringBuilder();
                 try (var reader = new InputStreamReader(process.getErrorStream(), StandardCharsets.UTF_8)) {
                     char[] buf = new char[4096];
                     int n;
                     while ((n = reader.read(buf)) != -1) {
-                        String chunk = new String(buf, 0, n);
-                        stderrBuilder.append(chunk);
+                        stderrBuilder.append(new String(buf, 0, n));
                     }
                 }
 
-                // 等待执行完成（带超时）
                 boolean finished = process.waitFor(timeout, TimeUnit.SECONDS);
 
                 String stdout = stdoutBuilder.toString();
                 String stderr = stderrBuilder.toString();
 
                 if (!finished) {
-                    // 超时：强杀进程
                     process.destroyForcibly();
                     String timeoutMsg = "命令执行超时（" + timeout + "秒）";
-                    node.status = NodeStatus.FAIL;
-                    workFlowManage.writeContext(node, "result", timeoutMsg);
-                    workFlowManage.writeContext(node, "stdout", stdout);
-                    workFlowManage.writeContext(node, "stderr", timeoutMsg);
-                    workFlowManage.writeContext(node, "exitCode", -1);
-                    workFlowManage.write(node, new ToolCallContent("run_command", "", "", NodeStatus.FAIL, node, (String) workFlowManage.getParams().get("workflowRunId"), id));
-                    ToolCallContent toolCallContent = new ToolCallContent("run_command", timeoutMsg, JacksonUtils.toJson(Map.of("code", code)), NodeStatus.FAIL, node, (String) workFlowManage.getParams().get("workflowRunId"), id);
-                    workFlowManage.writeContext(node, "tool", JsonObject.mapFrom(toolCallContent));
-                } else {
-                    int exitCode = process.exitValue();
-                    workFlowManage.writeContext(node, "result", exitCode == 0 ? stdout : stderr);
-                    workFlowManage.writeContext(node, "stdout", stdout);
-                    workFlowManage.writeContext(node, "stderr", stderr);
-                    workFlowManage.writeContext(node, "exitCode", exitCode);
-                    node.status = exitCode == 0 ? NodeStatus.SUCCESS : NodeStatus.FAIL;
-                    workFlowManage.write(node, new ToolCallContent("run_command", "", "", node.status, node, (String) workFlowManage.getParams().get("workflowRunId"), id));
-                    workFlowManage.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("run_command", exitCode == 0 ? stdout : stderr, JacksonUtils.toJson(Map.of("command", code.command)), node.status, node, (String) workFlowManage.getParams().get("workflowRunId"), id)));
+                    return invokeFail(workFlowManage, node, config, runId, timeoutMsg, timeoutMsg, -1, new RuntimeException(timeoutMsg));
                 }
+
+                int exitCode = process.exitValue();
+                String result = exitCode == 0 ? stdout : stderr;
+                workFlowManage.writeContext(node, "result", result);
+                workFlowManage.writeContext(node, "stdout", stdout);
+                workFlowManage.writeContext(node, "stderr", stderr);
+                workFlowManage.writeContext(node, "exitCode", exitCode);
+
+                if (exitCode == 0) {
+                    node.status = NodeStatus.SUCCESS;
+                    workFlowManage.write(node, new ToolCallContent("run_command", "", "",
+                            NodeStatus.SUCCESS, node, runId, config.id()));
+                    workFlowManage.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("run_command", stdout, config.toArguments(),
+                            NodeStatus.SUCCESS, node, runId, config.id())));
+                } else {
+                    node.status = NodeStatus.FAIL;
+                    workFlowManage.write(node, new ToolCallContent("run_command", "", "",
+                            NodeStatus.FAIL, node, runId, config.id()));
+                    workFlowManage.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("run_command", stderr, config.toArguments(),
+                            NodeStatus.FAIL, node, runId, config.id())));
+                }
+
             } catch (Exception e) {
-                node.status = NodeStatus.FAIL;
-                workFlowManage.writeContext(node, "result", e.getMessage());
-                workFlowManage.writeContext(node, "stdout", "");
-                workFlowManage.writeContext(node, "stderr", e.getMessage());
-                workFlowManage.writeContext(node, "exitCode", 1);
+                return invokeFail(workFlowManage, node, config, runId, e.getMessage(), e.getMessage(), 1, e);
             }
 
-            return () -> workFlowManage.getNextList(node.node.getId()).stream().map(DefaultKeyValue::getValue).toList();
+            return workFlowManage.nextNodeSupplier(node.node.getId());
         }
 
-        /**
-         * 解析超时时间
-         */
-        private int resolveTimeout(TerminalNodeData nodeData, WorkFlowManage workFlowManage) {
+        private TerminalConfig resolveConfig(TerminalNodeData data, WorkFlowManage wfm) {
+            String location = data.getLocation();
+            if ("tool_call".equals(location)) {
+                return resolveFromRef(data.getReference(), wfm);
+            }
+            if ("reference".equals(data.getCodeLocation())) {
+                return resolveFromRef(data.getCodeReference(), wfm);
+            }
+            return new TerminalConfig(CommonUtils.uuid7().toString(), data.getCode(), true);
+        }
+
+        private TerminalConfig resolveFromRef(List<String> reference, WorkFlowManage wfm) {
+            if (reference == null || reference.isEmpty()) return null;
+            Object val = wfm.getContextVariable(reference);
+            if (val == null) return null;
+            if (val instanceof JsonObject jo) {
+                String id = jo.getString("id");
+                String args = jo.getString("functionArguments");
+                if (args != null) {
+                    return new TerminalConfig(StringUtils.isEmpty(id) ? CommonUtils.uuid7().toString() : id,
+                            new JsonObject(args).getString("command"), false);
+                }
+                return new TerminalConfig(StringUtils.isEmpty(id) ? CommonUtils.uuid7().toString() : id,
+                        val.toString(), true);
+            }
+            if (val instanceof ChatCompletionAccumulator.AccumulatedToolCall call) {
+                JsonObject args = JacksonUtils.fromJson(call.getFunctionArguments(), JsonObject.class);
+                return new TerminalConfig(call.getId(), args.getString("command"), false);
+            }
+            if (val instanceof String v) {
+                return new TerminalConfig(CommonUtils.uuid7().toString(), v, true);
+            }
+            return null;
+        }
+
+        private int resolveTimeout(TerminalNodeData nodeData, WorkFlowManage wfm) {
             if (nodeData == null) return DEFAULT_TIMEOUT;
-
             String raw = resolveValue(nodeData.getTimeoutLocation(), nodeData.getTimeoutReference(),
-                    nodeData.getTimeout() != null ? String.valueOf(nodeData.getTimeout()) : null, workFlowManage);
+                    nodeData.getTimeout() != null ? String.valueOf(nodeData.getTimeout()) : null, wfm);
             if (StringUtils.isEmpty(raw)) return DEFAULT_TIMEOUT;
-
             try {
                 int val = Integer.parseInt(raw.trim());
                 return val > 0 ? val : DEFAULT_TIMEOUT;
@@ -183,69 +214,15 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
             }
         }
 
-        public record Code(String id, String command, Boolean withWriteArguments) {
-
-        }
-
-        /**
-         * 通用值解析：reference 从上下文取，customize 直接返回
-         */
-        private String resolveValue(String location, List<String> reference, String customValue, WorkFlowManage workFlowManage) {
+        private String resolveValue(String location, List<String> reference, String customValue, WorkFlowManage wfm) {
             if ("reference".equals(location)) {
                 if (reference != null && !reference.isEmpty()) {
-                    Object val = workFlowManage.getContextVariable(reference);
+                    Object val = wfm.getContextVariable(reference);
                     return val != null ? val.toString() : null;
                 }
                 return null;
             }
             return customValue;
-        }
-
-        /**
-         * 通用值解析：reference 从上下文取，customize 直接返回
-         */
-        private Code resolveCode(String location, List<String> reference, String customValue, WorkFlowManage workFlowManage) {
-            if ("tool_call".equals(location)) {
-                if (reference == null || reference.isEmpty()) return null;
-                Object val = workFlowManage.getContextVariable(reference);
-                if (val == null) return null;
-                String args = null;
-                String id = null;
-                if (val instanceof JsonObject jo) {
-                    args = jo.getString("functionArguments");
-                    id = jo.getString("id");
-                } else if (val instanceof ChatCompletionAccumulator.AccumulatedToolCall call) {
-                    args = call.getFunctionArguments();
-                }
-                if (args != null) {
-                    try {
-                        JsonObject parsed = new JsonObject(args);
-                        return new Code(StringUtils.isEmpty(id) ? CommonUtils.uuid7().toString() : id, parsed.getString("command"), Boolean.FALSE);
-                    } catch (Exception ignored) {
-                    }
-                }
-                return new Code(CommonUtils.uuid7().toString(), val.toString(), Boolean.TRUE);
-            }
-            if ("reference".equals(location)) {
-                if (reference != null && !reference.isEmpty()) {
-                    Object val = workFlowManage.getContextVariable(reference);
-                    if (val instanceof JsonObject v) {
-                        String id = v.getString("id");
-                        JsonObject string = JacksonUtils.fromJson(v.getString("arguments"), JsonObject.class);
-                        return new Code(id, string.getString("command"), Boolean.FALSE);
-                    }
-                    if (val instanceof String v) {
-                        return new Code(CommonUtils.uuid7().toString(), v, Boolean.TRUE);
-                    }
-                    if (val instanceof ChatCompletionAccumulator.AccumulatedToolCall call) {
-                        JsonObject string = JacksonUtils.fromJson(call.getFunctionArguments(), JsonObject.class);
-                        return new Code(call.getId(), string.getString("command"), Boolean.FALSE);
-                    }
-                    return null;
-                }
-                return null;
-            }
-            return new Code(CommonUtils.uuid7().toString(), customValue, Boolean.TRUE);
         }
     }
 

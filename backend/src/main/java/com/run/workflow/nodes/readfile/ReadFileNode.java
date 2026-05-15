@@ -1,6 +1,5 @@
 package com.run.workflow.nodes.readfile;
 
-import com.run.common.keyvalue.DefaultKeyValue;
 import com.run.common.util.CommonUtils;
 import com.run.common.util.JacksonUtils;
 import com.run.workflow.*;
@@ -8,17 +7,16 @@ import com.run.workflow.entity.Node;
 import com.run.workflow.entity.NodeResult;
 import com.run.workflow.message.struct.ToolCallContent;
 import com.run.workflow.nodes.readfile.entity.ReadFileNodeData;
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import jakarta.validation.Validator;
 import org.apache.commons.lang3.StringUtils;
 
-import java.io.IOException;
+import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
@@ -40,81 +38,66 @@ public class ReadFileNode extends INode<ReadFileNode, ReadFileNodeData> {
         super(node, params, upNodeIdList, salt, context, validator, upNode);
     }
 
+    record ReadFileConfig(String chunkId, String filePath, int offset, int limit, boolean withWriteArguments) {
+        String toArguments() {
+            return JacksonUtils.toJson(Map.of("path", filePath, "offset", offset, "limit", limit));
+        }
+    }
+
     public static class Handle implements BiFunction<WorkFlowManage, ReadFileNode, Supplier<List<Node>>> {
+
+        private Supplier<List<Node>> invokeFail(WorkFlowManage wfm, ReadFileNode node, ReadFileConfig config, String runId, Throwable e) {
+            String chunkId = config != null ? config.chunkId() : CommonUtils.uuid7().toString();
+            wfm.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("read_file", e.getMessage(), "",
+                    NodeStatus.FAIL, node, runId, chunkId)));
+            return node.handleFail(wfm, e);
+        }
 
         @Override
         public Supplier<List<Node>> apply(WorkFlowManage workFlowManage, ReadFileNode node) {
             String runId = (String) workFlowManage.getParams().get("workflowRunId");
+            ReadFileConfig config = resolveReadFileConfig(node, workFlowManage);
+
+            if (config == null) {
+                return invokeFail(workFlowManage, node, null, runId, new RuntimeException("配置解析失败"));
+            }
+            if (StringUtils.isEmpty(config.filePath())) {
+                return invokeFail(workFlowManage, node, config, runId, new RuntimeException("文件路径为空"));
+            }
+
+            if (config.withWriteArguments()) {
+                workFlowManage.write(node, new ToolCallContent("read_file", "",
+                        config.toArguments(), NodeStatus.RUNNING, node, runId, config.chunkId()));
+            }
 
             try {
-                String filePath;
-                int offset;
-                int limit;
-
-                if ("tool_call".equals(node.params.getLocation())) {
-                    // tool_call 模式：从引用的 AccumulatedToolCall 中解析
-                    if (node.params.getReference() == null || node.params.getReference().isEmpty()) {
-                        node.status = NodeStatus.FAIL;
-                        workFlowManage.nextFailInvoke(node, new RuntimeException("未指定引用变量"));
-                        return null;
-                    }
-                    Object ref = workFlowManage.getContextVariable(node.params.getReference());
-                    JsonObject toolCall = toJsonObject(ref);
-                    if (toolCall == null) {
-                        node.status = NodeStatus.FAIL;
-                        workFlowManage.nextFailInvoke(node, new RuntimeException("引用变量格式错误"));
-                        return null;
-                    }
-                    String args = toolCall.getString("functionArguments");
-                    if (StringUtils.isEmpty(args)) {
-                        node.status = NodeStatus.FAIL;
-                        workFlowManage.nextFailInvoke(node, new RuntimeException("functionArguments 为空"));
-                        return null;
-                    }
-                    JsonObject parsed = new JsonObject(args);
-                    filePath = parsed.getString("path");
-                    offset = parsed.getInteger("offset", 0);
-                    limit = parsed.getInteger("limit", -1);
-                } else {
-                    // customize 模式
-                    filePath = resolveValue(node.params.getPathLocation(), node.params.getPathReference(), node.params.getPath(), workFlowManage);
-
-                    String offsetStr = resolveValue(node.params.getOffsetLocation(), node.params.getOffsetReference(),
-                            node.params.getOffset() != null ? String.valueOf(node.params.getOffset()) : null, workFlowManage);
-                    offset = parseInt(offsetStr, 0);
-
-                    String limitStr = resolveValue(node.params.getLimitLocation(), node.params.getLimitReference(),
-                            node.params.getLimit() != null ? String.valueOf(node.params.getLimit()) : null, workFlowManage);
-                    limit = parseInt(limitStr, -1);
-                }
-
-                if (StringUtils.isEmpty(filePath)) {
-                    node.status = NodeStatus.FAIL;
-                    workFlowManage.nextFailInvoke(node, new RuntimeException("文件路径为空"));
-                    return null;
-                }
-
-                Path basePath = Path.of(System.getProperty("user.dir"));
-                Path targetPath = basePath.resolve(filePath).normalize();
+                UUID conversationId = (UUID) workFlowManage.getParams().getOrDefault("conversationId", CommonUtils.uuid7());
+                Path basePath = Path.of(System.getProperty("user.home") + "/.runify/" + conversationId);
+                Path targetPath = basePath.resolve(config.filePath()).normalize();
 
                 if (!Files.exists(targetPath)) {
-                    node.status = NodeStatus.FAIL;
-                    workFlowManage.nextFailInvoke(node, new RuntimeException("文件不存在: " + filePath));
+                    workFlowManage.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("read_file", "文件不存在: " + config.filePath(), config.toArguments(),
+                            NodeStatus.SUCCESS, node, runId, config.chunkId())));
+                    node.status = NodeStatus.SUCCESS;
+                    workFlowManage.write(node, new ToolCallContent("read_file", "", "",
+                            NodeStatus.SUCCESS, node, runId, config.chunkId()));
                     return null;
                 }
 
-                List<String> allLines = Files.readAllLines(targetPath);
+                List<String> allLines;
+                try {
+                    allLines = Files.readAllLines(targetPath);
+                } catch (AccessDeniedException e) {
+                    return invokeFail(workFlowManage, node, config, runId, new RuntimeException("权限不足: " + config.filePath()));
+                }
                 int totalLines = allLines.size();
 
-                int start = Math.max(0, offset);
-                int end = limit > 0 ? Math.min(start + limit, totalLines) : totalLines;
+                int start = Math.max(0, config.offset());
+                int end = config.limit() > 0 ? Math.min(start + config.limit(), totalLines) : totalLines;
                 List<String> readLines = allLines.subList(start, end);
 
-                // 带行号输出：右对齐行号 + → + 内容
                 int maxLineNum = end;
                 int width = String.valueOf(maxLineNum).length();
-                String argsJson = JacksonUtils.toJson(Map.of("path", filePath, "offset", start, "limit", limit));
-                String chunkId = CommonUtils.uuid7().toString();
 
                 StringBuilder sb = new StringBuilder();
                 for (int i = 0; i < readLines.size(); i++) {
@@ -122,38 +105,65 @@ public class ReadFileNode extends INode<ReadFileNode, ReadFileNodeData> {
                     String line = String.format("%" + width + "d→%s", lineNum, readLines.get(i));
                     if (i > 0) sb.append('\n');
                     sb.append(line);
-                    // 流式输出每行
-                    workFlowManage.write(node, new ToolCallContent("read_file", line + "\n", argsJson,
-                            NodeStatus.RUNNING, node, runId, chunkId));
+                    workFlowManage.write(node, new ToolCallContent("read_file", line + "\n", "",
+                            NodeStatus.RUNNING, node, runId, config.chunkId()));
                 }
+
+                if (node.getStatus() == NodeStatus.CANCELLED) {
+                    return workFlowManage.nextCancelNodeSupplier();
+                }
+
                 String content = sb.toString();
                 String rawContent = String.join("\n", readLines);
-
-                ToolCallContent toolContent = new ToolCallContent("read_file", content, argsJson,
-                        NodeStatus.SUCCESS, node, runId, CommonUtils.uuid7().toString());
 
                 workFlowManage.writeContext(node, "content", content);
                 workFlowManage.writeContext(node, "rawContent", rawContent);
                 workFlowManage.writeContext(node, "totalLines", totalLines);
                 workFlowManage.writeContext(node, "lines", readLines.size());
-                workFlowManage.writeContext(node, "tool", JsonObject.mapFrom(toolContent));
+                workFlowManage.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("read_file", content, config.toArguments(),
+                        NodeStatus.SUCCESS, node, runId, config.chunkId())));
                 node.status = NodeStatus.SUCCESS;
 
-                workFlowManage.write(node, toolContent);
+                workFlowManage.write(node, new ToolCallContent("read_file", "", "",
+                        NodeStatus.SUCCESS, node, runId, config.chunkId()));
 
-            } catch (IOException e) {
-                node.status = NodeStatus.FAIL;
-                workFlowManage.nextFailInvoke(node, e);
             } catch (Exception e) {
-                node.status = NodeStatus.FAIL;
-                workFlowManage.nextFailInvoke(node, e);
+                return invokeFail(workFlowManage, node, config, runId, e);
             }
 
-            return next(workFlowManage, node);
+            return workFlowManage.nextNodeSupplier(node.node.getId());
         }
 
-        private Supplier<List<Node>> next(WorkFlowManage wfm, ReadFileNode node) {
-            return () -> wfm.getNextList(node.node.getId()).stream().map(DefaultKeyValue::getValue).toList();
+        private ReadFileConfig resolveReadFileConfig(ReadFileNode node, WorkFlowManage wfm) {
+            if ("tool_call".equals(node.params.getLocation())) {
+                if (node.params.getReference() == null || node.params.getReference().isEmpty()) return null;
+                Object ref = wfm.getContextVariable(node.params.getReference());
+                JsonObject toolCall = toJsonObject(ref);
+                if (toolCall == null) return null;
+
+                String id = toolCall.containsKey("id") ? toolCall.getString("id") : null;
+                String args = toolCall.getString("functionArguments");
+                if (StringUtils.isEmpty(args)) return null;
+
+                JsonObject parsed = new JsonObject(args);
+                String filePath = parsed.getString("path");
+                int offset = parsed.getInteger("offset", 0);
+                int limit = parsed.getInteger("limit", -1);
+                boolean withWriteArguments = StringUtils.isEmpty(id);
+                String chunkId = withWriteArguments ? CommonUtils.uuid7().toString() : id;
+
+                return new ReadFileConfig(chunkId, filePath, offset, limit, withWriteArguments);
+            }
+
+            String filePath = resolveValue(node.params.getPathLocation(), node.params.getPathReference(), node.params.getPath(), wfm);
+            String offsetStr = resolveValue(node.params.getOffsetLocation(), node.params.getOffsetReference(),
+                    node.params.getOffset() != null ? String.valueOf(node.params.getOffset()) : null, wfm);
+            int offset = parseInt(offsetStr, 0);
+            String limitStr = resolveValue(node.params.getLimitLocation(), node.params.getLimitReference(),
+                    node.params.getLimit() != null ? String.valueOf(node.params.getLimit()) : null, wfm);
+            int limit = parseInt(limitStr, -1);
+
+            return new ReadFileConfig(CommonUtils.uuid7().toString(), filePath, offset, limit, true);
         }
 
         private JsonObject toJsonObject(Object ref) {

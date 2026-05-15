@@ -1,6 +1,5 @@
 package com.run.workflow.nodes.grep;
 
-import com.run.common.keyvalue.DefaultKeyValue;
 import com.run.common.util.CommonUtils;
 import com.run.common.util.JacksonUtils;
 import com.run.workflow.*;
@@ -13,8 +12,10 @@ import jakarta.validation.Validator;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.nio.file.*;
 import java.util.*;
+import java.util.UUID;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
@@ -48,100 +49,80 @@ public class GrepNode extends INode<GrepNode, GrepNodeData> {
         super(node, params, upNodeIdList, salt, context, validator, upNode);
     }
 
+    record GrepConfig(String chunkId, String pattern, String searchPath, String filePattern,
+                      int contextLines, int maxResults, boolean withWriteArguments) {
+        String toArguments() {
+            return JacksonUtils.toJson(Map.of("pattern", pattern, "path", searchPath,
+                    "file_pattern", filePattern != null ? filePattern : "*", "max_results", maxResults));
+        }
+    }
+
     public static class Handle implements BiFunction<WorkFlowManage, GrepNode, Supplier<List<Node>>> {
 
-        private record Match(String file, int lineNum, String line, List<String> contextBefore, List<String> contextAfter) {}
+        private record Match(String file, int lineNum, String line, List<String> contextBefore,
+                             List<String> contextAfter) {
+        }
+
+        private Supplier<List<Node>> invokeFail(WorkFlowManage wfm, GrepNode node, GrepConfig config, String runId, Throwable e) {
+            node.status = NodeStatus.FAIL;
+            String chunkId = config != null ? config.chunkId() : CommonUtils.uuid7().toString();
+            wfm.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("grep", e.getMessage(), "",
+                    NodeStatus.FAIL, node, runId, chunkId)));
+            return node.handleFail(wfm, e);
+        }
 
         @Override
         public Supplier<List<Node>> apply(WorkFlowManage workFlowManage, GrepNode node) {
             String runId = (String) workFlowManage.getParams().get("workflowRunId");
+            GrepConfig config = resolveGrepConfig(node, workFlowManage);
+
+            if (config == null) {
+                return invokeFail(workFlowManage, node, null, runId, new RuntimeException("配置解析失败"));
+            }
+            if (StringUtils.isEmpty(config.pattern())) {
+                return invokeFail(workFlowManage, node, config, runId, new RuntimeException("搜索模式为空"));
+            }
+            if (StringUtils.isEmpty(config.searchPath())) {
+                return invokeFail(workFlowManage, node, config, runId, new RuntimeException("搜索路径为空"));
+            }
+
+            List<Match> matches = new ArrayList<>();
+            Set<String> matchedFiles = new LinkedHashSet<>();
+            Set<String> permissionDenied = new LinkedHashSet<>();
 
             try {
-                String pattern;
-                String searchPath;
-                String filePattern;
-                int contextLines;
-                int maxResults;
-
-                if ("tool_call".equals(node.params.getLocation())) {
-                    if (node.params.getReference() == null || node.params.getReference().isEmpty()) {
-                        node.status = NodeStatus.FAIL;
-                        workFlowManage.nextFailInvoke(node, new RuntimeException("未指定引用变量"));
-                        return null;
-                    }
-                    Object ref = workFlowManage.getContextVariable(node.params.getReference());
-                    JsonObject toolCall = toJsonObject(ref);
-                    if (toolCall == null) {
-                        node.status = NodeStatus.FAIL;
-                        workFlowManage.nextFailInvoke(node, new RuntimeException("引用变量格式错误"));
-                        return null;
-                    }
-                    String args = toolCall.getString("functionArguments");
-                    if (StringUtils.isEmpty(args)) {
-                        node.status = NodeStatus.FAIL;
-                        workFlowManage.nextFailInvoke(node, new RuntimeException("functionArguments 为空"));
-                        return null;
-                    }
-                    JsonObject parsed = new JsonObject(args);
-                    pattern = parsed.getString("pattern");
-                    searchPath = parsed.getString("path");
-                    filePattern = parsed.getString("file_pattern");
-                    contextLines = parsed.getInteger("context_lines", 0);
-                    maxResults = parsed.getInteger("max_results", 50);
-                } else {
-                    pattern = resolveValue(node.params.getPatternLocation(), node.params.getPatternReference(), node.params.getPattern(), workFlowManage);
-                    searchPath = resolveValue(node.params.getPathLocation(), node.params.getPathReference(), node.params.getPath(), workFlowManage);
-                    filePattern = resolveValue(node.params.getFilePatternLocation(), node.params.getFilePatternReference(), node.params.getFilePattern(), workFlowManage);
-                    String ctxStr = resolveValue(node.params.getContextLinesLocation(), node.params.getContextLinesReference(),
-                            node.params.getContextLines() != null ? String.valueOf(node.params.getContextLines()) : null, workFlowManage);
-                    contextLines = parseInt(ctxStr, 0);
-                    String maxStr = resolveValue(node.params.getMaxResultsLocation(), node.params.getMaxResultsReference(),
-                            node.params.getMaxResults() != null ? String.valueOf(node.params.getMaxResults()) : null, workFlowManage);
-                    maxResults = parseInt(maxStr, 50);
+                UUID conversationId = (UUID) workFlowManage.getParams().getOrDefault("conversationId", CommonUtils.uuid7());
+                Path basePath = Path.of(System.getProperty("user.home") + "/.runify/" + conversationId);
+                if (!Files.exists(basePath)) {
+                    Files.createDirectories(basePath);
                 }
-
-                if (StringUtils.isEmpty(pattern)) {
-                    node.status = NodeStatus.FAIL;
-                    workFlowManage.nextFailInvoke(node, new RuntimeException("搜索模式为空"));
-                    return null;
-                }
-                if (StringUtils.isEmpty(searchPath)) {
-                    node.status = NodeStatus.FAIL;
-                    workFlowManage.nextFailInvoke(node, new RuntimeException("搜索路径为空"));
-                    return null;
-                }
-
-                Path basePath = Path.of(System.getProperty("user.dir"));
-                Path target = basePath.resolve(searchPath).normalize();
+                Path target = basePath.resolve(config.searchPath()).normalize();
 
                 if (!Files.exists(target)) {
-                    node.status = NodeStatus.FAIL;
-                    workFlowManage.nextFailInvoke(node, new RuntimeException("路径不存在: " + searchPath));
-                    return null;
+                    return invokeFail(workFlowManage, node, config, runId, new RuntimeException("路径不存在: " + config.searchPath()));
                 }
 
                 Pattern regex;
                 try {
-                    regex = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE);
+                    regex = Pattern.compile(config.pattern(), Pattern.CASE_INSENSITIVE);
                 } catch (PatternSyntaxException e) {
-                    node.status = NodeStatus.FAIL;
-                    workFlowManage.nextFailInvoke(node, new RuntimeException("正则表达式错误: " + e.getMessage()));
-                    return null;
+                    return invokeFail(workFlowManage, node, config, runId, new RuntimeException("正则表达式错误: " + e.getMessage()));
                 }
-
-                List<Match> matches = new ArrayList<>();
-                Set<String> matchedFiles = new LinkedHashSet<>();
-                String argsJson = JacksonUtils.toJson(Map.of("pattern", pattern, "path", searchPath,
-                        "file_pattern", filePattern != null ? filePattern : "*", "max_results", maxResults));
-                String chunkId = CommonUtils.uuid7().toString();
+                if (config.withWriteArguments()) {
+                    workFlowManage.write(node, new ToolCallContent("grep", "",
+                            config.toArguments(), NodeStatus.RUNNING, node, runId, config.chunkId()));
+                }
 
                 if (Files.isRegularFile(target)) {
-                    searchFile(target, basePath, regex, contextLines, maxResults, matches, matchedFiles, node, workFlowManage, argsJson, chunkId, runId);
+                    searchFile(target, basePath, regex, config.contextLines(), config.maxResults(), matches, matchedFiles, permissionDenied, node, workFlowManage, config.chunkId(), runId);
                 } else {
-                    searchDir(target, basePath, regex, filePattern, contextLines, maxResults, matches, matchedFiles, node, workFlowManage, argsJson, chunkId, runId);
+                    searchDir(target, basePath, regex, config.filePattern(), config.contextLines(), config.maxResults(), matches, matchedFiles, permissionDenied, node, workFlowManage, config.chunkId(), runId);
                 }
 
-                // 格式化完整输出
+                if (node.getStatus() == NodeStatus.CANCELLED) {
+                    return workFlowManage.nextCancelNodeSupplier();
+                }
+
                 StringBuilder sb = new StringBuilder();
                 for (int i = 0; i < matches.size(); i++) {
                     Match m = matches.get(i);
@@ -155,63 +136,124 @@ public class GrepNode extends INode<GrepNode, GrepNodeData> {
                     }
                 }
 
+                if (!permissionDenied.isEmpty()) {
+                    if (!sb.isEmpty()) sb.append("\n");
+                    sb.append("--- 权限不足 ---\n");
+                    for (String path : permissionDenied) {
+                        sb.append(path).append("\n");
+                    }
+                }
+
                 String content = sb.toString().stripTrailing();
-                String summary = matches.size() + " 处匹配, " + matchedFiles.size() + " 个文件";
-
-                ToolCallContent toolContent = new ToolCallContent("grep", content, argsJson,
-                        NodeStatus.SUCCESS, node, runId, CommonUtils.uuid7().toString());
-
+                String summary = matches.size() + " 处匹配, " + matchedFiles.size() + " 个文件"
+                        + (permissionDenied.isEmpty() ? "" : ", " + permissionDenied.size() + " 个权限不足");
                 workFlowManage.writeContext(node, "content", content);
                 workFlowManage.writeContext(node, "summary", summary);
                 workFlowManage.writeContext(node, "matches", matches.size());
                 workFlowManage.writeContext(node, "files", matchedFiles.size());
-                workFlowManage.writeContext(node, "tool", JsonObject.mapFrom(toolContent));
+                workFlowManage.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("grep", content, config.toArguments(),
+                        NodeStatus.SUCCESS, node, runId, config.chunkId())));
                 node.status = NodeStatus.SUCCESS;
 
-                workFlowManage.write(node, toolContent);
+                workFlowManage.write(node, new ToolCallContent("grep", "", "",
+                        NodeStatus.SUCCESS, node, runId, config.chunkId()));
 
+            } catch (AccessDeniedException e) {
+                permissionDenied.add(config.searchPath());
             } catch (Exception e) {
-                node.status = NodeStatus.FAIL;
-                workFlowManage.nextFailInvoke(node, e);
-                return null;
+                return invokeFail(workFlowManage, node, config, runId, e);
             }
 
-            return next(workFlowManage, node);
+            return workFlowManage.nextNodeSupplier(node.node.getId());
+        }
+
+        private GrepConfig resolveGrepConfig(GrepNode node, WorkFlowManage wfm) {
+            if ("tool_call".equals(node.params.getLocation())) {
+                if (node.params.getReference() == null || node.params.getReference().isEmpty()) return null;
+                Object ref = wfm.getContextVariable(node.params.getReference());
+                JsonObject toolCall = toJsonObject(ref);
+                if (toolCall == null) return null;
+
+                String id = toolCall.getString("id");
+                String args = toolCall.getString("functionArguments");
+                if (StringUtils.isEmpty(args)) return null;
+
+                JsonObject parsed = new JsonObject(args);
+                String pattern = parsed.getString("pattern");
+                String searchPath = parsed.getString("path");
+                String filePattern = parsed.getString("file_pattern");
+                int contextLines = parsed.getInteger("context_lines", 0);
+                int maxResults = parsed.getInteger("max_results", 50);
+                boolean withWriteArguments = StringUtils.isEmpty(id);
+                String chunkId = withWriteArguments ? CommonUtils.uuid7().toString() : id;
+
+                return new GrepConfig(chunkId, pattern, searchPath, filePattern, contextLines, maxResults, withWriteArguments);
+            }
+
+            String pattern = resolveValue(node.params.getPatternLocation(), node.params.getPatternReference(), node.params.getPattern(), wfm);
+            String searchPath = resolveValue(node.params.getPathLocation(), node.params.getPathReference(), node.params.getPath(), wfm);
+            String filePattern = resolveValue(node.params.getFilePatternLocation(), node.params.getFilePatternReference(), node.params.getFilePattern(), wfm);
+            String ctxStr = resolveValue(node.params.getContextLinesLocation(), node.params.getContextLinesReference(),
+                    node.params.getContextLines() != null ? String.valueOf(node.params.getContextLines()) : null, wfm);
+            int contextLines = parseInt(ctxStr, 0);
+            String maxStr = resolveValue(node.params.getMaxResultsLocation(), node.params.getMaxResultsReference(),
+                    node.params.getMaxResults() != null ? String.valueOf(node.params.getMaxResults()) : null, wfm);
+            int maxResults = parseInt(maxStr, 50);
+
+            return new GrepConfig(CommonUtils.uuid7().toString(), pattern, searchPath, filePattern, contextLines, maxResults, true);
         }
 
         private void searchDir(Path dir, Path basePath, Pattern regex, String filePattern, int ctx, int max,
-                              List<Match> matches, Set<String> matchedFiles, GrepNode node,
-                              WorkFlowManage wfm, String argsJson, String chunkId, String runId) throws IOException {
+                               List<Match> matches, Set<String> matchedFiles, Set<String> permissionDenied,
+                               GrepNode node, WorkFlowManage wfm, String chunkId, String runId) throws AccessDeniedException {
             if (matches.size() >= max || node.getStatus() == NodeStatus.CANCELLED) return;
-            try (Stream<Path> stream = Files.walk(dir, 20)) {
-                stream.filter(p -> {
-                    if (!Files.isRegularFile(p)) return false;
-                    String name = p.getFileName().toString();
-                    for (Path part : dir.relativize(p)) {
-                        String partName = part.toString();
-                        if (IGNORED_DIRS.contains(partName) || partName.startsWith(".")) return false;
-                    }
-                    String ext = getExtension(name);
-                    if (BINARY_EXTS.contains(ext)) return false;
-                    if (!StringUtils.isEmpty(filePattern)) {
-                        return matchGlob(name, filePattern);
-                    }
-                    return true;
-                }).forEach(p -> {
+            try (var stream = Files.list(dir)) {
+                var it = stream.iterator();
+                while (it.hasNext()) {
                     if (matches.size() >= max || node.getStatus() == NodeStatus.CANCELLED) return;
-                    try {
-                        searchFile(p, basePath, regex, ctx, max, matches, matchedFiles, node, wfm, argsJson, chunkId, runId);
-                    } catch (IOException ignored) {}
-                });
+                    Path entry = it.next();
+                    String name = entry.getFileName().toString();
+                    if (IGNORED_DIRS.contains(name) || name.startsWith(".")) continue;
+                    if (Files.isDirectory(entry)) {
+                        try {
+                            searchDir(entry, basePath, regex, filePattern, ctx, max, matches, matchedFiles, permissionDenied, node, wfm, chunkId, runId);
+                        } catch (AccessDeniedException e) {
+                            permissionDenied.add(entry.toString());
+                            wfm.write(node, new ToolCallContent("grep", "[权限不足] " + entry + "\n", "",
+                                    NodeStatus.RUNNING, node, runId, chunkId));
+                        }
+                    } else if (Files.isRegularFile(entry)) {
+                        String ext = getExtension(name);
+                        if (BINARY_EXTS.contains(ext)) continue;
+                        if (!StringUtils.isEmpty(filePattern) && !matchGlob(name, filePattern)) continue;
+                        try {
+                            searchFile(entry, basePath, regex, ctx, max, matches, matchedFiles, permissionDenied, node, wfm, chunkId, runId);
+                        } catch (Exception ignored) {
+                        }
+                    }
+                }
+            } catch (AccessDeniedException e) {
+                permissionDenied.add(dir.toString());
+                wfm.write(node, new ToolCallContent("grep", "[权限不足] " + dir + "\n", "",
+                        NodeStatus.RUNNING, node, runId, chunkId));
+            } catch (IOException ignored) {
             }
         }
 
         private void searchFile(Path file, Path basePath, Pattern regex, int ctx, int max,
-                               List<Match> matches, Set<String> matchedFiles, GrepNode node,
-                               WorkFlowManage wfm, String argsJson, String chunkId, String runId) throws IOException {
+                                List<Match> matches, Set<String> matchedFiles, Set<String> permissionDenied,
+                                GrepNode node, WorkFlowManage wfm, String chunkId, String runId) throws IOException {
             if (matches.size() >= max || node.getStatus() == NodeStatus.CANCELLED) return;
-            List<String> lines = Files.readAllLines(file);
-            String relPath = basePath.relativize(file).toString();
+            List<String> lines;
+            try {
+                lines = Files.readAllLines(file);
+            } catch (AccessDeniedException e) {
+                permissionDenied.add(file.toString());
+                wfm.write(node, new ToolCallContent("grep", "[权限不足] " + file + "\n", "",
+                        NodeStatus.RUNNING, node, runId, chunkId));
+                return;
+            }
+            String relPath = file.startsWith(basePath) ? basePath.relativize(file).toString() : file.toString();
 
             for (int i = 0; i < lines.size() && matches.size() < max; i++) {
                 if (node.getStatus() == NodeStatus.CANCELLED) return;
@@ -223,7 +265,6 @@ public class GrepNode extends INode<GrepNode, GrepNodeData> {
                     for (int a = i + 1; a <= Math.min(lines.size() - 1, i + ctx); a++) after.add(lines.get(a));
                     Match m = new Match(relPath, i + 1, lines.get(i), before, after);
                     matches.add(m);
-                    // 流式输出每个匹配
                     StringBuilder chunk = new StringBuilder();
                     for (String cb : m.contextBefore) {
                         chunk.append(m.file).append("-").append(m.lineNum - m.contextBefore.size() + m.contextBefore.indexOf(cb) + 1).append("- ").append(cb).append("\n");
@@ -232,7 +273,7 @@ public class GrepNode extends INode<GrepNode, GrepNodeData> {
                     for (int j = 0; j < m.contextAfter.size(); j++) {
                         chunk.append(m.file).append("-").append(m.lineNum + j + 1).append("- ").append(m.contextAfter.get(j)).append("\n");
                     }
-                    wfm.write(node, new ToolCallContent("grep", chunk.toString(), argsJson,
+                    wfm.write(node, new ToolCallContent("grep", chunk.toString(), "",
                             NodeStatus.RUNNING, node, runId, chunkId));
                 }
             }
@@ -271,11 +312,11 @@ public class GrepNode extends INode<GrepNode, GrepNodeData> {
 
         private int parseInt(String s, int defaultVal) {
             if (StringUtils.isEmpty(s)) return defaultVal;
-            try { return Integer.parseInt(s.trim()); } catch (NumberFormatException e) { return defaultVal; }
-        }
-
-        private Supplier<List<Node>> next(WorkFlowManage wfm, GrepNode node) {
-            return () -> wfm.getNextList(node.node.getId()).stream().map(DefaultKeyValue::getValue).toList();
+            try {
+                return Integer.parseInt(s.trim());
+            } catch (NumberFormatException e) {
+                return defaultVal;
+            }
         }
     }
 

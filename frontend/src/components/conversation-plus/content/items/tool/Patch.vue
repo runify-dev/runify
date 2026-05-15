@@ -68,7 +68,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import Loading from '@/components/conversation-plus/loading/index.vue'
 import FileDiff from './patch/FileDiff.vue'
 import { parsePatch } from './patch/parsePatch'
@@ -108,6 +108,7 @@ const summary = computed(() =>
 )
 
 const expanded = ref(props.expanded)
+watch(() => props.expanded, (val) => { expanded.value = val })
 const fileExpanded = reactive<Record<number, boolean>>({})
 
 function toggleFile(i: number) {

@@ -3,7 +3,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import Terminal from './tool/Terminal.vue'
 import Patch from './tool/Patch.vue'
 import ReadFile from './tool/ReadFile.vue'
@@ -16,6 +16,11 @@ const props = defineProps<{ content: any }>()
 const loading = computed(() => props.content.status === 'RUNNING')
 const toolName = computed(() => (props.content.toolName || '').toLowerCase())
 const isExpanded = ref(props.content.status === 'RUNNING')
+
+// 工具执行完成自动合上
+watch(loading, (cur, prev) => {
+  if (prev && !cur) isExpanded.value = false
+})
 
 const kw: Record<string, any> = {
   run_command: Terminal,

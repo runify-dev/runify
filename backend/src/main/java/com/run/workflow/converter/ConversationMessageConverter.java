@@ -12,7 +12,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -88,8 +87,16 @@ public class ConversationMessageConverter {
     //   - 连续 SYSTEM     -> 合并为一条 system
     //   - 连续 QUESTION   -> 合并为一条 user
     //   - 连续 TEXT       -> 合并为一条 assistant.content
-    //   - 连续 TOOL       -> 一条 ToolCallContent 拆成 assistant.tool_calls 项 + tool 消息；
-    //                       多条相邻 TOOL 共用同一条 assistant，tool 消息按顺序紧跟
+    //   - TOOL            -> 不合并；每个 ToolCallContent 都单独生成：
+    //                       assistant.tool_calls -> tool
+    //
+    // 这样连续 TOOL 会被表示成多轮工具调用：
+    //   assistant.tool_calls(read_file)
+    //   tool(read_file result)
+    //   assistant.tool_calls(apply_patch)
+    //   tool(apply_patch result)
+    //
+    // 这样能保留工具调用之间的前后依赖关系，避免把它们误合并成同一轮并发 tool_calls。
     //
     // 严格符合 OpenAI 协议：
     //   - 每个 tool 消息紧跟在声明对应 tool_call_id 的 assistant 之后
@@ -103,7 +110,6 @@ public class ConversationMessageConverter {
         StringBuilder systemBuf = new StringBuilder();
         StringBuilder userBuf = new StringBuilder();
         StringBuilder assistantTextBuf = new StringBuilder();
-        List<JsonObject> pendingToolCalls = new ArrayList<>();
 
         for (JsonObject obj : streamContent(contents).toList()) {
             ContentTypeConstants type = parseType(obj);
@@ -115,14 +121,14 @@ public class ConversationMessageConverter {
             switch (type) {
                 case SYSTEM -> {
                     flushUser(userBuf, result);
-                    flushAssistantAndTools(assistantTextBuf, pendingToolCalls, result);
+                    flushAssistantText(assistantTextBuf, result);
                     if (!isBlank(extracted)) {
                         systemBuf.append(extracted);
                     }
                 }
                 case QUESTION -> {
                     flushSystem(systemBuf, result);
-                    flushAssistantAndTools(assistantTextBuf, pendingToolCalls, result);
+                    flushAssistantText(assistantTextBuf, result);
                     if (!isBlank(extracted)) {
                         userBuf.append(extracted);
                     }
@@ -130,11 +136,6 @@ public class ConversationMessageConverter {
                 case TEXT -> {
                     flushSystem(systemBuf, result);
                     flushUser(userBuf, result);
-                    // 已有 pendingToolCalls 意味着上一轮 assistant 已封口，
-                    // 当前 TEXT 是 tool 结果之后新一轮 assistant 发言
-                    if (!pendingToolCalls.isEmpty()) {
-                        flushAssistantAndTools(assistantTextBuf, pendingToolCalls, result);
-                    }
                     if (!isBlank(extracted)) {
                         assistantTextBuf.append(extracted);
                     }
@@ -142,7 +143,12 @@ public class ConversationMessageConverter {
                 case TOOL -> {
                     flushSystem(systemBuf, result);
                     flushUser(userBuf, result);
-                    pendingToolCalls.add(obj);
+
+                    // TOOL 不进入 pending 列表，也不和相邻 TOOL 合并。
+                    // 如果前面已经有 assistant 文本，先输出 assistant.content；
+                    // 当前 TOOL 再单独输出一轮 assistant.tool_calls -> tool。
+                    flushAssistantText(assistantTextBuf, result);
+                    appendToolTurn(obj, result);
                 }
             }
         }
@@ -150,7 +156,7 @@ public class ConversationMessageConverter {
         // 收尾
         flushSystem(systemBuf, result);
         flushUser(userBuf, result);
-        flushAssistantAndTools(assistantTextBuf, pendingToolCalls, result);
+        flushAssistantText(assistantTextBuf, result);
 
         return result;
     }
@@ -175,40 +181,26 @@ public class ConversationMessageConverter {
         buf.setLength(0);
     }
 
-    private static void flushAssistantAndTools(StringBuilder textBuf,
-                                               List<JsonObject> pendingToolCalls,
-                                               List<ChatCompletionMessageParam> result) {
-        if (textBuf.length() == 0 && pendingToolCalls.isEmpty()) {
+    private static void flushAssistantText(StringBuilder buf, List<ChatCompletionMessageParam> result) {
+        if (buf.length() == 0) {
             return;
         }
 
-        JsonObject assistantMsg = new JsonObject().put("role", "assistant");
-
-        if (textBuf.length() > 0) {
-            assistantMsg.put("content", textBuf.toString());
-        }
-
-        if (!pendingToolCalls.isEmpty()) {
-            // 多条相邻 TOOL 全部合并到这一条 assistant 的 tool_calls 数组
-            JsonArray toolCallsArr = new JsonArray();
-            for (JsonObject tc : pendingToolCalls) {
-                toolCallsArr.add(buildToolCall(tc));
-            }
-            assistantMsg.put("tool_calls", toolCallsArr);
-        } else if (textBuf.length() == 0) {
-            // 兜底：没有 tool_calls 也没有 content 时给空串，避免 content=null
-            assistantMsg.put("content", "");
-        }
+        JsonObject assistantMsg = new JsonObject()
+                .put("role", "assistant")
+                .put("content", buf.toString());
 
         result.add(ChatCompletionMessageParam.fromJsonObject(assistantMsg));
+        buf.setLength(0);
+    }
 
-        // 紧跟着按顺序输出每条 tool 消息，与 tool_calls 一一对应
-        for (JsonObject tc : pendingToolCalls) {
-            result.add(ChatCompletionMessageParam.fromJsonObject(buildToolMessage(tc)));
-        }
+    private static void appendToolTurn(JsonObject obj, List<ChatCompletionMessageParam> result) {
+        JsonObject assistantMsg = new JsonObject()
+                .put("role", "assistant")
+                .put("tool_calls", new JsonArray().add(buildToolCall(obj)));
 
-        textBuf.setLength(0);
-        pendingToolCalls.clear();
+        result.add(ChatCompletionMessageParam.fromJsonObject(assistantMsg));
+        result.add(ChatCompletionMessageParam.fromJsonObject(buildToolMessage(obj)));
     }
 
     // ── ToolCallContent -> OpenAI tool_call / tool message ──

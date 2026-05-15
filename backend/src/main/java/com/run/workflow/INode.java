@@ -6,6 +6,7 @@ import com.run.workflow.entity.Node;
 import com.run.workflow.entity.NodeInfo;
 import com.run.workflow.entity.NodeResult;
 import com.run.workflow.entity.NodeSerialize;
+import com.run.workflow.message.struct.FailureContent;
 import io.vertx.core.json.JsonObject;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
@@ -18,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 /**
  * {@code @Author:张少虎}
@@ -148,4 +150,21 @@ public abstract class INode<T extends INode, NodeData> {
         this.status = NodeStatus.CANCELLED;
     }
 
+    public Boolean getErrorCaptureEnabled() {
+        Boolean errorCaptureEnabled = this.node.getProperties().getBoolean("errorCaptureEnabled");
+        if (errorCaptureEnabled == null) {
+            return Boolean.FALSE;
+        }
+        return errorCaptureEnabled;
+    }
+
+    public Supplier<List<Node>> handleFail(WorkFlowManage workFlowManage, Throwable e) {
+        this.status = NodeStatus.FAIL;
+        Boolean errorCaptureEnabled = this.getErrorCaptureEnabled();
+        if (!errorCaptureEnabled) {
+            workFlowManage.writeContext(this, "exception", e.getMessage());
+            workFlowManage.write(this, new FailureContent(e.getMessage(), this, (String) workFlowManage.getParams().get("workflowRunId"), UUID.randomUUID().toString()));
+        }
+        return workFlowManage.nextFailNodeSupplier(this.node.getId(), errorCaptureEnabled);
+    }
 }

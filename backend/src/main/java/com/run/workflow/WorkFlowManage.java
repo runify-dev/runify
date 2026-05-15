@@ -45,7 +45,7 @@ public class WorkFlowManage {
      */
     @Getter
     private final Map<String, Object> params;
-
+    private boolean done = false;
     /**
      * 运行开始时间
      */
@@ -202,6 +202,8 @@ public class WorkFlowManage {
             Supplier<List<Node>> handle = invoke.handle(this);
             if (handle != null) {
                 nextInvoke(iNode, handle);
+            } else {
+                this.assertionEnd();
             }
         } catch (Exception e) {
             log.error("执行工作流中发生异常:", e);
@@ -285,7 +287,8 @@ public class WorkFlowManage {
     public void assertionEnd() {
         List<NodeStatus> running = List.of(NodeStatus.RUNNING, NodeStatus.BEFORE_RUNNING);
         boolean b = this.nodes.stream().anyMatch(iNode -> running.contains(iNode.status));
-        if (!b) {
+        if (!b && !done) {
+            this.done = true;
             this.write.write(this, null, null, true);
         }
     }
@@ -345,4 +348,38 @@ public class WorkFlowManage {
     public List<DefaultKeyValue<Edge, Node>> getNextList(String node_id) {
         return workFlow.getNextNodes(node_id);
     }
+
+    public Supplier<List<Node>> nextNodeSupplier(String nodeId) {
+        return () -> this.getNextList(nodeId).stream().filter(edgeNodeDefaultKeyValue -> {
+            Edge edge = edgeNodeDefaultKeyValue.getKey();
+            return Strings.CS.equals(edge.getSourceNodeId() + "_right" + "_main" + "_success", edge.getString("sourceAnchorId"));
+        }).map(DefaultKeyValue::getValue).toList();
+    }
+
+    public Supplier<List<Node>> nextCancelNodeSupplier() {
+        return null;
+    }
+
+    /**
+     * 错误的返回值
+     *
+     * @param nodeId              节点Id
+     * @param errorCaptureEnabled 是否捕获异常
+     * @return 下一个执行节点
+     */
+    public Supplier<List<Node>> nextFailNodeSupplier(String nodeId, Boolean errorCaptureEnabled) {
+        if (errorCaptureEnabled) {
+            List<DefaultKeyValue<Edge, Node>> nextList = getNextList(nodeId);
+            return () -> nextList.stream().filter(edgeNodeDefaultKeyValue -> {
+                        Edge edge = edgeNodeDefaultKeyValue.getKey();
+                        return Strings.CS.equals(edge.getSourceNodeId() + "_right" + "_main" + "_fail", edge.getString("sourceAnchorId"));
+                    })
+                    .map(DefaultKeyValue::getValue)
+                    .toList();
+
+        } else {
+            return null;
+        }
+    }
+
 }

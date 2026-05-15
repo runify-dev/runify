@@ -1,7 +1,6 @@
 package com.run.workflow.nodes.fileupload;
 
 import com.run.RunApplication;
-import com.run.common.keyvalue.DefaultKeyValue;
 import com.run.common.util.CommonUtils;
 import com.run.dao.mapper.FileMapper;
 import com.run.workflow.*;
@@ -9,17 +8,16 @@ import com.run.workflow.entity.Node;
 import com.run.workflow.entity.NodeResult;
 import com.run.common.util.ChatCompletionAccumulator;
 import com.run.common.util.JacksonUtils;
-import com.run.workflow.message.struct.FailureContent;
 import com.run.workflow.message.struct.ToolCallContent;
 import com.run.workflow.nodes.fileupload.pojo.FileUploadNodeData;
-import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import jakarta.validation.Validator;
-import org.apache.commons.lang3.Strings;
 
 import java.io.File;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
@@ -46,48 +44,50 @@ public class FileUploadNode extends INode<FileUploadNode, FileUploadNodeData> {
         cancelled.set(true);
     }
 
+    record FileUploadConfig(String id, String filePath, boolean withWriteArguments) {
+        String toArguments() {
+            return JacksonUtils.toJson(Map.of("path", filePath));
+        }
+    }
+
     public static class Handle implements BiFunction<WorkFlowManage, FileUploadNode, Supplier<List<Node>>> {
 
-        record Resolved(String id, String filePath, Boolean withWriteArguments) {
+        private Supplier<List<Node>> invokeFail(WorkFlowManage wfm, FileUploadNode node, FileUploadConfig config, String runId, Throwable e) {
+            String id = config != null ? config.id() : CommonUtils.uuid7().toString();
+            wfm.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("file_upload", e.getMessage(), "",
+                    NodeStatus.FAIL, node, runId, id)));
+            return node.handleFail(wfm, e);
         }
 
         @Override
         public Supplier<List<Node>> apply(WorkFlowManage workFlowManage, FileUploadNode node) {
+            String runId = (String) workFlowManage.getParams().get("workflowRunId");
             FileUploadNodeData data = node.params;
             FileMapper fileMapper = RunApplication.appComponent.fileMapper();
 
-            Resolved resolved;
-            if ("tool_call".equals(data.getLocation())) {
-                resolved = resolveValue("tool_call", data.getReference(), null, workFlowManage);
-            } else {
-                resolved = resolveValue(data.getPathLocation(), data.getPathReference(), data.getPath(), workFlowManage);
+            FileUploadConfig config = resolveConfig(data, workFlowManage);
+
+            if (config == null || config.filePath() == null || config.filePath().isEmpty()) {
+                return invokeFail(workFlowManage, node, config, runId, new RuntimeException("文件路径为空"));
+            }
+            if (config.withWriteArguments()) {
+                workFlowManage.write(node, new ToolCallContent("file_upload", "",
+                        config.toArguments(), NodeStatus.RUNNING, node, runId, config.id()));
             }
 
-            if (resolved == null || resolved.filePath() == null || resolved.filePath().isEmpty()) {
-                node.status = NodeStatus.FAIL;
-                workFlowManage.write(node, new FailureContent("文件路径为空", node,
-                        (String) workFlowManage.getParams().get("workflowRunId"),
-                        CommonUtils.uuid7().toString()));
-                workFlowManage.end();
-                return null;
-            }
+            UUID conversationId = (UUID) workFlowManage.getParams().getOrDefault("conversationId", CommonUtils.uuid7());
+            Path basePath = Path.of(System.getProperty("user.home") + "/.runify/" + conversationId);
+            Path filePath = basePath.resolve(config.filePath()).normalize();
+            File file = filePath.toFile();
 
-            String filePath = resolved.filePath();
-            File file = new File(filePath);
             if (!file.exists() || !file.isFile()) {
-                node.status = NodeStatus.FAIL;
-                workFlowManage.write(node, new FailureContent("文件不存在: " + filePath, node,
-                        (String) workFlowManage.getParams().get("workflowRunId"),
-                        CommonUtils.uuid7().toString()));
-                workFlowManage.end();
-                return null;
+                return invokeFail(workFlowManage, node, config, runId, new RuntimeException("文件不存在: " + config.filePath()));
             }
 
             String fileName = (data.getFileName() != null && !data.getFileName().isEmpty())
                     ? data.getFileName()
                     : file.getName();
 
-            String id = resolved.id();
             fileMapper.upload(fileName, file.length(), null, null, file)
                     .onSuccess(entity -> {
                         if (node.cancelled.get()) return;
@@ -96,92 +96,58 @@ public class FileUploadNode extends INode<FileUploadNode, FileUploadNodeData> {
                         workFlowManage.writeContext(node, "fileName", entity.getFileName());
                         workFlowManage.writeContext(node, "fileSize", entity.getSize());
                         node.status = NodeStatus.SUCCESS;
-                        if (resolved.withWriteArguments()) {
-                            workFlowManage.write(node, new ToolCallContent("FileUpload", "", JacksonUtils.toJson(Map.of("path", filePath)), NodeStatus.RUNNING, node, (String) workFlowManage.getParams().get("workflowRunId"), id));
-                        }
-                        workFlowManage.write(node, new ToolCallContent("fileUpload",
-                                JacksonUtils.toJson(Map.of(
-                                        "fileId", entity.getId().toString(),
-                                        "fileName", entity.getFileName(),
-                                        "fileSize", entity.getSize(),
-                                        "url", "./api/storage/file/" + entity.getId()
-                                )),
-                                "",
-                                NodeStatus.SUCCESS, node,
-                                (String) workFlowManage.getParams().get("workflowRunId"), id));
-                        workFlowManage.writeContext(node, "tool", JacksonUtils.toJson(new ToolCallContent("fileUpload",
-                                JacksonUtils.toJson(Map.of(
-                                        "fileId", entity.getId().toString(),
-                                        "fileName", entity.getFileName(),
-                                        "fileSize", entity.getSize(),
-                                        "url", "./api/storage/file/" + entity.getId()
-                                )),
-                                JacksonUtils.toJson(Map.of("path", filePath)),
-                                NodeStatus.SUCCESS, node,
-                                (String) workFlowManage.getParams().get("workflowRunId"), id)));
-                        workFlowManage.nextInvoke(node, () -> workFlowManage
-                                .getNextList(node.node.getId())
-                                .stream()
-                                .map(DefaultKeyValue::getValue)
-                                .toList());
+
+                        String resultJson = JacksonUtils.toJson(Map.of(
+                                "fileId", entity.getId().toString(),
+                                "fileName", entity.getFileName(),
+                                "fileSize", entity.getSize(),
+                                "url", "./api/storage/file/" + entity.getId()));
+                        workFlowManage.write(node, new ToolCallContent("file_upload", resultJson, "",
+                                NodeStatus.SUCCESS, node, runId, config.id()));
+                        workFlowManage.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("file_upload", resultJson, config.toArguments(),
+                                NodeStatus.SUCCESS, node, runId, config.id())));
+                        workFlowManage.nextInvoke(node, workFlowManage.nextNodeSupplier(node.node.getId()));
                     })
                     .onFailure(e -> {
                         if (node.cancelled.get()) return;
-                        node.status = NodeStatus.FAIL;
-                        workFlowManage.write(node, new FailureContent(e.getMessage(), node,
-                                (String) workFlowManage.getParams().get("workflowRunId"),
-                                CommonUtils.uuid7().toString()));
-                        workFlowManage.end();
+                        invokeFail(workFlowManage, node, config, runId, e);
+                        workFlowManage.nextFailInvoke(node, e);
+
                     });
             return null;
         }
 
-        /**
-         * 通用值解析：reference 从上下文取，customize 直接返回
-         */
-        private Resolved resolveValue(String location, List<String> reference, String customValue, WorkFlowManage workFlowManage) {
+        private FileUploadConfig resolveConfig(FileUploadNodeData data, WorkFlowManage wfm) {
+            String location = data.getLocation();
             if (location == null) location = "customize";
             if ("tool_call".equals(location)) {
-                if (reference == null || reference.isEmpty()) return null;
-                Object val = workFlowManage.getContextVariable(reference);
-                if (val instanceof JsonObject v) {
-                    String id = v.getString("id");
-                    String args = v.getString("functionArguments");
-                    if (args != null) {
-                        JsonObject parsed = new JsonObject(args);
-                        return new Resolved(id, parsed.getString("path"), Boolean.FALSE);
-                    }
-                    return new Resolved(id, v.getString("path"), Boolean.FALSE);
-                }
-                if (val instanceof ChatCompletionAccumulator.AccumulatedToolCall call) {
-                    JsonObject args = JacksonUtils.fromJson(call.getFunctionArguments(), JsonObject.class);
-                    return new Resolved(call.getId(), args.getString("path"), Boolean.FALSE);
-                }
-                if (val instanceof String v) {
-                    return new Resolved(CommonUtils.uuid7().toString(), v, Boolean.TRUE);
-                }
-                return null;
+                return resolveFromRef(data.getReference(), wfm);
             }
-            if (Strings.CS.equals(location, "reference")) {
-                if (reference != null && !reference.isEmpty()) {
-                    Object val = workFlowManage.getContextVariable(reference);
-                    if (val instanceof JsonObject v) {
-                        String id = v.getString("id");
-                        JsonObject args = JacksonUtils.fromJson(v.getString("arguments"), JsonObject.class);
-                        return new Resolved(id, args.getString("path"), Boolean.FALSE);
-                    }
-                    if (val instanceof ChatCompletionAccumulator.AccumulatedToolCall call) {
-                        JsonObject args = JacksonUtils.fromJson(call.getFunctionArguments(), JsonObject.class);
-                        return new Resolved(call.getId(), args.getString("path"), Boolean.FALSE);
-                    }
-                    if (val instanceof String v) {
-                        return new Resolved(CommonUtils.uuid7().toString(), v, Boolean.TRUE);
-                    }
-                    return null;
-                }
-                return null;
+            if ("reference".equals(location)) {
+                return resolveFromRef(data.getPathReference(), wfm);
             }
-            return new Resolved(CommonUtils.uuid7().toString(), customValue, Boolean.TRUE);
+            return new FileUploadConfig(CommonUtils.uuid7().toString(), data.getPath(), true);
+        }
+
+        private FileUploadConfig resolveFromRef(List<String> reference, WorkFlowManage wfm) {
+            if (reference == null || reference.isEmpty()) return null;
+            Object val = wfm.getContextVariable(reference);
+            if (val instanceof JsonObject v) {
+                String id = v.getString("id");
+                String args = v.getString("functionArguments");
+                if (args != null) {
+                    return new FileUploadConfig(id, new JsonObject(args).getString("path"), false);
+                }
+                return new FileUploadConfig(id, v.getString("path"), false);
+            }
+            if (val instanceof ChatCompletionAccumulator.AccumulatedToolCall call) {
+                JsonObject args = JacksonUtils.fromJson(call.getFunctionArguments(), JsonObject.class);
+                return new FileUploadConfig(call.getId(), args.getString("path"), false);
+            }
+            if (val instanceof String v) {
+                return new FileUploadConfig(CommonUtils.uuid7().toString(), v, true);
+            }
+            return null;
         }
     }
 

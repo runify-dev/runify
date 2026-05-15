@@ -74,7 +74,8 @@
     <Dialog
       v-model:visible="showImportDialog"
       header="批量导入工具"
-      modal
+      :modal="false"
+      :dismissable="false"
       style="width: 600px"
     >
       <div>

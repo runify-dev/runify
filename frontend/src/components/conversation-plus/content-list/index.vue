@@ -1,6 +1,6 @@
 <template>
   <template v-for="(content, index) in contents" :key="index">
-    <Content class="w-full" :type="content.type" :content="content"></Content>
+    <Content  class="w-full" :type="content.type" :content="content"></Content>
   </template>
 </template>
 <script setup lang="ts">
@@ -21,7 +21,7 @@ const contents = computed(() => {
 
       return a.index - b.index
     })
-    .map(({ item }) => item)
+    .map(({ item }) => item).filter(item=>!(item.type=='TEXT'&&!item.content))
 })
 </script>
 <style lang="scss"></style>
