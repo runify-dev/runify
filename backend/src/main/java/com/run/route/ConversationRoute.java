@@ -1,5 +1,6 @@
 package com.run.route;
 
+import com.run.auth.ConversationAuthenticator;
 import com.run.auth.TokenBasicAuthHandler;
 import com.run.common.route.IRoute;
 import com.run.handler.conversation.IConversationHandler;
@@ -25,7 +26,7 @@ public class ConversationRoute implements IRoute {
     private final IConversationHandler conversationHandler;
 
     private final TokenBasicAuthHandler tokenBasicAuthHandler;
-
+    private final ConversationAuthenticator conversationAuthenticator = new ConversationAuthenticator();
 
     @Inject
     public ConversationRoute(@Named("conversationAPIRoute") Router apiRoute,
@@ -40,54 +41,80 @@ public class ConversationRoute implements IRoute {
 
     @Override
     public void initRoute() {
-        apiRoute.get("/config")
-                .handler(conversationHandler::config);
+        apiRoute.get("/application")
+                .handler(tokenBasicAuthHandler)
+                .handler(conversationHandler::query);
+
+        apiRoute.get("/application/:applicationId")
+                .handler(tokenBasicAuthHandler)
+                .handler(conversationAuthenticator)
+                .handler(conversationHandler::application);
+
+        apiRoute.get("/application/:applicationId/auth-profile")
+                .handler(conversationHandler::authProfile);
+
+        apiRoute.get("/userProfile")
+                .handler(tokenBasicAuthHandler)
+                .handler(conversationHandler::userProfile);
 
         apiRoute.post("/anonymousLogin")
                 .handler(BodyHandler.create())
                 .handler(conversationHandler::anonymousLogin);
 
-        apiRoute.post("/conversation")
+        apiRoute.post("/login")
+                .handler(BodyHandler.create())
+                .handler(conversationHandler::login);
+
+        apiRoute.post("/application/:applicationId/conversation")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
+                .handler(conversationAuthenticator)
                 .handler(conversationHandler::createConversation);
 
-        apiRoute.get("/conversation")
+        apiRoute.get("/application/:applicationId/conversation")
                 .handler(tokenBasicAuthHandler)
+                .handler(conversationAuthenticator)
                 .handler(conversationHandler::pageConversation);
 
-        apiRoute.get("/conversation/:conversationId/message")
+        apiRoute.get("/application/:applicationId/conversation/:conversationId/message")
                 .handler(tokenBasicAuthHandler)
+                .handler(conversationAuthenticator)
                 .handler(conversationHandler::pageMessage);
 
-        apiRoute.post("/conversation/:conversationId/chat")
+        apiRoute.post("/application/:applicationId/conversation/:conversationId/chat")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
+                .handler(conversationAuthenticator)
                 .handler(conversationHandler::conversation);
 
-        apiRoute.get("/conversation/:conversationId/status")
+        apiRoute.get("/application/:applicationId/conversation/:conversationId/status")
                 .handler(tokenBasicAuthHandler)
+                .handler(conversationAuthenticator)
                 .handler(conversationHandler::statusStream);
 
-        apiRoute.post("/conversation/:conversationId/resume-stream")
+        apiRoute.post("/application/:applicationId/conversation/:conversationId/resume-stream")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
+                .handler(conversationAuthenticator)
                 .handler(conversationHandler::resumeStream);
 
-        apiRoute.post("/conversation/:conversationId/cancel")
+        apiRoute.post("/application/:applicationId/conversation/:conversationId/cancel")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
+                .handler(conversationAuthenticator)
                 .handler(conversationHandler::cancel);
 
 
-        apiRoute.delete("/conversation/:conversationId")
+        apiRoute.delete("/application/:applicationId/conversation/:conversationId")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
+                .handler(conversationAuthenticator)
                 .handler(conversationHandler::delConversation);
 
-        apiRoute.post("/conversation/:conversationId/modify-name")
+        apiRoute.post("/application/:applicationId/conversation/:conversationId/modify-name")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
+                .handler(conversationAuthenticator)
                 .handler(conversationHandler::modifyName);
     }
 

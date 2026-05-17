@@ -66,7 +66,13 @@ public class TokenAuthHandlerModule {
     @Singleton
     @Provides
     @Named("conversationTokenBasicAuthHandler")
-    public TokenBasicAuthHandler getChatTokenBasicAuthHandler(Pool pool, SQLDialect dbType) {
-        return new TokenBasicAuthHandler(new ConversationTokenProvider());
+    public TokenBasicAuthHandler getChatTokenBasicAuthHandler(
+            ApplicationPermissionMapper applicationPermissionBaseMapper,
+            ApplicationRelationMapper applicationRelationMapper,
+            ApplicationMapper applicationMapper,
+            RoleMapper roleMapper,
+            RoleUserRelationMapper roleUserRelationMapper,
+            CacheStore cacheStore) {
+        return new TokenBasicAuthHandler(new ConversationTokenProvider(applicationMapper, applicationRelationMapper, applicationPermissionBaseMapper, roleMapper, roleUserRelationMapper, cacheStore));
     }
 }

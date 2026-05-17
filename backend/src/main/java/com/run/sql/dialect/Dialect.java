@@ -52,4 +52,13 @@ public interface Dialect {
     default String renderLimitOffset(String sql, RenderContext ctx, Long limit, Long offset) {
         return limit().render(ctx, sql, limit, offset);
     }
+
+    /**
+     * Transform a bind parameter value for this database before it is sent to the driver.
+     * <p>Default returns the value unchanged. Databases without native boolean
+     * (e.g. SQLite) can override to convert {@code Boolean} to {@code Integer}.</p>
+     */
+    default Object prepareBindValue(Object value) {
+        return value;
+    }
 }

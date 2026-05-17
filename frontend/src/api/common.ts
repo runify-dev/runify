@@ -1,3 +1,5 @@
+import bus from '@/bus/index'
+
 class ConversationStream {
   response: any
   reader?: any
@@ -27,6 +29,9 @@ class ConversationStream {
     this.response.then((res: any) => {
       if (this.cancelled) return
       if (!res.ok) {
+        if (res.status === 403) {
+          bus.emit('auth:403')
+        }
         this.onFailure(new Error(`HTTP ${res.status}`))
         return
       }

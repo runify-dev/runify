@@ -47,7 +47,8 @@ import {
   globNode,
   grepNode,
   extractNode,
-  listDirNode
+  listDirNode,
+  staticFileNode
 } from '@/workflow/common/data'
 
 const groups = [
@@ -79,7 +80,7 @@ const groups = [
     value: '4',
     label: '工具',
     icon: 'pi pi-wrench',
-    nodes: [javaScriptNode, extractNode, variableAssignNode, contextPushNode, approvalNode, jsonResponseNode]
+    nodes: [javaScriptNode, extractNode, variableAssignNode, contextPushNode, approvalNode, jsonResponseNode, staticFileNode]
   }
 ]
 

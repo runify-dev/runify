@@ -62,7 +62,7 @@ const resourceId = computed(() => {
   return id
 })
 const save = () => {
-  ApplicationAPI.edit(resourceId.value, workflowRef.value?.getGraphData()).then(() => {
+  ApplicationAPI.edit(resourceId.value,{workflow: workflowRef.value?.getGraphData()}).then(() => {
     bus.emit('message:success', '保存成功')
   })
 }

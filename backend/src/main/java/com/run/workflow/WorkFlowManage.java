@@ -26,6 +26,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 /**
  * {@code @Author:张少虎}
@@ -319,9 +320,9 @@ public class WorkFlowManage {
     }
 
 
-    public float getRuntime() {
+    public long getRuntime() {
         long executionTime = ChronoUnit.MILLIS.between(this.startTime, LocalDateTime.now());
-        return (float) executionTime / 1000;
+        return executionTime / 1000;
     }
 
     /**
@@ -380,6 +381,14 @@ public class WorkFlowManage {
         } else {
             return null;
         }
+    }
+
+    public int getPromptTokens() {
+        return nodes.stream().map(INode::getPromptTokens).mapToInt(Integer::intValue).sum();
+    }
+
+    public int getCompletionTokens() {
+        return nodes.stream().map(INode::getCompletionTokens).mapToInt(Integer::intValue).sum();
     }
 
 }

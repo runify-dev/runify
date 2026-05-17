@@ -3,6 +3,7 @@ package com.run.auth;
 import com.run.auth.constants.PermissionConstants;
 import com.run.auth.dto.UserProfile;
 import com.run.common.exception.ApiException;
+import com.run.common.exception.ForbiddenException;
 import com.run.dao.entity.Role;
 import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
@@ -51,7 +52,7 @@ public class Authenticator implements Handler<RoutingContext> {
                 }
             } else {
                 if (compare == PermissionConstants.Compare.AND) {
-                    context.fail(new ApiException(403, "权限不足"));
+                    context.fail(new ForbiddenException("权限不足"));
                     return true;
                 }
             }

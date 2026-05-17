@@ -75,21 +75,22 @@ public abstract class ResourceHandlerImpl<R extends BaseEntity<R>,
                 .where(condition));
     }
 
-    public Condition getWhereByPermission(QueryResourcePojo query, Boolean resourceRead) {
+    public static <PermissionMapper extends BaseMapper<P>, P extends BaseEntity<P>,
+            RelationMapper extends BaseMapper<Relation>, Relation extends BaseEntity<Relation>> Condition getWhereByPermission(PermissionMapper permissionMapper, RelationMapper relationMapper, QueryResourcePojo query, Boolean resourceRead) {
         Condition condition = DSL.field("ancestor_id")
                 .in(permissionMapper.getDslContext().select(DSL.field("target"))
                         .from(permissionMapper.getTable())
-                        .where(DSL.field("permission").in(resourceRead ? List.of(DSL.param("#{permissionView}"), DSL.param("#{permissionManage}"), DSL.param("#{permissionRole}")) : List.of(DSL.param("#{permissionView}"), DSL.param("#{permissionManage}")))
-                                .and(DSL.field("user_id").eq(DSL.param("#{userId}")))));
+                        .where(DSL.field("permission").in(resourceRead ? List.of(DSL.param("permissionView"), DSL.param("permissionManage"), DSL.param("permissionRole")) : List.of(DSL.param("permissionView"), DSL.param("permissionManage")))
+                                .and(DSL.field("user_id").eq(DSL.param("userId")))));
         if (StringUtils.isNotEmpty(query.getParentId())) {
             condition = condition.and(DSL.field("ancestor_id")
-                    .eq(DSL.param("#{folderId}")));
+                    .eq(DSL.param("folderId")));
         }
         if (query.getDepth() != null) {
-            condition = condition.and(DSL.field("depth").eq(DSL.param("#{depth}")));
+            condition = condition.and(DSL.field("depth").eq(DSL.param("depth")));
         }
         if (StringUtils.isNotEmpty(query.getName())) {
-            condition = condition.and(DSL.field("name").like(DSL.param("#{name}", String.class)));
+            condition = condition.and(DSL.field("name").like(DSL.param("name", String.class)));
         }
         return DSL.field("id").in(relationMapper.getDslContext().select(DSL.field("descendant_id"))
                         .from(relationMapper.getTable())
@@ -100,7 +101,12 @@ public abstract class ResourceHandlerImpl<R extends BaseEntity<R>,
                                         .from(permissionMapper.getTable())
                                         .where(DSL.field("permission")
                                                 .in(List.of(DSL.param("permissionNotAuth")))
-                                                .and(DSL.field("user_id").eq(DSL.param("#{userId}"))))))));
+                                                .and(DSL.field("user_id").eq(DSL.param("userId"))))))));
+
+    }
+
+    public Condition getWhereByPermission(QueryResourcePojo query, Boolean resourceRead) {
+        return getWhereByPermission(permissionMapper, relationMapper, query, resourceRead);
     }
 
     @Override
@@ -185,7 +191,7 @@ public abstract class ResourceHandlerImpl<R extends BaseEntity<R>,
         return resourceMapper.deleteById(resourceId)
                 .compose(_ -> relationMapper
                         .delete(DSL.field("descendant_id")
-                                        .eq(DSL.param("#{descendant_id}")).or(DSL.field("ancestor_id").eq(DSL.param("#{ancestor_id}"))),
+                                        .eq(DSL.param("descendant_id")).or(DSL.field("ancestor_id").eq(DSL.param("ancestor_id"))),
                                 Map.of("descendant_id", resourceId,
                                         "ancestor_id", resourceId)))
                 .compose(_ -> Future.succeededFuture(Boolean.TRUE));
@@ -196,8 +202,8 @@ public abstract class ResourceHandlerImpl<R extends BaseEntity<R>,
         return resourceMapper.getById(resourceId)
                 .compose(resource -> Tool.validateNodeName(resourceMapper, getParentId(resource), name, UUID.fromString(resourceId))
                         .compose(_ -> Future.succeededFuture(resource)))
-                .compose(resource -> resourceMapper.update(Map.of(DSL.field("name"), DSL.param("#{name}")),
-                                DSL.field("id").eq(DSL.param("#{id}")),
+                .compose(resource -> resourceMapper.update(Map.of(DSL.field("name"), DSL.param("name")),
+                                DSL.field("id").eq(DSL.param("id")),
                                 Map.of("name", name,
                                         "id", resourceId))
                         .compose(_ -> Future.succeededFuture(resource)))
@@ -302,7 +308,7 @@ public abstract class ResourceHandlerImpl<R extends BaseEntity<R>,
         QueryResourcePojo query = new QueryResourcePojo(folderId, entries.get("name"), null);
         (role.equals("ADMIN") ? tree(query) : treeByPermission(query, user.getId(), resourceRead(context)))
                 .compose(rs -> permissionMapper
-                        .list(DSL.field("user_id").eq(DSL.param("#{userId}")), Map.of("userId", userId))
+                        .list(DSL.field("user_id").eq(DSL.param("userId")), Map.of("userId", userId))
                         .compose(ps -> Future.succeededFuture(toSimpleNodePermissionPojo(rs, ps))))
                 .onSuccess(rs -> context.end(Result.success(rs).toBuffer()))
                 .onFailure(Future::failedFuture);
@@ -314,8 +320,8 @@ public abstract class ResourceHandlerImpl<R extends BaseEntity<R>,
         String resourceId = context.pathParam("resourceId");
         String permission = context.pathParam("permission");
         P p = newPermission(UUID.randomUUID(), UUID.fromString(userId), UUID.fromString(resourceId), permission);
-        permissionMapper.delete(DSL.field("user_id").eq(DSL.param("#{userId}"))
-                                .and(DSL.field("target").eq(DSL.param("#{target}"))),
+        permissionMapper.delete(DSL.field("user_id").eq(DSL.param("userId"))
+                                .and(DSL.field("target").eq(DSL.param("target"))),
                         Map.of("userId", userId, "permission", permission, "target", resourceId))
                 .compose(_ -> permissionMapper.save(p))
                 .compose(_ -> Future.fromCompletionStage(cacheStore.delete("permissions" + userId)))

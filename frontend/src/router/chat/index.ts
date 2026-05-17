@@ -13,15 +13,6 @@ const router = createRouter({
 })
 router.beforeEach(
   async (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
-    const { conversationToken } = useStore()
-    if (!conversationToken.getApplicationId()) {
-      if (to.params.applicationId) {
-        conversationToken.setApplicationId(to.params.applicationId as string)
-      }
-      if (from.params.applicationId) {
-        conversationToken.setApplicationId(from.params.applicationId as string)
-      }
-    }
     next()
   },
 )

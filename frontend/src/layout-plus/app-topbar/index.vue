@@ -46,7 +46,7 @@
           <Avatar
             class="cursor-pointer"
             @click="toggle"
-            image="https://primefaces.org/cdn/primevue/images/avatar/amyelsner.png"
+            :image="user.user?.icon?resetUrl(user.user?.icon):''"
             shape="circle"
           />
           <Menu ref="menuRef" :model="_buttons" :popup="true"></Menu>
@@ -65,6 +65,7 @@ import { computed } from 'vue'
 import { PermissionConstants } from '@/permission/data'
 import { hasPermission } from '@/permission'
 import { Role } from '@/permission/common'
+import { resetUrl} from "@/utils/common"
 const { user } = useStore()
 const menuRef = ref()
 const toggle = (event: any) => {

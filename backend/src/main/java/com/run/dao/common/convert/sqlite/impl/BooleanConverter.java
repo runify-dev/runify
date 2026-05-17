@@ -22,6 +22,10 @@ public class BooleanConverter extends AbstractConverter<Boolean, Integer> {
 
     @Override
     public Boolean deserialize(Row row, String column) {
-        return row.getInteger(column) != 0;
+        int pos = row.getColumnIndex(column);
+        if (pos == -1) {
+            return Boolean.FALSE;
+        }
+        return row.getInteger(pos) != 0;
     }
 }

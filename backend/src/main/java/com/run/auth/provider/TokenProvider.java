@@ -4,6 +4,7 @@ import com.auth0.jwt.interfaces.Claim;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.run.auth.constants.PermissionConstants;
 import com.run.auth.constants.PermissionDataConstants;
+import com.run.auth.dto.TokenDTO;
 import com.run.auth.dto.UserProfile;
 import com.run.common.cache.CacheStore;
 import com.run.common.util.CommonUtils;
@@ -65,11 +66,11 @@ public class TokenProvider implements AuthenticationProvider {
     private ProjectMapper projectMapper;
     private CacheStore cacheStore;
 
-    Map<PermissionConstants.ResourcePermissionGroup, String> view =
-            Map.of(PermissionConstants.ResourcePermissionGroup.NOT_AUTH, "#{permissionNotAuth}",
-                    PermissionConstants.ResourcePermissionGroup.VIEW, "#{permissionView}",
-                    PermissionConstants.ResourcePermissionGroup.MANAGE, "#{permissionManage}",
-                    PermissionConstants.ResourcePermissionGroup.ROLE, "#{permissionRole}");
+    final static Map<PermissionConstants.ResourcePermissionGroup, String> view =
+            Map.of(PermissionConstants.ResourcePermissionGroup.NOT_AUTH, "permissionNotAuth",
+                    PermissionConstants.ResourcePermissionGroup.VIEW, "permissionView",
+                    PermissionConstants.ResourcePermissionGroup.MANAGE, "permissionManage",
+                    PermissionConstants.ResourcePermissionGroup.ROLE, "permissionRole");
 
 
     public TokenProvider(Pool pool, SQLDialect dbType) {
@@ -112,7 +113,7 @@ public class TokenProvider implements AuthenticationProvider {
         this.cacheStore = cacheStore;
     }
 
-    public <Permission extends BaseEntity<Permission>,
+    public static <Permission extends BaseEntity<Permission>,
             PermissionMapper extends BaseMapper<Permission>,
             Relation extends BaseEntity<Relation>,
             RelationMapper extends BaseMapper<Relation>>
@@ -128,7 +129,7 @@ public class TokenProvider implements AuthenticationProvider {
                 .select(targetField)
                 .from(permissionMapper.getTable())
                 .where(permissionField.eq(DSL.param("permission", DSL.param(view.get(resourcePermissionGroup)))))
-                .and(userIdField.eq(DSL.param("#{userId}")));
+                .and(userIdField.eq(DSL.param("userId")));
         var otherTargets = permissionMapper.getDslContext()
                 .select(targetField)
                 .from(permissionMapper.getTable())
@@ -138,7 +139,7 @@ public class TokenProvider implements AuthenticationProvider {
                                 .map(Map.Entry::getValue).map(DSL::param)
                                 .toList()
                 ))
-                .and(userIdField.eq(DSL.param("#{userId}")));
+                .and(userIdField.eq(DSL.param("userId")));
 
         var otherDescendants = relationMapper.getDslContext()
                 .select(descendantId)
@@ -213,8 +214,8 @@ public class TokenProvider implements AuthenticationProvider {
     public Future<User> authenticate(Credentials credentials) {
         TokenCredentials tokenCredentials = (TokenCredentials) credentials;
         String token = tokenCredentials.getToken();
-        Map<String, Claim> data = JWTUtil.decodeToken(token);
-        String userId = data.get("id").asString();
+        TokenDTO tokenDTO = TokenDTO.newInstance(token);
+        String userId = tokenDTO.getId();
         CompletableFuture<Optional<com.run.dao.entity.User>> userFuture = cacheStore
                 .get("user:" + userId, com.run.dao.entity.User.class)
                 .thenCompose(ok -> {

@@ -89,6 +89,7 @@ CREATE TABLE "application" (
                                "setting" TEXT,
                                "star" integer(2),
                                "share" integer(2),
+                               "allow_anonymous_access" integer(2),
                                "create_time" TIMESTAMP,
                                "update_time" TIMESTAMP,
                                PRIMARY KEY ("id")

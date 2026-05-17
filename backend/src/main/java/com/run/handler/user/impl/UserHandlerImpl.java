@@ -1,6 +1,8 @@
 package com.run.handler.user.impl;
 
 
+import com.run.auth.constants.TokenTypeConstants;
+import com.run.auth.dto.TokenDTO;
 import com.run.auth.dto.UserProfile;
 import com.run.common.exception.ApiException;
 import com.run.common.query.Query;
@@ -22,6 +24,7 @@ import com.run.sql.condition.Condition;
 import com.run.sql.model.Field;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.sqlclient.Pool;
 import org.apache.commons.lang3.StringUtils;
@@ -119,8 +122,8 @@ public class UserHandlerImpl implements IUserHandler {
                     .onSuccess(rows -> {
                         if (rows.size() > 0) {
                             User user = rows.iterator().next();
-                            String token = JWTUtil.getToken(Map.of("id", user.getId().toString()));
-                            context.end(Result.success(token).toBuffer());
+                            TokenDTO tokenDTO = new TokenDTO(TokenTypeConstants.USER, user.getId().toString(), new JsonObject());
+                            context.end(Result.success(tokenDTO.toToken()).toBuffer());
                         } else {
                             context.end(Result.error("用户名或者密码错误").toBuffer());
                         }

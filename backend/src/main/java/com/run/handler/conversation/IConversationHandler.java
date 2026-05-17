@@ -70,4 +70,14 @@ public interface IConversationHandler {
     void statusStream(RoutingContext context);
 
     void cancel(RoutingContext routingContext);
+
+    void query(RoutingContext routingContext);
+
+    void login(RoutingContext routingContext);
+
+    void userProfile(RoutingContext context);
+
+    void application(RoutingContext context);
+
+    void authProfile(RoutingContext context);
 }

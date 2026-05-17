@@ -62,6 +62,24 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
     }
 
     @Override
+    public int getPromptTokens() {
+        JsonObject usage = this.context.getJsonObject("usage");
+        if (usage != null) {
+            return usage.getInteger("prompt_tokens");
+        }
+        return super.getPromptTokens();
+    }
+
+    @Override
+    public int getCompletionTokens() {
+        JsonObject usage = this.context.getJsonObject("usage");
+        if (usage != null) {
+            return usage.getInteger("completion_tokens");
+        }
+        return super.getPromptTokens();
+    }
+
+    @Override
     public void cancel() {
         super.cancel();
         AsyncStreamResponse<?> response = this.streamResponse;
@@ -212,6 +230,7 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
                                 workFlowManage.writeContext(node, "reasoningContent", complete.getAdditionalProperty("reasoning_content").orElse(null));
                                 workFlowManage.writeContext(node, "refusal", complete.getRefusal());
                                 workFlowManage.writeContext(node, "isRefusal", complete.isRefusal());
+                                workFlowManage.writeContext(node, "usage", complete.getUsage().orElse(null));
                                 JsonArray toolCalls = new JsonArray();
                                 for (ChatCompletionAccumulator.AccumulatedToolCall toolCall : complete.getToolCalls()) {
                                     JsonObject entries = JsonObject.mapFrom(toolCall);

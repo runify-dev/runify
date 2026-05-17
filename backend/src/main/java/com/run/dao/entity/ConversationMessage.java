@@ -46,6 +46,15 @@ public class ConversationMessage implements BaseEntity<ConversationMessage> {
     @Column(name = "context")
     private JsonArray context;
 
+    @Column(name = "prompt_tokens")
+    private Integer promptTokens;
+
+    @Column(name = "completion_tokens")
+    private Integer completionTokens;
+
+    @Column(name = "duration")
+    private Long duration;
+
     @Column(name = "create_time")
     private LocalDateTime createTime;
 

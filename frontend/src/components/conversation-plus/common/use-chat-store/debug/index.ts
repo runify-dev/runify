@@ -45,6 +45,16 @@ export function useChatStore() {
   const route = useRoute()
   const applicationId = computed(() => route.params.id as string)
 
+  // ─── 应用信息 ─────────────────────────────────────────────────
+  const appInfo = ref<{ name: string; icon: string } | null>(null)
+
+  const fetchAppInfo = async () => {
+    try {
+      const res = await applicationAPI.getApplicationInfo(applicationId.value)
+      appInfo.value = { name: res.data.name || '', icon: res.data.icon || '' }
+    } catch {}
+  }
+
   // ─── 会话 CRUD ─────────────────────────────────────────────────
   const { chats, hasMore, loadingMore, pageConversation, loadMore, total } = useConversationCrud({
     pageConversationAPI: (query: any, loading?: Ref<boolean>) => {
@@ -183,7 +193,7 @@ export function useChatStore() {
     const trimmed = name.trim()
     if (!trimmed) return
 
-    conversationAPI.modifyName(id, trimmed).then(() => {
+    conversationAPI.modifyName(applicationId.value, id, trimmed).then(() => {
       const c = chats.value.find((x) => x.id === id)
       if (c) c.name = trimmed
     })
@@ -233,6 +243,7 @@ export function useChatStore() {
       query = { currentPage: 1, pageSize: 30 }
     }
 
+    fetchAppInfo()
     await pageConversation(query, loading)
 
     if (conversationId.value) {
@@ -242,6 +253,7 @@ export function useChatStore() {
 
   return {
     // 状态
+    appInfo,
     chats,
     messages,
     conversationId,

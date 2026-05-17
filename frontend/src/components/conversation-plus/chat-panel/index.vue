@@ -2,6 +2,17 @@
   <main class="main">
     <!-- Topbar -->
     <header class="bar">
+      <button v-if="showBack" class="hbtn" @click="goBack">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path
+            d="M10 3L5 8l5 5"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </button>
       <button class="hbtn" @click="$emit('toggle')">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
           <path
@@ -12,7 +23,13 @@
           />
         </svg>
       </button>
-      <span class="bar-title">{{ current?.name || '新建对话' }}</span>
+      <div class="bar-app">
+        <img v-if="appInfo?.icon" :src="appInfo.icon" class="bar-icon" />
+        <div class="bar-info">
+          <span v-if="appInfo?.name" class="bar-app-name">{{ appInfo.name }}</span>
+          <span class="bar-title">{{ current?.name || '新建对话' }}</span>
+        </div>
+      </div>
       <slot name="header"></slot>
     </header>
 
@@ -187,10 +204,11 @@ import CodePreview from '@/components/conversation-plus/code-preview/index.vue'
 import { randomId } from '@/utils/common'
 import FileAPI from '@/api/file'
 
-const props = defineProps<{ type: 'DEBUG' | 'CONVERSATION' }>()
+const props = defineProps<{ type: 'DEBUG' | 'CONVERSATION' | 'ADMIN_CONVERSATION' }>()
 const emit = defineEmits<{ toggle: []; chanage: []; close: [] }>()
 
 const {
+  appInfo,
   messages,
   current,
   msgLoading,
@@ -209,7 +227,10 @@ const {
   statusStream,
   resumeStream,
   setStreamIndex,
-  clearStreamIndex
+  clearStreamIndex,
+
+  showBack,
+  goBack
 } = useChatStore(props.type)
 
 const focused = ref(false)
@@ -655,14 +676,46 @@ onUnmounted(() => {
   z-index: 50;
 }
 
-.bar-title {
+.bar-app {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   flex: 1;
-  font-size: 13.5px;
+  min-width: 0;
+}
+
+.bar-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.bar-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.bar-app-name {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--t3);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bar-title {
+  font-size: 13px;
   font-weight: 500;
   color: var(--t1);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.3;
 }
 
 /* 消息区 */

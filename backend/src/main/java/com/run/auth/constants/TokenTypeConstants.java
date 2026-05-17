@@ -6,7 +6,7 @@ package com.run.auth.constants;
  * {@code @Version 1.0}
  * {@code @注释: }
  */
-public enum ConversationTypeConstants {
+public enum TokenTypeConstants {
     /**
      * 匿名
      */
@@ -14,5 +14,5 @@ public enum ConversationTypeConstants {
     /**
      * 登陆
      */
-    LOGIN
+    USER
 }

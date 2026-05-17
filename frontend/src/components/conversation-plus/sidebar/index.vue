@@ -2,7 +2,8 @@
   <aside class="sb" :class="[`sb--${mode}`, open && 'sb--open']">
     <!-- 头部 -->
     <div class="sb-head">
-      <span class="sb-title">AI Chat</span>
+      <img v-if="appInfo?.icon" :src="appInfo.icon" class="sb-icon" />
+      <span class="sb-title">{{ appInfo?.name || 'AI Chat' }}</span>
     </div>
 
     <!-- 会话列表 -->
@@ -79,16 +80,78 @@
         <span class="icon">{{ isDark ? '☀' : '☾' }}</span>
         {{ isDark ? t('conversation.lightMode') : t('conversation.darkMode') }}
       </button>
+      <!-- 用户头像入口 -->
+      <div v-if="tokenStore.isLogged" class="sb-user" @click="togglePopover">
+        <img v-if="userIcon" :src="resetUrl(userIcon)" class="sb-user-icon" />
+        <span v-else class="sb-user-avatar">{{ userAvatar }}</span>
+        <span class="sb-user-name">{{ tokenStore.displayName }}</span>
+      </div>
     </div>
+
+    <!-- 用户 Popover -->
+    <Popover ref="popoverRef">
+      <div class="sb-pop">
+        <div v-if="!tokenStore.isAnonymous" class="sb-pop-user" @click="showProfileDialog = true; popoverRef?.hide()">
+          <img v-if="userIcon" :src="resetUrl(userIcon)" class="sb-pop-icon" />
+          <span v-else class="sb-pop-avatar">{{ userAvatar }}</span>
+          <div class="sb-pop-info">
+            <span class="sb-pop-name">{{ tokenStore.displayName }}</span>
+            <span class="sb-pop-email">{{ profile?.user?.email }}</span>
+          </div>
+          <i class="pi pi-chevron-right sb-pop-arrow" />
+        </div>
+        <div v-if="!tokenStore.isAnonymous" class="sb-pop-divider" />
+        <button class="sb-pop-logout" @click="handleLogout">
+          <i class="pi pi-power-off" />
+          <span>退出登录</span>
+        </button>
+      </div>
+    </Popover>
+
+    <!-- 用户信息 Dialog -->
+    <Dialog v-model:visible="showProfileDialog" modal :style="{ width: '360px' }" :pt="{ content: { class: 'pt-0' } }">
+      <template #header><span /></template>
+      <div class="sb-dialog">
+        <div class="sb-dialog-header">
+          <img v-if="userIcon" :src="resetUrl(userIcon)" class="sb-dialog-icon" />
+          <span v-else class="sb-dialog-avatar">{{ userAvatar }}</span>
+          <h3 class="sb-dialog-name">{{ profile?.user?.nickname || profile?.user?.username }}</h3>
+          <span v-if="profile?.type === 'ANONYMOUS'" class="sb-dialog-tag">匿名</span>
+        </div>
+        <div v-if="!tokenStore.isAnonymous" class="sb-dialog-fields">
+          <div v-if="profile?.user?.username" class="sb-dialog-row">
+            <span class="sb-dialog-label">用户名</span>
+            <span class="sb-dialog-value">{{ profile.user.username }}</span>
+          </div>
+          <div v-if="profile?.user?.email" class="sb-dialog-row">
+            <span class="sb-dialog-label">邮箱</span>
+            <span class="sb-dialog-value">{{ profile.user.email }}</span>
+          </div>
+          <div v-if="profile?.user?.phone" class="sb-dialog-row">
+            <span class="sb-dialog-label">手机</span>
+            <span class="sb-dialog-value">{{ profile.user.phone }}</span>
+          </div>
+          <div v-if="profile?.user?.createTime" class="sb-dialog-row">
+            <span class="sb-dialog-label">注册时间</span>
+            <span class="sb-dialog-value">{{ profile.user.createTime }}</span>
+          </div>
+        </div>
+      </div>
+    </Dialog>
   </aside>
 </template>
 
 <script setup lang="ts">
 import { ref, nextTick, onMounted, computed } from 'vue'
 import VirtualScroller from 'primevue/virtualscroller'
+import Popover from 'primevue/popover'
+import Dialog from 'primevue/dialog'
 import { useChatStore } from '../common/use-chat-store/index'
+import useConversationTokenStore from '@/stores/converstaion/modules/conversation-token'
 import { t } from '@/locales'
+import {resetUrl} from "@/utils/common"
 import type { FlatItem } from '@/components/conversation-plus/common/types'
+import bus from '@/bus/index'
 
 // ─── 行高常量（必须与 CSS 一致）────────────────────────────────────
 const LABEL_H = 28
@@ -99,7 +162,7 @@ const props = defineProps<{
   open: boolean
   mode: 'push' | 'drawer'
   isDark: boolean
-  type: 'DEBUG' | 'CONVERSATION'
+  type: 'DEBUG' | 'CONVERSATION' | 'ADMIN_CONVERSATION'
 }>()
 
 const emit = defineEmits<{
@@ -109,7 +172,32 @@ const emit = defineEmits<{
 }>()
 
 // ─── Store ──────────────────────────────────────────────────────────
+const tokenStore = useConversationTokenStore()
+const profile = computed(() => tokenStore.profile)
+const popoverRef = ref<InstanceType<typeof Popover> | null>(null)
+const showProfileDialog = ref(false)
+
+const userIcon = computed(() => {
+  if (tokenStore.isAnonymous) return ''
+  return tokenStore.profile?.user?.icon || ''
+})
+
+const userAvatar = computed(() => {
+  const name = tokenStore.displayName
+  return name ? name.charAt(0) : '?'
+})
+
+const togglePopover = (event: Event) => {
+  popoverRef.value?.toggle(event)
+}
+
+const handleLogout = () => {
+  popoverRef.value?.hide()
+  bus.emit('auth:logout')
+}
+
 const {
+  appInfo,
   toNewConversation,
   flatItems,
   hasMore,
@@ -221,13 +309,25 @@ onMounted(() => {
 .sb-head {
   display: flex;
   align-items: center;
+  gap: 8px;
   padding: 12px 12px 8px;
   flex-shrink: 0;
   color: var(--t1);
 }
+.sb-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
 .sb-title {
   font-size: 13px;
   font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ── 导航区 ───────────────────────────────────────────────────────── */
@@ -413,4 +513,81 @@ onMounted(() => {
 .sb-foot .icon {
   font-size: 12px;
 }
+
+/* ── 用户入口 ─────────────────────────────────────────────────────── */
+.sb-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border-top: 1px solid var(--bd);
+  margin-top: 2px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.12s;
+}
+
+.sb-user:hover {
+  background: var(--hv);
+}
+
+.sb-user-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.sb-user-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--ac);
+  color: var(--t2);
+  font-size: 11px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sb-user-name {
+  flex: 1;
+  font-size: 12px;
+  color: var(--t2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Popover + Dialog（teleported，用 global）────────────────────── */
+
+</style>
+
+<style>
+.sb-pop { min-width: 200px; padding: 4px 0; }
+.sb-pop-user { display: flex; align-items: center; gap: 10px; padding: 10px 12px; cursor: pointer; transition: background 0.12s; }
+.sb-pop-user:hover { background: var(--hv); }
+.sb-pop-icon { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.sb-pop-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--ac); color: var(--t2); font-size: 14px; font-weight: 500; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.sb-pop-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.sb-pop-name { font-size: 13px; font-weight: 500; color: var(--t1); }
+.sb-pop-email { font-size: 11px; color: var(--t3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sb-pop-arrow { font-size: 11px; color: var(--t3); flex-shrink: 0; }
+.sb-pop-divider { height: 1px; background: var(--bd); margin: 4px 0; }
+.sb-pop-logout { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 12px; border: none; background: transparent; color: var(--danger-text); font-size: 12.5px; font-family: inherit; cursor: pointer; transition: background 0.12s; }
+.sb-pop-logout:hover { background: var(--danger-bg); }
+
+.sb-dialog { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 8px 0; }
+.sb-dialog-header { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.sb-dialog-icon { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; }
+.sb-dialog-avatar { width: 56px; height: 56px; border-radius: 50%; background: var(--ac); color: var(--t2); font-size: 22px; font-weight: 500; display: flex; align-items: center; justify-content: center; }
+.sb-dialog-name { font-size: 16px; font-weight: 600; color: var(--t1); margin: 0; }
+.sb-dialog-tag { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: var(--hv); color: var(--t3); }
+.sb-dialog-fields { width: 100%; display: flex; flex-direction: column; gap: 10px; }
+.sb-dialog-row { display: flex; justify-content: space-between; align-items: center; padding: 0 4px; }
+.sb-dialog-label { font-size: 12px; color: var(--t3); }
+.sb-dialog-value { font-size: 12.5px; color: var(--t1); }
 </style>

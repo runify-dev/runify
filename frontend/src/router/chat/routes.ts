@@ -1,4 +1,4 @@
-import type { RouteRecordRaw } from 'vue-router'
+import type {RouteRecordRaw} from 'vue-router'
 
 export const routes: Array<RouteRecordRaw> = [
   {
@@ -12,13 +12,8 @@ export const routes: Array<RouteRecordRaw> = [
     component: () => import('@/views/conversation/index.vue')
   },
   {
-    path: '/login/a/:applicationId/c/:conversationId',
-    name: 'login',
-    component: () => import('@/views/conversation/login/index.vue')
-  },
-  {
-    path: '/login/a/:applicationId',
-    name: 'login-new',
-    component: () => import('@/views/conversation/login/index.vue')
+    path: "/",
+    name: 'home',
+    component: () => import('@/views/conversation/HomePage.vue')
   }
 ]

@@ -76,6 +76,16 @@ export const routes: Array<RouteRecordRaw> = [
     name: 'login',
     component: () => import('@/views/login/index.vue')
   },
+  {
+    path: '/application/:applicationId/chat',
+    name: 'applicationChat',
+    component: () => import('@/views/application/AdminChat.vue')
+  },
+  {
+    path: '/application/:applicationId/chat/:conversationId',
+    name: 'applicationChatConversation',
+    component: () => import('@/views/application/AdminChat.vue')
+  },
   { path: '/403', name: '403', component: () => import('@/views/error/403/index.vue') },
   { path: '/404', name: '404', component: () => import('@/views/error/404/index.vue') }
 ]

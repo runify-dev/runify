@@ -18,5 +18,9 @@ import lombok.Setter;
 @Getter
 @Setter
 public class EditApplicationPojo {
+    private String name;
+    private String desc;
+    private String icon;
+    private Boolean allowAnonymousAccess;
     private JsonObject workflow;
 }

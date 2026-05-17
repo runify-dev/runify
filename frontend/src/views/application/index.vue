@@ -177,12 +177,12 @@
           </template>
         </FlipCard>
       </div>
-      <CreateResourceDialog
-        ref="createResourceDialogRef"
+      <ApplicationFormDialog
+        ref="applicationFormDialogRef"
         :api="treeCommonAPI"
-        name="应用"
-        @create:resource:success="createResourceSuccess"
-      ></CreateResourceDialog>
+        @create:success="createResourceSuccess"
+        @edit:success="editResourceSuccess"
+      ></ApplicationFormDialog>
       <CreateFolderDialog
         @create:folder:success="createFolderSuccess"
         ref="createFolderDialogRef"
@@ -200,7 +200,7 @@
 </template>
 <script setup lang="ts">
 import AppMenuContent from '@/layout-plus/app-menu-content/index.vue'
-import CreateResourceDialog from '@/components/create-resource-dialog/index.vue'
+import ApplicationFormDialog from './component/ApplicationFormDialog.vue'
 import CreateFolderDialog from '@/components/create-folder-dialog/index.vue'
 import RenameDialog from '@/components/rename-dialog/index.vue'
 import DropdownMenu from '@/components/dropdown-menu/index.vue'
@@ -314,23 +314,30 @@ const createResourceSuccess = (key: string, node: any) => {
   expandedKeys.value = { ...expandedKeys.value, [key]: true }
   nodeSelect(treeNode)
 }
+const editResourceSuccess = (id: string, data: any) => {
+  treeManage.value?.updateLabel(id, data.name)
+  bus.emit('application:edit:success', { id, ...data })
+}
 const createFolderSuccess = (key: string, node: any) => {
   const treeNode = toTreeNode({ ...node, type: 'folder' })
   treeManage.value?.addChild(key, treeNode)
   expandedKeys.value = { [key]: true }
   router.push({ name: 'applicationFolders', params: { id: node.id } })
 }
-const createResourceDialogRef = ref<InstanceType<typeof CreateResourceDialog>>()
+const applicationFormDialogRef = ref<InstanceType<typeof ApplicationFormDialog>>()
 const createFolderDialogRef = ref<InstanceType<typeof CreateFolderDialog>>()
 const renameDialogRef = ref<InstanceType<typeof RenameDialog>>()
 const openCreateApplicationDialog = (node?: TreeNode) => {
-  createResourceDialogRef.value?.open(node)
+  applicationFormDialogRef.value?.openCreate(node)
+}
+const openEditApplicationDialog = (data: any) => {
+  applicationFormDialogRef.value?.openEdit(data)
 }
 const openCreateFolderDialog = (node?: TreeNode) => {
   createFolderDialogRef.value?.open(node)
 }
 const openRenameDialog = (node: TreeNode) => {
-  renameDialogRef.value?.open(node.key, node.label, node.data.type === 'folder' ? 'folder' : 'resource')
+  renameDialogRef.value?.open(node.key, node.label || '', node.data.type === 'folder' ? 'folder' : 'resource')
 }
 const renameSuccess = (key: string, node: any) => {
   treeManage.value?.updateLabel(key, node.name)
@@ -352,6 +359,10 @@ onMounted(() => {
     openCreateApplicationDialog(treeNode ? treeNode : undefined)
   })
 
+  bus.on('open:edit:application:dialog', (data: any) => {
+    openEditApplicationDialog(data)
+  })
+
   bus.on('tree:remove', (id: string) => {
     treeManage.value?.remove(id)
   })
@@ -369,6 +380,7 @@ onBeforeUnmount(() => {
   bus.off('tree:remove')
   bus.off('sidebar:flip')
   bus.off('open:create:application:dialog')
+  bus.off('open:edit:application:dialog')
 })
 </script>
 <style lang="scss"></style>

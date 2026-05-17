@@ -36,6 +36,16 @@ public class ApiSpec {
      * @throws ValidationException 校验失败时抛出
      */
     public void validate(RoutingContext context) {
+        List<ValidationException.ValidationError> errors = validateQuietly(context);
+        if (!errors.isEmpty()) {
+            throw new ValidationException(errors);
+        }
+    }
+
+    /**
+     * 校验 RoutingContext，返回错误列表，不抛异常
+     */
+    public List<ValidationException.ValidationError> validateQuietly(RoutingContext context) {
         List<ValidationException.ValidationError> errors = new ArrayList<>();
 
         // Validate path params
@@ -87,9 +97,7 @@ public class ApiSpec {
             errors.addAll(SchemaValidator.validateQuietly("form", toObjectSchema(formParams), formData));
         }
 
-        if (!errors.isEmpty()) {
-            throw new ValidationException(errors);
-        }
+        return errors;
     }
 
     // ===== OpenAPI 转换 =====

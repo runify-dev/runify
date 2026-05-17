@@ -13,6 +13,4 @@ import lombok.Data;
 public class AnonymousLoginVO {
     @NotBlank(message = "浏览器指纹不能为空")
     private String visitorId;
-    @NotBlank(message = "应用id不能为空")
-    private String applicationId;
 }

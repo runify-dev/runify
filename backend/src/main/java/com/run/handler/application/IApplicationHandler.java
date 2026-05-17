@@ -61,4 +61,6 @@ public interface IApplicationHandler extends IResourceHandler<Application> {
      */
     void importApplication(RoutingContext context);
 
+    void mineConversation(RoutingContext context);
+
 }

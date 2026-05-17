@@ -27,7 +27,7 @@ const props = withDefaults(
   defineProps<{
     defaultOpen?: OpenMode
     defaultMode?: LayoutMode
-    type: 'DEBUG' | 'CONVERSATION'
+    type: 'DEBUG' | 'CONVERSATION' | 'ADMIN_CONVERSATION'
   }>(),
   {
     defaultOpen: 'auto',

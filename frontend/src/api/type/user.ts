@@ -20,6 +20,10 @@ interface User {
    */
   icon: string
   /**
+   * 手机号
+   */
+  phone?: string
+  /**
    * 用户角色
    */
   role: string

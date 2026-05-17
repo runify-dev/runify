@@ -117,6 +117,7 @@ public class ApplicationRoute implements IRoute {
         apiRoute.get("/application/permissions/:userId")
                 .handler(tokenBasicAuthHandler)
                 .handler(applicationHandler::listResourcePermission);
+
         apiRoute.put("/application/permissions/:userId/authorization/:resourceId/:permission")
                 .handler(tokenBasicAuthHandler)
                 .handler(applicationHandler::authResourcePermission);

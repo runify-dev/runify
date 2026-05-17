@@ -4,6 +4,7 @@ import type { Ref } from 'vue'
 import type { Result } from '@/request/Result'
 import useStore from '@/stores/converstaion/index'
 import router from '@/router/chat'
+import bus from '@/bus/index'
 
 import { ref, type WritableComputedRef } from 'vue'
 const axiosConfig = {
@@ -42,23 +43,11 @@ instance.interceptors.response.use(
   },
   (err: any) => {
     if (err.response?.status === 401) {
-      const currentRoute = router.currentRoute.value
-      const applicationId = currentRoute.params.applicationId
-      const conversationId = currentRoute.params.conversationId
-
-      if (conversationId) {
-        router.push({
-          name: 'login',
-          params: { applicationId, conversationId }
-        })
-      } else {
-        router.push({
-          name: 'login-new',
-          params: { applicationId }
-        })
-      }
+      bus.emit('auth:401')
     }
-
+    if (err.response?.status === 403) {
+      bus.emit('auth:403')
+    }
     return Promise.reject(err)
   }
 )

@@ -120,7 +120,7 @@ public class LoopNode extends INode<LoopNode, LoopNodeData> {
                 HashMap<String, Map<String, Object>> _context = new HashMap<>();
                 for (int i = 0; i < context.size(); i++) {
                     NodeSerialize nodeSerialize = context.getJsonObject(i).mapTo(NodeSerialize.class);
-                    _context.put(nodeSerialize.getNodeInfo().getId(), nodeSerialize.getContext());
+                    _context.put(nodeSerialize.getNodeInfo().getId(), nodeSerialize.getContext().getMap());
                 }
                 return new DefaultKeyValue<>(wm -> wm.getNode(content.getPosition().id()), _context);
             } else {

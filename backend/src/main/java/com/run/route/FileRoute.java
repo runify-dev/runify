@@ -32,16 +32,22 @@ public class FileRoute implements IRoute {
 
     protected OpenAPI openAPI;
     protected Router uiRoute;
+    protected Router conversationAPIRoute;
     protected IFileHandler iFileHandler;
+    protected Router conversationUIRoute;
 
     @Inject
     public FileRoute(@Named("apiRoute") Router apiRoute,
                      @Named("uiRoute") Router uiRoute,
+                     @Named("conversationAPIRoute") Router conversationAPIRoute,
+                     @Named("conversationUIRoute") Router conversationUIRoute,
                      OpenAPI openAPI, FileHandlerImpl fileHandler) {
         this.apiRoute = apiRoute;
         this.openAPI = openAPI;
         this.uiRoute = uiRoute;
         this.iFileHandler = fileHandler;
+        this.conversationAPIRoute = conversationAPIRoute;
+        this.conversationUIRoute = conversationUIRoute;
     }
 
     @Override
@@ -51,6 +57,15 @@ public class FileRoute implements IRoute {
                         .setDeleteUploadedFilesOnEnd(true))
                 .handler(iFileHandler::upload);
         apiRoute.get("/storage/file/:fileId")
+                .handler(iFileHandler::download);
+        conversationAPIRoute.get("/storage/file/:fileId")
+                .handler(iFileHandler::download);
+
+        conversationAPIRoute.post("/storage/file")
+                .handler(BodyHandler.create().setBodyLimit(Long.MAX_VALUE)
+                        .setDeleteUploadedFilesOnEnd(true))
+                .handler(iFileHandler::upload);
+        conversationUIRoute.getWithRegex("/.*/api/storage/file/(?<fileId>[^\\/]+)")
                 .handler(iFileHandler::download);
         uiRoute.getWithRegex("/.*/api/storage/file/(?<fileId>[^\\/]+)")
                 .handler(iFileHandler::download);

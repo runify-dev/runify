@@ -1,74 +1,105 @@
-import { type Page, Result } from '@/request/Result'
-import { get, post, put, del, postStream } from '@/request/chat/index'
-import type { Ref } from 'vue'
+import {type Page, Result} from '@/request/Result'
+import {get, post, put, del, postStream} from '@/request/chat/index'
+import type {Ref} from 'vue'
+import {type LoginVO, type QueryApplicationVO} from "@/api/type/conversation"
 
-const conversation: (conversationId: string, conversation: any) => Promise<any> = (
+const conversation: (applicationId: string, conversationId: string, conversation: any) => Promise<any> = (
+  applicationId,
   conversationId,
   conversation
 ) => {
-  return postStream(`/conversation/api/conversation/${conversationId}/chat`, conversation)
+  return postStream(`/conversation/api/application/${applicationId}/conversation/${conversationId}/chat`, conversation)
+}
+const queryApplication: (query: QueryApplicationVO) => Promise<any> = (query) => {
+  return get(`/application`, query)
 }
 
-const createConversation = (name: string) => {
-  return post(`/conversation`, { name }, {})
+
+const createConversation = (applicationId: string, name: string) => {
+  return post(`/application/${applicationId}/conversation`, {name}, {})
 }
 const config = (applicationId: string) => {
-  return get('/config', { applicationId })
+  return get(`/application/${applicationId}/config`, {applicationId})
 }
 
 const anonymousLogin: (
-  applicationId: string,
   visitorId: string,
   loading?: Ref<boolean>
-) => Promise<Result<any>> = (applicationId, visitorId, loading) => {
+) => Promise<Result<any>> = (visitorId, loading) => {
   return post(
     `/anonymousLogin`,
     {
-      visitorId,
-      applicationId
+      visitorId
     },
     loading
   )
 }
 
-const pageConversation: (query: any, loading?: Ref<boolean>) => Promise<Result<Page<any>>> = (
+const login: (
+  login: LoginVO,
+  loading?: Ref<boolean>
+) => Promise<Result<any>> = (login, loading) => {
+  return post(
+    `/login`,
+    login,
+    loading
+  )
+}
+
+
+const pageConversation: (applicationId: string, query: any, loading?: Ref<boolean>) => Promise<Result<Page<any>>> = (
+  applicationId,
   query,
   loading
 ) => {
-  return get(`/conversation`, query, loading)
+  return get(`/application/${applicationId}/conversation`, query, loading)
 }
 
 const pageConversationMessage: (
+  applicationId: string,
   conversationId: string,
   query: any,
   loading?: Ref<boolean>
-) => Promise<Result<Page<any>>> = (conversationId, query, loading) => {
-  return get(`/conversation/${conversationId}/message`, query, loading)
+) => Promise<Result<Page<any>>> = (applicationId, conversationId, query, loading) => {
+  return get(`/application/${applicationId}/conversation/${conversationId}/message`, query, loading)
 }
 const modifyName: (
+  applicationId: string,
   conversationId: string,
   name: string,
   loading?: Ref<boolean>
-) => Promise<Result<Page<any>>> = (conversationId, name: string, loading) => {
-  return post(`/conversation/${conversationId}/modify-name`, { name: name }, {}, loading)
+) => Promise<Result<Page<any>>> = (applicationId, conversationId, name: string, loading) => {
+  return post(`/application/${applicationId}/conversation/${conversationId}/modify-name`, {name: name}, {}, loading)
 }
 const delConversation: (
+  applicationId: string,
   conversationId: string,
   loading?: Ref<boolean>
-) => Promise<Result<Page<any>>> = (conversationId, loading) => {
-  return del(`/conversation/${conversationId}`, undefined, undefined, loading)
+) => Promise<Result<Page<any>>> = (applicationId, conversationId, loading) => {
+  return del(`/application/${applicationId}/conversation/${conversationId}`, undefined, undefined, loading)
 }
 
-const resumeStream = (conversationId: string, index: number) => {
-  return postStream(`/conversation/api/conversation/${conversationId}/resume-stream`, {}, { 'Last-Event-ID': index })
+const resumeStream = (applicationId: string, conversationId: string, index: number) => {
+  return postStream(`/application/${applicationId}/conversation/api/conversation/${conversationId}/resume-stream`, {}, {'Last-Event-ID': index})
 }
-const cancel=( conversationId: string)=>{
-  return post(`/conversation/api/conversation/${conversationId}/cancel`,{}, {})
+const cancel = (applicationId: string, conversationId: string) => {
+  return post(`/application/${applicationId}/conversation/api/conversation/${conversationId}/cancel`, {}, {})
 }
-const statusStream = (conversationId: string) => {
-  return get(`/conversation/${conversationId}/status`)
+const statusStream = (applicationId: string, conversationId: string) => {
+  return get(`/application/${applicationId}/conversation/${conversationId}/status`)
+}
+const userProfile = () => {
+  return get('/userProfile')
+}
+const getApplication = (applicationId: string) => {
+  return get(`/application/${applicationId}`)
+}
+const authProfile = (applicationId: string) => {
+  return get(`/application/${applicationId}/auth-profile`)
 }
 export default {
+  queryApplication,
+  login,
   conversation,
   createConversation,
   anonymousLogin,
@@ -79,5 +110,8 @@ export default {
   delConversation,
   resumeStream,
   statusStream,
-  cancel
+  cancel,
+  userProfile,
+  getApplication,
+  authProfile
 }

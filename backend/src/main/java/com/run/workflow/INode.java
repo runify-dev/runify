@@ -1,6 +1,5 @@
 package com.run.workflow;
 
-import com.github.f4b6a3.uuid.UuidCreator;
 import com.run.common.util.CommonUtils;
 import com.run.workflow.entity.Node;
 import com.run.workflow.entity.NodeInfo;
@@ -13,10 +12,8 @@ import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
 import lombok.Getter;
-import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -75,8 +72,16 @@ public abstract class INode<T extends INode, NodeData> {
         nodeInfo.setStatus(this.status);
         nodeInfo.setName(this.getNode().getProperties().getString("name"));
         nodeSerialize.setNodeInfo(nodeInfo);
-        nodeSerialize.setContext(this.getContext().getMap());
+        nodeSerialize.setContext(this.getContext());
         return nodeSerialize;
+    }
+
+    public int getPromptTokens() {
+        return 0;
+    }
+
+    public int getCompletionTokens() {
+        return 0;
     }
 
     public Boolean getNodeDisplaySingle(Node node) {

@@ -37,9 +37,15 @@
           <!-- 头部：图标 + 操作按钮 -->
           <div class="flex items-start justify-between">
             <div
-              class="w-10 h-10 rounded-xl bg-primary-50 flex items-center justify-center text-primary-500 text-lg shrink-0"
+              class="w-10 h-10 rounded-xl bg-primary-50 flex items-center justify-center text-primary-500 text-lg shrink-0 overflow-hidden"
             >
-              <i class="pi pi-th-large" />
+              <img
+                v-if="item.icon"
+                :src="item.icon"
+                alt="icon"
+                class="w-full h-full object-cover"
+              />
+              <i v-else class="pi pi-th-large" />
             </div>
 
             <div @click.stop>
@@ -99,7 +105,7 @@
 
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { type Node } from '@/api/type/node'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
@@ -237,5 +243,10 @@ watch(folderId, () => {
 onMounted(() => {
   forderInfo()
   lisResource()
+  bus.on('application:edit:success', lisResource)
+})
+
+onUnmounted(() => {
+  bus.off('application:edit:success', lisResource)
 })
 </script>

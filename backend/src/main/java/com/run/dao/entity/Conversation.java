@@ -1,5 +1,6 @@
 package com.run.dao.entity;
 
+import com.run.auth.constants.TokenTypeConstants;
 import com.run.common.constants.ConversationExecuteConstants;
 import com.run.common.constants.ConversationUserConstants;
 import com.run.dao.common.annotations.Column;
@@ -45,7 +46,7 @@ public class Conversation implements BaseEntity<Conversation> {
     private String conversationUserId;
 
     @Column(name = "conversation_user_type")
-    private ConversationUserConstants conversationUserType;
+    private TokenTypeConstants conversationUserType;
 
     @Column(name = "star_num")
     private Integer starNum;

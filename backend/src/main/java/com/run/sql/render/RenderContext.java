@@ -38,10 +38,12 @@ public final class RenderContext {
                         : preferredName
         );
 
+        Object prepared = dialect.prepareBindValue(value);
+
         String name = base;
         if (params.containsKey(name)) {
             Object oldValue = params.get(name);
-            if (Objects.equals(oldValue, value)) {
+            if (Objects.equals(oldValue, prepared)) {
                 return "#{" + name + "}";
             }
 
@@ -51,20 +53,30 @@ public final class RenderContext {
             } while (params.containsKey(name));
         }
 
-        params.put(name, value);
+        params.put(name, prepared);
         return "#{" + name + "}";
     }
 
     public void putNamedParam(String name, Object value) {
         String normalized = normalizeParamName(name);
-        if (params.containsKey(normalized) && !Objects.equals(params.get(normalized), value)) {
+        Object prepared = dialect.prepareBindValue(value);
+        if (params.containsKey(normalized) && !Objects.equals(params.get(normalized), prepared)) {
             throw new IllegalArgumentException("重复参数名但值不同: " + normalized);
         }
-        params.put(normalized, value);
+        params.put(normalized, prepared);
     }
 
     public String paramTemplate(String name) {
         return "#{" + normalizeParamName(name) + "}";
+    }
+
+    /**
+     * Register a named parameter without binding a value.
+     * The actual value will be provided at execution time via the params map.
+     */
+    public void registerParamName(String name) {
+        String normalized = normalizeParamName(name);
+        params.putIfAbsent(normalized, null);
     }
 
     public String identifier(String name) {

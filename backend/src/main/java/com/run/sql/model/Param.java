@@ -18,6 +18,18 @@ public final class Param<T> implements Value<T> {
         this.hasValue = hasValue;
     }
 
+    public String name() {
+        return name;
+    }
+
+    public boolean hasName() {
+        return name != null && !name.isBlank();
+    }
+
+    public boolean isNamedOnly() {
+        return !hasValue;
+    }
+
     public static <T> Param<T> of(String name, T value) {
         return new Param<>(name, value, true);
     }

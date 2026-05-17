@@ -2,6 +2,7 @@ package com.run.sql.dialect.renderer;
 
 import com.run.sql.Value;
 import com.run.sql.model.Field;
+import com.run.sql.model.Param;
 import com.run.sql.query.SelectQuery;
 import com.run.sql.render.RenderContext;
 
@@ -71,8 +72,19 @@ public class StandardConditionRenderer implements ConditionRenderer {
     protected String renderInChunk(RenderContext ctx, Field<?> field, List<?> list, String baseName, boolean not, int offset) {
         List<String> holders = new ArrayList<>(list.size());
         for (int i = 0; i < list.size(); i++) {
-            String name = baseName == null ? null : baseName + "_" + (offset + i);
-            holders.add(ctx.bind(name, list.get(i)));
+            Object item = list.get(i);
+            if (item instanceof Param<?> p && p.isNamedOnly()) {
+                ctx.registerParamName(p.name());
+                holders.add(ctx.paramTemplate(p.name()));
+            } else {
+                String name;
+                if (item instanceof Param<?> p && p.hasName()) {
+                    name = p.name();
+                } else {
+                    name = baseName == null ? null : baseName + "_" + (offset + i);
+                }
+                holders.add(ctx.bind(name, item));
+            }
         }
         return field.renderRef(ctx)
                 + (not ? " not in " : " in ")

@@ -595,6 +595,28 @@ export const applyPatchNode = {
   }
 }
 
+export const staticFileNode = {
+  type: 'static-file-node',
+  text: '',
+  x: 0,
+  y: 0,
+  label: '静态文件',
+  properties: {
+    width: 200,
+    height: 50,
+    name: '静态文件',
+    isHovered: false,
+    field_list: [
+      { label: '访问地址', value: 'url' },
+      { label: '部署ID', value: 'deployId' }
+    ],
+    nodeData: {
+      fileId: '',
+      fileName: ''
+    }
+  }
+}
+
 export const contextPushNode = {
   type: 'context-push-node',
   text: '',

@@ -1,16 +1,17 @@
-import { computed, reactive } from 'vue'
-import { formatDateTime } from '@/utils/common'
-import { useRouter, useRoute } from 'vue-router'
-import type { Ref } from 'vue'
-import type { Conversation, FlatLabel, FlatItem, FlatRow } from '../../types'
-import { GroupKey } from '../../types'
+import {computed, reactive, ref} from 'vue'
+import {formatDateTime} from '@/utils/common'
+import {useRouter, useRoute} from 'vue-router'
+import type {Ref} from 'vue'
+import type {Conversation, FlatLabel, FlatItem, FlatRow} from '../../types'
+import {GroupKey} from '../../types'
 import conversationAPI from '@/api/conversation'
-import type { QueryConversationVO } from '@/api/type/conversation'
+import type {QueryConversationVO} from '@/api/type/conversation'
 import dayjs from 'dayjs'
-import { t } from '@/locales'
-import { useStreamManager } from '../shared/use-stream-manager'
-import { useMessagePagination } from '../shared/use-message-pagination'
-import { useConversationCrud } from '../shared/use-conversation-crud'
+import {t} from '@/locales'
+import {useStreamManager} from '../shared/use-stream-manager'
+import {useMessagePagination} from '../shared/use-message-pagination'
+import {useConversationCrud} from '../shared/use-conversation-crud'
+import useConversationTokenStore from '@/stores/converstaion/modules/conversation-token'
 
 const GROUP_I18N_KEY: Record<GroupKey, string> = {
   [GroupKey.Today]: 'conversation.group.today',
@@ -61,11 +62,27 @@ function getGroupKey(createTime: string): GroupKey {
 export function useChatStore() {
   const route = useRoute()
   const router = useRouter()
+  const tokenStore = useConversationTokenStore()
+
+  // ─── 登录守卫 ───────────────────────────────────────────────────
+  const isLogged = computed(() => tokenStore.isLogged)
+  const requireAuth = (): boolean => !!tokenStore.token
+
+  // ─── 应用信息 ─────────────────────────────────────────────────
+  const appInfo = ref<{ name: string; icon: string } | null>(null)
+
+  const fetchAppInfo = async () => {
+    if (!requireAuth()) return
+    try {
+      const res = await conversationAPI.getApplication(applicationId.value)
+      appInfo.value = { name: res.data.name || '', icon: res.data.icon || '' }
+    } catch {}
+  }
 
   // ─── 会话 CRUD ─────────────────────────────────────────────────
-  const { chats, hasMore, loadingMore, pageConversation, loadMore } = useConversationCrud({
+  const {chats, hasMore, loadingMore, pageConversation, loadMore} = useConversationCrud({
     pageConversationAPI: (query: any, loading?: Ref<boolean>) => {
-      return conversationAPI.pageConversation(query, loading)
+      return conversationAPI.pageConversation(applicationId.value, query, loading)
     }
   })
 
@@ -86,7 +103,7 @@ export function useChatStore() {
     clearMsgState
   } = useMessagePagination({
     pageConversationMessage: (cid: string, query: any) => {
-      return conversationAPI.pageConversationMessage(cid, query)
+      return conversationAPI.pageConversationMessage(applicationId.value, cid, query)
     },
     getCurrentName: () => current.value?.name,
     getCurrentCreateTime: () => current.value?.createTime
@@ -115,9 +132,9 @@ export function useChatStore() {
   // ─── 分组 ─────────────────────────────────────────────────────
   const flatItems = computed<FlatRow[]>(() => {
     const buckets = Object.fromEntries(GROUPS.map((g) => [g, [] as Conversation[]])) as Record<
-      GroupKey,
-      Conversation[]
-    >
+        GroupKey,
+        Conversation[]
+      >
 
     ;[...chats.value]
       .sort((a, b) => dayjs(b.createTime).valueOf() - dayjs(a.createTime).valueOf())
@@ -128,8 +145,8 @@ export function useChatStore() {
       if (!items.length) return []
 
       return [
-        { type: 'label', label: t(GROUP_I18N_KEY[key]) } as FlatLabel,
-        ...items.map((c) => ({ type: 'item', ...c }) as FlatItem)
+        {type: 'label', label: t(GROUP_I18N_KEY[key])} as FlatLabel,
+        ...items.map((c) => ({type: 'item', ...c}) as FlatItem)
       ]
     })
   })
@@ -147,12 +164,13 @@ export function useChatStore() {
 
   const toNewConversation = () => {
     messages.value = []
-    router.push({ name: 'conversation-new' })
+    router.push({name: 'conversation-new'})
   }
 
   // ─── 会话操作 ─────────────────────────────────────────────────
   const newChat = async (name?: string) => {
-    const res = await conversationAPI.createConversation( name&&name?.length>0 ? name: t('conversation.newChat'))
+    if (!requireAuth()) return undefined as any
+    const res = await conversationAPI.createConversation(applicationId.value, name && name?.length > 0 ? name : t('conversation.newChat'))
 
     chats.value.unshift(res.data)
 
@@ -168,7 +186,8 @@ export function useChatStore() {
   const switchChat = (id: string) => toConversation(id)
 
   const deleteChat = async (id: string) => {
-    await conversationAPI.delConversation(id)
+    if (!requireAuth()) return
+    await conversationAPI.delConversation(applicationId.value, id)
 
     const idx = chats.value.findIndex((c) => c.id === id)
     if (idx < 0) return
@@ -180,7 +199,7 @@ export function useChatStore() {
 
     if (!chats.value.length) {
       messages.value = []
-      router.push({ name: 'conversation-new' })
+      router.push({name: 'conversation-new'})
       return
     }
 
@@ -191,38 +210,43 @@ export function useChatStore() {
   }
 
   const renameChat = (id: string, name: string) => {
+    if (!requireAuth()) return
     const trimmed = name.trim()
     if (!trimmed) return
 
-    conversationAPI.modifyName(id, trimmed).then(() => {
+    conversationAPI.modifyName(applicationId.value, id, trimmed).then(() => {
       const c = chats.value.find((x) => x.id === id)
       if (c) c.name = trimmed
     })
   }
 
   const chat = (q: any) => {
+    if (!requireAuth()) return Promise.reject(new Error('not logged in'))
     const cid = conversationId.value
     if (!cid) throw new Error('conversationId is empty')
-    return conversationAPI.conversation(cid, q)
+    return conversationAPI.conversation(applicationId.value, cid, q)
   }
 
   // ─── 流式操作 ─────────────────────────────────────────────────
   const statusStream = () => {
+    if (!requireAuth()) return Promise.reject(new Error('not logged in'))
     const cid = conversationId.value
     if (!cid) throw new Error('conversationId is empty')
-    return conversationAPI.statusStream(cid)
+    return conversationAPI.statusStream(applicationId.value, cid)
   }
 
   const resumeStream = () => {
+    if (!requireAuth()) return Promise.reject(new Error('not logged in'))
     const cid = conversationId.value
     if (!cid) throw new Error('conversationId is empty')
     const index = getStoredStreamIndex(cid)
-    return conversationAPI.resumeStream(cid, index)
+    return conversationAPI.resumeStream(applicationId.value, cid, index)
   }
-  const cancel=()=>{
-     const cid = conversationId.value
+  const cancel = () => {
+    if (!requireAuth()) return Promise.reject(new Error('not logged in'))
+    const cid = conversationId.value
     if (!cid) throw new Error('conversationId is empty')
-    return conversationAPI.cancel(cid)
+    return conversationAPI.cancel(applicationId.value, cid)
   }
   const setStreamIndex = (index: number) => {
     const cid = conversationId.value
@@ -236,10 +260,12 @@ export function useChatStore() {
 
   // ─── 初始化 ───────────────────────────────────────────────────
   const init = async (query?: QueryConversationVO, loading?: Ref<boolean>) => {
+    if (!requireAuth()) return
     if (!query) {
-      query = { currentPage: 1, pageSize: 30 }
+      query = {currentPage: 1, pageSize: 30}
     }
 
+    fetchAppInfo()
     await pageConversation(query, loading)
 
     if (conversationId.value) {
@@ -249,6 +275,8 @@ export function useChatStore() {
 
   return {
     // 状态
+    isLogged,
+    appInfo,
     chats,
     messages,
     conversationId,
@@ -266,9 +294,9 @@ export function useChatStore() {
     // 会话操作
     init,
     pageConversation,
-    loadMore,
+    loadMore: () => { if (requireAuth()) return loadMore() },
     loadMessages,
-    loadMoreMessages: () => loadMoreMessages(conversationId.value),
+    loadMoreMessages: () => { if (requireAuth()) return loadMoreMessages(conversationId.value) },
     newChat,
     switchChat,
     deleteChat,
@@ -286,7 +314,13 @@ export function useChatStore() {
     // stream manager（供 chat-panel 直接调用）
     startStream: streamManager.startStream,
     cancelStream: streamManager.cancelStream,
-    switchConversation: (opts: { cid: string; getOnStream: () => (chunk: any) => void; onFinish?: () => void; onFailure?: () => void; skipLoadMessages?: boolean }) => {
+    switchConversation: (opts: {
+      cid: string;
+      getOnStream: () => (chunk: any) => void;
+      onFinish?: () => void;
+      onFailure?: () => void;
+      skipLoadMessages?: boolean
+    }) => {
       return streamManager.switchConversation({
         ...opts,
         loadMessages,

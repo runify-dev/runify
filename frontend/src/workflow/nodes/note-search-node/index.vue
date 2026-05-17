@@ -5,7 +5,7 @@
 </template>
 <script setup lang="ts">
 import SimpleNodeContainer from '@/workflow/common/SimpleNodeContainer.vue'
-import type { BaseNodeModel } from '@logicFlow/core'
+import type { BaseNodeModel } from '@logicflow/core'
 import Content from './content/index.vue'
 import { inject, ref } from 'vue'
 import { useNodeValidator } from '@/workflow/common/useNodeValidator'

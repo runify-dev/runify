@@ -134,11 +134,11 @@ const validate = () => {
   return Promise.resolve({ values, errors: valid ? {} : errors })
 }
 
-const submit = () => {
+const submit = (): Promise<Record<string, string>> => {
   return validate().then(({ values, errors: errs }) => {
     if (Object.keys(errs).length === 0) {
       model.properties.nodeData = values
-      return Promise.resolve(values)
+      return Promise.resolve({} as Record<string, string>)
     }
     return Promise.resolve(errs)
   })

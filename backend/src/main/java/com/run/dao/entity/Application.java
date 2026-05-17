@@ -1,6 +1,7 @@
 package com.run.dao.entity;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.run.auth.constants.TokenTypeConstants;
 import com.run.dao.common.annotations.Column;
 import com.run.dao.common.annotations.Table;
 import com.run.dao.common.entity.BaseEntity;
@@ -72,6 +73,11 @@ public class Application implements BaseEntity<Application> {
      */
     @Column(name = "share")
     private Boolean share;
+    /**
+     * 是否开启匿名访问
+     */
+    @Column(name = "allow_anonymous_access")
+    private Boolean allowAnonymousAccess;
 
     @Column(name = "create_time")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")

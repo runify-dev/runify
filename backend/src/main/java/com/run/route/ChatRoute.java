@@ -60,9 +60,18 @@ public class ChatRoute implements IRoute {
         apiRoute.get("/application/:applicationId/conversation")
                 .handler(tokenBasicAuthHandler)
                 .handler(applicationHandler::pageConversation);
+
+        apiRoute.get("/application/:applicationId/conversation/mine")
+                .handler(tokenBasicAuthHandler)
+                .handler(applicationHandler::mineConversation);
+
         apiRoute.get("/application/:applicationId/conversation/:conversationId/message")
                 .handler(tokenBasicAuthHandler)
                 .handler(applicationHandler::pageConversationMessage);
+
+        apiRoute.get("/application/:applicationId/overview")
+                .handler(tokenBasicAuthHandler)
+                .handler(applicationHandler::overview);
     }
 
 

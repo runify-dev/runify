@@ -1,43 +1,46 @@
 package com.run.handler.conversation.impl;
 
-import com.run.auth.constants.ConversationTypeConstants;
-import com.run.auth.dto.ConversationTokenDTO;
+import com.run.auth.constants.PermissionConstants;
+import com.run.auth.constants.TokenTypeConstants;
+import com.run.auth.dto.TokenDTO;
+import com.run.auth.provider.TokenProvider;
+import com.run.common.apispec.ApiSpec;
+import com.run.common.apispec.SchemaBuilder;
+import com.run.common.apispec.ValidationException;
 import com.run.common.constants.ConversationExecuteConstants;
 import com.run.common.constants.ConversationUserConstants;
 import com.run.common.constants.MessageConstants;
 import com.run.common.query.Query;
 import com.run.common.queue.MessageQueue;
+import com.run.common.result.Page;
 import com.run.common.result.Result;
 import com.run.common.util.CommonUtils;
 import com.run.common.util.JacksonUtils;
 
-import com.run.dao.entity.Application;
-import com.run.dao.entity.Conversation;
-import com.run.dao.entity.ConversationMessage;
-import com.run.dao.mapper.ApplicationMapper;
-import com.run.dao.mapper.ConversationMapper;
-import com.run.dao.mapper.ConversationMessageMapper;
+import com.run.dao.entity.*;
+import com.run.dao.mapper.*;
 import com.run.handler.application.vo.ConversationVO;
+import com.run.handler.common.impl.ResourceHandlerImpl;
+import com.run.handler.common.pojo.QueryResourcePojo;
 import com.run.handler.conversation.IConversationHandler;
+import com.run.handler.conversation.dto.ApplicationDTO;
 import com.run.handler.conversation.dto.ConversationProfileDTO;
-import com.run.handler.conversation.vo.AnonymousLoginVO;
-import com.run.handler.conversation.vo.ModifyConversationNameVO;
-import com.run.handler.conversation.vo.QueryConversationMessageVO;
-import com.run.handler.conversation.vo.QueryConversationVO;
+import com.run.handler.conversation.dto.UserProfileDTO;
+import com.run.handler.conversation.vo.*;
+import com.run.handler.user.dto.UserDTO;
 import com.run.sql.DSL;
 import com.run.sql.condition.Condition;
-import com.run.sql.model.Field;
-import com.run.sql.model.Param;
 import com.run.workflow.INode;
 import com.run.workflow.WorkFlowManage;
 import com.run.workflow.WorkflowRunRegistry;
 import com.run.workflow.WorkflowType;
-import com.run.workflow.entity.NodeSerialize;
 import com.run.workflow.entity.WorkFlow;
 import com.run.workflow.message.struct.Content;
 import com.run.workflow.message.struct.ContentConverter;
 import com.run.workflow.message.struct.Message;
-import com.run.workflow.message.struct.QuestionContent;
+import io.swagger.v3.oas.models.media.ObjectSchema;
+import io.swagger.v3.oas.models.media.Schema;
+import io.swagger.v3.oas.models.media.StringSchema;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
@@ -45,12 +48,14 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.User;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 
 import javax.inject.Inject;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 
+import static com.run.common.util.ConditionCommonUtil.isApplicationRead;
 import static com.run.sql.DSL.field;
 import static com.run.sql.DSL.param;
 
@@ -66,18 +71,36 @@ public class ConversationHandlerImpl implements IConversationHandler {
     private final ConversationMapper conversationMapper;
     private final ConversationMessageMapper conversationMessageMapper;
     private final ApplicationMapper applicationMapper;
+    private final UserMapper userMapper;
     private final MessageQueue<String> messageQueue;
+    private final ApplicationRelationMapper applicationRelationMapper;
+    private final ApplicationPermissionMapper applicationPermissionMapper;
+    private final RolePermissionRelationMapper rolePermissionRelationMapper;
+    private final RoleUserRelationMapper roleUserRelationMapper;
+    private final RoleMapper roleMapper;
 
     @Inject
     public ConversationHandlerImpl(
             ConversationMapper conversationMapper,
             ConversationMessageMapper conversationMessageMapper,
             ApplicationMapper applicationMapper,
+            ApplicationRelationMapper applicationRelationMapper,
+            ApplicationPermissionMapper applicationPermissionMapper,
+            UserMapper userMapper,
+            RolePermissionRelationMapper rolePermissionRelationMapper,
+            RoleUserRelationMapper roleUserRelationMapper,
+            RoleMapper roleMapper,
             MessageQueue<String> messageQueue) {
         this.applicationMapper = applicationMapper;
         this.conversationMapper = conversationMapper;
         this.conversationMessageMapper = conversationMessageMapper;
         this.messageQueue = messageQueue;
+        this.userMapper = userMapper;
+        this.applicationRelationMapper = applicationRelationMapper;
+        this.applicationPermissionMapper = applicationPermissionMapper;
+        this.rolePermissionRelationMapper = rolePermissionRelationMapper;
+        this.roleUserRelationMapper = roleUserRelationMapper;
+        this.roleMapper = roleMapper;
     }
 
     @Override
@@ -111,13 +134,14 @@ public class ConversationHandlerImpl implements IConversationHandler {
     @Override
     public void createConversation(RoutingContext context) {
         User user = context.user();
+        String applicationId = context.pathParam("applicationId");
         JsonObject jsonObject = context.body().asJsonObject();
         Conversation conversation = new Conversation(CommonUtils.uuid7(),
-                UUID.fromString(user.get("applicationId")),
+                UUID.fromString(applicationId),
                 jsonObject.getString("name", "新建对话"),
                 ConversationExecuteConstants.CONVERSATION, new JsonObject(),
                 user.get("conversationUserId"),
-                ConversationUserConstants.valueOf(user.get("conversationUserType")),
+                TokenTypeConstants.valueOf(user.get("conversationUserType")),
                 0, 0, 0, 0,
                 Boolean.FALSE, LocalDateTime.now(), LocalDateTime.now());
         conversationMapper.save(conversation)
@@ -127,8 +151,7 @@ public class ConversationHandlerImpl implements IConversationHandler {
 
     @Override
     public void conversation(RoutingContext context) {
-        User user = context.user();
-        String applicationId = user.get("applicationId");
+        String applicationId = context.pathParam("applicationId");
         String conversationId = context.pathParam("conversationId");
         ConversationVO conversationVO = context.body().asPojo(ConversationVO.class);
         Content content = ContentConverter.of(conversationVO.getContent(), conversationVO.getWorkflowRunId());
@@ -138,6 +161,9 @@ public class ConversationHandlerImpl implements IConversationHandler {
                 MessageConstants.USER,
                 new JsonArray(List.of(content)),
                 new JsonArray(),
+                0,
+                0,
+                0L,
                 LocalDateTime.now(),
                 LocalDateTime.now());
 
@@ -188,6 +214,9 @@ public class ConversationHandlerImpl implements IConversationHandler {
                         MessageConstants.ASSISTANT,
                         new JsonArray(chunks),
                         new JsonArray(nodes.stream().map(INode::serialize).toList()),
+                        wm.getPromptTokens(),
+                        wm.getCompletionTokens(),
+                        wm.getRuntime(),
                         LocalDateTime.now(),
                         LocalDateTime.now());
                 messageArrayList.add(conversationMessage);
@@ -213,11 +242,11 @@ public class ConversationHandlerImpl implements IConversationHandler {
     public void anonymousLogin(RoutingContext context) {
         AnonymousLoginVO anonymousLoginVO = context.body().asPojo(AnonymousLoginVO.class);
         String visitorId = anonymousLoginVO.getVisitorId();
-        String applicationId = anonymousLoginVO.getApplicationId();
-        ConversationTokenDTO conversationTokenDTO =
-                new ConversationTokenDTO(ConversationTypeConstants.ANONYMOUS,
-                        visitorId, applicationId, new JsonObject());
-        context.end(Result.success(conversationTokenDTO.toToken()).toBuffer());
+        UUID uuid = UUID.nameUUIDFromBytes(visitorId.getBytes());
+        TokenDTO tokenDTO =
+                new TokenDTO(TokenTypeConstants.ANONYMOUS,
+                        uuid.toString(), new JsonObject());
+        context.end(Result.success(tokenDTO.toToken()).toBuffer());
     }
 
     @Override
@@ -275,6 +304,132 @@ public class ConversationHandlerImpl implements IConversationHandler {
             context.end(Result.success(Boolean.TRUE).toBuffer());
         });
 
+    }
+
+
+    private Condition getConditionSync(ApplicationQueryVO query) {
+        Condition condition = field(Application::getAllowAnonymousAccess).eq(Boolean.TRUE);
+        if (StringUtils.isNotEmpty(query.getName())) {
+            return condition.and(field(Application::getName).like("%" + query.getName() + "%"));
+        }
+        return condition;
+    }
+
+    private Future<Condition> getConditionAsync(ApplicationQueryVO query, User user) {
+        String userId = user.get("id");
+        return isApplicationRead(applicationPermissionMapper, roleMapper, roleUserRelationMapper, userId).map(isRead -> {
+            QueryResourcePojo queryResourcePojo = new QueryResourcePojo();
+            if (StringUtils.isNotEmpty(query.getName())) {
+                queryResourcePojo.setName(query.getName());
+            }
+            Condition condition = ResourceHandlerImpl.getWhereByPermission(applicationPermissionMapper, applicationRelationMapper, queryResourcePojo, isRead);
+            return condition.or(field(Application::getAllowAnonymousAccess).eq(Boolean.TRUE));
+        });
+    }
+
+    @Override
+    public void query(RoutingContext routingContext) {
+        User user = routingContext.user();
+        ApplicationQueryVO query = Query.format(ApplicationQueryVO.class, routingContext);
+        Map<String, Object> params = Map.of("userId", user.get("id"), "permissionView", "VIEW",
+                "permissionManage", "MANAGE",
+                "permissionNotAuth", "NOT_AUTH",
+                "permissionRole", "ROLE");
+
+        String type = user.get("type");
+        Future<Condition> conditionFuture;
+        if (Strings.CS.equals(type, TokenTypeConstants.USER.name())) {
+            conditionFuture = getConditionAsync(query, user);
+        } else {
+            conditionFuture = Future.succeededFuture(getConditionSync(query));
+        }
+
+        conditionFuture.compose(condition -> {
+            if (query.getCurrentPage() != null && query.getPageSize() != null) {
+                return applicationMapper.page(condition, query.getCurrentPage(), query.getPageSize(), params)
+                        .map(r -> {
+                            Page<ApplicationDTO> page = new Page<>();
+                            page.setCurrent(r.getCurrent());
+                            page.setSize(r.getSize());
+                            page.setTotal(r.getTotal());
+                            page.setRecords(r.getRecords().stream().map(ApplicationDTO::new).toList());
+                            return (Object) page;
+                        });
+            } else {
+                return applicationMapper.list(condition, params)
+                        .map(r -> (Object) r.stream().map(ApplicationDTO::new).toList());
+            }
+        }).onSuccess(result -> {
+            routingContext.end(Result.success(result).toBuffer());
+        }).onFailure(routingContext::fail);
+    }
+
+    @Override
+    public void login(RoutingContext context) {
+        ApiSpec spec = ApiSpec.builder()
+                .body(SchemaBuilder.objectBuilder()
+                        .required("username", SchemaBuilder.string().minLength(0, "用户名必填").build(), "名称不能为空")
+                        .property("password", SchemaBuilder.string().minLength(0, "秘密必填").build())
+                        .build())
+                .build();
+        List<ValidationException.ValidationError> validationErrors = spec.validateQuietly(context);
+        if (!validationErrors.isEmpty()) {
+            context.end(Result.error(validationErrors.stream().findFirst().toString()).toBuffer());
+            return;
+        }
+        JsonObject jsonObject = context.body().asJsonObject();
+        String username = jsonObject.getString("username");
+        String password = jsonObject.getString("password");
+        Condition eq = field(com.run.dao.entity.User::getUsername)
+                .eq(username)
+                .and(field(com.run.dao.entity.User::getPassword).eq(CommonUtils.getSHA256(password)));
+        userMapper.search(eq, Map.of())
+                .onSuccess(rows -> {
+                    if (rows.size() > 0) {
+                        com.run.dao.entity.User user = rows.iterator().next();
+                        TokenDTO tokenDTO = new TokenDTO(TokenTypeConstants.USER, user.getId().toString(), new JsonObject());
+                        context.end(Result.success(tokenDTO.toToken()).toBuffer());
+                    } else {
+                        context.end(Result.error("用户名或者密码错误").toBuffer());
+                    }
+                }).onFailure(e -> {
+                    context.end(Result.error(e.toString()).toBuffer());
+                });
+    }
+
+    @Override
+    public void userProfile(RoutingContext context) {
+        User user = context.user();
+        TokenTypeConstants type = TokenTypeConstants.valueOf(user.get("type"));
+        UserProfileDTO userProfileDTO = new UserProfileDTO();
+        userProfileDTO.setId(user.get("id"));
+        userProfileDTO.setType(type);
+        if (type.equals(TokenTypeConstants.USER)) {
+            userMapper.getById(user.get("id")).onSuccess(u -> {
+                userProfileDTO.setUser(new UserDTO(u));
+                context.end(Result.success(userProfileDTO).toBuffer());
+            }).onFailure(context::fail);
+        } else {
+            context.end(Result.success(userProfileDTO).toBuffer());
+        }
+
+    }
+
+    @Override
+    public void application(RoutingContext context) {
+        String applicationId = context.pathParam("applicationId");
+        applicationMapper.getById(applicationId).onSuccess(a -> {
+            context.end(Result.success(new ApplicationDTO(a)).toBuffer());
+        }).onFailure(context::fail);
+    }
+
+    @Override
+    public void authProfile(RoutingContext context) {
+        String applicationId = context.pathParam("applicationId");
+        applicationMapper.getById(applicationId).onSuccess(a -> {
+            Boolean allowAnonymousAccess = a.getAllowAnonymousAccess();
+            context.end(Result.success(Map.of("allowAnonymousAccess", allowAnonymousAccess)).toBuffer());
+        }).onFailure(context::fail);
     }
 
     public void resumeStream(RoutingContext context) {
