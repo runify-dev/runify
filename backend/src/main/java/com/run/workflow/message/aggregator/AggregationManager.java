@@ -35,4 +35,9 @@ public class AggregationManager {
             contents.set(idx, aggregator.apply(prev, chunk));
         }
     }
+
+    public void clear() {
+        this.contents.clear();
+        this.keyToIndex.clear();
+    }
 }

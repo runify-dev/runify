@@ -92,7 +92,7 @@ public class ReadFileNode extends INode<ReadFileNode, ReadFileNodeData> {
                 }
                 int totalLines = allLines.size();
 
-                int start = Math.max(0, config.offset());
+                int start = Math.max(0, config.offset() - 1);
                 int end = config.limit() > 0 ? Math.min(start + config.limit(), totalLines) : totalLines;
                 List<String> readLines = allLines.subList(start, end);
 

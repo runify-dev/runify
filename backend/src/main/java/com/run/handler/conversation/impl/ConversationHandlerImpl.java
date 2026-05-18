@@ -204,10 +204,12 @@ public class ConversationHandlerImpl implements IConversationHandler {
                         "applicationId", applicationId)),
                 new HashMap<>(), (wm, node, chunk, isEnd) -> {
             if (isEnd) {
+                WorkflowRunRegistry.unregister(conversationId.toString());
+                messageQueue.complete(conversationId.toString());
+                messageQueue.delete(conversationId.toString());
                 List<Content> chunks = wm.getChunks();
                 List<ConversationMessage> messageArrayList = new ArrayList<>();
                 List<INode<?, ?>> nodes = wm.getNodes();
-
                 ConversationMessage conversationMessage = new ConversationMessage(UUID.randomUUID(),
                         conversationId,
                         applicationId, workflowRunId,
@@ -220,14 +222,12 @@ public class ConversationHandlerImpl implements IConversationHandler {
                         LocalDateTime.now(),
                         LocalDateTime.now());
                 messageArrayList.add(conversationMessage);
-                conversationMessageMapper.batch_save(messageArrayList).onSuccess(_ -> {
+                conversationMessageMapper.batch_save(messageArrayList)
+                        .onSuccess(_ -> {
                             context.response().end();
                         })
-                        .onFailure(e -> {
-                            context.fail(e);
-                        });
-                messageQueue.complete(conversationId.toString());
-                messageQueue.delete(conversationId.toString());
+                        .onFailure(context::fail);
+
                 return;
             }
             Message message = new Message(List.of(chunk), index.getAndIncrement());
@@ -457,6 +457,8 @@ public class ConversationHandlerImpl implements IConversationHandler {
                             });
                 });
 
+            } else {
+                context.response().end();
             }
         });
 

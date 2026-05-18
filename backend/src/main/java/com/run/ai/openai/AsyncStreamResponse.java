@@ -99,6 +99,7 @@ public final class AsyncStreamResponse<T> {
 
     private void readSse(BufferedSource source, Handler<T> handler, StreamSubscription sub) throws IOException {
         StringBuilder dataBuffer = new StringBuilder();
+        resetDeadline(source);
 
         while (!sub.isCancelled()) {
             String line = source.readUtf8Line();
@@ -125,7 +126,15 @@ public final class AsyncStreamResponse<T> {
                 }
                 dataBuffer.append(line.substring("data:".length()).trim());
             }
+
+            resetDeadline(source);
         }
+    }
+
+    private void resetDeadline(BufferedSource source) {
+        source.timeout().deadline(System.nanoTime()
+                + TimeUnit.SECONDS.toNanos(STREAM_READ_TIMEOUT_SECONDS),
+                TimeUnit.NANOSECONDS);
     }
 
     /**

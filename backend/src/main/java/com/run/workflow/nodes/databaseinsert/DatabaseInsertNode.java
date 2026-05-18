@@ -96,11 +96,9 @@ public class DatabaseInsertNode extends INode<DatabaseInsertNode, DatabaseInsert
                 }
 
                 if (StringUtils.isEmpty(sql)) {
-                    node.status = NodeStatus.FAIL;
-                    workFlowManage.write(node, new FailureContent("SQL语句为空", node,
-                            (String) workFlowManage.getParams().get("workflowRunId"),
-                            CommonUtils.uuid7().toString()));
-                    workFlowManage.end();
+                    Supplier<List<Node>> listSupplier = node.handleFail(workFlowManage, new RuntimeException("SQL语句为空"));
+                    workFlowManage.nextInvoke(node, listSupplier);
+                    return;
                 }
 
                 SqlTemplate.forQuery(pool, sql)
@@ -116,12 +114,10 @@ public class DatabaseInsertNode extends INode<DatabaseInsertNode, DatabaseInsert
                                     .toList());
                         }).onFailure(e -> {
                             if (node.cancelled.get()) return;
-                            node.status = NodeStatus.FAIL;
-                            workFlowManage.write(node, new FailureContent(e.getMessage(), node,
-                                    (String) workFlowManage.getParams().get("workflowRunId"),
-                                    CommonUtils.uuid7().toString()));
-                            workFlowManage.end();
+                            workFlowManage.nextInvoke(node, node.handleFail(workFlowManage, e));
                         });
+            }).onFailure(e -> {
+                workFlowManage.nextInvoke(node, node.handleFail(workFlowManage, e));
             });
 
             return null;

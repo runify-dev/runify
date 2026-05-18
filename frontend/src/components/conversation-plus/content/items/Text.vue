@@ -9,7 +9,7 @@ import PreView from '@/editor/preview/index.vue'
 
 const props = defineProps<{ content: any }>()
 const content = computed(() => {
-  return props.content.content
+  return props.content?.content ?? ''
 })
 </script>
 <style scoped>

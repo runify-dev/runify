@@ -3,7 +3,10 @@ package com.run.workflow.nodes.terminal;
 import com.run.common.util.ChatCompletionAccumulator;
 import com.run.common.util.CommonUtils;
 import com.run.common.util.JacksonUtils;
-import com.run.workflow.*;
+import com.run.workflow.INode;
+import com.run.workflow.NodeStatus;
+import com.run.workflow.WorkFlowManage;
+import com.run.workflow.WorkflowType;
 import com.run.workflow.entity.Node;
 import com.run.workflow.entity.NodeResult;
 import com.run.workflow.message.struct.ToolCallContent;
@@ -12,14 +15,19 @@ import io.vertx.core.json.JsonObject;
 import jakarta.validation.Validator;
 import org.apache.commons.lang3.StringUtils;
 
-import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.io.File;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
@@ -36,6 +44,7 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
 
     private static final int DEFAULT_TIMEOUT = 30;
 
+    private volatile boolean cancelled = false;
     private volatile Process process;
 
     public TerminalNode(Node node, JsonObject params, List<String> upNodeIdList, String salt, INode<?, ?> upNode) {
@@ -48,13 +57,14 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
 
     @Override
     public void cancel() {
+        if (cancelled) return;
+        cancelled = true;
         super.cancel();
         Process p = this.process;
         if (p != null && p.isAlive()) {
             p.destroyForcibly();
         }
     }
-
 
     record TerminalConfig(String id, String command, boolean withWriteArguments) {
         String toArguments() {
@@ -76,15 +86,68 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
             return node.handleFail(wfm, e);
         }
 
+        private Supplier<List<Node>> invokeCancel(WorkFlowManage wfm, TerminalNode node, TerminalConfig config, String runId) {
+            String id = config != null ? config.id() : CommonUtils.uuid7().toString();
+            node.status = NodeStatus.CANCELLED;
+            wfm.writeContext(node, "result", "已取消");
+            wfm.writeContext(node, "stdout", "");
+            wfm.writeContext(node, "stderr", "");
+            wfm.writeContext(node, "exitCode", -1);
+            wfm.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("run_command", "已取消", "",
+                    NodeStatus.CANCELLED, node, runId, id)));
+            return wfm.nextCancelNodeSupplier();
+        }
+
+        private CompletableFuture<String> readStreamAsync(InputStream is, Consumer<String> onChunk) {
+            return CompletableFuture.supplyAsync(() -> {
+                StringBuilder sb = new StringBuilder();
+                try (var reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
+                    char[] buf = new char[4096];
+                    int n;
+                    while ((n = reader.read(buf)) != -1) {
+                        String chunk = new String(buf, 0, n);
+                        sb.append(chunk);
+                        if (onChunk != null) {
+                            onChunk.accept(chunk);
+                        }
+                    }
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
+                }
+                return sb.toString();
+            });
+        }
+
+        /**
+         * 收割读取流的 Future，防止 commonPool 线程泄漏。
+         * destroyForcibly() 后管道关闭，read() 会很快返回，给 5 秒兜底。
+         */
+        private void cleanupFuture(CompletableFuture<?> future) {
+            if (future == null) return;
+            future.exceptionally(ex -> null);  // 吞掉预期的 IOException
+            try {
+                future.get(5, TimeUnit.SECONDS);
+            } catch (Exception ignored) {
+            }
+        }
+
         @Override
         public Supplier<List<Node>> apply(WorkFlowManage workFlowManage, TerminalNode node) {
             String runId = (String) workFlowManage.getParams().get("workflowRunId");
             TerminalConfig config = resolveConfig(node.params, workFlowManage);
             int timeout = resolveTimeout(node.params, workFlowManage);
 
+            // 启动前检查取消
+            if (node.cancelled) {
+                return invokeCancel(workFlowManage, node, config, runId);
+            }
+
             if (config == null || StringUtils.isEmpty(config.command())) {
                 return invokeFail(workFlowManage, node, config, runId, "代码为空", "代码为空", 1, new RuntimeException("代码为空"));
             }
+
+            CompletableFuture<String> stdoutFuture = null;
+            CompletableFuture<String> stderrFuture = null;
 
             try {
                 if (config.withWriteArguments()) {
@@ -95,7 +158,11 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
                 ProcessBuilder processBuilder = new ProcessBuilder();
                 UUID conversationId = (UUID) workFlowManage.getParams().getOrDefault("conversationId", CommonUtils.uuid7());
 
-                File file = new File(System.getProperty("user.home") + "/.runify/" + conversationId);
+                File baseDir = new File(System.getProperty("user.home"), ".runify");
+                File file = new File(baseDir, conversationId.toString());
+                if (!file.getCanonicalPath().startsWith(baseDir.getCanonicalPath())) {
+                    throw new IllegalArgumentException("非法工作目录路径");
+                }
                 if (!file.exists()) {
                     file.mkdirs();
                 }
@@ -106,40 +173,41 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
                 Process process = processBuilder.start();
                 node.process = process;
 
-                StringBuilder stdoutBuilder = new StringBuilder();
-                try (var reader = new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8)) {
-                    char[] buf = new char[4096];
-                    int n;
-                    while ((n = reader.read(buf)) != -1) {
-                        String chunk = new String(buf, 0, n);
-                        stdoutBuilder.append(chunk);
-                        workFlowManage.write(node, new ToolCallContent("run_command", chunk, "",
-                                NodeStatus.RUNNING, node, runId, config.id()));
-                    }
+                // 启动后立刻检查（防止 start 和 cancel 交错）
+                if (node.cancelled) {
+                    process.destroyForcibly();
+                    return invokeCancel(workFlowManage, node, config, runId);
                 }
 
-                StringBuilder stderrBuilder = new StringBuilder();
-                try (var reader = new InputStreamReader(process.getErrorStream(), StandardCharsets.UTF_8)) {
-                    char[] buf = new char[4096];
-                    int n;
-                    while ((n = reader.read(buf)) != -1) {
-                        stderrBuilder.append(new String(buf, 0, n));
-                    }
-                }
+                stdoutFuture = readStreamAsync(process.getInputStream(), chunk ->
+                        workFlowManage.write(node, new ToolCallContent("run_command", chunk, "",
+                                NodeStatus.RUNNING, node, runId, config.id())));
+
+                stderrFuture = readStreamAsync(process.getErrorStream(), null);
 
                 boolean finished = process.waitFor(timeout, TimeUnit.SECONDS);
 
-                String stdout = stdoutBuilder.toString();
-                String stderr = stderrBuilder.toString();
-
+                // 超时处理
                 if (!finished) {
                     process.destroyForcibly();
+                    // 超时后也要检查是否是取消导致的
+                    if (node.cancelled) {
+                        return invokeCancel(workFlowManage, node, config, runId);
+                    }
                     String timeoutMsg = "命令执行超时（" + timeout + "秒）";
                     return invokeFail(workFlowManage, node, config, runId, timeoutMsg, timeoutMsg, -1, new RuntimeException(timeoutMsg));
                 }
 
+                // 进程结束后检查取消
+                if (node.cancelled) {
+                    return invokeCancel(workFlowManage, node, config, runId);
+                }
+
+                String stdout = stdoutFuture.join();
+                String stderr = stderrFuture.join();
+
                 int exitCode = process.exitValue();
-                String result = exitCode == 0 ? stdout : stderr;
+                String result = exitCode == 0 ? stdout : (stderr.isEmpty() ? stdout : stderr);
                 workFlowManage.writeContext(node, "result", result);
                 workFlowManage.writeContext(node, "stdout", stdout);
                 workFlowManage.writeContext(node, "stderr", stderr);
@@ -160,7 +228,20 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
                 }
 
             } catch (Exception e) {
+                Process p = node.process;
+                if (p != null && p.isAlive()) {
+                    p.destroyForcibly();
+                }
+                // 异常时也检查取消
+                if (node.cancelled) {
+                    return invokeCancel(workFlowManage, node, config, runId);
+                }
                 return invokeFail(workFlowManage, node, config, runId, e.getMessage(), e.getMessage(), 1, e);
+            } finally {
+                node.process = null;
+                // 所有路径（正常、取消、超时、异常）都收割 future，防止 commonPool 线程泄漏
+                cleanupFuture(stdoutFuture);
+                cleanupFuture(stderrFuture);
             }
 
             return workFlowManage.nextNodeSupplier(node.node.getId());
@@ -245,7 +326,6 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
         }
         data.setCode(jsonObject.getString("code"));
 
-        // 超时配置
         data.setTimeoutLocation(jsonObject.getString("timeoutLocation"));
         if (jsonObject.getJsonArray("timeoutReference") != null) {
             data.setTimeoutReference(jsonObject.getJsonArray("timeoutReference").stream()

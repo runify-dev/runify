@@ -48,9 +48,7 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
     public final static List<WorkflowType> supportWorkflow = List.of(WorkflowType.CHAT_WORKFLOW, WorkflowType.CHAT_WORKFLOW_LOOP);
     static final Set<String> streamingFunctions = Set.of("run_command", "read_file", "apply_patch", "list_dir");
 
-    /**
-     * 流式响应引用，用于取消操作
-     */
+    private volatile boolean cancelled = false;
     private volatile AsyncStreamResponse<?> streamResponse;
 
     public AIChat(Node node, JsonObject params, List<String> upNodeIdList, String salt, INode<?, ?> upNode) {
@@ -81,6 +79,8 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
 
     @Override
     public void cancel() {
+        if (cancelled) return;
+        cancelled = true;
         super.cancel();
         AsyncStreamResponse<?> response = this.streamResponse;
         if (response != null) {
@@ -218,8 +218,10 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
 
                         @Override
                         public void onComplete(Optional<Throwable> error) {
+                            if (node.cancelled) {
+                                return;
+                            }
                             if (error.isPresent()) {
-                                System.out.println(final_messages);
                                 node.status = NodeStatus.FAIL;
                                 workFlowManage.writeContext(node, "finishReason", "error");
                                 workFlowManage.nextFailInvoke(node, error.get());
@@ -246,11 +248,14 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
 
                         @Override
                         public void onCancel() {
+                            node.status = NodeStatus.CANCELLED;
+                            workFlowManage.writeContext(node, "finishReason", "cancelled");
                             workFlowManage.assertionEnd();
                         }
                     }).onCompleteFuture();
                 } else {
                     llm.invoke(final_messages, new JsonObject(map)).thenAcceptAsync(chatCompletion -> {
+                        if (node.cancelled) return;
                         chatCompletionAccumulator.append(chatCompletion);
                         node.status = NodeStatus.SUCCESS;
                         ChatCompletionAccumulator.AccumulatedResult complete = chatCompletionAccumulator.complete();
@@ -263,10 +268,13 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
                         workFlowManage.nextInvoke(node, () -> workFlowManage.getNextList(node.node.getId()).stream().map(DefaultKeyValue::getValue).toList());
 
                     }).exceptionallyAsync(err -> {
-                        node.status = NodeStatus.FAIL;
+                        if (node.cancelled) return null;
+                        workFlowManage.nextInvoke(node, node.handleFail(workFlowManage, err));
                         return null;
                     });
                 }
+            }).onFailure(e -> {
+                workFlowManage.nextInvoke(node, node.handleFail(workFlowManage, e));
             });
             return null;
         }

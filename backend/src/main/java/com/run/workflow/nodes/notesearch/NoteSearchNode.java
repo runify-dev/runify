@@ -108,11 +108,7 @@ public class NoteSearchNode extends INode<NoteSearchNode, NoteSearchNodeData> {
                         .map(DefaultKeyValue::getValue)
                         .toList());
             }).onFailure(e -> {
-                node.status = NodeStatus.FAIL;
-                workFlowManage.write(node, new FailureContent(e.getMessage(), node,
-                        (String) workFlowManage.getParams().get("workflowRunId"),
-                        CommonUtils.uuid7().toString()));
-                workFlowManage.end();
+                workFlowManage.nextInvoke(node, node.handleFail(workFlowManage, e));
             });
 
             return null;

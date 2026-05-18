@@ -313,6 +313,8 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
                 kv.getValue(), (wm, node, chunk, isEnd) -> {
             if (isEnd) {
                 WorkflowRunRegistry.unregister(conversationId.toString());
+                messageQueue.complete(conversationId.toString());
+                messageQueue.delete(conversationId.toString());
                 List<Content> chunks = wm.getChunks();
                 List<INode<?, ?>> nodes = wm.getNodes();
                 List<ConversationMessage> messageArrayList = new ArrayList<>();
@@ -328,14 +330,9 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
                         LocalDateTime.now(),
                         LocalDateTime.now());
                 messageArrayList.add(conversationMessage);
-                conversationMessageMapper.batch_save(messageArrayList).onSuccess(_ -> {
-                            context.response().end();
-                        })
-                        .onFailure(e -> {
-                            context.fail(e);
-                        });
-                messageQueue.complete(conversationId.toString());
-                messageQueue.delete(conversationId.toString());
+                conversationMessageMapper.batch_save(messageArrayList)
+                        .onSuccess(_ -> context.response().end())
+                        .onFailure(context::fail);
                 return;
             }
             Message message = new Message(List.of(chunk), index.getAndIncrement());

@@ -1044,8 +1044,8 @@ onUnmounted(() => {
 }
 
 .sbtn {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   border-radius: 10px;
   border: none;
   background: var(--bd);
@@ -1055,6 +1055,8 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   transition:
     background 0.2s,
     color 0.2s,
@@ -1079,6 +1081,7 @@ onUnmounted(() => {
   background: #ef4444;
   color: #fff;
   cursor: pointer;
+  pointer-events: auto;
 }
 
 .sbtn.stop:hover {

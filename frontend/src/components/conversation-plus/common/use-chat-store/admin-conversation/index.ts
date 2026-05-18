@@ -256,10 +256,6 @@ export function useChatStore() {
     if (routeCid) {
       conversationId.value = routeCid
     }
-
-    if (conversationId.value) {
-      await loadMessages(conversationId.value)
-    }
   }
 
   return {

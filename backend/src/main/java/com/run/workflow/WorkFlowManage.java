@@ -390,5 +390,10 @@ public class WorkFlowManage {
     public int getCompletionTokens() {
         return nodes.stream().map(INode::getCompletionTokens).mapToInt(Integer::intValue).sum();
     }
+    public void clear(){
+        this.context.clear();
+        this.nodes.clear();
+        this.aggregationManager.clear();
+    }
 
 }

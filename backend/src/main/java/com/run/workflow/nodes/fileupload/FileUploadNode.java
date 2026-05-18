@@ -14,7 +14,6 @@ import io.vertx.core.json.JsonObject;
 import jakarta.validation.Validator;
 
 import java.io.File;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -76,9 +75,8 @@ public class FileUploadNode extends INode<FileUploadNode, FileUploadNodeData> {
             }
 
             UUID conversationId = (UUID) workFlowManage.getParams().getOrDefault("conversationId", CommonUtils.uuid7());
-            Path basePath = Path.of(System.getProperty("user.home") + "/.runify/" + conversationId);
-            Path filePath = basePath.resolve(config.filePath()).normalize();
-            File file = filePath.toFile();
+            File basePath = new File(System.getProperty("user.home") + "/.runify/" + conversationId);
+            File file = new File(basePath, config.filePath());
 
             if (!file.exists() || !file.isFile()) {
                 return invokeFail(workFlowManage, node, config, runId, new RuntimeException("文件不存在: " + config.filePath()));

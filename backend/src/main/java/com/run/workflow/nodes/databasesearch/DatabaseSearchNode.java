@@ -124,14 +124,12 @@ public class DatabaseSearchNode extends INode<DatabaseSearchNode, DatabaseSearch
                                     .toList());
                         }).onFailure(e -> {
                             if (node.cancelled.get()) return;
-                            node.status = NodeStatus.FAIL;
-
-                            workFlowManage.write(node, new FailureContent(e.getMessage(), node,
-                                    (String) workFlowManage.getParams().get("workflowRunId"),
-                                    CommonUtils.uuid7().toString()));
-                            workFlowManage.end();
+                            workFlowManage.nextInvoke(node, node.handleFail(workFlowManage, e));
                         });
 
+            }).onFailure(e -> {
+                if (node.cancelled.get()) return;
+                workFlowManage.nextInvoke(node, node.handleFail(workFlowManage, e));
             });
             return null;
         }

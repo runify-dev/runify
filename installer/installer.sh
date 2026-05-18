@@ -46,14 +46,14 @@ echo "========================================="
 
 # Step 1: Maven build (frontend + backend)
 echo ""
-echo "[1/4] Building project..."
+echo "[1/5] Building project..."
 mvn clean package -DskipTests
 cp "$PROJECT_DIR/backend/target/backend-1.0.0-jar-with-dependencies.jar" "$ELECTRON_DIR/$JAR_NAME"
 echo "  -> JAR copied to electron/$JAR_NAME"
 
 # Step 2: Prepare JRE
 echo ""
-echo "[2/4] Preparing JDK runtime..."
+echo "[2/5] Preparing JDK runtime..."
 
 if [ -n "$JRE_PATH" ]; then
   # Use provided JRE path
@@ -127,13 +127,13 @@ echo "  -> JDK runtime ready at $JRE_DIR"
 
 # Step 3: Install Electron dependencies
 echo ""
-echo "[3/4] Installing Electron dependencies..."
+echo "[3/5] Installing Electron dependencies..."
 cd "$ELECTRON_DIR"
 npm install
 
 # Step 4: Build Electron app
 echo ""
-echo "[4/4] Building Electron app..."
+echo "[4/5] Building Electron app..."
 case "$PLATFORM" in
   mac)
     npm run build:mac
@@ -143,7 +143,15 @@ case "$PLATFORM" in
     ;;
 esac
 
+# Step 5: Copy jar to release directory
+echo ""
+echo "[5/5] Copying jar to release..."
+mkdir -p "$PROJECT_DIR/release"
+cp "$ELECTRON_DIR/$JAR_NAME" "$PROJECT_DIR/release/backend.jar"
+
 echo ""
 echo "========================================="
-echo "  Build complete! Output in installer/electron/dist/"
+echo "  Build complete!"
+echo "  Desktop: installer/electron/dist/"
+echo "  JAR: release/backend.jar"
 echo "========================================="

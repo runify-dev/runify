@@ -267,10 +267,6 @@ export function useChatStore() {
 
     fetchAppInfo()
     await pageConversation(query, loading)
-
-    if (conversationId.value) {
-      await loadMessages(conversationId.value)
-    }
   }
 
   return {
@@ -283,6 +279,8 @@ export function useChatStore() {
     applicationId,
     current,
     flatItems,
+    showBack: ref(false),
+    goBack: () => {},
 
     // 分页
     hasMore,

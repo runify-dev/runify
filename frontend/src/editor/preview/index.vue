@@ -19,8 +19,10 @@ const props = defineProps<{
 const editor = shallowRef<ReturnType<typeof newInstance> | null>(null)
 
 let flushTimer: ReturnType<typeof setTimeout> | null = null
+let animationFrameId: number | null = null
 let latestContent = ''
 let destroyed = false
+let pendingContent: string | null = null
 
 function safeMarkdown(md: string): string {
   return md
@@ -28,16 +30,52 @@ function safeMarkdown(md: string): string {
 
 editor.value = newInstance('', undefined, false)
 
-function flush() {
+function safeSetContent(content: string) {
   if (destroyed || !editor.value || editor.value.isDestroyed) return
+
   try {
-    if (editor.value.commands?.setContent) {
-      editor.value.commands.setContent(safeMarkdown(latestContent), { contentType: 'markdown' })
+    // 确保编辑器完全准备好
+    if (!editor.value.view || !(editor.value.view as any).docView) {
+      return
+    }
+
+    // 使用 markdown 扩展的 parse 方法先转换内容为 JSON
+    if (editor.value.markdown && typeof editor.value.markdown.parse === 'function') {
+      const jsonDoc = editor.value.markdown.parse(content)
+      if (jsonDoc !== null && jsonDoc !== undefined) {
+        // setContent 可以直接接受 JSON 文档格式
+        editor.value.commands.setContent(jsonDoc)
+      }
+    } else {
+      // 降级：直接设置内容
+      editor.value.commands.setContent(content)
     }
   } catch (e) {
     console.warn('setContent failed', e)
   }
-  flushTimer = null
+}
+
+function flush() {
+  if (flushTimer) {
+    clearTimeout(flushTimer)
+    flushTimer = null
+  }
+
+  if (destroyed || !editor.value || editor.value.isDestroyed) {
+    pendingContent = null
+    return
+  }
+
+  const contentToSet = pendingContent
+  pendingContent = null
+
+  if (contentToSet === null) return
+
+  // 使用 requestAnimationFrame 确保在下一帧渲染前执行
+  animationFrameId = requestAnimationFrame(() => {
+    if (destroyed || !editor.value || editor.value.isDestroyed) return
+    safeSetContent(safeMarkdown(contentToSet))
+  })
 }
 
 watch(
@@ -45,6 +83,7 @@ watch(
   (val) => {
     if (destroyed || !editor.value || editor.value.isDestroyed) return
     latestContent = val
+    pendingContent = val
     if (flushTimer) return
     flushTimer = setTimeout(flush, 100)
   },
@@ -53,9 +92,14 @@ watch(
 
 onBeforeUnmount(() => {
   destroyed = true
+  pendingContent = null
   if (flushTimer) {
     clearTimeout(flushTimer)
     flushTimer = null
+  }
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId)
+    animationFrameId = null
   }
   editor.value?.destroy()
 })

@@ -78,21 +78,13 @@ public class CacheWriteNode extends INode<CacheWriteNode, CacheWriteNodeData> {
                                 })
                                 .exceptionally(e -> {
                                     if (node.cancelled.get()) return null;
-                                    node.status = NodeStatus.FAIL;
-                                    workFlowManage.write(node, new FailureContent(e.getMessage(), node,
-                                            (String) workFlowManage.getParams().get("workflowRunId"),
-                                            CommonUtils.uuid7().toString()));
-                                    workFlowManage.end();
+                                    workFlowManage.nextInvoke(node, node.handleFail(workFlowManage, e));
                                     return null;
                                 });
                     })
                     .onFailure(e -> {
                         if (node.cancelled.get()) return;
-                        node.status = NodeStatus.FAIL;
-                        workFlowManage.write(node, new FailureContent(e.getMessage(), node,
-                                (String) workFlowManage.getParams().get("workflowRunId"),
-                                CommonUtils.uuid7().toString()));
-                        workFlowManage.end();
+                        workFlowManage.nextInvoke(node, node.handleFail(workFlowManage, e));
                     });
             return null;
         }

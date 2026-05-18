@@ -42,3 +42,4 @@ installer/electron/dist/
 installer/electron/node_modules/
 installer/.jdk-*.tar.gz
 installer/.jdk-*.zip
+release/
