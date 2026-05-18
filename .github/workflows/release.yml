@@ -1,9 +1,11 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. v1.0.0)'
+        required: true
 
 jobs:
   build-jar:
@@ -37,6 +39,8 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ inputs.version }}
+          name: Release ${{ inputs.version }}
           files: backend/target/backend-*-jar-with-dependencies.jar
           generate_release_notes: true
 
@@ -94,6 +98,7 @@ jobs:
       - name: Upload desktop installer
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ inputs.version }}
           files: |
             installer/electron/dist/*.dmg
             installer/electron/dist/*.exe
