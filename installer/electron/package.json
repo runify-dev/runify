@@ -31,11 +31,11 @@
     ],
     "mac": {
       "target": "dmg",
-      "icon": "icon.icns"
+      "icon": "../../frontend/public/favicon.ico"
     },
     "win": {
       "target": "nsis",
-      "icon": "icon.ico"
+      "icon": "../../frontend/public/favicon.ico"
     },
     "nsis": {
       "oneClick": false,

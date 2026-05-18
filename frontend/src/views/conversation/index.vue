@@ -137,6 +137,7 @@ onMounted(() => {
   bus.on('auth:401', on401)
   bus.on('auth:403', on403)
   bus.on('auth:logout', onLogout)
+  bus.on('auth:login', () => { showLoginDialog.value = true })
 
   // 先查应用权限配置，再根据用户身份决定策略
   _conversationAPI.authProfile(applicationId.value).then((res) => {
@@ -162,6 +163,7 @@ onUnmounted(() => {
   bus.off('auth:401', on401)
   bus.off('auth:403', on403)
   bus.off('auth:logout', onLogout)
+  bus.off('auth:login')
 })
 </script>
 <style lang="scss">

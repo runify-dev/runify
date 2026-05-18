@@ -101,7 +101,11 @@
           <i class="pi pi-chevron-right sb-pop-arrow" />
         </div>
         <div v-if="!tokenStore.isAnonymous" class="sb-pop-divider" />
-        <button class="sb-pop-logout" @click="handleLogout">
+        <button v-if="tokenStore.isAnonymous" class="sb-pop-login" @click="handleLogin">
+          <i class="pi pi-sign-in" />
+          <span>登录</span>
+        </button>
+        <button v-else class="sb-pop-logout" @click="handleLogout">
           <i class="pi pi-power-off" />
           <span>退出登录</span>
         </button>
@@ -194,6 +198,11 @@ const togglePopover = (event: Event) => {
 const handleLogout = () => {
   popoverRef.value?.hide()
   bus.emit('auth:logout')
+}
+
+const handleLogin = () => {
+  popoverRef.value?.hide()
+  bus.emit('auth:login')
 }
 
 const {
@@ -577,6 +586,8 @@ onMounted(() => {
 .sb-pop-email { font-size: 11px; color: var(--t3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sb-pop-arrow { font-size: 11px; color: var(--t3); flex-shrink: 0; }
 .sb-pop-divider { height: 1px; background: var(--bd); margin: 4px 0; }
+.sb-pop-login { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 12px; border: none; background: transparent; color: var(--t2); font-size: 12.5px; font-family: inherit; cursor: pointer; transition: background 0.12s; }
+.sb-pop-login:hover { background: var(--hv); }
 .sb-pop-logout { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 12px; border: none; background: transparent; color: var(--danger-text); font-size: 12.5px; font-family: inherit; cursor: pointer; transition: background 0.12s; }
 .sb-pop-logout:hover { background: var(--danger-bg); }
 

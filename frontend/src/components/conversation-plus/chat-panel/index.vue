@@ -431,7 +431,6 @@ const previewText = ref<PastedText | null>(null)
 
 let scroll: any
 let newChatInProgress = false
-let domObserver: MutationObserver | null = null
 
 const prompts = [
   { icon: '✦', text: '帮我写一篇关于 AI 的技术文章' },
@@ -499,6 +498,7 @@ const getOnStream = (message: any) => {
     })
 
     emit('chanage')
+    scroll?.scrollBottom()
   }
 }
 
@@ -516,6 +516,10 @@ watch(
         clearStreamIndex()
       }
     })
+
+    await nextTick()
+    // PreView 组件有 100ms 延迟渲染，需要等 DOM 完全更新
+    setTimeout(() => scroll?.forceBottom(), 150)
   },
   { immediate: true }
 )
@@ -536,7 +540,7 @@ const onScroll = async () => {
 
 // ─── 发起新对话 ───────────────────────────────────────────────────
 const conversation = async (q: any) => {
-  if (!hasContent.value) return
+  if (!q.content?.trim() && !hasContent.value) return
   if (streamLoading.value) return
 
   if (!current.value) {
@@ -634,20 +638,9 @@ const conversation = async (q: any) => {
 
 onMounted(() => {
   scroll = new Scroll(msgBox.value)
-
-  // 监听 DOM 子节点变化，自动滚动到底部
-  domObserver = new MutationObserver(() => {
-    requestAnimationFrame(() => {
-      if (scroll?.bottomSuction && msgBox.value) {
-        msgBox.value.scrollTop = msgBox.value.scrollHeight
-      }
-    })
-  })
-  domObserver.observe(msgBox.value!, { childList: true, subtree: true })
 })
 
 onUnmounted(() => {
-  domObserver?.disconnect()
 })
 </script>
 <style scoped>

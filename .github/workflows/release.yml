@@ -95,6 +95,12 @@ jobs:
           cd installer/electron
           npm run build:${{ matrix.platform }}
 
+      - name: Sign macOS app
+        if: matrix.platform == 'mac'
+        run: |
+          cd installer/electron
+          find dist -name "*.app" -exec codesign --force --deep --sign - {} \;
+
       - name: Upload desktop installer
         uses: softprops/action-gh-release@v2
         with:

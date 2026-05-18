@@ -140,7 +140,21 @@ app.whenReady().then(async () => {
   const alreadyRunning = await isPortInUse(8080)
 
   if (alreadyRunning) {
-    console.log('[Electron] Backend already running on port 8080')
+    const { response } = await dialog.showMessageBox({
+      type: 'warning',
+      title: '端口冲突',
+      message: '端口 8080 已被占用',
+      detail: '可能是其他程序或已启动的后端服务。点击"继续"尝试连接，点击"退出"关闭程序。',
+      buttons: ['继续', '退出'],
+      defaultId: 0,
+      cancelId: 1
+    })
+
+    if (response === 1) {
+      app.quit()
+      return
+    }
+    console.log('[Electron] Backend already running on port 8080, attempting to connect')
   } else {
     const java = getJrePath()
     const jar = getJarPath()
@@ -218,7 +232,6 @@ app.whenReady().then(async () => {
   })
 
   mainWindow.loadURL(url)
-  mainWindow.webContents.openDevTools()
 
   // Menu with navigation
   const menuTemplate = [
