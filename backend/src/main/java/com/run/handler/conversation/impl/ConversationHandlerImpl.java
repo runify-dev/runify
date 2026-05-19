@@ -210,15 +210,19 @@ public class ConversationHandlerImpl implements IConversationHandler {
                 List<Content> chunks = wm.getChunks();
                 List<ConversationMessage> messageArrayList = new ArrayList<>();
                 List<INode<?, ?>> nodes = wm.getNodes();
+                int promptTokens = wm.getPromptTokens();
+                int completionTokens = wm.getCompletionTokens();
+                long runtime = wm.getRuntime();
+                workflow.clear();
                 ConversationMessage conversationMessage = new ConversationMessage(UUID.randomUUID(),
                         conversationId,
                         applicationId, workflowRunId,
                         MessageConstants.ASSISTANT,
                         new JsonArray(chunks),
                         new JsonArray(nodes.stream().map(INode::serialize).toList()),
-                        wm.getPromptTokens(),
-                        wm.getCompletionTokens(),
-                        wm.getRuntime(),
+                        promptTokens,
+                        completionTokens,
+                        runtime,
                         LocalDateTime.now(),
                         LocalDateTime.now());
                 messageArrayList.add(conversationMessage);
@@ -252,9 +256,9 @@ public class ConversationHandlerImpl implements IConversationHandler {
     @Override
     public void delConversation(RoutingContext context) {
         String conversationId = context.pathParams().get("conversationId");
-        conversationMapper.update(Map.of(field(Conversation::getIsDeleted), param(Conversation::getIsDeleted)),
-                        field(Conversation::getId).eq(conversationId),
-                        Map.of("isDeleted", true))
+        conversationMapper.update(Map.of(field(Conversation::getIsDeleted), param(Conversation::getIsDeleted, Boolean.TRUE)),
+                        field(Conversation::getId).eq(conversationId)
+                )
                 .onSuccess(ok -> {
                     context.end(Result.success(true).toBuffer());
                 }).onFailure(context::fail);

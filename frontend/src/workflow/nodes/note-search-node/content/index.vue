@@ -1,7 +1,7 @@
 <template>
   <div>
     <Fieldset legend="检索配置">
-      <!-- 目录筛选 -->
+      <!-- 目录筛选（始终显示） -->
       <div class="mb-3">
         <label class="mb-1 block">目录</label>
         <TreeSelect
@@ -18,110 +18,140 @@
         </Message>
       </div>
 
-      <!-- 检索文本 -->
+      <!-- 顶层模式 -->
       <div class="mb-3">
         <div class="flex items-center justify-between mb-2">
-          <label>检索文本</label>
+          <label>模式</label>
           <SelectButton
-            v-model="formData.keywordLocation"
+            v-model="formData.location"
             :options="locationOptions"
             option-label="label"
             option-value="value"
             size="small"
           />
         </div>
-
-        <Cascader
-          v-if="formData.keywordLocation === 'reference'"
-          placeholder="请选择检索文本变量"
-          :config="{ labelKey: 'label', valueKey: 'value' }"
-          :options="fieldOptions"
-          v-model="formData.keywordReference"
-          optionLabel="label"
-          optionGroupChildren="children"
-          class="w-full"
-        />
-        <Message v-if="formData.keywordLocation === 'reference' && errors.keywordReference" severity="error" size="small" variant="simple">
-          {{ errors.keywordReference }}
-        </Message>
-
-        <InputText
-          v-if="formData.keywordLocation === 'customize'"
-          v-model="formData.keyword"
-          placeholder="输入检索关键词"
-          class="w-full mt-1"
-        />
-        <Message v-if="formData.keywordLocation === 'customize' && errors.keyword" severity="error" size="small" variant="simple">
-          {{ errors.keyword }}
-        </Message>
       </div>
 
-      <!-- 页码 -->
-      <div class="mb-3">
-        <div class="flex items-center justify-between mb-2">
-          <label>页码</label>
-          <SelectButton
-            v-model="formData.pageNoLocation"
-            :options="locationOptions"
-            option-label="label"
-            option-value="value"
-            size="small"
+      <!-- tool_call 模式 -->
+      <template v-if="formData.location === 'tool_call'">
+        <div class="mb-3">
+          <label class="mb-2 block">引用变量</label>
+          <Cascader
+            placeholder="请选择 tool_call 变量"
+            :config="{ labelKey: 'label', valueKey: 'value' }"
+            :options="fieldOptions"
+            v-model="formData.reference"
+            optionLabel="label"
+            optionGroupChildren="children"
+            class="w-full"
+          />
+          <Message v-if="errors.reference" severity="error" size="small" variant="simple">
+            {{ errors.reference }}
+          </Message>
+        </div>
+      </template>
+
+      <!-- 自定义模式 -->
+      <template v-else>
+        <!-- 检索文本 -->
+        <div class="mb-3">
+          <div class="flex items-center justify-between mb-2">
+            <label>检索文本</label>
+            <SelectButton
+              v-model="formData.keywordLocation"
+              :options="fieldLocationOptions"
+              option-label="label"
+              option-value="value"
+              size="small"
+            />
+          </div>
+          <Cascader
+            v-if="formData.keywordLocation === 'reference'"
+            placeholder="请选择检索文本变量"
+            :config="{ labelKey: 'label', valueKey: 'value' }"
+            :options="fieldOptions"
+            v-model="formData.keywordReference"
+            optionLabel="label"
+            optionGroupChildren="children"
+            class="w-full"
+          />
+          <Message v-if="formData.keywordLocation === 'reference' && errors.keywordReference" severity="error" size="small" variant="simple">
+            {{ errors.keywordReference }}
+          </Message>
+          <InputText
+            v-if="formData.keywordLocation === 'customize'"
+            v-model="formData.keyword"
+            placeholder="输入检索关键词"
+            class="w-full"
+          />
+          <Message v-if="formData.keywordLocation === 'customize' && errors.keyword" severity="error" size="small" variant="simple">
+            {{ errors.keyword }}
+          </Message>
+        </div>
+
+        <!-- 页码 -->
+        <div class="mb-3">
+          <div class="flex items-center justify-between mb-2">
+            <label>页码</label>
+            <SelectButton
+              v-model="formData.pageNoLocation"
+              :options="fieldLocationOptions"
+              option-label="label"
+              option-value="value"
+              size="small"
+            />
+          </div>
+          <Cascader
+            v-if="formData.pageNoLocation === 'reference'"
+            placeholder="请选择页码变量"
+            :config="{ labelKey: 'label', valueKey: 'value' }"
+            :options="fieldOptions"
+            v-model="formData.pageNoReference"
+            optionLabel="label"
+            optionGroupChildren="children"
+            class="w-full"
+          />
+          <InputNumber
+            v-if="formData.pageNoLocation === 'customize'"
+            v-model="formData.pageNo"
+            :min="1"
+            placeholder="1"
+            class="w-full"
           />
         </div>
 
-        <Cascader
-          v-if="formData.pageNoLocation === 'reference'"
-          placeholder="请选择页码变量"
-          :config="{ labelKey: 'label', valueKey: 'value' }"
-          :options="fieldOptions"
-          v-model="formData.pageNoReference"
-          optionLabel="label"
-          optionGroupChildren="children"
-          class="w-full"
-        />
-
-        <InputNumber
-          v-if="formData.pageNoLocation === 'customize'"
-          v-model="formData.pageNo"
-          :min="1"
-          placeholder="1"
-          class="w-full mt-1"
-        />
-      </div>
-
-      <!-- 每页条数 -->
-      <div class="mb-3">
-        <div class="flex items-center justify-between mb-2">
-          <label>每页条数</label>
-          <SelectButton
-            v-model="formData.pageSizeLocation"
-            :options="locationOptions"
-            option-label="label"
-            option-value="value"
-            size="small"
+        <!-- 每页条数 -->
+        <div class="mb-3">
+          <div class="flex items-center justify-between mb-2">
+            <label>每页条数</label>
+            <SelectButton
+              v-model="formData.pageSizeLocation"
+              :options="fieldLocationOptions"
+              option-label="label"
+              option-value="value"
+              size="small"
+            />
+          </div>
+          <Cascader
+            v-if="formData.pageSizeLocation === 'reference'"
+            placeholder="请选择每页条数变量"
+            :config="{ labelKey: 'label', valueKey: 'value' }"
+            :options="fieldOptions"
+            v-model="formData.pageSizeReference"
+            optionLabel="label"
+            optionGroupChildren="children"
+            class="w-full"
+          />
+          <InputNumber
+            v-if="formData.pageSizeLocation === 'customize'"
+            v-model="formData.pageSize"
+            :min="1"
+            :max="100"
+            placeholder="10"
+            class="w-full"
           />
         </div>
-
-        <Cascader
-          v-if="formData.pageSizeLocation === 'reference'"
-          placeholder="请选择每页条数变量"
-          :config="{ labelKey: 'label', valueKey: 'value' }"
-          :options="fieldOptions"
-          v-model="formData.pageSizeReference"
-          optionLabel="label"
-          optionGroupChildren="children"
-          class="w-full"
-        />
-
-        <InputNumber
-          v-if="formData.pageSizeLocation === 'customize'"
-          v-model="formData.pageSize"
-          :min="1"
-          :max="100"
-          placeholder="10"
-          class="w-full mt-1"
-        />
-      </div>
+      </template>
     </Fieldset>
   </div>
 </template>
@@ -132,7 +162,7 @@ import type { BaseNodeModel } from '@logicflow/core'
 import Cascader from '@/components/cascader/index.vue'
 import { TreeCommonAPI } from '@/api/tree'
 import { toTree } from '@/components/tree/index'
-import { locationOptions } from './type'
+import { locationOptions, fieldLocationOptions } from './type'
 import { cloneDeep } from 'lodash'
 
 const getModel = inject('getModel') as () => BaseNodeModel
@@ -180,6 +210,8 @@ function toTreeSelectValue(keys: string[] | null | undefined): Record<string, bo
 
 const formData = reactive({
   folderIds: null as Record<string, boolean> | null,
+  location: 'customize' as 'tool_call' | 'customize',
+  reference: [] as string[],
   keywordLocation: 'customize' as 'reference' | 'customize',
   keywordReference: [] as string[],
   keyword: '',
@@ -201,13 +233,19 @@ function validate() {
     errors.folderIds = '请选择目录'
   }
 
-  if (formData.keywordLocation === 'reference') {
-    if (!formData.keywordReference || formData.keywordReference.length === 0) {
-      errors.keywordReference = '请选择引用变量'
+  if (formData.location === 'tool_call') {
+    if (!formData.reference || formData.reference.length === 0) {
+      errors.reference = '请选择引用变量'
     }
   } else {
-    if (!formData.keyword || formData.keyword.trim() === '') {
-      errors.keyword = '请输入检索关键词'
+    if (formData.keywordLocation === 'reference') {
+      if (!formData.keywordReference || formData.keywordReference.length === 0) {
+        errors.keywordReference = '请选择引用变量'
+      }
+    } else {
+      if (!formData.keyword || formData.keyword.trim() === '') {
+        errors.keyword = '请输入检索关键词'
+      }
     }
   }
 
@@ -233,6 +271,8 @@ onMounted(() => {
     const data = cloneDeep(model.properties.nodeData)
     Object.assign(formData, {
       folderIds: toTreeSelectValue(data.folderIds),
+      location: data.location || 'customize',
+      reference: data.reference || [],
       keywordLocation: data.keywordLocation || 'customize',
       keywordReference: data.keywordReference || [],
       keyword: data.keyword || '',

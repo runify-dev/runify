@@ -25,7 +25,6 @@ public class RouteModule {
     @Singleton
     @Named("conversationAPIRoute")
     @Provides
-    @Inject
     public Router conversationAPIRoute(Vertx vertx, @Named("mainRoute") Router router) {
         ProjectManage.setRouter(router);
         ProjectManage.setVertx(vertx);

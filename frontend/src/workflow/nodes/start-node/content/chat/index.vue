@@ -54,8 +54,10 @@
       <TreeNode
         v-for="field in globalFieldList"
         :key="field.value"
+        :id="'global'"
         :node="field"
         name="global"
+        :parent-labels="['global']"
         @copy="copy"
       />
     </Fieldset>

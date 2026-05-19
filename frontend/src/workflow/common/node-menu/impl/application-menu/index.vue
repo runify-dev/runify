@@ -32,7 +32,6 @@ import {
   databaseInsertNode,
   cacheQueryNode,
   cacheWriteNode,
-  fileUploadNode,
   noteSearchNode,
   jsonResponseNode,
   judgeNode,
@@ -46,7 +45,9 @@ import {
   globNode,
   grepNode,
   extractNode,
-  listDirNode
+  listDirNode,
+  fileDownloadNode,
+  fileUploadNode
 } from '@/workflow/common/data'
 
 const groups = [
@@ -60,7 +61,7 @@ const groups = [
     value: '1',
     label: 'AI 工具',
     icon: 'pi pi-bolt',
-    nodes: [terminalNode, readFileNode, listDirNode, globNode, grepNode, applyPatchNode, fileUploadNode]
+    nodes: [terminalNode, readFileNode, listDirNode, globNode, grepNode, applyPatchNode, fileDownloadNode, fileUploadNode]
   },
   {
     value: '2',

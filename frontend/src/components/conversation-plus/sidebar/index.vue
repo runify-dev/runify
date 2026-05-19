@@ -81,7 +81,7 @@
         {{ isDark ? t('conversation.lightMode') : t('conversation.darkMode') }}
       </button>
       <!-- 用户头像入口 -->
-      <div v-if="tokenStore.isLogged" class="sb-user" @click="togglePopover">
+      <div v-if="tokenStore.isLogged && type === 'CONVERSATION'" class="sb-user" @click="togglePopover">
         <img v-if="userIcon" :src="resetUrl(userIcon)" class="sb-user-icon" />
         <span v-else class="sb-user-avatar">{{ userAvatar }}</span>
         <span class="sb-user-name">{{ tokenStore.displayName }}</span>

@@ -12,6 +12,8 @@ import lombok.ToString;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -86,19 +88,19 @@ public class WorkFlow {
                 JsonObject jsonObject = jsonArray.getJsonObject(i);
                 String label = jsonObject.getString("label");
                 String value = jsonObject.getString("value");
-                nodeFields.add(new NodeField(node.getId(), properties.getString("name"), label, value));
+                nodeFields.add(new NodeField(node.getId(), properties.getString("name"), label, value, new ArrayList<>()));
             }
             for (int i = 0; i < globalFields.size(); i++) {
                 JsonObject jsonObject = globalFields.getJsonObject(i);
                 String label = jsonObject.getString("label");
                 String value = jsonObject.getString("value");
-                globalFieldList.add(new NodeField("global", "global", label, value));
+                globalFieldList.add(new NodeField("global", "global", label, value, new ArrayList<>()));
             }
             for (int i = 0; i < loopFieldList.size(); i++) {
                 JsonObject jsonObject = loopFieldList.getJsonObject(i);
                 String label = jsonObject.getString("label");
                 String value = jsonObject.getString("value");
-                nodeFields.add(new NodeField("loop", "loop", label, value));
+                nodeFields.add(new NodeField("loop", "loop", label, value, new ArrayList<>()));
             }
 
         }
@@ -137,12 +139,18 @@ public class WorkFlow {
     }
 
     public String resetPrompt(String prompt) {
-        for (NodeField field : this.fieldList) {
-            prompt = field.resetVariable(prompt);
+        return resolve(prompt);
+    }
+
+    private static final Pattern VARIABLE_PATTERN =
+            Pattern.compile(":::variable\\s*\\{[^}]*value=\"([^\"]+)\"[^}]*}\\s*:::");
+
+    public static String resolve(String text) {
+        if (text == null || text.isEmpty()) {
+            return text;
         }
-        for (NodeField field : this.globalFieldList) {
-            prompt = field.resetVariable(prompt);
-        }
-        return prompt;
+        Matcher matcher = VARIABLE_PATTERN.matcher(text);
+        // 用括号包裹，确保链式取值中间为null也不报错
+        return matcher.replaceAll("\\${($1)!\"\"}");
     }
 }

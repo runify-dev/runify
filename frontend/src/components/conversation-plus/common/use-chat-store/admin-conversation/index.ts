@@ -5,6 +5,7 @@ import { formatDateTime } from '@/utils/common'
 import { useRoute, useRouter } from 'vue-router'
 import dayjs from 'dayjs'
 import applicationAPI from '@/api/application'
+import conversationAPI from '@/api/conversation'
 import type { QueryConversationVO } from '@/api/type/conversation'
 import { t } from '@/locales'
 import { useStreamManager } from '../shared/use-stream-manager'
@@ -159,11 +160,13 @@ export function useChatStore() {
       'CONVERSATION'
     )
     chats.value.unshift(chat.data)
-    conversationId.value = chat.data.id
+
+    await switchChat(chat.data.id)
+
     messages.value = []
     resetMsgState(chat.data.id)
     clearStoredStreamIndex(chat.data.id)
-    router.push({ name: 'applicationChatConversation', params: { applicationId: applicationId.value, conversationId: chat.data.id } })
+
     return chat.data
   }
 
@@ -171,7 +174,6 @@ export function useChatStore() {
     messages.value = []
     conversationId.value = undefined
     router.push({ name: 'applicationChat', params: { applicationId: applicationId.value } })
-    return newChat('新建对话')
   }
 
   const switchChat = (id: string) => {
@@ -179,7 +181,9 @@ export function useChatStore() {
     router.push({ name: 'applicationChatConversation', params: { applicationId: applicationId.value, conversationId: id } })
   }
 
-  const deleteChat = (id: string) => {
+  const deleteChat = async (id: string) => {
+    await applicationAPI.delConversation(applicationId.value, id)
+
     const i = chats.value.findIndex((c) => c.id === id)
     if (i < 0) return
     clearStoredStreamIndex(id)
@@ -200,7 +204,10 @@ export function useChatStore() {
   const renameChat = (id: string, name: string) => {
     const trimmed = name.trim()
     if (!trimmed) return
-    // admin 模式下暂不支持重命名，可后续扩展
+    applicationAPI.modifyName(applicationId.value, id, trimmed).then(() => {
+      const c = chats.value.find((x) => x.id === id)
+      if (c) c.name = trimmed
+    })
   }
 
   const chat = (q: any) => {

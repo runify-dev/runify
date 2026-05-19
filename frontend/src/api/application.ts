@@ -98,6 +98,32 @@ const mineConversation: (
   )
 }
 
+const modifyName: (
+  applicationId: string,
+  conversationId: string,
+  name: string,
+  loading?: Ref<boolean>
+) => Promise<Result<any>> = (applicationId, conversationId, name, loading) => {
+  return put(
+    `/application/${applicationId}/conversation/${conversationId}/modify-name`,
+    { name },
+    undefined,
+    loading
+  )
+}
+
+const delConversation: (
+  applicationId: string,
+  conversationId: string,
+  loading?: Ref<boolean>
+) => Promise<Result<any>> = (applicationId, conversationId, loading) => {
+  return del(
+    `/application/${applicationId}/conversation/${conversationId}`,
+    undefined,
+    loading
+  )
+}
+
 export default {
   edit,
   chat,
@@ -109,5 +135,7 @@ export default {
   resumeStream,
   getApplicationInfo,
   getOverview,
-  cancel
+  cancel,
+  modifyName,
+  delConversation
 }

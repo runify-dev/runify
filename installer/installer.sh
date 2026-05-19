@@ -127,25 +127,41 @@ echo "  -> JDK runtime ready at $JRE_DIR"
 
 # Step 3: Install Electron dependencies
 echo ""
-echo "[3/5] Installing Electron dependencies..."
+echo "[3/6] Installing Electron dependencies..."
 cd "$ELECTRON_DIR"
 npm install
 
-# Step 4: Build Electron app
+# Step 4: Convert icon for Windows
+if [ "$PLATFORM" = "win" ]; then
+  echo ""
+  echo "[4/6] Converting icon to ICO..."
+  pip install Pillow -q
+  python3 -c "
+from PIL import Image
+img = Image.open('$PROJECT_DIR/frontend/public/favicon.ico')
+sizes = [(16,16),(32,32),(48,48),(64,64),(128,128),(256,256)]
+img.save('$ELECTRON_DIR/icon.ico', format='ICO', sizes=sizes)
+"
+  echo "  -> icon.ico created"
+fi
+
+# Step 5: Build Electron app
 echo ""
-echo "[4/5] Building Electron app..."
+echo "[5/6] Building Electron app..."
 case "$PLATFORM" in
   mac)
     npm run build:mac
+    echo "  Signing app..."
+    find dist -name "*.app" -exec codesign --force --deep --sign - {} \;
     ;;
   win)
     npm run build:win
     ;;
 esac
 
-# Step 5: Copy jar to release directory
+# Step 6: Copy jar to release directory
 echo ""
-echo "[5/5] Copying jar to release..."
+echo "[6/6] Copying jar to release..."
 mkdir -p "$PROJECT_DIR/release"
 cp "$ELECTRON_DIR/$JAR_NAME" "$PROJECT_DIR/release/backend.jar"
 

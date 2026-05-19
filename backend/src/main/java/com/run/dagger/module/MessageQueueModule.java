@@ -29,7 +29,6 @@ import javax.inject.Singleton;
 @Module
 public class MessageQueueModule {
 
-    @Inject
     @Singleton
     @Provides
     public MessageQueue<String> messageQueue(AppConfig config, Vertx vertx) {

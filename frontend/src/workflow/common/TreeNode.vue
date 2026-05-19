@@ -38,7 +38,9 @@
         :key="child.value"
         :node="child"
         :name="name"
+        :id="id"
         :parent-path="currentPath"
+        :parent-labels="currentLabels"
         :depth="depth + 1"
         @copy="$emit('copy', $event)"
       />
@@ -50,9 +52,11 @@
 import { ref, computed } from 'vue'
 
 const props = defineProps({
+  id: String,
   node: Object,
   name: String,
-  parentPath: { type: Array, default: () => [] }, // 父级路径
+  parentPath: { type: Array, default: () => [] },
+  parentLabels: { type: Array, default: () => [] },
   depth: { type: Number, default: 0 }
 })
 
@@ -60,12 +64,13 @@ const emit = defineEmits(['copy'])
 const open = ref(true)
 const hasChildren = computed(() => props.node?.children?.length > 0)
 
-// 当前节点完整路径
 const currentPath = computed(() => [...props.parentPath, props.node?.value])
+const currentLabels = computed(() => [...props.parentLabels, props.node?.label])
 
 function handleCopy() {
-  // 复制格式: ${name.user.name}
-  const fullPath = [props.name, ...currentPath.value].join('.')
-  emit('copy', `\${${fullPath}}`)
+  const parts = [props.id, ...currentPath.value]
+  const value = `context${parts.map((p: string) => `['${p}']`).join('')}`
+  const label = [props.name, ...currentLabels.value].join(' / ')
+  emit('copy', `:::variable {value="${value}" label="${label}"} :::`)
 }
 </script>

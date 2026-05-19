@@ -193,7 +193,7 @@ export function useChatStore() {
     const trimmed = name.trim()
     if (!trimmed) return
 
-    conversationAPI.modifyName(applicationId.value, id, trimmed).then(() => {
+    applicationAPI.modifyName(applicationId.value, id, trimmed).then(() => {
       const c = chats.value.find((x) => x.id === id)
       if (c) c.name = trimmed
     })

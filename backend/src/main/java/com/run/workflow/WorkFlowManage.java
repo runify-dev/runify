@@ -309,10 +309,12 @@ public class WorkFlowManage {
                 return context.get(key);
             } else {
                 Object o = context.get(key);
-                if (o instanceof Map<?, ?>) {
+                if (o instanceof JsonObject jo) {
+                    context = jo.getMap();
+                } else if (o instanceof Map<?, ?>) {
                     context = (Map<String, ?>) o;
                 } else {
-                    return o;
+                    return null;
                 }
             }
         }

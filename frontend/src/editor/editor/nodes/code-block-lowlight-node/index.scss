@@ -1,1 +1,168 @@
-@use 'highlight.js/scss/xcode.scss';
+// 自定义 highlight.js 样式，支持亮色/暗色主题切换
+
+pre code.hljs {
+  display: block;
+  overflow-x: auto;
+  padding: 1em;
+}
+
+code.hljs {
+  padding: 3px 5px;
+}
+
+// 亮色主题（默认）
+.hljs {
+  background: #fff;
+  color: black;
+
+  .hljs-comment,
+  .hljs-quote {
+    color: #007400;
+    font-style: italic;
+  }
+
+  .hljs-tag,
+  .hljs-attribute,
+  .hljs-keyword,
+  .hljs-selector-tag,
+  .hljs-literal,
+  .hljs-name {
+    color: #aa0d91;
+  }
+
+  .hljs-variable,
+  .hljs-template-variable {
+    color: #3F6E74;
+  }
+
+  .hljs-code,
+  .hljs-string,
+  .hljs-meta .hljs-string {
+    color: #c41a16;
+  }
+
+  .hljs-regexp,
+  .hljs-link {
+    color: #0E0EFF;
+  }
+
+  .hljs-title,
+  .hljs-symbol,
+  .hljs-bullet,
+  .hljs-number {
+    color: #1c00cf;
+  }
+
+  .hljs-section,
+  .hljs-meta,
+  .hljs-class .hljs-title,
+  .hljs-type,
+  .hljs-built_in,
+  .hljs-builtin-name,
+  .hljs-attr {
+    color: #3F6E74;
+  }
+
+  .hljs-params {
+    color: #007400;
+  }
+
+  .hljs-attribute {
+    color: #aa0d91;
+  }
+
+  .hljs-addition {
+    color: #55a532;
+    background: #eaffea;
+  }
+
+  .hljs-deletion {
+    color: #bd2c00;
+    background: #ffecec;
+  }
+
+  .hljs-emphasis {
+    font-style: italic;
+  }
+
+  .hljs-strong {
+    font-weight: bold;
+  }
+}
+
+// 暗色主题
+.dark .hljs,
+.app-dark .hljs {
+  background: #282c34;
+  color: #abb2bf;
+
+  .hljs-comment,
+  .hljs-quote {
+    color: #5c6370;
+    font-style: italic;
+  }
+
+  .hljs-doctag,
+  .hljs-formula,
+  .hljs-keyword {
+    color: #c678dd;
+  }
+
+  .hljs-deletion,
+  .hljs-name,
+  .hljs-section,
+  .hljs-selector-tag,
+  .hljs-subst {
+    color: #e06c75;
+  }
+
+  .hljs-literal {
+    color: #56b6c2;
+  }
+
+  .hljs-addition,
+  .hljs-attribute,
+  .hljs-meta .hljs-string,
+  .hljs-regexp,
+  .hljs-string {
+    color: #98c379;
+  }
+
+  .hljs-attr,
+  .hljs-number,
+  .hljs-selector-attr,
+  .hljs-selector-class,
+  .hljs-selector-pseudo,
+  .hljs-template-variable,
+  .hljs-type,
+  .hljs-variable {
+    color: #d19a66;
+  }
+
+  .hljs-bullet,
+  .hljs-link,
+  .hljs-meta,
+  .hljs-selector-id,
+  .hljs-symbol,
+  .hljs-title {
+    color: #61aeee;
+  }
+
+  .hljs-built_in,
+  .hljs-class .hljs-title,
+  .hljs-title.class_ {
+    color: #e6c07b;
+  }
+
+  .hljs-emphasis {
+    font-style: italic;
+  }
+
+  .hljs-strong {
+    font-weight: bold;
+  }
+
+  .hljs-link {
+    text-decoration: underline;
+  }
+}

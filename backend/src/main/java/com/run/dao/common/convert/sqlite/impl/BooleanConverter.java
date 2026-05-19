@@ -26,6 +26,10 @@ public class BooleanConverter extends AbstractConverter<Boolean, Integer> {
         if (pos == -1) {
             return Boolean.FALSE;
         }
-        return row.getInteger(pos) != 0;
+        Integer v = row.getInteger(pos);
+        if (v == null) {
+            return Boolean.FALSE;
+        }
+        return v != 0;
     }
 }

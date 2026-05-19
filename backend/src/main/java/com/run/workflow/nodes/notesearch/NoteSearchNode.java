@@ -7,15 +7,17 @@ import com.run.common.search.SearchRequest;
 import com.run.common.search.SearchResult;
 import com.run.common.search.SearchDocument;
 import com.run.common.util.CommonUtils;
+import com.run.common.util.JacksonUtils;
 import com.run.workflow.*;
 import com.run.workflow.entity.Node;
 import com.run.workflow.entity.NodeResult;
-import com.run.workflow.message.struct.FailureContent;
+import com.run.workflow.message.struct.ToolCallContent;
 import com.run.workflow.nodes.notesearch.pojo.NoteSearchNodeData;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
 import jakarta.validation.Validator;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 
 import java.util.HashMap;
@@ -43,32 +45,29 @@ public class NoteSearchNode extends INode<NoteSearchNode, NoteSearchNodeData> {
         super(node, params, upNodeIdList, salt, context, validator, upNode);
     }
 
+    record SearchConfig(String id, String keyword, int pageNo, int pageSize, boolean withWriteArguments) {}
+
     public static class Handle implements BiFunction<WorkFlowManage, NoteSearchNode, Supplier<List<Node>>> {
 
         @Override
         public Supplier<List<Node>> apply(WorkFlowManage workFlowManage, NoteSearchNode node) {
             NoteSearchNodeData data = node.params;
+            String runId = (String) workFlowManage.getParams().get("workflowRunId");
 
-            String keyword = resolveValue(data.getKeywordLocation(), data.getKeywordReference(), data.getKeyword(), workFlowManage);
-            if (keyword == null || keyword.isEmpty()) {
-                node.status = NodeStatus.FAIL;
-                workFlowManage.write(node, new FailureContent("检索文本为空", node,
-                        (String) workFlowManage.getParams().get("workflowRunId"),
-                        CommonUtils.uuid7().toString()));
-                workFlowManage.end();
+            SearchConfig config = resolveConfig(data, workFlowManage);
+            if (config == null || StringUtils.isEmpty(config.keyword())) {
+                invokeFail(workFlowManage, node, runId, CommonUtils.uuid7().toString(), "检索文本为空");
                 return null;
             }
 
-            int pageNo = parseInt(resolveValue(data.getPageNoLocation(), data.getPageNoReference(),
-                    data.getPageNo() != null ? String.valueOf(data.getPageNo()) : null, workFlowManage), 1);
-            int pageSize = parseInt(resolveValue(data.getPageSizeLocation(), data.getPageSizeReference(),
-                    data.getPageSize() != null ? String.valueOf(data.getPageSize()) : null, workFlowManage), 10);
+            String id = config.id();
+            String keyword = config.keyword();
 
             SearchRequest.Builder requestBuilder = SearchRequest.builder("note")
                     .keyword(keyword)
                     .keywordFields("title", "content")
-                    .pageNo(pageNo)
-                    .pageSize(pageSize)
+                    .pageNo(config.pageNo())
+                    .pageSize(config.pageSize())
                     .sortByScoreDesc();
 
             if (data.getFolderIds() != null && !data.getFolderIds().isEmpty()) {
@@ -76,6 +75,13 @@ public class NoteSearchNode extends INode<NoteSearchNode, NoteSearchNodeData> {
             }
 
             SearchRequest request = requestBuilder.build();
+
+            // 写入参数（customize 模式）
+            if (config.withWriteArguments()) {
+                workFlowManage.write(node, new ToolCallContent("note_search", "",
+                        JacksonUtils.toJson(Map.of("keyword", keyword, "page_no", config.pageNo(), "page_size", config.pageSize())),
+                        NodeStatus.RUNNING, node, runId, id));
+            }
 
             SearchClient searchClient = RunApplication.appComponent.searchClient();
             Future<SearchResult<SearchDocument>> future = toVertxFuture(searchClient.search(request));
@@ -97,10 +103,15 @@ public class NoteSearchNode extends INode<NoteSearchNode, NoteSearchNodeData> {
                 output.put("pageSize", result.getPageSize());
 
                 float topScore = result.getHits().isEmpty() ? 0 : result.getHits().get(0).getScore();
+                String summary = "找到 " + result.getTotal() + " 条结果";
+                String argsJson = JacksonUtils.toJson(Map.of("keyword", keyword, "page_no", config.pageNo(), "page_size", config.pageSize()));
+
                 workFlowManage.writeContext(node, "result", output);
                 workFlowManage.writeContext(node, "hits", hits);
                 workFlowManage.writeContext(node, "total", result.getTotal());
                 workFlowManage.writeContext(node, "topScore", topScore);
+                workFlowManage.writeContext(node, "tool", JsonObject.mapFrom(
+                        new ToolCallContent("note_search", summary, argsJson, NodeStatus.SUCCESS, node, runId, id)));
                 node.status = NodeStatus.SUCCESS;
                 workFlowManage.nextInvoke(node, () -> workFlowManage
                         .getNextList(node.node.getId())
@@ -108,23 +119,53 @@ public class NoteSearchNode extends INode<NoteSearchNode, NoteSearchNodeData> {
                         .map(DefaultKeyValue::getValue)
                         .toList());
             }).onFailure(e -> {
-                workFlowManage.nextInvoke(node, node.handleFail(workFlowManage, e));
+                invokeFail(workFlowManage, node, runId, id, e.getMessage());
             });
 
             return null;
         }
 
-        private String resolveValue(String location, List<String> reference, String customValue, WorkFlowManage workFlowManage) {
+        private SearchConfig resolveConfig(NoteSearchNodeData data, WorkFlowManage wfm) {
+            if ("tool_call".equals(data.getLocation())) {
+                if (data.getReference() == null || data.getReference().isEmpty()) return null;
+                Object val = wfm.getContextVariable(data.getReference());
+                if (val == null) return null;
+
+                String id = null;
+                String args = null;
+                if (val instanceof JsonObject jo) {
+                    id = jo.getString("id");
+                    args = jo.getString("functionArguments");
+                }
+                if (args == null) return null;
+
+                JsonObject parsed = new JsonObject(args);
+                String keyword = parsed.getString("keyword");
+                int pageNo = parsed.getInteger("page_no", 1);
+                int pageSize = parsed.getInteger("page_size", 10);
+
+                return new SearchConfig(
+                        StringUtils.isEmpty(id) ? CommonUtils.uuid7().toString() : id,
+                        keyword, pageNo, pageSize, false);
+            }
+
+            // customize 模式
+            String keyword = resolveValue(data.getKeywordLocation(), data.getKeywordReference(), data.getKeyword(), wfm);
+            int pageNo = parseInt(resolveValue(data.getPageNoLocation(), data.getPageNoReference(),
+                    data.getPageNo() != null ? String.valueOf(data.getPageNo()) : null, wfm), 1);
+            int pageSize = parseInt(resolveValue(data.getPageSizeLocation(), data.getPageSizeReference(),
+                    data.getPageSize() != null ? String.valueOf(data.getPageSize()) : null, wfm), 10);
+
+            return new SearchConfig(CommonUtils.uuid7().toString(), keyword, pageNo, pageSize, true);
+        }
+
+        private String resolveValue(String location, List<String> reference, String customValue, WorkFlowManage wfm) {
             if (location == null) location = "customize";
             if (Strings.CS.equals(location, "reference")) {
                 if (reference != null && !reference.isEmpty()) {
-                    Object val = workFlowManage.getContextVariable(reference);
-                    if (val instanceof JsonObject v) {
-                        return v.getString("keyword");
-                    }
-                    if (val instanceof String v) {
-                        return v;
-                    }
+                    Object val = wfm.getContextVariable(reference);
+                    if (val instanceof JsonObject v) return v.getString("keyword");
+                    if (val instanceof String v) return v;
                     return val != null ? val.toString() : null;
                 }
                 return null;
@@ -140,6 +181,13 @@ public class NoteSearchNode extends INode<NoteSearchNode, NoteSearchNodeData> {
             } catch (NumberFormatException e) {
                 return defaultValue;
             }
+        }
+
+        private void invokeFail(WorkFlowManage wfm, NoteSearchNode node, String runId, String id, String error) {
+            node.status = NodeStatus.FAIL;
+            wfm.writeContext(node, "tool", JsonObject.mapFrom(
+                    new ToolCallContent("note_search", error, "", NodeStatus.FAIL, node, runId, id)));
+            wfm.nextFailInvoke(node, new RuntimeException(error));
         }
 
         private <T> Future<T> toVertxFuture(java.util.concurrent.CompletionStage<T> stage) {

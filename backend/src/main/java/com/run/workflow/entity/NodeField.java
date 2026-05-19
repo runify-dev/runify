@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.List;
+
 /**
  * {@code @Author:张少虎}
  * {@code @Date: 2025/3/21  23:18}
@@ -32,6 +34,8 @@ public class NodeField {
      * 值
      */
     private String value;
+
+    private List<NodeField> children;
 
     public String resetVariable(String prompt) {
         String userVariable = this.nodeName + "." + this.value;

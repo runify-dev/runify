@@ -25,6 +25,7 @@ import com.run.handler.application.vo.CreateConversationVO;
 import com.run.handler.common.Tool;
 import com.run.handler.common.impl.ResourceHandlerImpl;
 import com.run.handler.common.pojo.SimpleNodePojo;
+import com.run.handler.conversation.vo.ModifyConversationNameVO;
 import com.run.sql.DSL;
 import com.run.sql.condition.Condition;
 import com.run.workflow.INode;
@@ -59,6 +60,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
 import static com.run.sql.DSL.field;
+import static com.run.sql.DSL.param;
 
 /**
  * {@code @Author:张少虎}
@@ -317,6 +319,10 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
                 messageQueue.delete(conversationId.toString());
                 List<Content> chunks = wm.getChunks();
                 List<INode<?, ?>> nodes = wm.getNodes();
+                int promptTokens = wm.getPromptTokens();
+                int completionTokens = wm.getCompletionTokens();
+                long runtime = wm.getRuntime();
+                workflow.clear();
                 List<ConversationMessage> messageArrayList = new ArrayList<>();
                 ConversationMessage conversationMessage = new ConversationMessage(UUID.randomUUID(),
                         conversationId,
@@ -324,12 +330,13 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
                         MessageConstants.ASSISTANT,
                         new JsonArray(chunks),
                         new JsonArray(nodes.stream().map(INode::serialize).toList()),
-                        wm.getPromptTokens(),
-                        wm.getCompletionTokens(),
-                        wm.getRuntime(),
+                        promptTokens,
+                        completionTokens,
+                        runtime,
                         LocalDateTime.now(),
                         LocalDateTime.now());
                 messageArrayList.add(conversationMessage);
+
                 conversationMessageMapper.batch_save(messageArrayList)
                         .onSuccess(_ -> context.response().end())
                         .onFailure(context::fail);
@@ -594,11 +601,35 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
         ConversationQuery conversation = new ConversationQuery(entries);
         Condition conversationQuery = getConversationQuery(conversation);
         conversationQuery.and(field(Conversation::getConversationUserId).eq(userId));
-        conversationMapper.page(conversationQuery,
+        conversationMapper.page(conversationQuery.and(field(Conversation::getIsDeleted).eq(Boolean.FALSE)),
                         List.of(field(Conversation::getUpdateTime).desc()),
                         Long.parseLong(currentPage), Long.parseLong(pageSize),
                         Map.of())
                 .onSuccess(result -> context.end(Result.success(result).toBuffer()))
                 .onFailure(context::fail);
+    }
+
+    public void modifyConversationName(RoutingContext context) {
+        String conversationId = context.pathParams().get("conversationId");
+        ModifyConversationNameVO modifyConversationNameVO = context.body().asPojo(ModifyConversationNameVO.class);
+        if (StringUtils.isEmpty(modifyConversationNameVO.getName())) {
+            context.end(Result.error("名称必填").toBuffer());
+        }
+        conversationMapper.update(Map.of(field(Conversation::getName), param("name")),
+                        field(Conversation::getId).eq(conversationId),
+                        Map.of("id", conversationId, "name", modifyConversationNameVO.getName()))
+                .onSuccess(ok -> {
+                    context.end(Result.success(true).toBuffer());
+                }).onFailure(context::fail);
+    }
+
+    public void deleteConversation(RoutingContext context) {
+        String conversationId = context.pathParams().get("conversationId");
+        conversationMapper.update(Map.of(field(Conversation::getIsDeleted), param(Conversation::getIsDeleted, Boolean.TRUE)),
+                        field(Conversation::getId).eq(conversationId)
+                )
+                .onSuccess(ok -> {
+                    context.end(Result.success(true).toBuffer());
+                }).onFailure(context::fail);
     }
 }

@@ -15,6 +15,7 @@ import { Selection } from '@tiptap/extensions'
 import { CustomVideoBlock } from "./custom-video-node/index"
 import { CustomAudioBlock } from "./custom-audio-node/index"
 import { CustomFileBlock } from "./custom-file-node"
+import { Variable } from "./variable-node"
 export {
   StarterKit,
   HorizontalRule,
@@ -33,5 +34,6 @@ export {
   Selection,
   CustomVideoBlock,
   CustomAudioBlock,
-  CustomFileBlock
+  CustomFileBlock,
+  Variable
 }

@@ -6,11 +6,17 @@ import com.run.ai.openai.JsonValue;
 import com.run.ai.openai.OpenAIClient;
 import com.run.ai.openai.OpenAIOkHttpClient;
 import com.run.ai.openai.chat.*;
+import com.run.dao.entity.FileEntity;
+import com.run.dao.mapper.FileMapper;
+import com.run.workflow.converter.ConversationMessageConverter;
+import com.run.workflow.nodes.apppatch.ApplyPatchNode;
+import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
 
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 /**
  * {@code @Author:张少虎}
@@ -82,4 +88,8 @@ public abstract class BaseOpenaiChatModel implements ChatModel {
         return this.client.async().chat().completions().createStreaming(getChatCompletionCreateParams(messages, extra));
     }
 
+    @Override
+    public CompletionStage<List<ChatCompletionMessageParam>> transformation(List<Object> messages, FileMapper fileMapper, io.vertx.core.Vertx vertx) {
+        return ConversationMessageConverter.toOpenAiMessageAsync(messages, fileMapper, vertx).toCompletionStage();
+    }
 }

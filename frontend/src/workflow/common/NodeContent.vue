@@ -18,6 +18,7 @@
       <TreeNode
         v-for="field in fieldList"
         :key="field.value"
+        :id="model.id"
         :node="field"
         :name="name"
         @copy="copy"

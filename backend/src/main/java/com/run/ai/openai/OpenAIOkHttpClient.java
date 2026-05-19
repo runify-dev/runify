@@ -15,6 +15,14 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public final class OpenAIOkHttpClient {
 
+    private static final OkHttpClient SHARED_HTTP_CLIENT = new OkHttpClient.Builder()
+            .connectTimeout(Duration.ofSeconds(10))
+            .readTimeout(Duration.ofSeconds(60))
+            .writeTimeout(Duration.ofSeconds(30))
+            .build();
+
+    private static final ExecutorService SHARED_EXECUTOR = defaultExecutor();
+
     private OpenAIOkHttpClient() {
     }
 
@@ -50,12 +58,8 @@ public final class OpenAIOkHttpClient {
         }
 
         public OpenAIClient build() {
-            OkHttpClient finalHttpClient = httpClient == null ? new OkHttpClient.Builder()
-                    .connectTimeout(Duration.ofSeconds(10))
-                    .readTimeout(Duration.ofSeconds(60))
-                    .writeTimeout(Duration.ofSeconds(30))
-                    .build() : httpClient;
-            Executor finalExecutor = executor == null ? defaultExecutor() : executor;
+            OkHttpClient finalHttpClient = httpClient == null ? SHARED_HTTP_CLIENT : httpClient;
+            Executor finalExecutor = executor == null ? SHARED_EXECUTOR : executor;
             return new OpenAIClientImpl(finalHttpClient, normalizeBaseUrl(baseUrl), apiKey, finalExecutor);
         }
 
@@ -66,15 +70,15 @@ public final class OpenAIOkHttpClient {
             }
             return value;
         }
+    }
 
-        private static ExecutorService defaultExecutor() {
-            AtomicInteger counter = new AtomicInteger();
-            ThreadFactory factory = runnable -> {
-                Thread thread = new Thread(runnable, "light-openai-stream-" + counter.incrementAndGet());
-                thread.setDaemon(true);
-                return thread;
-            };
-            return Executors.newCachedThreadPool(factory);
-        }
+    private static ExecutorService defaultExecutor() {
+        AtomicInteger counter = new AtomicInteger();
+        ThreadFactory factory = runnable -> {
+            Thread thread = new Thread(runnable, "light-openai-stream-" + counter.incrementAndGet());
+            thread.setDaemon(true);
+            return thread;
+        };
+        return Executors.newCachedThreadPool(factory);
     }
 }

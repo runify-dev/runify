@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -44,7 +45,6 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
 
     private static final int DEFAULT_TIMEOUT = 30;
 
-    private volatile boolean cancelled = false;
     private volatile Process process;
 
     public TerminalNode(Node node, JsonObject params, List<String> upNodeIdList, String salt, INode<?, ?> upNode) {
@@ -57,13 +57,20 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
 
     @Override
     public void cancel() {
-        if (cancelled) return;
-        cancelled = true;
         super.cancel();
         Process p = this.process;
         if (p != null && p.isAlive()) {
-            p.destroyForcibly();
+            killProcessTree(p);
         }
+    }
+
+    /**
+     * 杀掉进程及其所有子进程（进程树）。
+     * destroyForcibly() 只杀直接子进程（sh），sh 下面的实际命令会成为孤儿进程继续运行。
+     */
+    private static void killProcessTree(Process process) {
+        process.descendants().forEach(ProcessHandle::destroyForcibly);
+        process.destroyForcibly();
     }
 
     record TerminalConfig(String id, String command, boolean withWriteArguments) {
@@ -115,7 +122,7 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
                     throw new UncheckedIOException(e);
                 }
                 return sb.toString();
-            });
+            }, Executors.newVirtualThreadPerTaskExecutor());
         }
 
         /**
@@ -138,7 +145,7 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
             int timeout = resolveTimeout(node.params, workFlowManage);
 
             // 启动前检查取消
-            if (node.cancelled) {
+            if (node.getStatus() == NodeStatus.CANCELLED) {
                 return invokeCancel(workFlowManage, node, config, runId);
             }
 
@@ -174,8 +181,8 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
                 node.process = process;
 
                 // 启动后立刻检查（防止 start 和 cancel 交错）
-                if (node.cancelled) {
-                    process.destroyForcibly();
+                if (node.getStatus() == NodeStatus.CANCELLED) {
+                    killProcessTree(process);
                     return invokeCancel(workFlowManage, node, config, runId);
                 }
 
@@ -185,13 +192,23 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
 
                 stderrFuture = readStreamAsync(process.getErrorStream(), null);
 
-                boolean finished = process.waitFor(timeout, TimeUnit.SECONDS);
+                // 分段等待，每秒检查取消标志
+                boolean finished = false;
+                for (int elapsed = 0; elapsed < timeout; elapsed++) {
+                    if (node.getStatus() == NodeStatus.CANCELLED) {
+                        killProcessTree(process);
+                        return invokeCancel(workFlowManage, node, config, runId);
+                    }
+                    if (process.waitFor(1, TimeUnit.SECONDS)) {
+                        finished = true;
+                        break;
+                    }
+                }
 
                 // 超时处理
                 if (!finished) {
-                    process.destroyForcibly();
-                    // 超时后也要检查是否是取消导致的
-                    if (node.cancelled) {
+                    killProcessTree(process);
+                    if (node.getStatus() == NodeStatus.CANCELLED) {
                         return invokeCancel(workFlowManage, node, config, runId);
                     }
                     String timeoutMsg = "命令执行超时（" + timeout + "秒）";
@@ -199,12 +216,12 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
                 }
 
                 // 进程结束后检查取消
-                if (node.cancelled) {
+                if (node.getStatus() == NodeStatus.CANCELLED) {
                     return invokeCancel(workFlowManage, node, config, runId);
                 }
 
-                String stdout = stdoutFuture.join();
-                String stderr = stderrFuture.join();
+                String stdout = stdoutFuture.get(timeout, TimeUnit.SECONDS);
+                String stderr = stderrFuture.get(timeout, TimeUnit.SECONDS);
 
                 int exitCode = process.exitValue();
                 String result = exitCode == 0 ? stdout : (stderr.isEmpty() ? stdout : stderr);
@@ -230,10 +247,10 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
             } catch (Exception e) {
                 Process p = node.process;
                 if (p != null && p.isAlive()) {
-                    p.destroyForcibly();
+                    killProcessTree(p);
                 }
                 // 异常时也检查取消
-                if (node.cancelled) {
+                if (node.getStatus() == NodeStatus.CANCELLED) {
                     return invokeCancel(workFlowManage, node, config, runId);
                 }
                 return invokeFail(workFlowManage, node, config, runId, e.getMessage(), e.getMessage(), 1, e);

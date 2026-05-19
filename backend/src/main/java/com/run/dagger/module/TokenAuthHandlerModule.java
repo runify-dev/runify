@@ -24,7 +24,7 @@ import javax.inject.Singleton;
  */
 @Module
 public class TokenAuthHandlerModule {
-    @Inject
+
     @Singleton
     @Provides
     @Named("tokenBasicAuthHandler")

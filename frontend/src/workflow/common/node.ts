@@ -1,8 +1,9 @@
-import { HtmlResize } from '@logicflow/extension'
-import { BaseNode, BaseNodeModel, GraphModel, Point, type Model, h as lh } from '@logicflow/core'
-import { isActive, connect, disconnect } from './teleport'
-import { generateAnchor } from '@/utils/common'
-import { anchorIconMap } from '@/workflow/common/data'
+import {HtmlResize} from '@logicflow/extension'
+import {BaseNode, BaseNodeModel, GraphModel, Point, type Model, h as lh} from '@logicflow/core'
+import {isActive, connect, disconnect} from './teleport'
+import {generateAnchor} from '@/utils/common'
+import {anchorIconMap} from '@/workflow/common/data'
+
 const getNodeName = (model: BaseNodeModel) => {
   const eqTypeNodes = model.graphModel.nodes.filter(
     (node: any) => node.id != model.id && node.type == model.type
@@ -19,110 +20,106 @@ const getNodeName = (model: BaseNodeModel) => {
     }
   }
 }
-const useProvide=(model:any)=>{
-const getNodeFieldOptions = (withSelf?:boolean) => {
-  const getUpNode = (id: string, result: Array<any>) => {
-    const upNodes = model.graphModel.getNodeIncomingNode(id)
-    upNodes.forEach((node: any) => {
-      result.push(node)
-      getUpNode(node.id, result)
+const useProvide = (model: any) => {
+  const getNodeFieldOptions = (withSelf?: boolean) => {
+    const getUpNode = (id: string, result: Array<any>) => {
+      const upNodes = model.graphModel.getNodeIncomingNode(id)
+      upNodes.forEach((node: any) => {
+        result.push(node)
+        getUpNode(node.id, result)
+      })
+      return result
+    }
+    const upNodes = getUpNode(model.id, withSelf ? [model] : [])
+
+    const result = upNodes.filter(node => node.properties.field_list && node.properties.field_list.length > 0).map((node) => {
+      return {
+        label: node.properties.name,
+        value: node.id,
+        disabled: true,
+        children: node.properties.field_list.map((item: any) => ({
+          label: item.label,
+          value: item.value,
+          children: item.children
+        }))
+      }
+    })
+
+    // 合并父级变量（子画布场景）
+    const parentGetOptions = model.graphModel.getParentNodeFieldOptions
+    if (parentGetOptions) {
+      parentGetOptions().forEach((item: any) => {
+        result.push(item)
+      })
+    }
+
+    getSelfGlobalFieldOptions().forEach((item) => {
+      result.push(item)
     })
     return result
   }
-  const upNodes = getUpNode(model.id, withSelf?[model]:[])
 
-  const result = upNodes.filter(node=>node.properties.field_list&&node.properties.field_list.length>0).map((node) => {
-    return {
-      label: node.properties.name,
-      value: node.id,
-      disabled: true,
-      children: node.properties.field_list.map((item: any) => ({
-        label: item.label,
-        value: item.value,
-        children: item.children
-      }))
+  const getSelfGlobalFieldOptions = () => {
+    const result:any[] = [];
+    const startNode = model.graphModel.getNodeModelById('start-node')
+    if (startNode) {
+      if (startNode?.properties?.globalFieldList && startNode?.properties?.globalFieldList.length > 0) {
+        result.push({
+          label: 'global',
+          disabled: true,
+          value: 'global',
+          children: startNode?.properties?.globalFieldList || []
+        })
+      }
+
     }
-  })
+    return result
+  }
 
-  // 合并父级变量（子画布场景）
-  const parentGetOptions = model.graphModel.getParentNodeFieldOptions
-  if (parentGetOptions) {
-    parentGetOptions().forEach((item: any) => {
+  const getGlobalFieldOptions = () => {
+    const result:any[] = []
+    // 合并父级变量（子画布场景）
+    const parentGetOptions = model.graphModel.parentGetGlobalFieldOptions
+    if (parentGetOptions) {
+      parentGetOptions().forEach((item: any) => {
+        result.push(item)
+      })
+    }
+    const selfOptions = getSelfGlobalFieldOptions();
+    selfOptions.forEach(item=>{
       result.push(item)
     })
+    return result
   }
 
-  getGlobalFieldOptions().forEach((item) => {
-    result.push(item)
-  })
-  return result
-}
+  const flattenVariables = (nodes: any[], parentLabel = '', parentValue = ''): any[] => {
+    const result: any[] = []
 
-const getGlobalFieldOptions = () => {
-  const result = []
-   // 合并父级变量（子画布场景）
-  const parentGetOptions = model.graphModel.parentGetGlobalFieldOptions
-  if (parentGetOptions) {
-    parentGetOptions().forEach((item: any) => {
-      result.push(item)
-    })
-  }
-  const startNode = model.graphModel.getNodeModelById('start-node')
-  if (startNode) {
-    if(startNode?.properties?.globalFieldList&&startNode?.properties?.globalFieldList.length>0){
-  result.push({
-      label: 'global',
-      disabled: true,
-      value: 'global',
-      children: startNode?.properties?.globalFieldList || []
-    })
+    for (const node of nodes) {
+      if (node.disabled) {
+        // 分组节点，递归子级，传递当前 label 作为前缀
+        result.push(...flattenVariables(node.children ?? [], node.label, node.label))
+      } else {
+        const value = parentValue ? `${parentValue}.${node.value}` : node.value
+        const label = parentLabel ? `${parentLabel} / ${node.label}` : node.label
+        result.push({value, label, children: node.children})
+      }
     }
 
+    return result
   }
-  const getParentModel= model.graphModel.getParentModel;
-  if(getParentModel){
-    const pm=getParentModel()
-   result.push({
-      label: pm.properties.name,
-      value: pm.id,
-      disabled: true,
-      children: pm.properties.field_list.map((item: any) => ({
-        label: item.label,
-        value: item.value,
-        children: item.children
-      }))
-    })
-  }
-  return result
-}
-
-const flattenVariables = (nodes: any[], parentLabel = '', parentValue = ''): any[] => {
-  const result: any[] = []
-
-  for (const node of nodes) {
-    if (node.disabled) {
-      // 分组节点，递归子级，传递当前 label 作为前缀
-      result.push(...flattenVariables(node.children ?? [], node.label, node.label))
-    } else {
-      const value = parentValue ? `${parentValue}.${node.value}` : node.value
-      const label = parentLabel ? `${parentLabel} / ${node.label}` : node.label
-      result.push({ value, label, children: node.children })
-    }
+  const getTemplateVariables = () => {
+    console.log(getNodeFieldOptions())
+    return getNodeFieldOptions();
   }
 
-  return result
+  return {getGlobalFieldOptions, getNodeFieldOptions, getTemplateVariables}
 }
-const  getTemplateVariables=() => {
-  return flattenVariables(getNodeFieldOptions())
-}
-
-return {getGlobalFieldOptions,getNodeFieldOptions,getTemplateVariables}
-}
-
 
 
 class RootView extends HtmlResize.view {
   component: any
+
   constructor(props: { model: BaseNodeModel; graphModel: GraphModel }, vueNode: any) {
     super(props)
     this.component = vueNode
@@ -130,6 +127,7 @@ class RootView extends HtmlResize.view {
       props.model.properties.name = getNodeName(props.model)
     }
   }
+
   setHtml(rootEl: SVGForeignObjectElement): void {
     if (!rootEl.innerHTML) {
       const node = document.createElement('div')
@@ -139,24 +137,28 @@ class RootView extends HtmlResize.view {
       this.renderVueComponent(node)
     }
   }
+
   protected targetId() {
     return `${this.props.graphModel.flowId}:${this.props.model.id}`
   }
+
   protected renderVueComponent(root: any) {
-    const { model, graphModel } = this.props
+    const {model, graphModel} = this.props
     if (root) {
       if (isActive()) {
-        connect(this.targetId(), this.component, root, model, graphModel,useProvide(model))
+        connect(this.targetId(), this.component, root, model, graphModel, useProvide(model))
       }
     }
   }
+
   unmount() {
     if (isActive()) {
       disconnect(this.targetId())
     }
   }
+
   getAnchorShape(anchorData: any) {
-    const { x, y, direction } = anchorData
+    const {x, y, direction} = anchorData
 
     let isConnect = false
 
@@ -176,10 +178,10 @@ class RootView extends HtmlResize.view {
       },
       [
         lh('div', {
-          style: { zindex: 0 },
+          style: {zindex: 0},
           onClick: () => {
             if (direction == 'right') {
-              const model= this.props.model;
+              const model = this.props.model;
               const appendNode = (node: any, anchorData: any) => {
                 const nodeModel = model.graphModel.addNode({
                   type: node.type,
@@ -195,7 +197,7 @@ class RootView extends HtmlResize.view {
                   targetNodeId: nodeModel.id,
                   targetAnchorId: generateAnchor(nodeModel.id, 'left', 'main', 'success')
                 })
-                return Promise.resolve({ message: '添加成功' })
+                return Promise.resolve({message: '添加成功'})
               }
               model.graphModel.eventCenter.emit('runify:node:open-add-node-dialog', {
                 call: appendNode,
@@ -214,6 +216,7 @@ class RootView extends HtmlResize.view {
     )
   }
 }
+
 class RootModel extends HtmlResize.model {
   refreshDegrees() {
     this.incoming.edges.forEach((edge: any) => {
@@ -223,23 +226,27 @@ class RootModel extends HtmlResize.model {
       edge.updatePathByAnchor()
     })
   }
+
   getResizeOutlineStyle() {
     const style = super.getResizeOutlineStyle()
     style.stroke = 'none'
     return style
   }
+
   getControlPointStyle() {
     const style = super.getControlPointStyle()
     style.stroke = 'none'
     style.fill = 'none'
     return style
   }
+
   getNodeStyle() {
     return {
       overflow: 'visible',
       fill: 'none'
     }
   }
+
   getOutlineStyle() {
     const style = super.getOutlineStyle()
     style.stroke = 'none'
@@ -263,8 +270,9 @@ class RootModel extends HtmlResize.model {
       r: 4
     }
   }
+
   getDefaultAnchor() {
-    const { id, x, y, width, type } = this
+    const {id, x, y, width, type} = this
     const anchors: any = []
     if (type.toString() !== 'Base') {
       if (type.toString() !== 'start-node' && type.toString() !== 'loop-start-node') {
@@ -302,4 +310,4 @@ class RootModel extends HtmlResize.model {
   }
 }
 
-export { RootView, RootModel }
+export {RootView, RootModel}

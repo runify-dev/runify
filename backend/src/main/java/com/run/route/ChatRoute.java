@@ -48,14 +48,25 @@ public class ChatRoute implements IRoute {
                 .handler(tokenBasicAuthHandler)
                 .handler(applicationHandler::chat);
 
+        apiRoute.delete("/application/:applicationId/conversation/:conversationId")
+                .handler(tokenBasicAuthHandler)
+                .handler(applicationHandler::deleteConversation);
+
         apiRoute.get("/application/:applicationId/conversation/:conversationId/status")
+                .handler(tokenBasicAuthHandler)
                 .handler(applicationHandler::statusStream);
 
         apiRoute.post("/application/:applicationId/conversation/:conversationId/resume-stream")
+                .handler(tokenBasicAuthHandler)
                 .handler(applicationHandler::resumeStream);
 
         apiRoute.post("/application/:applicationId/conversation/:conversationId/cancel")
                 .handler(applicationHandler::cancel);
+
+        apiRoute.put("/application/:applicationId/conversation/:conversationId/modify-name")
+                .handler(BodyHandler.create())
+                .handler(tokenBasicAuthHandler)
+                .handler(applicationHandler::modifyConversationName);
 
         apiRoute.get("/application/:applicationId/conversation")
                 .handler(tokenBasicAuthHandler)

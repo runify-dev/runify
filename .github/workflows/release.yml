@@ -85,6 +85,57 @@ jobs:
       - name: Copy jar to electron directory
         run: cp backend/target/backend-1.0.0-jar-with-dependencies.jar installer/electron/backend.jar
 
+      - name: Download JRE
+        shell: bash
+        run: |
+          cd installer
+          bash installer.sh --jre-only 2>/dev/null || true
+          # Download JDK 25 for the platform
+          JAVA_VERSION="25"
+          HASH="bd75d5f9689641da8e1daabeccb5528b"
+          BASE="https://download.java.net/java/GA/jdk${JAVA_VERSION}/${HASH}/36/GPL"
+          JRE_DIR="electron/jre"
+          mkdir -p "$JRE_DIR"
+
+          if [ "${{ matrix.platform }}" = "mac" ]; then
+            ARCH=$(uname -m)
+            if [ "$ARCH" = "arm64" ]; then
+              URL="${BASE}/openjdk-${JAVA_VERSION}_macos-aarch64_bin.tar.gz"
+            else
+              URL="${BASE}/openjdk-${JAVA_VERSION}_macos-x64_bin.tar.gz"
+            fi
+            curl -L --connect-timeout 10 --max-time 600 -o /tmp/jdk.tar.gz "$URL"
+            tar -xzf /tmp/jdk.tar.gz -C "$JRE_DIR"
+            # Flatten
+            NESTED=$(find "$JRE_DIR" -maxdepth 1 -type d -name "jdk-*" | head -1)
+            if [ -n "$NESTED" ]; then
+              mv "$NESTED"/* "$JRE_DIR"/
+              rmdir "$NESTED"
+            fi
+          else
+            URL="${BASE}/openjdk-${JAVA_VERSION}_windows-x64_bin.zip"
+            curl -L --connect-timeout 10 --max-time 600 -o /tmp/jdk.zip "$URL"
+            unzip -q /tmp/jdk.zip -d "$JRE_DIR"
+            INNER=$(ls -d "$JRE_DIR"/*/ 2>/dev/null | head -1)
+            if [ -n "$INNER" ]; then
+              mv "$INNER"/* "$JRE_DIR"/
+              rmdir "$INNER"
+            fi
+          fi
+          echo "JRE downloaded to $JRE_DIR"
+
+      - name: Convert icon to ICO for Windows
+        if: matrix.platform == 'win'
+        shell: bash
+        run: |
+          pip install Pillow
+          python -c "
+          from PIL import Image
+          img = Image.open('frontend/public/favicon.ico')
+          sizes = [(16,16),(32,32),(48,48),(64,64),(128,128),(256,256)]
+          img.save('installer/electron/icon.ico', format='ICO', sizes=sizes)
+          "
+
       - name: Install Electron dependencies
         run: |
           cd installer/electron

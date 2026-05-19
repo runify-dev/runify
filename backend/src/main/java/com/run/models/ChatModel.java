@@ -8,11 +8,13 @@ import com.run.ai.openai.chat.ChatCompletionMessageParam;
 import com.run.common.openai.request.message.Message;
 import com.run.common.openai.response.ChatCompletionMessageToolCall;
 import com.run.common.openai.response.CompletionUsage;
+import com.run.dao.mapper.FileMapper;
 import com.run.models.callback.Callback;
 import io.vertx.core.json.JsonObject;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 /**
  * {@code @Author:张少虎}¬
@@ -30,6 +32,9 @@ public interface ChatModel extends BaseModel {
      * @return 响应
      */
     CompletableFuture<ChatCompletion> invoke(List<ChatCompletionMessageParam> messages, JsonObject extra);
+
+
+    CompletionStage<List<ChatCompletionMessageParam>> transformation(List<Object> objects, FileMapper fileMapper, io.vertx.core.Vertx vertx);
 
     /**
      * 流式调用

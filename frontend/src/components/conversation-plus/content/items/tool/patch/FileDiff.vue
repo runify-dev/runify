@@ -139,6 +139,28 @@ const displayLines = computed(() =>
   font-size: 10px;
 }
 
+/* 暗色主题 */
+.dark .fd-row-add {
+  background: #1a3a2a;
+}
+.dark .fd-row-add .fd-ln,
+.dark .fd-row-add .fd-prefix {
+  color: #50d090;
+}
+
+.dark .fd-row-remove {
+  background: #3b1111;
+}
+.dark .fd-row-remove .fd-ln,
+.dark .fd-row-remove .fd-prefix {
+  color: #f87171;
+}
+
+.dark .fd-hunk {
+  background: #1a2a3b;
+  color: #a0a0a0;
+}
+
 .fd-empty {
   padding: 16px;
   color: var(--t2);

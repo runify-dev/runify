@@ -27,7 +27,6 @@ import javax.inject.Singleton;
 public class CacheStoreModule {
 
 
-    @Inject
     @Singleton
     @Provides
     public CacheStore cacheStore(AppConfig config, Vertx vertx) {

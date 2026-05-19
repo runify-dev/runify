@@ -68,7 +68,7 @@ public class ChatStartNode extends INode<ChatStartNode, StartNodeData> {
                 }
             }
             workFlowManage.writeContext(node, "messages", messages);
-            workFlowManage.writeContext(node, "question", node.params.messages.getLast().getContent().getJsonObject(0).getString("content"));
+            workFlowManage.writeContext(node, "question", node.params.messages.getLast().getContent().getJsonObject(0));
             node.end(NodeStatus.SUCCESS);
             return () -> workFlowManage.getNextList(node.node.getId()).stream().map(DefaultKeyValue::getValue).toList();
         }

@@ -49,11 +49,15 @@ public class ChatCompletionAccumulator {
     /**
      * 每收到一个有效的 tool_call arguments/input chunk，触发一次。
      * <p>
-     * 只有 id / type / functionName 都已经解析到时才触发回调。
+     * 只有 id / type 都已经解析到，且 functionName 在 expectedToolNames 白名单内时才触发回调。
      * 回调参数里的 index / id / originalId / type / functionName 每次都返回已知完整值；
      * functionArguments 只表示当前 chunk 的 arguments/input 片段，不包含之前已经收到的内容。
      */
     private Consumer<ToolCallChunk> onToolCallChunk;
+
+    // ---------- 期望的 tool names 白名单 ----------
+
+    private final Set<String> expectedToolNames;
 
     // ---------- id 重映射配置 ----------
 
@@ -62,14 +66,26 @@ public class ChatCompletionAccumulator {
 
     public ChatCompletionAccumulator() {
         this.trackedKeys = Collections.emptySet();
+        this.expectedToolNames = Collections.emptySet();
     }
 
     public ChatCompletionAccumulator(Collection<String> trackedKeys) {
+        this(trackedKeys, null);
+    }
+
+    public ChatCompletionAccumulator(Collection<String> trackedKeys,
+                                     Collection<String> expectedToolNames) {
         if (trackedKeys == null || trackedKeys.isEmpty()) {
             this.trackedKeys = Collections.emptySet();
         } else {
             this.trackedKeys = new LinkedHashSet<>(trackedKeys);
             trackedKeys.forEach(k -> additionalProperties.put(k, new StringBuilder()));
+        }
+
+        if (expectedToolNames == null || expectedToolNames.isEmpty()) {
+            this.expectedToolNames = Collections.emptySet();
+        } else {
+            this.expectedToolNames = new LinkedHashSet<>(expectedToolNames);
         }
     }
 
@@ -83,7 +99,10 @@ public class ChatCompletionAccumulator {
     /**
      * 每收到一个有效的 tool_call arguments/input chunk，触发一次。
      * <p>
-     * 注意：id / type / functionName 为空时不会回调；functionArguments 不是累计值。
+     * 注意：id / type 为空时不会回调；functionName 不在 expectedToolNames 内时不会回调；
+     * functionArguments 不是累计值。
+     * <p>
+     * 如果未设置 expectedToolNames（空集合），则只要 functionName 非空即回调（向后兼容）。
      */
     public ChatCompletionAccumulator onToolCallChunk(
             Consumer<ToolCallChunk> callback) {
@@ -416,12 +435,15 @@ public class ChatCompletionAccumulator {
     /**
      * 触发 tool_call chunk 回调。
      * <p>
-     * 只有 id / type / functionName 都已经解析到，且当前 chunk 存在 arguments/input 片段时才回调。
+     * 只有 id / type 都已经解析到，且 functionName 匹配 expectedToolNames 白名单
+     * （白名单为空时退化为 functionName 非空即可），且当前 chunk 存在 arguments/input 片段时才回调。
      */
     private void emitToolCallChunk(ToolCallChunk chunk) {
         if (onToolCallChunk == null) return;
         if (chunk == null) return;
-        if (isBlank(chunk.id) || isBlank(chunk.type) || isBlank(chunk.functionName)) return;
+        if (isBlank(chunk.id) || isBlank(chunk.type)) return;
+        if (isBlank(chunk.functionName)) return;
+        if (!expectedToolNames.isEmpty() && !expectedToolNames.contains(chunk.functionName)) return;
         if (isEmpty(chunk.functionArguments)) return;
 
         try {

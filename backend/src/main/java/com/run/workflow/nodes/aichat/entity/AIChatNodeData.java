@@ -1,5 +1,7 @@
 package com.run.workflow.nodes.aichat.entity;
 
+import com.run.common.pojo.File;
+import com.run.workflow.message.struct.QuestionContent;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -31,6 +33,14 @@ public class AIChatNodeData {
      * 上下文配置
      */
     private ContextConfig contextConfig;
+    /**
+     * 图片变量引用列表
+     */
+    private List<List<String>> images;
+    /**
+     * 视频变量引用列表
+     */
+    private List<List<String>> videos;
     /**
      * 工具配置
      */

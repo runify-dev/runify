@@ -177,6 +177,32 @@ export const cacheWriteNode = {
   }
 }
 
+export const fileDownloadNode = {
+  type: 'file-download-node',
+  text: '',
+  x: 0,
+  y: 0,
+  label: '文件下载',
+  properties: {
+    width: 200,
+    height: 50,
+    name: '文件下载',
+    isHovered: false,
+    field_list: [
+    ],
+    nodeData: {
+      location: 'customize',
+      reference: [],
+      fileIdLocation: 'customize',
+      fileIdReference: [],
+      fileId: '',
+      pathLocation: 'customize',
+      pathReference: [],
+      path: ''
+    }
+  }
+}
+
 export const fileUploadNode = {
   type: 'file-upload-node',
   text: '',
@@ -189,9 +215,6 @@ export const fileUploadNode = {
     name: '文件上传',
     isHovered: false,
     field_list: [
-      { label: '文件ID', value: 'fileId' },
-      { label: '文件名', value: 'fileName' },
-      { label: '文件大小', value: 'fileSize' }
     ],
     nodeData: {
       location: 'customize',
@@ -262,7 +285,7 @@ export const loopStartNode = {
     name: '循环开始',
     isHovered: false,
     field_list: [
-    
+
     ]
   }
 }

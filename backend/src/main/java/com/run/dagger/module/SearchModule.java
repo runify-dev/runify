@@ -36,7 +36,6 @@ public class SearchModule {
 
 
     @SneakyThrows
-    @Inject
     @Singleton
     @Provides
     public SearchClient searchClient(AppConfig config, Vertx vertx) {

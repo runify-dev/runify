@@ -32,6 +32,7 @@ import {
   databaseInsertNode,
   cacheQueryNode,
   cacheWriteNode,
+  fileDownloadNode,
   fileUploadNode,
   noteSearchNode,
   jsonResponseNode,
@@ -62,7 +63,7 @@ const groups = [
     value: '1',
     label: 'AI 工具',
     icon: 'pi pi-bolt',
-    nodes: [terminalNode, readFileNode, listDirNode, globNode, grepNode, applyPatchNode, fileUploadNode]
+    nodes: [terminalNode, readFileNode, listDirNode, globNode, grepNode, applyPatchNode, fileDownloadNode, fileUploadNode]
   },
   {
     value: '2',
