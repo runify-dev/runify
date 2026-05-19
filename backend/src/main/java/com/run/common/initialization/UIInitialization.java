@@ -43,7 +43,7 @@ public class UIInitialization {
             String path = context.request().path();
             Optional<String> first = adminResources.stream().filter(path::endsWith).findFirst();
             if (first.isPresent()) {
-                context.redirect("/admin/" + first.get());
+                context.response().sendFile("admin/" + first.get());
             } else {
                 vertx.fileSystem().readFile("admin/index.html")
                         .onSuccess(result -> {
@@ -61,7 +61,7 @@ public class UIInitialization {
             String path = context.request().path();
             Optional<String> first = conversationResources.stream().filter(path::endsWith).findFirst();
             if (first.isPresent()) {
-                context.redirect("/conversation/" + first.get());
+                context.response().sendFile("conversation/" + first.get());
             } else {
                 vertx.fileSystem().readFile("conversation/index.html")
                         .onSuccess(result -> {
