@@ -10,11 +10,11 @@ let javaProcess = null
 function findJavaBin(dir) {
   const javaName = process.platform === 'win32' ? 'java.exe' : 'java'
   const candidates = process.platform === 'darwin'
-    ? [
+      ? [
         path.join(dir, 'Contents', 'Home', 'bin', javaName),
         path.join(dir, 'bin', javaName),
       ]
-    : [
+      : [
         path.join(dir, 'bin', javaName),
       ]
 
@@ -57,7 +57,6 @@ function waitForPort(port, timeout = 60000) {
   return new Promise((resolve, reject) => {
     const startTime = Date.now()
 
-    // Capture Java output for error reporting
     if (javaProcess) {
       javaProcess.stdout.on('data', (data) => javaLogs.push(data.toString()))
       javaProcess.stderr.on('data', (data) => javaLogs.push(data.toString()))
@@ -104,6 +103,7 @@ function waitForPort(port, timeout = 60000) {
 
 function showErrorAndQuit(title, message) {
   console.error(`[${title}] ${message}`)
+
   if (app.isReady()) {
     dialog.showErrorBox(title, message)
     app.quit()
@@ -119,24 +119,27 @@ function isPortInUse(port) {
   return new Promise((resolve) => {
     const socket = new net.Socket()
     socket.setTimeout(2000)
+
     socket.on('connect', () => {
       socket.destroy()
       resolve(true)
     })
+
     socket.on('error', () => {
       socket.destroy()
       resolve(false)
     })
+
     socket.on('timeout', () => {
       socket.destroy()
       resolve(false)
     })
+
     socket.connect(port, '127.0.0.1')
   })
 }
 
 app.whenReady().then(async () => {
-  // Check if backend is already running
   const alreadyRunning = await isPortInUse(8080)
 
   if (alreadyRunning) {
@@ -154,6 +157,7 @@ app.whenReady().then(async () => {
       app.quit()
       return
     }
+
     console.log('[Electron] Backend already running on port 8080, attempting to connect')
   } else {
     const java = getJrePath()
@@ -171,18 +175,32 @@ app.whenReady().then(async () => {
       showErrorAndQuit('启动失败', `找不到 Java:\n${java}`)
       return
     }
+
     if (!jarExists) {
       showErrorAndQuit('启动失败', `找不到 JAR:\n${jar}`)
       return
     }
 
-    javaProcess = spawn(java, ['-jar', jar], {
+    const javaArgs = [
+      '-Dpolyglotimpl.DisableMultiReleaseCheck=true',
+      '-jar',
+      jar
+    ]
+
+    console.log(`[Electron] java args: ${javaArgs.join(' ')}`)
+
+    javaProcess = spawn(java, javaArgs, {
       cwd,
       stdio: ['ignore', 'pipe', 'pipe']
     })
 
-    javaProcess.stdout.on('data', (data) => console.log(`[Java] ${data.toString().trim()}`))
-    javaProcess.stderr.on('data', (data) => console.error(`[Java] ${data.toString().trim()}`))
+    javaProcess.stdout.on('data', (data) => {
+      console.log(`[Java] ${data.toString().trim()}`)
+    })
+
+    javaProcess.stderr.on('data', (data) => {
+      console.error(`[Java] ${data.toString().trim()}`)
+    })
 
     javaProcess.on('error', (err) => {
       showErrorAndQuit('启动失败', `无法启动 Java:\n${err.message}`)
@@ -191,6 +209,7 @@ app.whenReady().then(async () => {
     javaProcess.on('exit', (code) => {
       console.log(`[Java] exited with code ${code}`)
       javaProcess = null
+
       if (mainWindow && !mainWindow.isDestroyed()) {
         showErrorAndQuit('后端异常', `Java 退出 (code: ${code})`)
       }
@@ -204,7 +223,6 @@ app.whenReady().then(async () => {
     }
   }
 
-  // Create window
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
@@ -233,13 +251,20 @@ app.whenReady().then(async () => {
 
   mainWindow.loadURL(url)
 
-  // Menu with navigation
   const menuTemplate = [
     {
       label: 'Run',
       submenu: [
-        { label: 'Admin', accelerator: 'CmdOrCtrl+1', click: () => mainWindow.loadURL('http://localhost:8080/admin/') },
-        { label: 'Conversation', accelerator: 'CmdOrCtrl+2', click: () => mainWindow.loadURL('http://localhost:8080/conversation/') },
+        {
+          label: 'Admin',
+          accelerator: 'CmdOrCtrl+1',
+          click: () => mainWindow.loadURL('http://localhost:8080/admin/')
+        },
+        {
+          label: 'Conversation',
+          accelerator: 'CmdOrCtrl+2',
+          click: () => mainWindow.loadURL('http://localhost:8080/conversation/')
+        },
         { type: 'separator' },
         { role: 'quit' }
       ]
