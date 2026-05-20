@@ -3,6 +3,7 @@ package com.run.dao.mapper;
 import com.run.common.config.AppConfig;
 import com.run.common.util.CommonUtils;
 
+import com.run.dao.common.constants.RefType;
 import com.run.dao.common.entity.BaseReadStream;
 import com.run.dao.common.mapper.BaseMapper;
 import com.run.dao.entity.FileEntity;
@@ -306,7 +307,7 @@ public class FileMapper extends BaseMapper<FileEntity> {
      * @param file     本地文件
      * @return FileEntity 异步任务
      */
-    public Future<FileEntity> upload(String fileName, long size, String refType, String ref, File file) {
+    public Future<FileEntity> upload(String fileName, long size, RefType refType, String ref, File file) {
         FileEntity fileEntity = new FileEntity();
         fileEntity.setId(UUID.randomUUID());
         fileEntity.setSize(size);
@@ -384,7 +385,7 @@ public class FileMapper extends BaseMapper<FileEntity> {
             return sha256;
         }, false).compose(sha256 -> {
             return search(field(FileEntity::getSha256Hash).eq(sha256)
-                    , Map.of( ))
+                    , Map.of())
                     .compose(rows -> {
                         if (rows.size() == 0) {
                             return SqlTemplate.forQuery(client, "SELECT lo_creat(-1)::int8 as lo_id;").execute(Map.of()).compose(loId -> {

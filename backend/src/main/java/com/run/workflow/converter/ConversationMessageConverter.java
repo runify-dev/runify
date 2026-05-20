@@ -102,9 +102,10 @@ public class ConversationMessageConverter {
         ContentConvertConfig cfg = config == null ? ContentConvertConfig.defaultConfig() : config;
         List<ChatCompletionMessageParam> result = new ArrayList<>();
 
-        // 用显式状态机替代手动 flush 排列组合
         ContentTypeConstants currentRole = null;
         StringBuilder buf = new StringBuilder();
+        // 缓存相邻且 aiId 相同的 TOOL 消息
+        List<JsonObject> toolGroup = new ArrayList<>();
 
         for (JsonObject obj : toJsonObjectList(contents)) {
             ContentTypeConstants type = parseType(obj);
@@ -112,15 +113,26 @@ public class ConversationMessageConverter {
 
             String extracted = cfg.extract(type, obj);
 
-            // TOOL 比较特殊，总是独立成一组，先处理
             if (type == ContentTypeConstants.TOOL) {
+                // 先 flush 非 TOOL 缓冲
                 flushBuffer(currentRole, buf, result);
                 currentRole = null;
-                appendToolTurn(obj, result);
+
+                if (!toolGroup.isEmpty() && !sameAiId(toolGroup.get(0), obj)) {
+                    // aiId 不同，先把之前的 group flush 掉
+                    appendToolGroup(toolGroup, result);
+                    toolGroup.clear();
+                }
+                toolGroup.add(obj);
                 continue;
             }
 
-            // 角色切换时 flush 前一个 buffer
+            // 遇到非 TOOL，先 flush 积攒的 toolGroup
+            if (!toolGroup.isEmpty()) {
+                appendToolGroup(toolGroup, result);
+                toolGroup.clear();
+            }
+
             if (type != currentRole) {
                 flushBuffer(currentRole, buf, result);
                 currentRole = type;
@@ -131,13 +143,15 @@ public class ConversationMessageConverter {
             }
         }
 
+        // 尾部 flush
+        if (!toolGroup.isEmpty()) {
+            appendToolGroup(toolGroup, result);
+            toolGroup.clear();
+        }
         flushBuffer(currentRole, buf, result);
         return result;
     }
 
-    /**
-     * 根据当前角色类型，将 buffer 内容 flush 为对应的消息。
-     */
     private static void flushBuffer(ContentTypeConstants role, StringBuilder buf,
                                     List<ChatCompletionMessageParam> result) {
         if (role == null || buf.length() == 0) return;
@@ -145,15 +159,12 @@ public class ConversationMessageConverter {
             case SYSTEM -> flushSystem(buf, result);
             case QUESTION -> flushUser(buf, result);
             case TEXT -> flushAssistantText(buf, result);
-            default -> buf.setLength(0); // 不应该走到这里
+            default -> buf.setLength(0);
         }
     }
 
     // ══════════════════════════════════════════════
     //  异步核心转换（支持 QUESTION 多模态）
-    //
-    //  修复：所有状态变更都串入 fileChain，
-    //  保证在同一条异步链上顺序执行，消除并发隐患。
     // ══════════════════════════════════════════════
 
     private static Future<List<ChatCompletionMessageParam>> convertAsync(List<Object> contents,
@@ -162,14 +173,14 @@ public class ConversationMessageConverter {
                                                                          Vertx vertx) {
         ContentConvertConfig cfg = config == null ? ContentConvertConfig.defaultConfig() : config;
 
-        // 所有可变状态
         List<ChatCompletionMessageParam> result = new ArrayList<>();
         StringBuilder systemBuf = new StringBuilder();
         StringBuilder userTextBuf = new StringBuilder();
         List<JsonObject> userFileParts = new ArrayList<>();
         StringBuilder assistantTextBuf = new StringBuilder();
+        // 缓存相邻且 aiId 相同的 TOOL 消息
+        List<JsonObject> toolGroup = new ArrayList<>();
 
-        // 把全部操作串进一条异步链，保证顺序和线程安全
         Future<Void> chain = Future.succeededFuture();
 
         for (JsonObject obj : toJsonObjectList(contents)) {
@@ -181,18 +192,25 @@ public class ConversationMessageConverter {
             switch (type) {
                 case SYSTEM -> {
                     chain = chain.compose(v -> {
+                        if (!toolGroup.isEmpty()) {
+                            appendToolGroup(toolGroup, result);
+                            toolGroup.clear();
+                        }
                         flushUserFromParts(userTextBuf, userFileParts, result);
                         flushAssistantText(assistantTextBuf, result);
                         if (!isBlank(extracted)) {
                             systemBuf.append(extracted);
                         }
-                        return Future.succeededFuture();
+                        return Future.<Void>succeededFuture();
                     });
                 }
                 case QUESTION -> {
-                    // 文件读取需要异步，所以 compose 进链
                     boolean needReadFiles = hasFiles(obj);
                     chain = chain.compose(v -> {
+                        if (!toolGroup.isEmpty()) {
+                            appendToolGroup(toolGroup, result);
+                            toolGroup.clear();
+                        }
                         flushSystem(systemBuf, result);
                         flushAssistantText(assistantTextBuf, result);
                         if (!isBlank(extracted)) {
@@ -200,22 +218,28 @@ public class ConversationMessageConverter {
                         }
                         if (needReadFiles) {
                             return readQuestionFileParts(obj, fileMapper, vertx)
-                                    .map(parts -> {
-                                        userFileParts.addAll(parts);
-                                        return null;
+                                    .compose(parts -> {
+                                        if (parts != null && !parts.isEmpty()) {
+                                            userFileParts.addAll(parts);
+                                        }
+                                        return Future.<Void>succeededFuture();
                                     });
                         }
-                        return Future.succeededFuture();
+                        return Future.<Void>succeededFuture();
                     });
                 }
                 case TEXT -> {
                     chain = chain.compose(v -> {
+                        if (!toolGroup.isEmpty()) {
+                            appendToolGroup(toolGroup, result);
+                            toolGroup.clear();
+                        }
                         flushSystem(systemBuf, result);
                         flushUserFromParts(userTextBuf, userFileParts, result);
                         if (!isBlank(extracted)) {
                             assistantTextBuf.append(extracted);
                         }
-                        return Future.succeededFuture();
+                        return Future.<Void>succeededFuture();
                     });
                 }
                 case TOOL -> {
@@ -223,15 +247,23 @@ public class ConversationMessageConverter {
                         flushSystem(systemBuf, result);
                         flushUserFromParts(userTextBuf, userFileParts, result);
                         flushAssistantText(assistantTextBuf, result);
-                        appendToolTurn(obj, result);
-                        return Future.succeededFuture();
+                        // 如果 aiId 不同，先 flush 之前的 group
+                        if (!toolGroup.isEmpty() && !sameAiId(toolGroup.get(0), obj)) {
+                            appendToolGroup(toolGroup, result);
+                            toolGroup.clear();
+                        }
+                        toolGroup.add(obj);
+                        return Future.<Void>succeededFuture();
                     });
                 }
             }
         }
 
-        // 收尾
         return chain.compose(v -> {
+            if (!toolGroup.isEmpty()) {
+                appendToolGroup(toolGroup, result);
+                toolGroup.clear();
+            }
             flushSystem(systemBuf, result);
             flushUserFromParts(userTextBuf, userFileParts, result);
             flushAssistantText(assistantTextBuf, result);
@@ -264,10 +296,6 @@ public class ConversationMessageConverter {
         buf.setLength(0);
     }
 
-    /**
-     * 从 textBuf + fileParts 构造 user 消息并 flush。
-     * 只在 fileChain 完成后调用，保证 fileParts 已填充。
-     */
     private static void flushUserFromParts(StringBuilder textBuf,
                                            List<JsonObject> fileParts,
                                            List<ChatCompletionMessageParam> result) {
@@ -278,7 +306,6 @@ public class ConversationMessageConverter {
             return;
         }
 
-        // 多模态：text + image_url / video_url 等
         List<Object> contentParts = new ArrayList<>();
         if (textBuf.length() > 0) {
             contentParts.add(new JsonObject().put("type", "text").put("text", textBuf.toString()));
@@ -347,83 +374,189 @@ public class ConversationMessageConverter {
         });
     }
 
+    /**
+     * 读取文件并构造多模态 content part。
+     * <p>
+     * 支持两种 url 格式：
+     * <ul>
+     *   <li>绝对路径（以 "/" 开头）：直接通过 Vert.x FileSystem 读取本地文件</li>
+     *   <li>相对 API 路径（如 "./api/storage/file/:id"）：通过 fileMapper 读取</li>
+     * </ul>
+     * <p>
+     * 如果文件不存在或读取失败，静默返回 null，不中断整条 Future 链。
+     */
     private static Future<JsonObject> readFileAsContentPart(JsonObject fileObj,
                                                             String urlType,
                                                             String mimeTypePrefix,
                                                             FileMapper fileMapper,
                                                             Vertx vertx) {
-        String url = fileObj.getString("url", "");
-        String fileId = extractFileId(url);
-        if (isBlank(fileId)) {
-            return Future.succeededFuture();
-        }
-        return fileMapper.getById(fileId)
-                .compose(entity -> readBase64(fileMapper, entity, vertx)
-                        .map(base64 -> {
-                            String fileName = entity.getFileName();
+        try {
+            String url = fileObj.getString("url", "");
+            if (isBlank(url)) {
+                return Future.succeededFuture();
+            }
+
+            if (url.startsWith("/")) {
+                // ── 绝对路径：直接读本地文件系统 ──
+                Future<JsonObject> f = vertx.fileSystem().readFile(url)
+                        .map(buffer -> {
+                            String fileName = url.substring(url.lastIndexOf('/') + 1);
                             String mime = MimeMapping.mimeTypeForFilename(fileName);
                             if (mime == null || !mime.startsWith(mimeTypePrefix)) {
                                 mime = mimeTypePrefix + "/" + getExtension(fileName);
                             }
+                            String base64 = Base64.getEncoder().encodeToString(buffer.getBytes());
                             String dataUrl = "data:" + mime + ";base64," + base64;
-                            return new JsonObject()
+                            return (JsonObject) new JsonObject()
                                     .put("type", urlType)
                                     .put(urlType, new JsonObject().put("url", dataUrl));
-                        }));
+                        });
+                return f != null ? f.otherwise(err -> null) : Future.succeededFuture();
+            }
+
+            // ── 相对 API 路径：通过 fileMapper 读取 ──
+            String fileId = extractFileId(url);
+            if (isBlank(fileId)) {
+                return Future.succeededFuture();
+            }
+
+            Future<? extends FileEntity> getByIdFuture = fileMapper.getById(fileId);
+            // ★ 防御 fileMapper.getById 直接返回 null
+            if (getByIdFuture == null) {
+                return Future.succeededFuture();
+            }
+
+            Future<JsonObject> resultFuture = getByIdFuture
+                    .compose(entity -> {
+                        // ★ 数据库中无此记录，跳过
+                        if (entity == null) {
+                            return Future.succeededFuture((JsonObject) null);
+                        }
+                        return readBase64(fileMapper, entity, vertx)
+                                .map(base64 -> {
+                                    String fileName = entity.getFileName();
+                                    String mime = MimeMapping.mimeTypeForFilename(fileName);
+                                    if (mime == null || !mime.startsWith(mimeTypePrefix)) {
+                                        mime = mimeTypePrefix + "/" + getExtension(fileName);
+                                    }
+                                    String dataUrl = "data:" + mime + ";base64," + base64;
+                                    return (JsonObject) new JsonObject()
+                                            .put("type", urlType)
+                                            .put(urlType, new JsonObject().put("url", dataUrl));
+                                });
+                    })
+                    // ★ 任何异常（getById 失败、readBase64 失败等）都静默跳过
+                    .otherwise(err -> null);
+            return resultFuture;
+        } catch (Exception e) {
+            // ★ 兜底：fileMapper 方法抛同步异常、返回 null 等任何意外情况
+            return Future.succeededFuture();
+        }
     }
 
     /**
      * 将文件流读取为 Base64 字符串。
-     * 修复：
-     *  1. handler 异常后立即 pause 流并短路，防止后续回调重复操作 promise。
-     *  2. 用 failed 标志位确保 promise 只被 complete/fail 一次。
      */
     private static Future<String> readBase64(FileMapper fileMapper, FileEntity entity, Vertx vertx) {
         Promise<String> promise = Promise.promise();
-        ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
-        OutputStream b64Out = Base64.getEncoder().wrap(byteOut);
-        boolean[] failed = {false}; // 用数组绕过 lambda 的 effectively final 限制
+        try {
+            ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+            OutputStream b64Out = Base64.getEncoder().wrap(byteOut);
+            boolean[] failed = {false};
 
-        var stream = fileMapper.downloadFile(vertx, entity);
-        stream.handler(chunk -> {
-                    if (failed[0]) return;
-                    try {
-                        b64Out.write(chunk.getBytes());
-                    } catch (Exception e) {
+            var stream = fileMapper.downloadFile(vertx, entity);
+            if (stream == null) {
+                return Future.failedFuture("downloadFile returned null for: " + entity.getFileName());
+            }
+            stream.handler(chunk -> {
+                        if (failed[0]) return;
+                        try {
+                            b64Out.write(chunk.getBytes());
+                        } catch (Exception e) {
+                            failed[0] = true;
+                            stream.pause();
+                            promise.tryFail(e);
+                        }
+                    })
+                    .endHandler(v -> {
+                        if (failed[0]) return;
+                        try {
+                            b64Out.close();
+                            promise.tryComplete(byteOut.toString("UTF-8"));
+                        } catch (Exception e) {
+                            promise.tryFail(e);
+                        }
+                    })
+                    .exceptionHandler(e -> {
+                        if (failed[0]) return;
                         failed[0] = true;
-                        stream.pause();
                         promise.tryFail(e);
-                    }
-                })
-                .endHandler(v -> {
-                    if (failed[0]) return;
-                    try {
-                        b64Out.close();
-                        promise.tryComplete(byteOut.toString("UTF-8"));
-                    } catch (Exception e) {
-                        promise.tryFail(e);
-                    }
-                })
-                .exceptionHandler(e -> {
-                    if (failed[0]) return;
-                    failed[0] = true;
-                    promise.tryFail(e);
-                })
-                .read();
+                    })
+                    .read();
+        } catch (Exception e) {
+            promise.tryFail(e);
+        }
 
         return promise.future();
     }
 
     // ══════════════════════════════════════════════
-    //  Tool Call 构建
+    //  Tool Call 构建（支持 aiId 合并 + reasoning）
     // ══════════════════════════════════════════════
 
-    private static void appendToolTurn(JsonObject obj, List<ChatCompletionMessageParam> result) {
-        JsonObject assistantMsg = new JsonObject()
-                .put("role", "assistant")
-                .put("tool_calls", new JsonArray().add(buildToolCall(obj)));
+    /**
+     * 将一组相邻且 aiId 相同的 TOOL 消息合并为：
+     * <ol>
+     *   <li>一条 assistant 消息（含 tool_calls，可选 reasoning 和 content）</li>
+     *   <li>每个 TOOL 对应一条 tool result 消息</li>
+     * </ol>
+     */
+    private static void appendToolGroup(List<JsonObject> group, List<ChatCompletionMessageParam> result) {
+        if (group == null || group.isEmpty()) return;
+
+        // ── 构建 assistant 消息 ──
+        JsonObject assistantMsg = new JsonObject().put("role", "assistant");
+
+        // tool_calls 数组
+        JsonArray toolCalls = new JsonArray();
+        for (JsonObject obj : group) {
+            toolCalls.add(buildToolCall(obj));
+        }
+        assistantMsg.put("tool_calls", toolCalls);
+
+        // reasoning：取 group 中第一个带 reasoningKey 的（同一次 AI 回复共享 reasoning）
+        // 只要 reasoningKey 非空就加字段，reasoning 为空字符串也保留
+        String reasoning = null;
+        String reasoningKey = null;
+        for (JsonObject obj : group) {
+            reasoningKey = obj.getString("reasoningKey");
+            if (!isBlank(reasoningKey)) {
+                reasoning = obj.getString("reasoning", "");
+                break;
+            }
+        }
+        if (!isBlank(reasoningKey)) {
+            assistantMsg.put(reasoningKey, reasoning != null ? reasoning : "");
+        }
+
         result.add(ChatCompletionMessageParam.fromJsonObject(assistantMsg));
-        result.add(ChatCompletionMessageParam.fromJsonObject(buildToolMessage(obj)));
+
+        // ── 构建 tool result 消息 ──
+        for (JsonObject obj : group) {
+            result.add(ChatCompletionMessageParam.fromJsonObject(buildToolMessage(obj)));
+        }
+    }
+
+    /**
+     * 判断两个 TOOL 消息的 aiId 是否相同。
+     * aiId 为空时视为不同（不合并）。
+     */
+    private static boolean sameAiId(JsonObject a, JsonObject b) {
+        if (a == null || b == null) return false;
+        String aiIdA = a.getString("aiId");
+        String aiIdB = b.getString("aiId");
+        if (isBlank(aiIdA) || isBlank(aiIdB)) return false;
+        return aiIdA.equals(aiIdB);
     }
 
     private static JsonObject buildToolCall(JsonObject obj) {
@@ -462,9 +595,6 @@ public class ConversationMessageConverter {
         return null;
     }
 
-    /**
-     * 将 contents 转为 JsonObject 列表（直接收集，不用 Stream 中间态）。
-     */
     private static List<JsonObject> toJsonObjectList(List<Object> contents) {
         if (contents == null || contents.isEmpty()) return List.of();
         List<JsonObject> list = new ArrayList<>(contents.size());
@@ -502,13 +632,8 @@ public class ConversationMessageConverter {
         return s == null || s.isBlank();
     }
 
-    /**
-     * 从 URL 中提取文件 ID。
-     * 修复：先去除 query string，防止把 ?token=xxx 等参数带入 ID。
-     */
     private static String extractFileId(String url) {
         if (isBlank(url)) return null;
-        // 去掉 query string 和 fragment
         int queryIdx = url.indexOf('?');
         if (queryIdx >= 0) url = url.substring(0, queryIdx);
         int fragIdx = url.indexOf('#');

@@ -37,6 +37,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
@@ -282,11 +283,13 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
                             workFlowManage.nextInvoke(node, () -> workFlowManage.getNextList(node.node.getId()).stream().map(DefaultKeyValue::getValue).toList());
 
                         }).exceptionallyAsync(err -> {
-                            if (node.cancelled) return null;
                             workFlowManage.nextInvoke(node, node.handleFail(workFlowManage, err));
                             return null;
                         });
                     }
+                    return CompletableFuture.completedFuture(null);
+                }).exceptionallyAsync(e -> {
+                    System.out.println(e);
                     return null;
                 });
             }).onFailure(e -> {

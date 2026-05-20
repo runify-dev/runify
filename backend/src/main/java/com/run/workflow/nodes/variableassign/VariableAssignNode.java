@@ -67,7 +67,12 @@ public class VariableAssignNode extends INode<VariableAssignNode, VariableAssign
 
                     // 获取要赋的值
                     Object value = getValue(item, workFlowManage);
-                    workFlowManage.writeGlobalContext(variableName, value);
+                    if (List.of(WorkflowType.CHAT_WORKFLOW_LOOP, WorkflowType.PROCESSOR_HTTP_LOOP).contains(workFlowManage.getWorkFlow().getWorkflowType())) {
+                        LoopWorkFlowManage loopWorkFlowManage = (LoopWorkFlowManage) workFlowManage;
+                        loopWorkFlowManage.writeLoopContext(variablePath.getFirst(), variableName, value);
+                    } else {
+                        workFlowManage.writeContext(variablePath.getFirst(), variableName, value);
+                    }
                 }
 
                 node.status = NodeStatus.SUCCESS;

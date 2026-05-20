@@ -38,12 +38,13 @@ public class UIInitialization {
 
     public void init() {
         StaticHandlerImpl staticHandler = new StaticHandlerImpl(FileSystemAccess.RELATIVE, "admin/");
+        staticHandler.setCachingEnabled(Boolean.FALSE);
         router.get().handler(staticHandler);
         router.route().last().handler(context -> {
             String path = context.request().path();
             Optional<String> first = adminResources.stream().filter(path::endsWith).findFirst();
             if (first.isPresent()) {
-                context.response().sendFile("admin/" + first.get());
+                context.redirect("/admin/" + first.get());
             } else {
                 vertx.fileSystem().readFile("admin/index.html")
                         .onSuccess(result -> {
@@ -56,12 +57,13 @@ public class UIInitialization {
         });
 
         StaticHandlerImpl conversationStaticHandlerImpl = new StaticHandlerImpl(FileSystemAccess.RELATIVE, "conversation/");
+        conversationStaticHandlerImpl.setCachingEnabled(Boolean.FALSE);
         conversationUIRoute.get().handler(conversationStaticHandlerImpl);
         conversationUIRoute.route().last().handler(context -> {
             String path = context.request().path();
             Optional<String> first = conversationResources.stream().filter(path::endsWith).findFirst();
             if (first.isPresent()) {
-                context.response().sendFile("conversation/" + first.get());
+                context.redirect("/conversation/" + first.get());
             } else {
                 vertx.fileSystem().readFile("conversation/index.html")
                         .onSuccess(result -> {

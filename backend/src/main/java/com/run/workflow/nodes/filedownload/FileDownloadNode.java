@@ -22,10 +22,10 @@ import io.vertx.core.streams.ReadStream;
 import jakarta.validation.Validator;
 import org.apache.commons.lang3.StringUtils;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
@@ -56,9 +56,12 @@ public class FileDownloadNode extends INode<FileDownloadNode, FileDownloadNodeDa
         cancelled.set(true);
     }
 
-    record FileDownloadConfig(String id, String fileId, String path, boolean withWriteArguments) {
+    record FileDownloadConfig(String id, String fileId, String path, boolean withWriteArguments, ToolCallMeta meta) {
         String toArguments() {
-            return JacksonUtils.toJson(Map.of("file_id", fileId, "path", path));
+            JsonObject entries = new JsonObject();
+            entries.put("file_id", fileId);
+            entries.put("path", path);
+            return entries.toString();
         }
     }
 
@@ -81,7 +84,8 @@ public class FileDownloadNode extends INode<FileDownloadNode, FileDownloadNodeDa
 
             FileMapper fileMapper = RunApplication.appComponent.fileMapper();
             Vertx vertx = RunApplication.appComponent.vertx();
-            fileMapper.getById(config.fileId())
+            String fileId = extractFileId(config.fileId());
+            fileMapper.getById(fileId)
                     .onSuccess(entity -> {
                         if (node.cancelled.get()) return;
                         if (entity == null) {
@@ -102,11 +106,6 @@ public class FileDownloadNode extends INode<FileDownloadNode, FileDownloadNodeDa
                             targetFile.getParentFile().mkdirs();
                         }
 
-                        // 流式写出下载状态
-                        workFlowManage.write(node, new ToolCallContent("file_download",
-                                "下载中: " + entity.getFileName(), "",
-                                NodeStatus.RUNNING, node, runId, config.id()));
-
                         // 下载文件
                         downloadToFile(vertx, fileMapper, entity, targetFile)
                                 .onSuccess(v -> {
@@ -116,13 +115,16 @@ public class FileDownloadNode extends INode<FileDownloadNode, FileDownloadNodeDa
                                             "filePath", targetPath.toString(),
                                             "fileName", entity.getFileName(),
                                             "fileSize", entity.getSize()));
-
+                                    writeDownloadsState(workFlowManage, config.fileId(), decodedPath, "");
+                                    workFlowManage.write(node, new ToolCallContent("file_download",
+                                            resultJson, "",
+                                            NodeStatus.SUCCESS, node, runId, config.id()));
                                     workFlowManage.writeContext(node, "filePath", targetPath.toString());
                                     workFlowManage.writeContext(node, "fileName", entity.getFileName());
                                     workFlowManage.writeContext(node, "fileSize", entity.getSize());
                                     workFlowManage.writeContext(node, "tool", JsonObject.mapFrom(
                                             new ToolCallContent("file_download", resultJson, config.toArguments(),
-                                                    NodeStatus.SUCCESS, node, runId, config.id())));
+                                                    NodeStatus.SUCCESS, node, runId, config.id()).withMeta(config.meta)));
                                     node.status = NodeStatus.SUCCESS;
                                     workFlowManage.nextInvoke(node, workFlowManage.nextNodeSupplier(node.node.getId()));
                                 })
@@ -169,9 +171,42 @@ public class FileDownloadNode extends INode<FileDownloadNode, FileDownloadNodeDa
             node.status = NodeStatus.FAIL;
             String id = config != null ? config.id() : CommonUtils.uuid7().toString();
             String args = config != null ? config.toArguments() : "";
+            writeDownloadsState(wfm, config != null ? config.fileId() : "", "", error);
+            ToolCallMeta meta = config == null ? ToolCallMeta.EMPTY : config.meta;
             wfm.writeContext(node, "tool", JsonObject.mapFrom(
-                    new ToolCallContent("file_download", error, args, NodeStatus.FAIL, node, runId, id)));
+                    new ToolCallContent("file_download", error, args, NodeStatus.FAIL, node, runId, id).withMeta(meta)));
             wfm.nextFailInvoke(node, new RuntimeException(error));
+        }
+
+        private void writeDownloadsState(WorkFlowManage wfm, String fileId, String filePath, String error) {
+            try {
+                UUID conversationId = (UUID) wfm.getParams().getOrDefault("conversationId", CommonUtils.uuid7());
+                Path basePath = Path.of(System.getProperty("user.home"), ".runify", conversationId.toString());
+                Path stateDir = basePath.resolve("_tool_state");
+                Files.createDirectories(stateDir);
+                Path stateFile = stateDir.resolve("downloads.json");
+
+                List<Map<String, Object>> list;
+                if (Files.exists(stateFile)) {
+                    String existing = Files.readString(stateFile, StandardCharsets.UTF_8);
+                    list = new java.util.ArrayList<>(JacksonUtils.fromJson(existing, new com.fasterxml.jackson.core.type.TypeReference<>() {
+                    }));
+                } else {
+                    list = new java.util.ArrayList<>();
+                }
+
+                Map<String, Object> record = new java.util.LinkedHashMap<>();
+                record.put("file_id", fileId);
+                record.put("status", error.isEmpty() ? "success" : "fail");
+                if (!filePath.isEmpty()) record.put("path", filePath);
+                if (!error.isEmpty()) record.put("error", error);
+                record.put("time", System.currentTimeMillis());
+                list.add(record);
+
+                Files.writeString(stateFile, JacksonUtils.toJson(list), StandardCharsets.UTF_8,
+                        java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.TRUNCATE_EXISTING);
+            } catch (Exception ignored) {
+            }
         }
 
         private FileDownloadConfig resolveConfig(FileDownloadNodeData data, WorkFlowManage wfm) {
@@ -181,7 +216,7 @@ public class FileDownloadNode extends INode<FileDownloadNode, FileDownloadNodeDa
 
             String fileId = resolveValue(data.getFileIdLocation(), data.getFileIdReference(), data.getFileId(), wfm);
             String path = resolveValue(data.getPathLocation(), data.getPathReference(), data.getPath(), wfm);
-            return new FileDownloadConfig(CommonUtils.uuid7().toString(), fileId, path, true);
+            return new FileDownloadConfig(CommonUtils.uuid7().toString(), fileId, path, true, ToolCallMeta.EMPTY);
         }
 
         private FileDownloadConfig resolveFromRef(List<String> reference, WorkFlowManage wfm) {
@@ -190,15 +225,16 @@ public class FileDownloadNode extends INode<FileDownloadNode, FileDownloadNodeDa
             if (val instanceof JsonObject v) {
                 String id = v.getString("id");
                 String args = v.getString("functionArguments");
+                ToolCallMeta meta = ToolCallMeta.from(v);
                 if (args != null) {
                     JsonObject parsed = new JsonObject(args);
                     return new FileDownloadConfig(
                             StringUtils.isEmpty(id) ? CommonUtils.uuid7().toString() : id,
-                            parsed.getString("file_id"), parsed.getString("path"), false);
+                            parsed.getString("file_id"), parsed.getString("path"), false, meta);
                 }
                 return new FileDownloadConfig(
                         StringUtils.isEmpty(id) ? CommonUtils.uuid7().toString() : id,
-                        v.getString("fileId"), v.getString("path"), false);
+                        v.getString("fileId"), v.getString("path"), false, meta);
             }
             return null;
         }
@@ -215,6 +251,20 @@ public class FileDownloadNode extends INode<FileDownloadNode, FileDownloadNodeDa
                 return null;
             }
             return customValue;
+        }
+
+        /**
+         * 从 URL 路径中提取文件 ID
+         * ./api/storage/file/de5d72e1-2cae-4b20-aceb-271627019f20 → de5d72e1-2cae-4b20-aceb-271627019f20
+         * de5d72e1-2cae-4b20-aceb-271627019f20 → de5d72e1-2cae-4b20-aceb-271627019f20
+         */
+        private String extractFileId(String value) {
+            if (StringUtils.isEmpty(value)) return value;
+            int lastSlash = value.lastIndexOf('/');
+            if (lastSlash >= 0 && lastSlash < value.length() - 1) {
+                return value.substring(lastSlash + 1);
+            }
+            return value;
         }
     }
 

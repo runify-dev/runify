@@ -37,6 +37,13 @@ public class ChatCompletionAccumulator {
 
     private JsonObject usage;
 
+    /**
+     * 调用方传入的标识，用于将本次响应产生的所有 tool_calls 关联到同一次 AI 调用。
+     * 构建上下文时可通过 {@link AccumulatedToolCall#getAiId()} 得到。
+     */
+    @Getter
+    private final String aiId;
+
     private final StringBuilder content = new StringBuilder();
     private final StringBuilder refusal = new StringBuilder();
     private final Map<Integer, AccumulatedToolCall> toolCalls = new TreeMap<>();
@@ -59,22 +66,52 @@ public class ChatCompletionAccumulator {
 
     private final Set<String> expectedToolNames;
 
+    // ---------- reasoning 字段名配置 ----------
+
+    /**
+     * 不同模型的思考字段名不同：
+     * OpenAI o 系列: "reasoning"
+     * Claude: "thinking"
+     * DeepSeek: "reasoning_content"
+     * 按顺序优先匹配第一个非空值。
+     */
+    private List<String> reasoningKeys = List.of("reasoning", "thinking", "reasoning_content");
+
     // ---------- id 重映射配置 ----------
 
     private boolean remapToolCallIdToUuid7 = true;
     private final Map<String, String> toolCallIdMapping = new HashMap<>();
 
     public ChatCompletionAccumulator() {
+        this.aiId = CommonUtils.uuid7().toString();
+        this.trackedKeys = Collections.emptySet();
+        this.expectedToolNames = Collections.emptySet();
+    }
+
+    public ChatCompletionAccumulator(String aiId) {
+        this.aiId = aiId != null ? aiId : CommonUtils.uuid7().toString();
         this.trackedKeys = Collections.emptySet();
         this.expectedToolNames = Collections.emptySet();
     }
 
     public ChatCompletionAccumulator(Collection<String> trackedKeys) {
-        this(trackedKeys, null);
+        this(null, trackedKeys, null);
+    }
+
+    public ChatCompletionAccumulator(String aiId, Collection<String> trackedKeys) {
+        this(aiId, trackedKeys, null);
     }
 
     public ChatCompletionAccumulator(Collection<String> trackedKeys,
                                      Collection<String> expectedToolNames) {
+        this(null, trackedKeys, expectedToolNames);
+    }
+
+    public ChatCompletionAccumulator(String aiId,
+                                     Collection<String> trackedKeys,
+                                     Collection<String> expectedToolNames) {
+        this.aiId = aiId != null ? aiId : CommonUtils.uuid7().toString();
+
         if (trackedKeys == null || trackedKeys.isEmpty()) {
             this.trackedKeys = Collections.emptySet();
         } else {
@@ -91,6 +128,17 @@ public class ChatCompletionAccumulator {
 
     public ChatCompletionAccumulator remapToolCallIdToUuid7() {
         this.remapToolCallIdToUuid7 = true;
+        return this;
+    }
+
+    /**
+     * 自定义 reasoning 字段名，按顺序优先匹配。
+     * 默认: "reasoning", "thinking", "reasoning_content"
+     */
+    public ChatCompletionAccumulator reasoningKeys(String... keys) {
+        if (keys != null && keys.length > 0) {
+            this.reasoningKeys = List.of(keys);
+        }
         return this;
     }
 
@@ -164,7 +212,15 @@ public class ChatCompletionAccumulator {
         private String originalId;
         private String type;
         private String functionName;
+        private String aiId;
+        /** 实际命中的 reasoning 字段名，如 "thinking"、"reasoning_content"，构建上下文时用同一个 key 回传 */
+        private String reasoningKey;
+        private final StringBuilder reasoning = new StringBuilder();
         private final StringBuilder functionArguments = new StringBuilder();
+
+        public String getReasoning() {
+            return reasoning.toString();
+        }
 
         public String getFunctionArguments() {
             return functionArguments.toString();
@@ -178,6 +234,9 @@ public class ChatCompletionAccumulator {
                     ", originalId='" + originalId + '\'' +
                     ", type='" + type + '\'' +
                     ", functionName='" + functionName + '\'' +
+                    ", aiId='" + aiId + '\'' +
+                    ", reasoningKey='" + reasoningKey + '\'' +
+                    ", reasoning='" + reasoning + '\'' +
                     ", functionArguments='" + functionArguments + '\'' +
                     '}';
         }
@@ -214,6 +273,8 @@ public class ChatCompletionAccumulator {
         private final Map<String, String> additionalProperties;
         @Getter
         private final Map<String, String> toolCallIdMapping;
+        @Getter
+        private final String aiId;
 
         private AccumulatedResult(ChatCompletionAccumulator acc) {
             this.id = acc.id;
@@ -223,6 +284,7 @@ public class ChatCompletionAccumulator {
             this.refusal = acc.refusal.toString();
             this.toolCalls = Collections.unmodifiableList(new ArrayList<>(acc.toolCalls.values()));
             this.usage = acc.usage == null ? null : acc.usage.copy();
+            this.aiId = acc.aiId;
 
             this.isToolCall = "tool_calls".equals(finishReason) || !this.toolCalls.isEmpty();
             this.isLegacyFunctionCall = "function_call".equals(finishReason);
@@ -277,6 +339,7 @@ public class ChatCompletionAccumulator {
                     "id='" + id + '\'' +
                     ", model='" + model + '\'' +
                     ", finishReason='" + finishReason + '\'' +
+                    ", aiId='" + aiId + '\'' +
                     ", isToolCall=" + isToolCall +
                     ", isLegacyFunctionCall=" + isLegacyFunctionCall +
                     ", isTextResponse=" + isTextResponse +
@@ -368,6 +431,7 @@ public class ChatCompletionAccumulator {
         AccumulatedToolCall merged = toolCalls.computeIfAbsent(index, i -> {
             AccumulatedToolCall m = new AccumulatedToolCall();
             m.index = i;
+            m.aiId = this.aiId;
             return m;
         });
 
@@ -415,6 +479,39 @@ public class ChatCompletionAccumulator {
                 currentChunk.functionArguments = input;
                 merged.functionArguments.append(input);
             }
+        }
+
+        // ---------- 思考/推理字段 ----------
+        String reasoningVal = null;
+        String matchedKey = null;
+        // 先从 tool_call 顶层找
+        for (String key : reasoningKeys) {
+            String val = tc.getString(key);
+            if (!isEmpty(val)) {
+                reasoningVal = val;
+                matchedKey = key;
+                break;
+            }
+        }
+        // 有些模型嵌套在 function/custom 内部
+        if (isEmpty(reasoningVal)) {
+            JsonObject container = function != null ? function : custom;
+            if (container != null) {
+                for (String key : reasoningKeys) {
+                    String val = container.getString(key);
+                    if (!isEmpty(val)) {
+                        reasoningVal = val;
+                        matchedKey = key;
+                        break;
+                    }
+                }
+            }
+        }
+        if (!isEmpty(reasoningVal)) {
+            if (merged.reasoningKey == null) {
+                merged.reasoningKey = matchedKey;
+            }
+            merged.reasoning.append(reasoningVal);
         }
 
         // 元信息每次都返回已知的完整值；functionArguments 只返回当前 chunk 片段。

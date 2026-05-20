@@ -148,6 +148,14 @@
         </div>
 
         <div class="irow">
+          <input
+            ref="fileInputRef"
+            type="file"
+            multiple
+            accept="image/*,video/*,.txt,.md,.json,.csv,.xml,.yaml,.yml,.ts,.js,.jsx,.tsx,.html,.css,.sh,.sql,.py,.rb,.go,.rs,.java,.c,.cpp,.h,.ppt,.pptx,.doc,.docx,.xls,.xlsx,.pdf"
+            style="display: none"
+            @change="handleFileSelect"
+          />
           <MdEditor
             ref="editorRef"
             v-model="question.content"
@@ -161,6 +169,15 @@
             @focus="focused = true"
             @blur="focused = false"
           />
+          <button
+            class="upload-btn"
+            :disabled="streamLoading || !!pendingApproval"
+            @click="fileInputRef?.click()"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M14 10v2.5a1.5 1.5 0 01-1.5 1.5h-9A1.5 1.5 0 012 12.5V10M8 2v8.5M5 5l3-3 3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
           <button
             v-if="!streamLoading"
             class="sbtn"
@@ -236,6 +253,7 @@ const {
 const focused = ref(false)
 const msgBox = ref<HTMLElement | null>(null)
 const editorRef = ref<InstanceType<typeof MdEditor> | null>(null)
+const fileInputRef = ref<HTMLInputElement | null>(null)
 const question = ref<any>({ content: '' })
 
 const handleStop = () => {
@@ -296,16 +314,41 @@ const closeApproval = (action: 'approve' | 'reject') => {
   })
 }
 
+// ─── 上传接口 ──────────────────────────────────────────────────
+interface FileEntry { url: string; name: string }
+
+const uploadFile = async (file: File): Promise<FileEntry> => {
+  const cid = current.value?.id
+  const fd = new FormData()
+  fd.append('file', file)
+  if (cid) {
+    fd.append('refType', 'CONVERSATION')
+    fd.append('ref', cid)
+  }
+  const ok = await FileAPI.uploadFile(fd)
+  return { url: `./api/storage/file/${ok.data.id}`, name: file.name }
+}
+
 // ─── 粘贴图片附件 ──────────────────────────────────────────────
 interface PastedImage {
   file: File
   previewUrl: string
+  uploaded?: FileEntry
+  uploading?: boolean
 }
 const pastedImages = ref<PastedImage[]>([])
 
-const handlePasteImages = (files: File[]) => {
+const handlePasteImages = async (files: File[]) => {
   for (const file of files) {
-    pastedImages.value.push({ file, previewUrl: URL.createObjectURL(file) })
+    const item: PastedImage = { file, previewUrl: URL.createObjectURL(file), uploading: true }
+    pastedImages.value.push(item)
+    try {
+      item.uploaded = await uploadFile(file)
+    } catch (e) {
+      console.error('upload image failed', e)
+    } finally {
+      item.uploading = false
+    }
   }
 }
 
@@ -343,12 +386,22 @@ const clearTexts = () => {
 // ─── 粘贴视频附件 ─────────────────────────────────────────────
 interface PastedFile {
   file: File
+  uploaded?: FileEntry
+  uploading?: boolean
 }
 const pastedVideos = ref<PastedFile[]>([])
 
-const handlePasteVideos = (files: File[]) => {
+const handlePasteVideos = async (files: File[]) => {
   for (const file of files) {
-    pastedVideos.value.push({ file })
+    const item: PastedFile = { file, uploading: true }
+    pastedVideos.value.push(item)
+    try {
+      item.uploaded = await uploadFile(file)
+    } catch (e) {
+      console.error('upload video failed', e)
+    } finally {
+      item.uploading = false
+    }
   }
 }
 
@@ -363,47 +416,61 @@ const clearVideos = () => {
 // ─── 粘贴文件附件 ─────────────────────────────────────────────
 const pastedFiles = ref<PastedFile[]>([])
 
-const TEXT_MIME_PREFIXES = ['text/']
-const TEXT_MIME_TYPES = [
-  'application/json',
-  'application/xml',
-  'application/javascript',
-  'application/typescript',
-  'application/x-yaml',
-  'application/yaml',
-  'application/x-sh',
-  'application/graphql'
-]
-
-const isTextFile = (file: File) => {
-  if (TEXT_MIME_PREFIXES.some((p) => file.type.startsWith(p))) return true
-  if (TEXT_MIME_TYPES.includes(file.type)) return true
-  // 无 MIME 类型时按扩展名判断
-  if (!file.type) {
-    const ext = file.name.split('.').pop()?.toLowerCase() || ''
-    return ['txt', 'md', 'json', 'csv', 'xml', 'yaml', 'yml', 'ts', 'js', 'jsx', 'tsx', 'html', 'css', 'sh', 'sql', 'graphql', 'toml', 'ini', 'log', 'py', 'rb', 'go', 'rs', 'java', 'c', 'cpp', 'h'].includes(ext)
-  }
-  return false
-}
-
-const handlePasteFiles = (files: File[]) => {
+const handlePasteFiles = async (files: File[]) => {
   for (const file of files) {
-    if (isTextFile(file)) {
-      const fname = file.name
-      const reader = new FileReader()
-      reader.onload = () => {
-        const text = typeof reader.result === 'string' ? reader.result : ''
-        if (text.length > LONG_TEXT_THRESHOLD) {
-          handlePasteText(text, fname)
-        } else {
-          pastedTexts.value.push({ text, filename: fname })
-        }
-      }
-      reader.readAsText(file)
-    } else {
-      pastedFiles.value.push({ file })
+    const item: PastedFile = { file, uploading: true }
+    pastedFiles.value.push(item)
+    try {
+      item.uploaded = await uploadFile(file)
+    } catch (e) {
+      console.error('upload file failed', e)
+    } finally {
+      item.uploading = false
     }
   }
+}
+
+const handleFileSelect = async (event: Event) => {
+  const input = event.target as HTMLInputElement
+  if (!input.files?.length) return
+
+  const files = Array.from(input.files)
+  for (const file of files) {
+    if (file.type.startsWith('image/')) {
+      const item: PastedImage = { file, previewUrl: URL.createObjectURL(file), uploading: true }
+      pastedImages.value.push(item)
+      try {
+        item.uploaded = await uploadFile(file)
+      } catch (e) {
+        console.error('upload image failed', e)
+      } finally {
+        item.uploading = false
+      }
+    } else if (file.type.startsWith('video/')) {
+      const item: PastedFile = { file, uploading: true }
+      pastedVideos.value.push(item)
+      try {
+        item.uploaded = await uploadFile(file)
+      } catch (e) {
+        console.error('upload video failed', e)
+      } finally {
+        item.uploading = false
+      }
+    } else {
+      const item: PastedFile = { file, uploading: true }
+      pastedFiles.value.push(item)
+      try {
+        item.uploaded = await uploadFile(file)
+      } catch (e) {
+        console.error('upload file failed', e)
+      } finally {
+        item.uploading = false
+      }
+    }
+  }
+
+  // 清空 input 以便重复选择同一文件
+  input.value = ''
 }
 
 const removeFile = (index: number) => {
@@ -555,38 +622,28 @@ const conversation = async (q: any) => {
 
   clearStreamIndex()
 
-  // 通用文件上传，返回 { url, name }
-  interface FileEntry { url: string; name: string }
-  const uploadAll = (items: PastedFile[]): Promise<FileEntry[]> =>
-    Promise.all(
-      items.map(({ file }) => {
-        const fd = new FormData()
-        fd.append('file', file)
-        return FileAPI.uploadFile(fd).then((ok) => ({
-          url: `./api/storage/file/${ok.data.id}`,
-          name: file.name
-        }))
-      })
-    )
+  // 获取已上传的文件
+  const getUploaded = (items: PastedFile[]): FileEntry[] =>
+    items.filter((item) => item.uploaded).map((item) => item.uploaded!)
 
-  // 上传图片
+  // 图片
   let imageEntries: FileEntry[] = []
   if (pastedImages.value.length) {
-    imageEntries = await uploadAll(pastedImages.value)
+    imageEntries = pastedImages.value.filter((img) => img.uploaded).map((img) => img.uploaded!)
     clearImages()
   }
 
-  // 上传视频
+  // 视频
   let videoEntries: FileEntry[] = []
   if (pastedVideos.value.length) {
-    videoEntries = await uploadAll(pastedVideos.value)
+    videoEntries = getUploaded(pastedVideos.value)
     clearVideos()
   }
 
-  // 上传文件
+  // 文件
   let fileEntries: FileEntry[] = []
   if (pastedFiles.value.length) {
-    fileEntries = await uploadAll(pastedFiles.value)
+    fileEntries = getUploaded(pastedFiles.value)
     clearFiles()
   }
 
@@ -1029,6 +1086,31 @@ onUnmounted(() => {
   align-items: flex-end;
   gap: 8px;
   padding: 8px 8px 8px 14px;
+}
+
+.upload-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--t3);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+
+.upload-btn:hover {
+  background: var(--hv);
+  color: var(--t2);
+}
+
+.upload-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .iwrap.focused {

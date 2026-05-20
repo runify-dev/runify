@@ -1,5 +1,5 @@
-import { createAtomBlockMarkdownSpec, mergeAttributes, Node } from '@tiptap/core'
-import { VueNodeViewRenderer } from '@tiptap/vue-3'
+import {createAtomBlockMarkdownSpec, mergeAttributes, Node} from '@tiptap/core'
+import {VueNodeViewRenderer} from '@tiptap/vue-3'
 import VariableView from './index.vue'
 
 export interface VariableOptions {
@@ -18,18 +18,19 @@ export const Variable = Node.create<VariableOptions>({
   name: 'variable',
 
   addOptions() {
-    return { HTMLAttributes: {} }
+    return {HTMLAttributes: {}}
   },
 
-  group: 'block',
+  group: 'inline',
+  inline: true,
   atom: true,
   selectable: true,
   draggable: false,
 
   addAttributes() {
     return {
-      value: { default: null },
-      label: { default: '' },
+      value: {default: null},
+      label: {default: ''},
     }
   },
 
@@ -40,15 +41,15 @@ export const Variable = Node.create<VariableOptions>({
         getAttrs: (el) => {
           const span = el as HTMLElement
           return {
-            value: span.getAttribute('data-value') ?? '',
-            label: span.getAttribute('data-label') ?? '',
+            value: decodeURIComponent(span.getAttribute('data-value') ?? ''),
+            label: decodeURIComponent(span.getAttribute('data-label') ?? ''),
           }
         },
       },
     ]
   },
 
-  renderHTML({ HTMLAttributes }) {
+  renderHTML({HTMLAttributes}) {
     return [
       'span',
       mergeAttributes(this.options.HTMLAttributes, {
@@ -68,8 +69,8 @@ export const Variable = Node.create<VariableOptions>({
     return {
       setVariable:
         (options) =>
-        ({ commands }) =>
-          commands.insertContent({ type: this.name, attrs: options }),
+          ({commands}) =>
+            commands.insertContent({type: this.name, attrs: options}),
     }
   },
 
@@ -78,11 +79,12 @@ export const Variable = Node.create<VariableOptions>({
     allowedAttributes: ['value', 'label'],
   }),
 
+  // renderMarkdown 中编码
   renderMarkdown: (node: any) => {
     const attrs = node.attrs || {}
     const parts: string[] = []
-    if (attrs.value != null) parts.push(`value="${attrs.value}"`)
-    if (attrs.label) parts.push(`label="${attrs.label}"`)
+    if (attrs.value != null) parts.push(`value="${encodeURIComponent(attrs.value)}"`)
+    if (attrs.label) parts.push(`label="${encodeURIComponent(attrs.label)}"`)
     return `:::variable {${parts.join(' ')}} :::\n`
   },
 })

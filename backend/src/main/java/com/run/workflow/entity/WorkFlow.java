@@ -9,6 +9,8 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -150,7 +152,12 @@ public class WorkFlow {
             return text;
         }
         Matcher matcher = VARIABLE_PATTERN.matcher(text);
-        // 用括号包裹，确保链式取值中间为null也不报错
-        return matcher.replaceAll("\\${($1)!\"\"}");
+        StringBuilder sb = new StringBuilder();
+        while (matcher.find()) {
+            String decoded = URLDecoder.decode(matcher.group(1), StandardCharsets.UTF_8);
+            matcher.appendReplacement(sb, "\\${(" + Matcher.quoteReplacement(decoded) + ")!\"\"}");
+        }
+        matcher.appendTail(sb);
+        return sb.toString();
     }
 }

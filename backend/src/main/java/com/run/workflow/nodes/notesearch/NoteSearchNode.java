@@ -45,7 +45,9 @@ public class NoteSearchNode extends INode<NoteSearchNode, NoteSearchNodeData> {
         super(node, params, upNodeIdList, salt, context, validator, upNode);
     }
 
-    record SearchConfig(String id, String keyword, int pageNo, int pageSize, boolean withWriteArguments) {}
+    record SearchConfig(String id, String keyword, int pageNo, int pageSize, boolean withWriteArguments,
+                        ToolCallMeta meta) {
+    }
 
     public static class Handle implements BiFunction<WorkFlowManage, NoteSearchNode, Supplier<List<Node>>> {
 
@@ -56,7 +58,7 @@ public class NoteSearchNode extends INode<NoteSearchNode, NoteSearchNodeData> {
 
             SearchConfig config = resolveConfig(data, workFlowManage);
             if (config == null || StringUtils.isEmpty(config.keyword())) {
-                invokeFail(workFlowManage, node, runId, CommonUtils.uuid7().toString(), "检索文本为空");
+                invokeFail(workFlowManage, node, runId, config, new RuntimeException("检索文本为空"));
                 return null;
             }
 
@@ -111,7 +113,7 @@ public class NoteSearchNode extends INode<NoteSearchNode, NoteSearchNodeData> {
                 workFlowManage.writeContext(node, "total", result.getTotal());
                 workFlowManage.writeContext(node, "topScore", topScore);
                 workFlowManage.writeContext(node, "tool", JsonObject.mapFrom(
-                        new ToolCallContent("note_search", summary, argsJson, NodeStatus.SUCCESS, node, runId, id)));
+                        new ToolCallContent("note_search", summary, argsJson, NodeStatus.SUCCESS, node, runId, id).withMeta(config.meta)));
                 node.status = NodeStatus.SUCCESS;
                 workFlowManage.nextInvoke(node, () -> workFlowManage
                         .getNextList(node.node.getId())
@@ -119,7 +121,7 @@ public class NoteSearchNode extends INode<NoteSearchNode, NoteSearchNodeData> {
                         .map(DefaultKeyValue::getValue)
                         .toList());
             }).onFailure(e -> {
-                invokeFail(workFlowManage, node, runId, id, e.getMessage());
+                invokeFail(workFlowManage, node, runId, config, e);
             });
 
             return null;
@@ -143,10 +145,10 @@ public class NoteSearchNode extends INode<NoteSearchNode, NoteSearchNodeData> {
                 String keyword = parsed.getString("keyword");
                 int pageNo = parsed.getInteger("page_no", 1);
                 int pageSize = parsed.getInteger("page_size", 10);
-
+                ToolCallMeta meta = ToolCallMeta.from(parsed);
                 return new SearchConfig(
                         StringUtils.isEmpty(id) ? CommonUtils.uuid7().toString() : id,
-                        keyword, pageNo, pageSize, false);
+                        keyword, pageNo, pageSize, false, meta);
             }
 
             // customize 模式
@@ -156,7 +158,7 @@ public class NoteSearchNode extends INode<NoteSearchNode, NoteSearchNodeData> {
             int pageSize = parseInt(resolveValue(data.getPageSizeLocation(), data.getPageSizeReference(),
                     data.getPageSize() != null ? String.valueOf(data.getPageSize()) : null, wfm), 10);
 
-            return new SearchConfig(CommonUtils.uuid7().toString(), keyword, pageNo, pageSize, true);
+            return new SearchConfig(CommonUtils.uuid7().toString(), keyword, pageNo, pageSize, true, ToolCallMeta.EMPTY);
         }
 
         private String resolveValue(String location, List<String> reference, String customValue, WorkFlowManage wfm) {
@@ -183,11 +185,13 @@ public class NoteSearchNode extends INode<NoteSearchNode, NoteSearchNodeData> {
             }
         }
 
-        private void invokeFail(WorkFlowManage wfm, NoteSearchNode node, String runId, String id, String error) {
+        private void invokeFail(WorkFlowManage wfm, NoteSearchNode node, String runId, SearchConfig config, Throwable e) {
             node.status = NodeStatus.FAIL;
+            String id = config == null ? CommonUtils.uuid7().toString() : config.id;
+            ToolCallMeta meta = config == null ? ToolCallMeta.EMPTY : config.meta;
             wfm.writeContext(node, "tool", JsonObject.mapFrom(
-                    new ToolCallContent("note_search", error, "", NodeStatus.FAIL, node, runId, id)));
-            wfm.nextFailInvoke(node, new RuntimeException(error));
+                    new ToolCallContent("note_search", e.getMessage(), "", NodeStatus.FAIL, node, runId, id).withMeta(meta)));
+            wfm.nextFailInvoke(node, e);
         }
 
         private <T> Future<T> toVertxFuture(java.util.concurrent.CompletionStage<T> stage) {

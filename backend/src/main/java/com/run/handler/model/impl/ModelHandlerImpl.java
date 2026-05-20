@@ -87,33 +87,65 @@ public class ModelHandlerImpl extends ResourceHandlerImpl<Model, ModelFolder, Mo
     @Override
     public void edit(RoutingContext context) {
         String resourceId = context.pathParam("resourceId");
+
         resourceMapper.getById(resourceId)
                 .compose(model -> {
                     ModelEditPojo body = context.body().asPojo(ModelEditPojo.class);
+
                     JsonObject oldCredential = model.decrypt();
-                    ModelInfo modelInfo = ModelProvideConstants.valueOf(Objects.requireNonNullElse(body.getProvider(), model.getProvider())).getProvider()
-                            .getModelInfo(Objects.requireNonNullElse(body.getModelType(), model.getModelType()),
-                                    Objects.requireNonNullElse(body.getModelName(), model.getModelName()));
+
+                    ModelInfo modelInfo = ModelProvideConstants
+                            .valueOf(Objects.requireNonNullElse(body.getProvider(), model.getProvider()))
+                            .getProvider()
+                            .getModelInfo(
+                                    Objects.requireNonNullElse(body.getModelType(), model.getModelType()),
+                                    Objects.requireNonNullElse(body.getModelName(), model.getModelName())
+                            );
+
                     Map<String, Object> encryption = modelInfo.getCredential().encryption(oldCredential.getMap());
+
                     boolean eq = body.getCredential().getMap().equals(encryption);
+
                     if (eq) {
                         body.setCredential(model.decrypt());
                     }
-                    String credential = model.getCredential();
+
+                    String oldEncryptedCredential = model.getCredential();
+
                     CommonUtils.copyProperties(body, model);
+
                     if (!eq) {
                         model.setCredential(model.encrypt(body.getCredential()));
                     } else {
-                        model.setCredential(credential);
+                        model.setCredential(oldEncryptedCredential);
                     }
+
                     IProvider provider = ModelProvideConstants.valueOf(model.getProvider()).getProvider();
-                    provider.validate(model.getModelType(), model.getModelName(), body.getCredential().getMap(), Map.of());
-                    return Future.succeededFuture(model);
-                }).compose(resourceMapper::update)
-                .onSuccess(ok -> {
-                    context.end(Result.success(true).toBuffer());
+
+                    return validateInWorker(
+                            context,
+                            provider,
+                            model.getModelType(),
+                            model.getModelName(),
+                            body.getCredential().getMap()
+                    ).map(model);
                 })
+                .compose(resourceMapper::update)
+                .onSuccess(ok -> context.end(Result.success(true).toBuffer()))
                 .onFailure(context::fail);
+    }
+
+    private Future<Void> validateInWorker(
+            RoutingContext context,
+            IProvider provider,
+            String modelType,
+            String modelName,
+            Map<String, Object> credential
+    ) {
+        return context.vertx().executeBlocking(() -> {
+            provider.validate(modelType, modelName, credential, Map.of());
+            return null;
+        }, false);
     }
 
     @Override

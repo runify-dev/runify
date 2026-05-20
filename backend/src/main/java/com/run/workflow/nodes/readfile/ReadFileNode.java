@@ -5,12 +5,14 @@ import com.run.common.util.JacksonUtils;
 import com.run.workflow.*;
 import com.run.workflow.entity.Node;
 import com.run.workflow.entity.NodeResult;
+import com.run.workflow.message.struct.QuestionContent;
 import com.run.workflow.message.struct.ToolCallContent;
 import com.run.workflow.nodes.readfile.entity.ReadFileNodeData;
 import io.vertx.core.json.JsonObject;
 import jakarta.validation.Validator;
 import org.apache.commons.lang3.StringUtils;
 
+import java.io.IOException;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -38,7 +40,7 @@ public class ReadFileNode extends INode<ReadFileNode, ReadFileNodeData> {
         super(node, params, upNodeIdList, salt, context, validator, upNode);
     }
 
-    record ReadFileConfig(String chunkId, String filePath, int offset, int limit, boolean withWriteArguments) {
+    record ReadFileConfig(String chunkId, String filePath, int offset, int limit, boolean withWriteArguments, ToolCallMeta meta) {
         String toArguments() {
             return JacksonUtils.toJson(Map.of("path", filePath, "offset", offset, "limit", limit));
         }
@@ -48,8 +50,10 @@ public class ReadFileNode extends INode<ReadFileNode, ReadFileNodeData> {
 
         private Supplier<List<Node>> invokeFail(WorkFlowManage wfm, ReadFileNode node, ReadFileConfig config, String runId, Throwable e) {
             String chunkId = config != null ? config.chunkId() : CommonUtils.uuid7().toString();
-            wfm.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("read_file", e.getMessage(), "",
-                    NodeStatus.FAIL, node, runId, chunkId)));
+            ToolCallContent tc = new ToolCallContent("read_file", e.getMessage(), "",
+                    NodeStatus.FAIL, node, runId, chunkId);
+            if (config != null) tc.withMeta(config.meta());
+            wfm.writeContext(node, "tool", JsonObject.mapFrom(tc));
             return node.handleFail(wfm, e);
         }
 
@@ -77,11 +81,17 @@ public class ReadFileNode extends INode<ReadFileNode, ReadFileNodeData> {
 
                 if (!Files.exists(targetPath)) {
                     workFlowManage.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("read_file", "文件不存在: " + config.filePath(), config.toArguments(),
-                            NodeStatus.SUCCESS, node, runId, config.chunkId())));
+                            NodeStatus.SUCCESS, node, runId, config.chunkId()).withMeta(config.meta())));
                     node.status = NodeStatus.SUCCESS;
                     workFlowManage.write(node, new ToolCallContent("read_file", "", "",
                             NodeStatus.SUCCESS, node, runId, config.chunkId()));
                     return null;
+                }
+
+                // 检测是否为二进制文件
+                String mimeType = getMimeType(config.filePath());
+                if (isBinaryType(mimeType)) {
+                    return handleBinaryFile(workFlowManage, node, config, runId, targetPath, mimeType);
                 }
 
                 List<String> allLines;
@@ -121,7 +131,7 @@ public class ReadFileNode extends INode<ReadFileNode, ReadFileNodeData> {
                 workFlowManage.writeContext(node, "totalLines", totalLines);
                 workFlowManage.writeContext(node, "lines", readLines.size());
                 workFlowManage.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("read_file", content, config.toArguments(),
-                        NodeStatus.SUCCESS, node, runId, config.chunkId())));
+                        NodeStatus.SUCCESS, node, runId, config.chunkId()).withMeta(config.meta())));
                 node.status = NodeStatus.SUCCESS;
 
                 workFlowManage.write(node, new ToolCallContent("read_file", "", "",
@@ -151,8 +161,9 @@ public class ReadFileNode extends INode<ReadFileNode, ReadFileNodeData> {
                 int limit = parsed.getInteger("limit", -1);
                 boolean withWriteArguments = StringUtils.isEmpty(id);
                 String chunkId = withWriteArguments ? CommonUtils.uuid7().toString() : id;
+                ToolCallMeta meta = ToolCallMeta.from(toolCall);
 
-                return new ReadFileConfig(chunkId, filePath, offset, limit, withWriteArguments);
+                return new ReadFileConfig(chunkId, filePath, offset, limit, withWriteArguments, meta);
             }
 
             String filePath = resolveValue(node.params.getPathLocation(), node.params.getPathReference(), node.params.getPath(), wfm);
@@ -163,7 +174,7 @@ public class ReadFileNode extends INode<ReadFileNode, ReadFileNodeData> {
                     node.params.getLimit() != null ? String.valueOf(node.params.getLimit()) : null, wfm);
             int limit = parseInt(limitStr, -1);
 
-            return new ReadFileConfig(CommonUtils.uuid7().toString(), filePath, offset, limit, true);
+            return new ReadFileConfig(CommonUtils.uuid7().toString(), filePath, offset, limit, true, ToolCallMeta.EMPTY);
         }
 
         private JsonObject toJsonObject(Object ref) {
@@ -194,6 +205,101 @@ public class ReadFileNode extends INode<ReadFileNode, ReadFileNodeData> {
             } catch (NumberFormatException e) {
                 return defaultVal;
             }
+        }
+
+        private Supplier<List<Node>> handleBinaryFile(WorkFlowManage wfm, ReadFileNode node,
+                                                      ReadFileConfig config, String runId,
+                                                      Path targetPath, String mimeType) {
+            try {
+                long fileSize = Files.size(targetPath);
+
+                com.run.common.pojo.File file = new com.run.common.pojo.File();
+                file.setUrl(targetPath.toAbsolutePath().toString());
+                file.setName(targetPath.getFileName().toString());
+
+                QuestionContent questionContent = new QuestionContent("", List.of(), List.of(), List.of(), List.of(), runId);
+                if (mimeType.startsWith("image/")) {
+                    questionContent.setImages(List.of(file));
+                } else if (mimeType.startsWith("video/")) {
+                    questionContent.setVideos(List.of(file));
+                } else {
+                    questionContent.setFiles(List.of(file));
+                }
+
+                String absolutePath = targetPath.toAbsolutePath().toString();
+                String info = "二进制文件: " + targetPath.getFileName() + " (" + mimeType + ", " + formatSize(fileSize) + ")";
+
+                wfm.writeContext(node, "question", JsonObject.mapFrom(questionContent));
+                wfm.writeContext(node, "content", absolutePath);
+                wfm.writeContext(node, "rawContent", absolutePath);
+                wfm.writeContext(node, "totalLines", 0);
+                wfm.writeContext(node, "lines", 0);
+                wfm.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("read_file", info, config.toArguments(),
+                        NodeStatus.SUCCESS, node, runId, config.chunkId()).withMeta(config.meta())));
+
+                wfm.write(node, new ToolCallContent("read_file", info, "",
+                        NodeStatus.SUCCESS, node, runId, config.chunkId()));
+                node.status = NodeStatus.SUCCESS;
+
+            } catch (IOException e) {
+                return invokeFail(wfm, node, config, runId, e);
+            }
+
+            return wfm.nextNodeSupplier(node.node.getId());
+        }
+
+        private boolean isBinaryType(String mimeType) {
+            if (mimeType == null) return false;
+            return mimeType.startsWith("image/") || mimeType.startsWith("video/") || mimeType.startsWith("audio/")
+                    || mimeType.equals("application/pdf")
+                    || mimeType.equals("application/zip") || mimeType.equals("application/gzip")
+                    || mimeType.equals("application/octet-stream");
+        }
+
+        private String getMimeType(String fileName) {
+            if (fileName == null) return "application/octet-stream";
+            int dot = fileName.lastIndexOf('.');
+            if (dot < 0 || dot == fileName.length() - 1) return "application/octet-stream";
+            String ext = fileName.substring(dot + 1).toLowerCase();
+            return switch (ext) {
+                case "png" -> "image/png";
+                case "jpg", "jpeg" -> "image/jpeg";
+                case "gif" -> "image/gif";
+                case "webp" -> "image/webp";
+                case "svg" -> "image/svg+xml";
+                case "mp4" -> "video/mp4";
+                case "webm" -> "video/webm";
+                case "mov" -> "video/quicktime";
+                case "avi" -> "video/x-msvideo";
+                case "mp3" -> "audio/mpeg";
+                case "wav" -> "audio/wav";
+                case "ogg" -> "audio/ogg";
+                case "pdf" -> "application/pdf";
+                case "zip" -> "application/zip";
+                case "gz" -> "application/gzip";
+                case "json" -> "application/json";
+                case "xml" -> "application/xml";
+                case "csv" -> "text/csv";
+                case "txt", "log" -> "text/plain";
+                case "html", "htm" -> "text/html";
+                case "css" -> "text/css";
+                case "js", "mjs" -> "text/javascript";
+                case "ts" -> "text/typescript";
+                case "md" -> "text/markdown";
+                case "java" -> "text/x-java";
+                case "py" -> "text/x-python";
+                case "sh" -> "text/x-shellscript";
+                case "yaml", "yml" -> "text/yaml";
+                case "toml" -> "text/toml";
+                case "sql" -> "text/x-sql";
+                default -> "application/octet-stream";
+            };
+        }
+
+        private String formatSize(long bytes) {
+            if (bytes < 1024) return bytes + "B";
+            if (bytes < 1024 * 1024) return String.format("%.1fKB", bytes / 1024.0);
+            return String.format("%.1fMB", bytes / (1024.0 * 1024));
         }
     }
 

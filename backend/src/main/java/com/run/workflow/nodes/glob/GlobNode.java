@@ -42,7 +42,7 @@ public class GlobNode extends INode<GlobNode, GlobNodeData> {
     }
 
     record GlobConfig(String chunkId, String globPattern, String searchPath, int maxResults,
-                      boolean withWriteArguments) {
+                      boolean withWriteArguments, ToolCallMeta meta) {
         String toArguments() {
             return JacksonUtils.toJson(Map.of("pattern", globPattern, "path", searchPath != null ? searchPath : ".", "max_results", maxResults));
         }
@@ -53,8 +53,10 @@ public class GlobNode extends INode<GlobNode, GlobNodeData> {
         private Supplier<List<Node>> invokeFail(WorkFlowManage wfm, GlobNode node, GlobConfig config, String runId, Throwable e) {
             node.status = NodeStatus.FAIL;
             String chunkId = config != null ? config.chunkId() : CommonUtils.uuid7().toString();
-            wfm.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("glob", e.getMessage(), "",
-                    NodeStatus.FAIL, node, runId, chunkId)));
+            ToolCallContent tc = new ToolCallContent("glob", e.getMessage(), "",
+                    NodeStatus.FAIL, node, runId, chunkId);
+            if (config != null) tc.withMeta(config.meta());
+            wfm.writeContext(node, "tool", JsonObject.mapFrom(tc));
             return node.handleFail(wfm, e);
         }
 
@@ -147,7 +149,7 @@ public class GlobNode extends INode<GlobNode, GlobNodeData> {
                 workFlowManage.writeContext(node, "summary", summary);
                 workFlowManage.writeContext(node, "files", matched.size());
                 workFlowManage.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("glob", content, config.toArguments(),
-                        NodeStatus.SUCCESS, node, runId, config.chunkId())));
+                        NodeStatus.SUCCESS, node, runId, config.chunkId()).withMeta(config.meta())));
                 node.status = NodeStatus.SUCCESS;
 
                 workFlowManage.write(node, new ToolCallContent("glob", "", "",
@@ -176,8 +178,9 @@ public class GlobNode extends INode<GlobNode, GlobNodeData> {
                 int maxResults = parsed.getInteger("max_results", 1000);
                 boolean withWriteArguments = StringUtils.isEmpty(id);
                 String chunkId = withWriteArguments ? CommonUtils.uuid7().toString() : id;
+                ToolCallMeta meta = ToolCallMeta.from(toolCall);
 
-                return new GlobConfig(chunkId, globPattern, searchPath, maxResults, withWriteArguments);
+                return new GlobConfig(chunkId, globPattern, searchPath, maxResults, withWriteArguments, meta);
             }
 
             String globPattern = resolveValue(node.params.getPatternLocation(), node.params.getPatternReference(), node.params.getPattern(), wfm);
@@ -186,7 +189,7 @@ public class GlobNode extends INode<GlobNode, GlobNodeData> {
                     node.params.getMaxResults() != null ? String.valueOf(node.params.getMaxResults()) : null, wfm);
             int maxResults = parseInt(maxStr, 1000);
 
-            return new GlobConfig(CommonUtils.uuid7().toString(), globPattern, searchPath, maxResults, true);
+            return new GlobConfig(CommonUtils.uuid7().toString(), globPattern, searchPath, maxResults, true, ToolCallMeta.EMPTY);
         }
 
         private JsonObject toJsonObject(Object ref) {

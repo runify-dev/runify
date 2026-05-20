@@ -57,19 +57,31 @@ public class ContextPushNode extends INode<ContextPushNode, ContextPushNodeData>
                         continue;
                     }
 
-                    // 构建 content 元素
+                    List<String> variablePath = item.getVariable();
+                    String variableName = variablePath.get(variablePath.size() - 1);
+                    List<Object> targetList = getOrCreateTargetList(workFlowManage, variablePath);
+
+                    // 顶层引用模式：直接把引用值 push 上去
+                    if ("reference".equals(item.getMode()) && item.getReference() != null && !item.getReference().isEmpty()) {
+                        Object refValue = workFlowManage.getContextVariable(item.getReference());
+                        if (refValue != null) {
+                            if (refValue instanceof List<?> list) {
+                                targetList.addAll(list);
+                            } else if (refValue instanceof io.vertx.core.json.JsonArray ja) {
+                                targetList.addAll(ja.getList());
+                            } else {
+                                targetList.add(refValue instanceof JsonObject jo ? jo.getMap() : refValue);
+                            }
+                        }
+                        writeTargetList(workFlowManage, variablePath.getFirst(), variableName, targetList);
+                        continue;
+                    }
+
+                    // 自定义模式：构建 content 元素
                     JsonObject contentElement = buildContentElement(item, workFlowManage);
                     if (contentElement == null) {
                         continue;
                     }
-
-                    // 获取目标变量名（路径最后一段）
-                    List<String> variablePath = item.getVariable();
-
-                    String variableName = variablePath.get(variablePath.size() - 1);
-
-                    // 获取或创建目标数组
-                    List<Object> targetList = getOrCreateTargetList(workFlowManage, variablePath);
 
                     // 追加 content 元素
                     targetList.add(contentElement.getMap());

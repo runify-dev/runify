@@ -50,7 +50,7 @@ public class GrepNode extends INode<GrepNode, GrepNodeData> {
     }
 
     record GrepConfig(String chunkId, String pattern, String searchPath, String filePattern,
-                      int contextLines, int maxResults, boolean withWriteArguments) {
+                      int contextLines, int maxResults, boolean withWriteArguments, ToolCallMeta meta) {
         String toArguments() {
             return JacksonUtils.toJson(Map.of("pattern", pattern, "path", searchPath,
                     "file_pattern", filePattern != null ? filePattern : "*", "max_results", maxResults));
@@ -66,8 +66,10 @@ public class GrepNode extends INode<GrepNode, GrepNodeData> {
         private Supplier<List<Node>> invokeFail(WorkFlowManage wfm, GrepNode node, GrepConfig config, String runId, Throwable e) {
             node.status = NodeStatus.FAIL;
             String chunkId = config != null ? config.chunkId() : CommonUtils.uuid7().toString();
-            wfm.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("grep", e.getMessage(), "",
-                    NodeStatus.FAIL, node, runId, chunkId)));
+            ToolCallContent tc = new ToolCallContent("grep", e.getMessage(), "",
+                    NodeStatus.FAIL, node, runId, chunkId);
+            if (config != null) tc.withMeta(config.meta());
+            wfm.writeContext(node, "tool", JsonObject.mapFrom(tc));
             return node.handleFail(wfm, e);
         }
 
@@ -152,7 +154,7 @@ public class GrepNode extends INode<GrepNode, GrepNodeData> {
                 workFlowManage.writeContext(node, "matches", matches.size());
                 workFlowManage.writeContext(node, "files", matchedFiles.size());
                 workFlowManage.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("grep", content, config.toArguments(),
-                        NodeStatus.SUCCESS, node, runId, config.chunkId())));
+                        NodeStatus.SUCCESS, node, runId, config.chunkId()).withMeta(config.meta())));
                 node.status = NodeStatus.SUCCESS;
 
                 workFlowManage.write(node, new ToolCallContent("grep", "", "",
@@ -186,8 +188,9 @@ public class GrepNode extends INode<GrepNode, GrepNodeData> {
                 int maxResults = parsed.getInteger("max_results", 50);
                 boolean withWriteArguments = StringUtils.isEmpty(id);
                 String chunkId = withWriteArguments ? CommonUtils.uuid7().toString() : id;
+                ToolCallMeta meta = ToolCallMeta.from(toolCall);
 
-                return new GrepConfig(chunkId, pattern, searchPath, filePattern, contextLines, maxResults, withWriteArguments);
+                return new GrepConfig(chunkId, pattern, searchPath, filePattern, contextLines, maxResults, withWriteArguments, meta);
             }
 
             String pattern = resolveValue(node.params.getPatternLocation(), node.params.getPatternReference(), node.params.getPattern(), wfm);
@@ -200,7 +203,7 @@ public class GrepNode extends INode<GrepNode, GrepNodeData> {
                     node.params.getMaxResults() != null ? String.valueOf(node.params.getMaxResults()) : null, wfm);
             int maxResults = parseInt(maxStr, 50);
 
-            return new GrepConfig(CommonUtils.uuid7().toString(), pattern, searchPath, filePattern, contextLines, maxResults, true);
+            return new GrepConfig(CommonUtils.uuid7().toString(), pattern, searchPath, filePattern, contextLines, maxResults, true, ToolCallMeta.EMPTY);
         }
 
         private void searchDir(Path dir, Path basePath, Pattern regex, String filePattern, int ctx, int max,

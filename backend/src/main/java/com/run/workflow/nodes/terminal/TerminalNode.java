@@ -5,6 +5,7 @@ import com.run.common.util.CommonUtils;
 import com.run.common.util.JacksonUtils;
 import com.run.workflow.INode;
 import com.run.workflow.NodeStatus;
+import com.run.workflow.ToolCallMeta;
 import com.run.workflow.WorkFlowManage;
 import com.run.workflow.WorkflowType;
 import com.run.workflow.entity.Node;
@@ -73,7 +74,7 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
         process.destroyForcibly();
     }
 
-    record TerminalConfig(String id, String command, boolean withWriteArguments) {
+    record TerminalConfig(String id, String command, boolean withWriteArguments, ToolCallMeta meta) {
         String toArguments() {
             return JacksonUtils.toJson(Map.of("command", command));
         }
@@ -88,8 +89,10 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
             wfm.writeContext(node, "stdout", "");
             wfm.writeContext(node, "stderr", stderr);
             wfm.writeContext(node, "exitCode", exitCode);
-            wfm.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("run_command", result, "",
-                    NodeStatus.FAIL, node, runId, id)));
+            ToolCallContent tc = new ToolCallContent("run_command", result, "",
+                    NodeStatus.FAIL, node, runId, id);
+            if (config != null) tc.withMeta(config.meta());
+            wfm.writeContext(node, "tool", JsonObject.mapFrom(tc));
             return node.handleFail(wfm, e);
         }
 
@@ -235,13 +238,13 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
                     workFlowManage.write(node, new ToolCallContent("run_command", "", "",
                             NodeStatus.SUCCESS, node, runId, config.id()));
                     workFlowManage.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("run_command", stdout, config.toArguments(),
-                            NodeStatus.SUCCESS, node, runId, config.id())));
+                            NodeStatus.SUCCESS, node, runId, config.id()).withMeta(config.meta())));
                 } else {
                     node.status = NodeStatus.FAIL;
                     workFlowManage.write(node, new ToolCallContent("run_command", "", "",
                             NodeStatus.FAIL, node, runId, config.id()));
                     workFlowManage.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("run_command", stderr, config.toArguments(),
-                            NodeStatus.FAIL, node, runId, config.id())));
+                            NodeStatus.FAIL, node, runId, config.id()).withMeta(config.meta())));
                 }
 
             } catch (Exception e) {
@@ -272,7 +275,7 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
             if ("reference".equals(data.getCodeLocation())) {
                 return resolveFromRef(data.getCodeReference(), wfm);
             }
-            return new TerminalConfig(CommonUtils.uuid7().toString(), data.getCode(), true);
+            return new TerminalConfig(CommonUtils.uuid7().toString(), data.getCode(), true, ToolCallMeta.EMPTY);
         }
 
         private TerminalConfig resolveFromRef(List<String> reference, WorkFlowManage wfm) {
@@ -280,21 +283,22 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
             Object val = wfm.getContextVariable(reference);
             if (val == null) return null;
             if (val instanceof JsonObject jo) {
+                ToolCallMeta meta = ToolCallMeta.from(jo);
                 String id = jo.getString("id");
                 String args = jo.getString("functionArguments");
                 if (args != null) {
                     return new TerminalConfig(StringUtils.isEmpty(id) ? CommonUtils.uuid7().toString() : id,
-                            new JsonObject(args).getString("command"), false);
+                            new JsonObject(args).getString("command"), false, meta);
                 }
                 return new TerminalConfig(StringUtils.isEmpty(id) ? CommonUtils.uuid7().toString() : id,
-                        val.toString(), true);
+                        val.toString(), true, meta);
             }
             if (val instanceof ChatCompletionAccumulator.AccumulatedToolCall call) {
                 JsonObject args = JacksonUtils.fromJson(call.getFunctionArguments(), JsonObject.class);
-                return new TerminalConfig(call.getId(), args.getString("command"), false);
+                return new TerminalConfig(call.getId(), args.getString("command"), false, ToolCallMeta.EMPTY);
             }
             if (val instanceof String v) {
-                return new TerminalConfig(CommonUtils.uuid7().toString(), v, true);
+                return new TerminalConfig(CommonUtils.uuid7().toString(), v, true, ToolCallMeta.EMPTY);
             }
             return null;
         }

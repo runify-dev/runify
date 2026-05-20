@@ -76,8 +76,9 @@ const useProvide = (model: any) => {
     return result
   }
 
+
   const getGlobalFieldOptions = () => {
-    const result:any[] = []
+    const result = []
     // 合并父级变量（子画布场景）
     const parentGetOptions = model.graphModel.parentGetGlobalFieldOptions
     if (parentGetOptions) {
@@ -85,10 +86,32 @@ const useProvide = (model: any) => {
         result.push(item)
       })
     }
-    const selfOptions = getSelfGlobalFieldOptions();
-    selfOptions.forEach(item=>{
-      result.push(item)
-    })
+    const startNode = model.graphModel.getNodeModelById('start-node')
+    if (startNode) {
+      if(startNode?.properties?.globalFieldList&&startNode?.properties?.globalFieldList.length>0){
+        result.push({
+          label: 'global',
+          disabled: true,
+          value: 'global',
+          children: startNode?.properties?.globalFieldList || []
+        })
+      }
+
+    }
+    const getParentModel= model.graphModel.getParentModel;
+    if(getParentModel){
+      const pm=getParentModel()
+      result.push({
+        label: pm.properties.name,
+        value: pm.id,
+        disabled: true,
+        children: pm.properties.field_list.map((item: any) => ({
+          label: item.label,
+          value: item.value,
+          children: item.children
+        }))
+      })
+    }
     return result
   }
 

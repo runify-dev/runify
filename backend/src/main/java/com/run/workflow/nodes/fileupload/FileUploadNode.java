@@ -44,7 +44,7 @@ public class FileUploadNode extends INode<FileUploadNode, FileUploadNodeData> {
         cancelled.set(true);
     }
 
-    record FileUploadConfig(String id, String filePath, boolean withWriteArguments) {
+    record FileUploadConfig(String id, String filePath, boolean withWriteArguments, ToolCallMeta meta) {
         String toArguments() {
             return JacksonUtils.toJson(Map.of("path", filePath));
         }
@@ -54,8 +54,9 @@ public class FileUploadNode extends INode<FileUploadNode, FileUploadNodeData> {
 
         private Supplier<List<Node>> invokeFail(WorkFlowManage wfm, FileUploadNode node, FileUploadConfig config, String runId, Throwable e) {
             String id = config != null ? config.id() : CommonUtils.uuid7().toString();
+            ToolCallMeta meta = config == null ? ToolCallMeta.EMPTY : config.meta;
             wfm.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("file_upload", e.getMessage(), "",
-                    NodeStatus.FAIL, node, runId, id)));
+                    NodeStatus.FAIL, node, runId, id).withMeta(meta)));
             return node.handleFail(wfm, e);
         }
 
@@ -105,7 +106,7 @@ public class FileUploadNode extends INode<FileUploadNode, FileUploadNodeData> {
                         workFlowManage.write(node, new ToolCallContent("file_upload", resultJson, "",
                                 NodeStatus.SUCCESS, node, runId, config.id()));
                         workFlowManage.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("file_upload", resultJson, config.toArguments(),
-                                NodeStatus.SUCCESS, node, runId, config.id())));
+                                NodeStatus.SUCCESS, node, runId, config.id()).withMeta(config.meta)));
                         workFlowManage.nextInvoke(node, workFlowManage.nextNodeSupplier(node.node.getId()));
                     })
                     .onFailure(e -> {
@@ -126,7 +127,7 @@ public class FileUploadNode extends INode<FileUploadNode, FileUploadNodeData> {
             if ("reference".equals(location)) {
                 return resolveFromRef(data.getPathReference(), wfm);
             }
-            return new FileUploadConfig(CommonUtils.uuid7().toString(), data.getPath(), true);
+            return new FileUploadConfig(CommonUtils.uuid7().toString(), data.getPath(), true, ToolCallMeta.EMPTY);
         }
 
         private FileUploadConfig resolveFromRef(List<String> reference, WorkFlowManage wfm) {
@@ -135,17 +136,14 @@ public class FileUploadNode extends INode<FileUploadNode, FileUploadNodeData> {
             if (val instanceof JsonObject v) {
                 String id = v.getString("id");
                 String args = v.getString("functionArguments");
+                ToolCallMeta meta = ToolCallMeta.from(v);
                 if (args != null) {
-                    return new FileUploadConfig(id, new JsonObject(args).getString("path"), false);
+                    return new FileUploadConfig(id, new JsonObject(args).getString("path"), false, meta);
                 }
-                return new FileUploadConfig(id, v.getString("path"), false);
-            }
-            if (val instanceof ChatCompletionAccumulator.AccumulatedToolCall call) {
-                JsonObject args = JacksonUtils.fromJson(call.getFunctionArguments(), JsonObject.class);
-                return new FileUploadConfig(call.getId(), args.getString("path"), false);
+                return new FileUploadConfig(id, v.getString("path"), false, meta);
             }
             if (val instanceof String v) {
-                return new FileUploadConfig(CommonUtils.uuid7().toString(), v, true);
+                return new FileUploadConfig(CommonUtils.uuid7().toString(), v, true, ToolCallMeta.EMPTY);
             }
             return null;
         }

@@ -89,7 +89,7 @@
     >
       <EditorContent
         :editor="dialogEditorInstance"
-        class="flex min-h-0 flex-1 flex-col overflow-hidden"
+        class="flex min-h-0 flex-1 flex-col overflow-auto"
       />
       <template #footer>
         <div class="flex justify-end gap-2">
@@ -489,6 +489,7 @@ function commitTreeNode(node?: VariableTreeNode | null) {
 
   const rawValue = target.data?.fullValue
   const rawLabel = target.data?.label
+  console.log('[commitTreeNode] target:', JSON.stringify(target.data, null, 2))
   if (!rawValue || !editor.value) return
 
   const view = editor.value.view
@@ -647,5 +648,12 @@ onUnmounted(() => {
 
 .var-picker-tree :deep(.p-tree-node-children) {
   padding-left: 0.5rem;
+}
+/* In your <style scoped> section, add: */
+.editor-root :deep(.ProseMirror) {
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+  max-width: 100%;
 }
 </style>

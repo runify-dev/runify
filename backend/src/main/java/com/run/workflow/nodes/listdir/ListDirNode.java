@@ -1,7 +1,13 @@
 package com.run.workflow.nodes.listdir;
 
+import com.run.RunApplication;
 import com.run.common.util.CommonUtils;
 import com.run.common.util.JacksonUtils;
+import com.run.dagger.component.AppComponent;
+import com.run.dao.common.constants.RefType;
+import com.run.dao.entity.FileEntity;
+import com.run.dao.mapper.FileMapper;
+import com.run.sql.DSL;
 import com.run.workflow.*;
 import com.run.workflow.entity.Node;
 import com.run.workflow.entity.NodeResult;
@@ -12,6 +18,7 @@ import jakarta.validation.Validator;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
 import java.util.function.BiFunction;
@@ -36,7 +43,7 @@ public class ListDirNode extends INode<ListDirNode, ListDirNodeData> {
         super(node, params, upNodeIdList, salt, context, validator, upNode);
     }
 
-    record ListDirConfig(String chunkId, String dirPath, int maxDepth, boolean withWriteArguments) {
+    record ListDirConfig(String chunkId, String dirPath, int maxDepth, boolean withWriteArguments, ToolCallMeta meta) {
         String toArguments() {
             return JacksonUtils.toJson(Map.of("path", dirPath, "depth", maxDepth));
         }
@@ -50,16 +57,18 @@ public class ListDirNode extends INode<ListDirNode, ListDirNodeData> {
 
         private Supplier<List<Node>> invokeFail(WorkFlowManage wfm, ListDirNode node, ListDirConfig config, String runId, Throwable e) {
             String chunkId = config != null ? config.chunkId() : CommonUtils.uuid7().toString();
-            wfm.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("list_dir", e.getMessage(), "",
-                    NodeStatus.FAIL, node, runId, chunkId)));
+            ToolCallContent tc = new ToolCallContent("list_dir", e.getMessage(), "",
+                    NodeStatus.FAIL, node, runId, chunkId);
+            if (config != null) tc.withMeta(config.meta());
+            wfm.writeContext(node, "tool", JsonObject.mapFrom(tc));
             return node.handleFail(wfm, e);
         }
 
         @Override
         public Supplier<List<Node>> apply(WorkFlowManage workFlowManage, ListDirNode node) {
             String runId = (String) workFlowManage.getParams().get("workflowRunId");
+            UUID conversationId = (UUID) workFlowManage.getParams().getOrDefault("conversationId", CommonUtils.uuid7());
             ListDirConfig config = resolveListDirConfig(node, workFlowManage);
-
             if (config == null) {
                 return invokeFail(workFlowManage, node, null, runId, new RuntimeException("配置解析失败"));
             }
@@ -68,7 +77,6 @@ public class ListDirNode extends INode<ListDirNode, ListDirNodeData> {
             }
 
             try {
-                UUID conversationId = (UUID) workFlowManage.getParams().getOrDefault("conversationId", CommonUtils.uuid7());
                 Path basePath = Path.of(System.getProperty("user.home") + "/.runify/" + conversationId);
                 if (!Files.exists(basePath)) {
                     Files.createDirectories(basePath);
@@ -102,24 +110,79 @@ public class ListDirNode extends INode<ListDirNode, ListDirNodeData> {
                     return workFlowManage.nextCancelNodeSupplier();
                 }
 
-                String content = tree.toString();
-                String summary = dirCount[0] + " 个目录, " + fileCount[0] + " 个文件";
+                String localTree = tree.toString();
+                int localFileCount = fileCount[0];
+                int localDirCount = dirCount[0];
+                String finalRunId = runId;
 
-                workFlowManage.writeContext(node, "content", content);
-                workFlowManage.writeContext(node, "summary", summary);
-                workFlowManage.writeContext(node, "files", fileCount[0]);
-                workFlowManage.writeContext(node, "dirs", dirCount[0]);
-                workFlowManage.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("list_dir", content, config.toArguments(),
-                        NodeStatus.SUCCESS, node, runId, config.chunkId())));
-                node.status = NodeStatus.SUCCESS;
+                // 异步查询远程文件
+                RunApplication.appComponent.fileMapper()
+                        .list(DSL.field(FileEntity::getRef).eq(conversationId.toString())
+                                .and(DSL.field(FileEntity::getRefType)
+                                        .eq(RefType.CONVERSATION.name())))
+                        .onSuccess(remoteFiles -> {
+                            StringBuilder fullTree = new StringBuilder(localTree);
+                            int remoteCount = 0;
 
-                workFlowManage.write(node, new ToolCallContent("list_dir", "", "",
-                        NodeStatus.SUCCESS, node, runId, config.chunkId()));
+                            if (remoteFiles != null && !remoteFiles.isEmpty()) {
+                                Map<String, String> downloadedPaths = loadDownloadedPaths(conversationId);
+                                boolean hasUndownloaded = remoteFiles.stream().anyMatch(f -> {
+                                    String fid = f.getId().toString();
+                                    return !downloadedPaths.containsKey(fid) && !downloadedPaths.containsKey("./api/storage/file/" + fid);
+                                });
+                                String header = hasUndownloaded
+                                        ? "\n远程文件（需要 file_download 下载到本机）:\n"
+                                        : "\n远程文件:\n";
+                                fullTree.append(header);
+                                workFlowManage.write(node, new ToolCallContent("list_dir", header, "",
+                                        NodeStatus.RUNNING, node, finalRunId, config.chunkId()));
+                                for (FileEntity f : remoteFiles) {
+                                    String mime = getMimeType(f.getFileName());
+                                    String size = formatSize(f.getSize());
+                                    String fileId = f.getId().toString();
+                                    String ref = "./api/storage/file/" + fileId;
+                                    String localPath = downloadedPaths.getOrDefault(fileId, downloadedPaths.get(ref));
+                                    boolean downloaded = localPath != null;
+                                    StringBuilder block = new StringBuilder();
+                                    block.append(downloaded ? "[已下载] " : "[未下载] ").append(ref).append("\n");
+                                    block.append("  name: ").append(f.getFileName()).append("\n");
+                                    block.append("  type: ").append(mime).append("\n");
+                                    block.append("  size: ").append(size).append("\n");
+                                    if (downloaded) {
+                                        block.append("  local: ").append(localPath).append("\n");
+                                    }
+                                    fullTree.append(block);
+                                    workFlowManage.write(node, new ToolCallContent("list_dir", block.toString(), "",
+                                            NodeStatus.RUNNING, node, finalRunId, config.chunkId()));
+                                }
+                                remoteCount = remoteFiles.size();
+                            }
+
+                            String content = fullTree.toString();
+                            String summary = localDirCount + " 个目录, " + localFileCount + " 个文件"
+                                    + (remoteCount > 0 ? ", " + remoteCount + " 个远程文件" : "");
+
+                            workFlowManage.writeContext(node, "content", content);
+                            workFlowManage.writeContext(node, "summary", summary);
+                            workFlowManage.writeContext(node, "files", localFileCount);
+                            workFlowManage.writeContext(node, "dirs", localDirCount);
+                            workFlowManage.writeContext(node, "remoteFiles", remoteCount);
+                            workFlowManage.writeContext(node, "tool", JsonObject.mapFrom(
+                                    new ToolCallContent("list_dir", content, config.toArguments(),
+                                            NodeStatus.SUCCESS, node, finalRunId, config.chunkId()).withMeta(config.meta())));
+                            node.status = NodeStatus.SUCCESS;
+
+                            workFlowManage.write(node, new ToolCallContent("list_dir", "", "",
+                                    NodeStatus.SUCCESS, node, finalRunId, config.chunkId()));
+                            workFlowManage.nextInvoke(node, workFlowManage.nextNodeSupplier(node.node.getId()));
+                        })
+                        .onFailure(e -> invokeFail(workFlowManage, node, config, finalRunId, e));
+
             } catch (Exception e) {
                 return invokeFail(workFlowManage, node, config, runId, e);
             }
 
-            return workFlowManage.nextNodeSupplier(node.node.getId());
+            return null;
         }
 
         private ListDirConfig resolveListDirConfig(ListDirNode node, WorkFlowManage wfm) {
@@ -138,8 +201,9 @@ public class ListDirNode extends INode<ListDirNode, ListDirNodeData> {
                 int maxDepth = parsed.getInteger("depth", 3);
                 boolean withWriteArguments = StringUtils.isEmpty(id);
                 String chunkId = withWriteArguments ? CommonUtils.uuid7().toString() : id;
+                ToolCallMeta meta = ToolCallMeta.from(toolCall);
 
-                return new ListDirConfig(chunkId, dirPath, maxDepth, withWriteArguments);
+                return new ListDirConfig(chunkId, dirPath, maxDepth, withWriteArguments, meta);
             }
 
             String dirPath = resolveValue(node.params.getPathLocation(), node.params.getPathReference(), node.params.getPath(), wfm);
@@ -147,7 +211,7 @@ public class ListDirNode extends INode<ListDirNode, ListDirNodeData> {
                     node.params.getDepth() != null ? String.valueOf(node.params.getDepth()) : null, wfm);
             int maxDepth = parseInt(depthStr, 3);
 
-            return new ListDirConfig(CommonUtils.uuid7().toString(), dirPath, maxDepth, true);
+            return new ListDirConfig(CommonUtils.uuid7().toString(), dirPath, maxDepth, true, ToolCallMeta.EMPTY);
         }
 
         private void buildTree(Path dir, StringBuilder tree, String prefix, int maxDepth, int currentDepth,
@@ -215,6 +279,61 @@ public class ListDirNode extends INode<ListDirNode, ListDirNodeData> {
             if (bytes < 1024) return bytes + "B";
             if (bytes < 1024 * 1024) return String.format("%.1fKB", bytes / 1024.0);
             return String.format("%.1fMB", bytes / (1024.0 * 1024));
+        }
+
+        private String getMimeType(String fileName) {
+            if (fileName == null) return "application/octet-stream";
+            int dot = fileName.lastIndexOf('.');
+            if (dot < 0 || dot == fileName.length() - 1) return "application/octet-stream";
+            String ext = fileName.substring(dot + 1).toLowerCase();
+            return switch (ext) {
+                case "png" -> "image/png";
+                case "jpg", "jpeg" -> "image/jpeg";
+                case "gif" -> "image/gif";
+                case "webp" -> "image/webp";
+                case "svg" -> "image/svg+xml";
+                case "pdf" -> "application/pdf";
+                case "json" -> "application/json";
+                case "xml" -> "application/xml";
+                case "csv" -> "text/csv";
+                case "txt" -> "text/plain";
+                case "html" -> "text/html";
+                case "css" -> "text/css";
+                case "js" -> "text/javascript";
+                case "ts" -> "text/typescript";
+                case "md" -> "text/markdown";
+                case "zip" -> "application/zip";
+                case "gz" -> "application/gzip";
+                case "pptx" -> "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+                case "docx" -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+                case "xlsx" -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+                default -> "application/octet-stream";
+            };
+        }
+
+        private Map<String, String> loadDownloadedPaths(UUID conversationId) {
+            try {
+                Path stateFile = Path.of(System.getProperty("user.home"), ".runify",
+                        conversationId.toString(), "_tool_state", "downloads.json");
+                if (!Files.exists(stateFile)) return Map.of();
+                String json = Files.readString(stateFile, StandardCharsets.UTF_8);
+                List<Map<String, Object>> list = JacksonUtils.fromJson(json,
+                        new com.fasterxml.jackson.core.type.TypeReference<>() {
+                        });
+                Map<String, String> map = new HashMap<>();
+                for (Map<String, Object> entry : list) {
+                    if ("success".equals(entry.get("status"))) {
+                        String fileId = (String) entry.get("file_id");
+                        String path = (String) entry.get("path");
+                        if (fileId != null && !fileId.isEmpty() && path != null) {
+                            map.put(fileId, path);
+                        }
+                    }
+                }
+                return map;
+            } catch (Exception e) {
+                return Map.of();
+            }
         }
 
         private JsonObject toJsonObject(Object ref) {

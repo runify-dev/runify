@@ -3,6 +3,7 @@ package com.run.dao.entity;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.run.dao.common.annotations.Column;
 import com.run.dao.common.annotations.Table;
+import com.run.dao.common.constants.RefType;
 import com.run.dao.common.entity.BaseEntity;
 import io.vertx.core.json.JsonObject;
 import lombok.AllArgsConstructor;
@@ -55,7 +56,7 @@ public class FileEntity implements BaseEntity<FileEntity> {
      * 应用当前文件的资源类型
      */
     @Column(name = "ref_type")
-    private String refType;
+    private RefType refType;
     /**
      * 应用当前文件的资源唯一标识
      */

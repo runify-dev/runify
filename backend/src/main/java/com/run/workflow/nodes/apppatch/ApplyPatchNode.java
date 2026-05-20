@@ -8,10 +8,7 @@ import com.github.difflib.unifieddiff.UnifiedDiffFile;
 import com.github.difflib.unifieddiff.UnifiedDiffReader;
 import com.run.common.util.CommonUtils;
 import com.run.common.util.JacksonUtils;
-import com.run.workflow.INode;
-import com.run.workflow.NodeStatus;
-import com.run.workflow.WorkFlowManage;
-import com.run.workflow.WorkflowType;
+import com.run.workflow.*;
 import com.run.workflow.entity.Node;
 import com.run.workflow.entity.NodeResult;
 import com.run.workflow.message.struct.ToolCallContent;
@@ -70,7 +67,7 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
     }
 
     // ── 执行 ──
-    record PatchConfig(String id, String patch, Path workDir, boolean withWriteArguments) {
+    record PatchConfig(String id, String patch, Path workDir, boolean withWriteArguments, ToolCallMeta meta) {
         String toArguments() {
             return JacksonUtils.toJson(Map.of("patch", patch));
         }
@@ -95,8 +92,9 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
         private Supplier<List<Node>> invokeFail(WorkFlowManage wfm, ApplyPatchNode node, PatchConfig config, String runId, Throwable e) {
             String id = config != null ? config.id() : CommonUtils.uuid7().toString();
             String arguments = config != null ? config.toArguments() : "";
+            ToolCallMeta meta = config == null ? ToolCallMeta.EMPTY : config.meta;
             wfm.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("apply_patch", e.getMessage(), arguments,
-                    NodeStatus.FAIL, node, runId, id)));
+                    NodeStatus.FAIL, node, runId, id).withMeta(meta)));
             return node.handleFail(wfm, e);
         }
 
@@ -228,7 +226,7 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
         /**
          * java-diff-utils 默认会严格按 hunk header 的 position 应用。
          * AI 生成 patch 时最容易错的是 @@ -x,y +x,y @@ 的起始行号。
-         *
+         * <p>
          * 当 applyTo 失败时，这里按 source block 内容在文件中重新搜索最接近的位置，
          * 只要旧内容仍然存在，就可以降低“行号不准导致 patch 不生效”的概率。
          */
@@ -394,7 +392,7 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
 
         /**
          * 修正 hunk header 的行数部分，同时保留 AI 给的起始行号。
-         *
+         * <p>
          * 注意：这里只重算 count，不强行把 start 改成 1。
          * 如果 start 不准，后面的 applyPatchBySearchFallback 会按旧内容块兜底搜索。
          */
@@ -463,7 +461,7 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
 
         /**
          * 从原始 patch 文本提取新建文件内容。
-         *
+         * <p>
          * 不使用 line.contains(path)，避免子串误匹配。
          */
         private List<String> extractNewFileContent(UnifiedDiffFile file, String patchStr) {
@@ -536,7 +534,7 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
                     .reduce("", (a, b) -> a.isEmpty() ? b : a + "\n" + b));
             NodeStatus status = result.success() ? NodeStatus.SUCCESS : NodeStatus.FAIL;
             wfm.write(node, new ToolCallContent("apply_patch", result.summary(), "", status, node, runId, config.id()));
-            wfm.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("apply_patch", result.summary(), config.toArguments(), status, node, runId, config.id())));
+            wfm.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("apply_patch", result.summary(), config.toArguments(), status, node, runId, config.id()).withMeta(config.meta)));
         }
 
         private PatchConfig resolvePatchConfig(ApplyPatchNode node, WorkFlowManage wfm) {
@@ -547,9 +545,11 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
 
                 String id = null;
                 String args = null;
+                ToolCallMeta meta = ToolCallMeta.EMPTY;
                 if (val instanceof JsonObject jo) {
                     id = jo.getString("id");
                     args = jo.getString("functionArguments");
+                    meta = ToolCallMeta.from(jo);
                 }
                 if (args == null) return null;
 
@@ -569,7 +569,7 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
 
                 return new PatchConfig(
                         StringUtils.isEmpty(id) ? CommonUtils.uuid7().toString() : id,
-                        patchContent, workDir, false);
+                        patchContent, workDir, false, meta);
             }
 
             String patchContent = resolveValue(
@@ -580,7 +580,7 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
                     wfm
             );
             Path workDir = resolveWorkDir(node.params.getPathLocation(), node.params.getPathReference(), node.params.getPath(), wfm);
-            return new PatchConfig(CommonUtils.uuid7().toString(), patchContent, workDir, true);
+            return new PatchConfig(CommonUtils.uuid7().toString(), patchContent, workDir, true, ToolCallMeta.EMPTY);
         }
 
         private Path resolveWorkDir(String location, List<String> reference, String customValue, WorkFlowManage wfm) {

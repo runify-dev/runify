@@ -17,8 +17,8 @@ public final class OpenAIOkHttpClient {
 
     private static final OkHttpClient SHARED_HTTP_CLIENT = new OkHttpClient.Builder()
             .connectTimeout(Duration.ofSeconds(10))
-            .readTimeout(Duration.ofSeconds(60))
-            .writeTimeout(Duration.ofSeconds(30))
+            .readTimeout(Duration.ZERO) // 流式 / tool_calls 场景推荐
+            .callTimeout(Duration.ZERO) // 不限制整个调用总时长
             .build();
 
     private static final ExecutorService SHARED_EXECUTOR = defaultExecutor();

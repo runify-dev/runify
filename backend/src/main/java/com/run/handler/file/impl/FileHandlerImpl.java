@@ -2,11 +2,13 @@ package com.run.handler.file.impl;
 
 
 import com.run.common.result.Result;
+import com.run.dao.common.constants.RefType;
 import com.run.dao.entity.FileEntity;
 import com.run.dao.mapper.FileMapper;
 import com.run.handler.file.IFileHandler;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.vertx.core.Future;
+import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.MimeMapping;
@@ -41,9 +43,18 @@ public class FileHandlerImpl implements IFileHandler {
     @Override
     public void upload(RoutingContext context) {
         List<FileUpload> uploads = context.fileUploads();
+        MultiMap formAttributes = context.request().formAttributes();
+        RefType refType = null;
+        String ref = null;
+        if (formAttributes.contains("refType")) {
+            refType = RefType.valueOf(formAttributes.get("refType"));
+        }
+        if (formAttributes.contains("ref")) {
+            ref = formAttributes.get("ref");
+        }
         for (FileUpload upload : uploads) {
             File file = new File(upload.uploadedFileName());
-            fileMapper.upload(upload.fileName(), upload.size(), null, null, file)
+            fileMapper.upload(upload.fileName(), upload.size(), refType, ref, file)
                     .onSuccess(entity -> context.end(Result.success(entity).toBuffer()))
                     .onFailure(context::fail);
         }
