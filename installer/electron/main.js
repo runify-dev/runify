@@ -245,7 +245,7 @@ app.whenReady().then(async () => {
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
-    title: 'Run',
+    title: 'Runify',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
@@ -272,7 +272,7 @@ app.whenReady().then(async () => {
 
   const menuTemplate = [
     {
-      label: 'Run',
+      label: 'Runify',
       submenu: [
         {
           label: 'Admin',

@@ -40,7 +40,7 @@ if [ "$PLATFORM" = "auto" ]; then
 fi
 
 echo "========================================="
-echo "  Run Desktop Installer Builder"
+echo "  Runify Desktop Installer Builder"
 echo "  Platform: $PLATFORM"
 echo "========================================="
 

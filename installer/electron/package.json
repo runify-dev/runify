@@ -1,7 +1,7 @@
 {
-  "name": "run",
+  "name": "runify",
   "version": "1.0.0",
-  "description": "Run Desktop Application",
+  "description": "Runify Desktop Application",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -10,8 +10,8 @@
     "build:win": "electron-builder --win"
   },
   "build": {
-    "appId": "com.run.desktop",
-    "productName": "Run",
+    "appId": "com.runify.desktop",
+    "productName": "Runify",
     "directories": {
       "output": "dist"
     },
@@ -21,8 +21,8 @@
     ],
     "extraResources": [
       {
-        "from": "backend.jar",
-        "to": "backend.jar"
+        "from": "runify.jar",
+        "to": "runify.jar"
       },
       {
         "from": "jre",
