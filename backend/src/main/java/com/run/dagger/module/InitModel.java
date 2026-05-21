@@ -22,7 +22,6 @@ public class InitModel {
     @Provides
     public String initializeApp(
             UserRoute userRoute,
-            KnowledgeRoute knowledgeRoute,
             FileRoute fileRoute,
             ChatRoute chatRoute,
             ApplicationRoute applicationRoute,

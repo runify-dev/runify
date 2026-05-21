@@ -1,178 +1,368 @@
-CREATE TABLE "public"."user" (
-  "id" uuid NOT NULL,
-  "email" varchar(255) COLLATE "pg_catalog"."default",
-  "phone" varchar(255) COLLATE "pg_catalog"."default",
-  "nick_name" varchar(255) COLLATE "pg_catalog"."default",
-  "username" varchar(255) COLLATE "pg_catalog"."default",
-  "password" varchar(255) COLLATE "pg_catalog"."default",
-  "create_time" timestamp(6),
-  "update_time" timestamp(6),
-  "icon" varchar(255) COLLATE "pg_catalog"."default",
-  "role" varchar(255) COLLATE "pg_catalog"."default" NOT NULL,
-  CONSTRAINT "user_pkey" PRIMARY KEY ("id")
-)
-;
+CREATE TABLE "user"
+(
+    "id"          VARCHAR(32)              NOT NULL,
+    "email"       VARCHAR(255)             NOT NULL,
+    "phone"       VARCHAR(32),
+    "nick_name"   VARCHAR(255)             NOT NULL,
+    "username"    VARCHAR(255)             NOT NULL,
+    "icon"        VARCHAR(255),
+    "role"        VARCHAR(32)              NOT NULL,
+    "password"    VARCHAR(255)             NOT NULL,
+    "create_time" TIMESTAMP WITH TIME ZONE NOT NULL,
+    "update_time" TIMESTAMP WITH TIME ZONE NOT NULL,
+    PRIMARY KEY ("id")
+);
 
-ALTER TABLE "public"."user"
-  OWNER TO "postgres";
+INSERT INTO "user" ("id", "email", "phone", "nick_name", "username", "role", "password", "create_time", "update_time",
+                    "icon")
+VALUES ('22d90f6c-2092-43b8-aa14-d1f9731522ac', '', NULL, '系统管理员', 'admin', 'ADMIN',
+        '32d991775d14e9fa31a3633eb3cd253d5c1ecfae8b64dc6d7391a29ccc6fd824', '2022-04-17 00:59:01',
+        '2025-04-05 00:00:00', './user.png');
 
-COMMENT ON COLUMN "public"."user"."id" IS '用户id';
-
-COMMENT ON COLUMN "public"."user"."email" IS '邮箱';
-
-COMMENT ON COLUMN "public"."user"."phone" IS '手机号';
-
-COMMENT ON COLUMN "public"."user"."nick_name" IS '昵称';
-
-COMMENT ON COLUMN "public"."user"."username" IS '用户名';
-
-COMMENT ON COLUMN "public"."user"."password" IS '密码';
-
-COMMENT ON COLUMN "public"."user"."create_time" IS '创建时间';
-
-COMMENT ON COLUMN "public"."user"."update_time" IS '修改时间';
-
-COMMENT ON COLUMN "public"."user"."icon" IS '用户图标';
-
-COMMENT ON COLUMN "public"."user"."role" IS '角色';
-
-INSERT INTO "public"."user" ("id", "email", "phone", "nick_name", "username", "password", "create_time", "update_time", "icon", "role") VALUES ('22d90f6c-2092-43b8-aa14-d1f9731522ac', '', NULL, '管理员', 'admin', '8ded6cfcf8a627e51d361fbccc4af20242bc2cd3239a6fafcc1b9b5eb0ffcb1d', '2022-04-17 00:59:01', '2025-04-05 00:00:00', '/ui/user.jpeg', 'ADMIN');
-
-CREATE TABLE "public"."file" (
-  "id" uuid NOT NULL,
-  "file_name" varchar(255) COLLATE "pg_catalog"."default",
-  "lo_id" int8,
-  "sha256_hash" varchar(255) COLLATE "pg_catalog"."default" NOT NULL,
-  "ref_type" varchar(255) COLLATE "pg_catalog"."default",
-  "ref" varchar(255) COLLATE "pg_catalog"."default",
-  "meta" jsonb,
-  "create_time" timestamp(6),
-  "update_time" timestamp(6),
-  "size" int8,
-  "path" varchar(255) COLLATE "pg_catalog"."default",
-  CONSTRAINT "file_pkey" PRIMARY KEY ("id")
-)
-;
-
-ALTER TABLE "public"."file"
-  OWNER TO "postgres";
+CREATE TABLE "file"
+(
+    "id"          VARCHAR(32)  NOT NULL,
+    "file_name"   VARCHAR(255),
+    "lo_id"       BIGINT,
+    "sha256_hash" VARCHAR(255),
+    "ref_type"    VARCHAR(64),
+    "ref"         VARCHAR(32),
+    "meta"        TEXT,
+    "create_time" TIMESTAMP,
+    "update_time" TIMESTAMP,
+    "path"        TEXT,
+    "size"        BIGINT,
+    PRIMARY KEY ("id")
+);
 
 
-CREATE TABLE "public"."knowledge" (
-  "id" uuid NOT NULL,
-  "parent_id" uuid,
-  "meta" jsonb,
-  "create_time" timestamp(6),
-  "update_time" timestamp(6),
-  "name" varchar(255) COLLATE "pg_catalog"."default" NOT NULL,
-  "excerpt" varchar(255) COLLATE "pg_catalog"."default",
-  "star" bool,
-  "share" bool,
-  "content" varchar(102400) COLLATE "pg_catalog"."default",
-  CONSTRAINT "node_copy1_pkey" PRIMARY KEY ("id")
-)
-;
+CREATE TABLE "application_relation"
+(
+    "id"            VARCHAR(32) NOT NULL,
+    "ancestor_id"   VARCHAR(32),
+    "descendant_id" VARCHAR(32),
+    "depth"         INTEGER,
+    PRIMARY KEY ("id")
+);
 
-ALTER TABLE "public"."knowledge"
-  OWNER TO "postgres";
+CREATE TABLE "application"
+(
+    "id"                     VARCHAR(32) NOT NULL,
+    "parent_id"              VARCHAR(32),
+    "name"                   VARCHAR(256),
+    "icon"                   VARCHAR(256),
+    "desc"                   VARCHAR(256),
+    "workflow"               TEXT,
+    "setting"                TEXT,
+    "star"                   SMALLINT,
+    "share"                  SMALLINT,
+    "allow_anonymous_access" SMALLINT,
+    "create_time"            TIMESTAMP,
+    "update_time"            TIMESTAMP,
+    PRIMARY KEY ("id")
+);
 
-COMMENT ON COLUMN "public"."knowledge"."parent_id" IS '父id';
+CREATE TABLE "application_folder"
+(
+    "id"          VARCHAR(32) NOT NULL,
+    "parent_id"   VARCHAR(32),
+    "name"        VARCHAR(256),
+    "desc"        VARCHAR(256),
+    "create_time" TIMESTAMP,
+    "update_time" TIMESTAMP,
+    PRIMARY KEY ("id")
+);
 
-COMMENT ON COLUMN "public"."knowledge"."type" IS '节点类型';
+CREATE TABLE "application_permission"
+(
+    "id"          VARCHAR(32) NOT NULL,
+    "user_id"     VARCHAR(32),
+    "target"      VARCHAR(255),
+    "permission"  VARCHAR(255),
+    "create_time" TIMESTAMP,
+    "update_time" TIMESTAMP,
+    PRIMARY KEY ("id")
+);
 
-COMMENT ON COLUMN "public"."knowledge"."meta" IS '元数据';
+CREATE TABLE "model"
+(
+    "id"                   VARCHAR(32) NOT NULL,
+    "parent_id"            VARCHAR(32),
+    "name"                 VARCHAR(256),
+    "icon"                 VARCHAR(256),
+    "desc"                 VARCHAR(256),
+    "provider"             VARCHAR(128),
+    "model_type"           VARCHAR(256),
+    "model_name"           VARCHAR(256),
+    "credential"           TEXT,
+    "model_parameter_form" TEXT,
+    "meta"                 TEXT,
+    "star"                 SMALLINT,
+    "share"                SMALLINT,
+    "create_time"          TIMESTAMP,
+    "update_time"          TIMESTAMP,
+    PRIMARY KEY ("id")
+);
 
-COMMENT ON COLUMN "public"."knowledge"."create_time" IS '创建时间';
+CREATE TABLE "model_folder"
+(
+    "id"          VARCHAR(32) NOT NULL,
+    "parent_id"   VARCHAR(32),
+    "name"        VARCHAR(256),
+    "desc"        VARCHAR(256),
+    "create_time" TIMESTAMP,
+    "update_time" TIMESTAMP,
+    PRIMARY KEY ("id")
+);
 
-COMMENT ON COLUMN "public"."knowledge"."update_time" IS '修改时间';
+CREATE TABLE "model_relation"
+(
+    "id"            VARCHAR(32) NOT NULL,
+    "ancestor_id"   VARCHAR(32),
+    "descendant_id" VARCHAR(32),
+    "depth"         INTEGER,
+    PRIMARY KEY ("id")
+);
 
-COMMENT ON COLUMN "public"."knowledge"."name" IS '节点名称';
-
-COMMENT ON COLUMN "public"."knowledge"."excerpt" IS '摘要';
-
-COMMENT ON COLUMN "public"."knowledge"."star" IS '加星';
-
-COMMENT ON COLUMN "public"."knowledge"."share" IS '分享';
-
-COMMENT ON COLUMN "public"."knowledge"."content" IS '内容';
-
-
-CREATE TABLE "public"."knowledge_relation" (
-  "id" uuid NOT NULL,
-  "ancestor_id" uuid,
-  "descendant_id" uuid NOT NULL,
-  "depth" int8 NOT NULL
-)
-;
-
-ALTER TABLE "public"."knowledge_relation"
-  OWNER TO "postgres";
-
-COMMENT ON COLUMN "public"."knowledge_relation"."id" IS '闭包表id';
-
-COMMENT ON COLUMN "public"."knowledge_relation"."ancestor_id" IS '祖先id';
-
-COMMENT ON COLUMN "public"."knowledge_relation"."descendant_id" IS '后代id';
-
-COMMENT ON COLUMN "public"."knowledge_relation"."depth" IS '层级';
+CREATE TABLE "model_permission"
+(
+    "id"          VARCHAR(32) NOT NULL,
+    "user_id"     VARCHAR(32),
+    "target"      VARCHAR(255),
+    "permission"  VARCHAR(255),
+    "create_time" TIMESTAMP,
+    "update_time" TIMESTAMP,
+    PRIMARY KEY ("id")
+);
 
 
-CREATE TABLE "public"."application" (
-  "id" uuid NOT NULL,
-  "parent_id" uuid,
-  "setting" jsonb,
-  "create_time" timestamp(6),
-  "update_time" timestamp(6),
-  "name" varchar(255) COLLATE "pg_catalog"."default" NOT NULL,
-  "desc" varchar(255) COLLATE "pg_catalog"."default",
-  "star" bool,
-  "share" bool,
-  "content" varchar(102400) COLLATE "pg_catalog"."default",
-  "workflow" jsonb,
-  CONSTRAINT "knowledge_copy1_pkey" PRIMARY KEY ("id")
-)
-;
+CREATE TABLE "system_setting"
+(
+    "type" VARCHAR(64) NOT NULL,
+    "meta" TEXT,
+    PRIMARY KEY ("type")
+);
 
-ALTER TABLE "public"."application"
-  OWNER TO "postgres";
 
-COMMENT ON COLUMN "public"."application"."parent_id" IS '父id';
+CREATE TABLE "note"
+(
+    "id"          VARCHAR(32) NOT NULL,
+    "parent_id"   VARCHAR(32),
+    "name"        VARCHAR(256),
+    "icon"        VARCHAR(256),
+    "content"     TEXT,
+    "excerpt"     VARCHAR(256),
+    "star"        SMALLINT,
+    "share"       SMALLINT,
+    "create_time" TIMESTAMP,
+    "update_time" TIMESTAMP,
+    PRIMARY KEY ("id")
+);
 
-COMMENT ON COLUMN "public"."application"."type" IS '节点类型';
+CREATE TABLE "note_folder"
+(
+    "id"          VARCHAR(32) NOT NULL,
+    "parent_id"   VARCHAR(32),
+    "name"        VARCHAR(256),
+    "desc"        VARCHAR(256),
+    "create_time" TIMESTAMP,
+    "update_time" TIMESTAMP,
+    PRIMARY KEY ("id")
+);
 
-COMMENT ON COLUMN "public"."application"."setting" IS '设置';
+CREATE TABLE "note_relation"
+(
+    "id"            VARCHAR(32) NOT NULL,
+    "ancestor_id"   VARCHAR(32),
+    "descendant_id" VARCHAR(32),
+    "depth"         INTEGER,
+    PRIMARY KEY ("id")
+);
+CREATE TABLE "note_permission"
+(
+    "id"          VARCHAR(32) NOT NULL,
+    "user_id"     VARCHAR(32),
+    "target"      VARCHAR(255),
+    "permission"  VARCHAR(255),
+    "create_time" TIMESTAMP,
+    "update_time" TIMESTAMP,
+    PRIMARY KEY ("id")
+);
 
-COMMENT ON COLUMN "public"."application"."create_time" IS '创建时间';
+CREATE TABLE "conversation"
+(
+    "id"                     VARCHAR(32) NOT NULL,
+    "name"                   VARCHAR(256),
+    "application_id"         VARCHAR(32),
+    "is_deleted"             SMALLINT,
+    "meta"                   TEXT,
+    "conversation_user_id"   VARCHAR(32),
+    "conversation_user_type" VARCHAR(64),
+    "execute_type"           VARCHAR(64),
+    "star_num"               INTEGER,
+    "trample_num"            INTEGER,
+    "mark_sum"               INTEGER,
+    "conversation_count"     INTEGER,
+    "create_time"            TIMESTAMP,
+    "update_time"            TIMESTAMP,
+    PRIMARY KEY ("id")
+);
 
-COMMENT ON COLUMN "public"."application"."update_time" IS '修改时间';
+CREATE TABLE "conversation_message"
+(
+    "id"                VARCHAR(128) NOT NULL,
+    "application_id"    VARCHAR(128),
+    "conversation_id"   VARCHAR(128),
+    "workflow_run_id"   VARCHAR(128),
+    "type"              VARCHAR(20),
+    "content"           TEXT,
+    "context"           TEXT,
+    "prompt_tokens"     INTEGER,
+    "completion_tokens" INTEGER,
+    "duration"          INTEGER,
+    "create_time"       TIMESTAMP,
+    "update_time"       TIMESTAMP,
+    PRIMARY KEY ("id")
+);
 
-COMMENT ON COLUMN "public"."application"."name" IS '节点名称';
+CREATE TABLE "project"
+(
+    "id"          VARCHAR(32) NOT NULL,
+    "parent_id"   VARCHAR(32),
+    "desc"        VARCHAR(256),
+    "name"        VARCHAR(256),
+    "icon"        VARCHAR(256),
+    "path"        TEXT,
+    "star"        SMALLINT,
+    "share"       SMALLINT,
+    "create_time" TIMESTAMP,
+    "update_time" TIMESTAMP,
+    PRIMARY KEY ("id")
+);
 
-COMMENT ON COLUMN "public"."application"."desc" IS '描述';
 
-COMMENT ON COLUMN "public"."application"."star" IS '加星';
+CREATE TABLE "project_folder"
+(
+    "id"          VARCHAR(32) NOT NULL,
+    "parent_id"   VARCHAR(32),
+    "name"        VARCHAR(256),
+    "desc"        VARCHAR(256),
+    "create_time" TIMESTAMP,
+    "update_time" TIMESTAMP,
+    PRIMARY KEY ("id")
+);
 
-COMMENT ON COLUMN "public"."application"."share" IS '分享';
 
-COMMENT ON COLUMN "public"."application"."content" IS '内容';
+CREATE TABLE "project_relation"
+(
+    "id"            VARCHAR(32) NOT NULL,
+    "ancestor_id"   VARCHAR(32),
+    "descendant_id" VARCHAR(32),
+    "depth"         INTEGER,
+    PRIMARY KEY ("id")
+);
 
-COMMENT ON COLUMN "public"."application"."workflow" IS '工作流对象';
+CREATE TABLE "project_permission"
+(
+    "id"          VARCHAR(32) NOT NULL,
+    "user_id"     VARCHAR(32),
+    "target"      VARCHAR(255),
+    "permission"  VARCHAR(255),
+    "create_time" TIMESTAMP,
+    "update_time" TIMESTAMP,
+    PRIMARY KEY ("id")
+);
 
-CREATE TABLE "public"."application_relation" (
-  "id" uuid NOT NULL,
-  "ancestor_id" uuid,
-  "descendant_id" uuid NOT NULL,
-  "depth" int8 NOT NULL
-)
-;
+CREATE TABLE "processor"
+(
+    "id"          VARCHAR(32) NOT NULL,
+    "project_id"  VARCHAR(32) NOT NULL,
+    "name"        VARCHAR(256),
+    "desc"        VARCHAR(256),
+    "protocol"    VARCHAR(32),
+    "meta"        TEXT,
+    "workflow"    TEXT,
+    "activate"    SMALLINT,
+    "create_time" TIMESTAMP,
+    "update_time" TIMESTAMP,
+    PRIMARY KEY ("id")
+);
 
-ALTER TABLE "public"."application_relation"
-  OWNER TO "postgres";
+CREATE TABLE "role"
+(
+    "id"          VARCHAR(32) NOT NULL,
+    "name"        VARCHAR(255),
+    "internal"    INTEGER,
+    "type"        VARCHAR(64),
+    "create_time" TIMESTAMP,
+    "update_time" TIMESTAMP,
+    PRIMARY KEY ("id")
+);
 
-COMMENT ON COLUMN "public"."application_relation"."id" IS '闭包表id';
+CREATE TABLE "role_permission_relation"
+(
+    "id"            VARCHAR(32) NOT NULL,
+    "role_id"       VARCHAR(32),
+    "permission_id" VARCHAR(255),
+    PRIMARY KEY ("id")
+);
 
-COMMENT ON COLUMN "public"."application_relation"."ancestor_id" IS '祖先id';
+CREATE TABLE "role_user_relation"
+(
+    "id"      VARCHAR(32) NOT NULL,
+    "role_id" VARCHAR(32),
+    "user_id" VARCHAR(32),
+    PRIMARY KEY ("id")
+);
 
-COMMENT ON COLUMN "public"."application_relation"."descendant_id" IS '后代id';
+INSERT INTO "role" ("id", "name", "internal", "type", "create_time", "update_time")
+VALUES ('ADMIN', 'ADMIN', 1, 'ADMIN', '2026-04-16 23:00:01', '2026-04-16 23:00:01'),
+       ('USER', 'USER', 1, 'USER', '2026-04-16 23:00:01', '2026-04-16 23:00:01');
 
-COMMENT ON COLUMN "public"."application_relation"."depth" IS '层级';
+INSERT INTO "role_user_relation" ("id", "role_id", "user_id")
+VALUES ('1', 'ADMIN', '22d90f6c-2092-43b8-aa14-d1f9731522ac');
+
+CREATE TABLE "datasource"
+(
+    "id"               VARCHAR(32) NOT NULL,
+    "parent_id"        VARCHAR(32),
+    "name"             VARCHAR(256),
+    "desc"             VARCHAR(256),
+    "data_source_type" VARCHAR(32),
+    "provider"         VARCHAR(32),
+    "meta"             TEXT,
+    "create_time"      TIMESTAMP,
+    "update_time"      TIMESTAMP,
+    PRIMARY KEY ("id")
+);
+
+CREATE TABLE "datasource_folder"
+(
+    "id"          VARCHAR(32) NOT NULL,
+    "parent_id"   VARCHAR(32),
+    "name"        VARCHAR(256),
+    "desc"        VARCHAR(256),
+    "create_time" TIMESTAMP,
+    "update_time" TIMESTAMP,
+    PRIMARY KEY ("id")
+);
+
+CREATE TABLE "datasource_relation"
+(
+    "id"            VARCHAR(32) NOT NULL,
+    "ancestor_id"   VARCHAR(32),
+    "descendant_id" VARCHAR(32),
+    "depth"         INTEGER,
+    PRIMARY KEY ("id")
+);
+
+CREATE TABLE "datasource_permission"
+(
+    "id"          VARCHAR(32) NOT NULL,
+    "user_id"     VARCHAR(32),
+    "target"      VARCHAR(255),
+    "permission"  VARCHAR(255),
+    "create_time" TIMESTAMP,
+    "update_time" TIMESTAMP,
+    PRIMARY KEY ("id")
+);

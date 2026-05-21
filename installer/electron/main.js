@@ -185,10 +185,12 @@ app.whenReady().then(async () => {
     const configPath = path.join(v1Dir, 'runify.yaml')
 
     if (!fs.existsSync(configPath)) {
+      const { randomBytes } = require('crypto')
       fs.mkdirSync(v1Dir, { recursive: true })
       fs.writeFileSync(configPath, [
         'system:',
         '  dataPath: data',
+        '  secretKey: ' + randomBytes(32).toString('hex'),
         'database:',
         '  type: SQLITE',
         'cache:',

@@ -3,6 +3,7 @@ package com.run.dagger.module;
 import com.run.common.config.AppConfig;
 import com.run.common.config.DataBase;
 
+import com.run.common.util.JWTUtil;
 import com.run.sql.dialect.SQLDialect;
 import dagger.Module;
 import dagger.Provides;
@@ -82,6 +83,7 @@ public class ConfigModule {
             AppConfig result = new AppConfig();
             result.setDatabase(dataBase);
             result.setSystem(system);
+            result.setSecretKey(Optional.ofNullable(System.getenv("RUNIFY_SECRET_KEY")).orElse(JWTUtil.keyGenerator()));
             return result;
         }
     }
@@ -99,6 +101,8 @@ public class ConfigModule {
     @Provides
     @Singleton
     public AppConfig appConfig() {
+        String secretKey = appConfig.getSecretKey();
+        JWTUtil.setKey(secretKey);
         return appConfig;
     }
 

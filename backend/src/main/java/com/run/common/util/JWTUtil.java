@@ -9,7 +9,10 @@ import com.auth0.jwt.exceptions.TokenExpiredException;
 import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.run.common.exception.UnAuthorizedException;
+import org.apache.commons.lang3.StringUtils;
 
+import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.Calendar;
 import java.util.Map;
 
@@ -24,7 +27,20 @@ public class JWTUtil {
     /**
      * 密钥不要随意改动
      */
-    public static final String key = "123123123";
+    public static String key = keyGenerator();
+
+    public static void setKey(String key) {
+        if (StringUtils.isNotEmpty(key)) {
+            JWTUtil.key = key;
+        }
+
+    }
+
+    public static String keyGenerator() {
+        byte[] key = new byte[32];
+        new SecureRandom().nextBytes(key);
+        return Base64.getEncoder().encodeToString(key);
+    }
 
     /**
      * 生成token

@@ -270,9 +270,6 @@ public class TokenProvider implements AuthenticationProvider {
                 CommonUtils.copyProperties(user, userProfile);
                 userProfile.setPermissions(permissions);
                 userProfile.setRoles(roles);
-                if (PermissionConstants.Role.ADMIN.name().equals(user.getRole())) {
-                    roles.add(new Role(PermissionConstants.Role.ADMIN.name(), "管理员", true, PermissionConstants.Role.ADMIN, null, null));
-                }
                 User userImpl = new UserImpl(new JsonObject(Map.of("user", userProfile)), new JsonObject());
                 return CompletableFuture.completedFuture(userImpl);
             });

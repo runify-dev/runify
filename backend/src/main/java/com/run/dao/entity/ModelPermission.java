@@ -18,7 +18,7 @@ import java.util.UUID;
  * {@code @Version 1.0}
  * {@code @注释: }
  */
-@Table(schemaName = "public", name = "knowledge_permission")
+@Table(schemaName = "public", name = "model_permission")
 @Getter
 @Setter
 @NoArgsConstructor

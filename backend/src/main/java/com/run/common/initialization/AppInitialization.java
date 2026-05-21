@@ -22,7 +22,6 @@ import java.security.KeyPair;
 public class AppInitialization {
     @Inject
     public AppInitialization(UserRoute userRoute,
-                             KnowledgeRoute knowledgeRoute,
                              FileRoute fileRoute,
                              ChatRoute chatRoute,
                              ApplicationRoute applicationRoute,
@@ -39,7 +38,6 @@ public class AppInitialization {
                              SystemSettingMapper systemSettingMapper,
                              DatasourceMapper datasourceMapper) {
         userRoute.init();
-        knowledgeRoute.init();
         fileRoute.init();
         chatRoute.init();
         applicationRoute.init();
