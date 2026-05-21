@@ -7,6 +7,6 @@ package com.run.common.config;
  * {@code @注释: }
  */
 public enum SearchType {
-    LOCAL,
+    LUCENE,
     ELASTICSEARCH
 }

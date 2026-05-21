@@ -7,7 +7,7 @@ cd "$PROJECT_DIR"
 
 ELECTRON_DIR="$SCRIPT_DIR/electron"
 JRE_DIR="$ELECTRON_DIR/jre"
-JAR_NAME="backend.jar"
+JAR_NAME="runify.jar"
 JAVA_VERSION="25"
 
 # Parse arguments
@@ -48,7 +48,7 @@ echo "========================================="
 echo ""
 echo "[1/5] Building project..."
 mvn clean package -DskipTests
-cp "$PROJECT_DIR/backend/target/backend-1.0.0-jar-with-dependencies.jar" "$ELECTRON_DIR/$JAR_NAME"
+mv "$PROJECT_DIR/backend/target/backend.jar" "$ELECTRON_DIR/$JAR_NAME"
 echo "  -> JAR copied to electron/$JAR_NAME"
 
 # Step 2: Prepare JRE
@@ -163,11 +163,11 @@ esac
 echo ""
 echo "[6/6] Copying jar to release..."
 mkdir -p "$PROJECT_DIR/release"
-cp "$ELECTRON_DIR/$JAR_NAME" "$PROJECT_DIR/release/backend.jar"
+cp "$ELECTRON_DIR/$JAR_NAME" "$PROJECT_DIR/release/$JAR_NAME"
 
 echo ""
 echo "========================================="
 echo "  Build complete!"
 echo "  Desktop: installer/electron/dist/"
-echo "  JAR: release/backend.jar"
+echo "  JAR: release/$JAR_NAME"
 echo "========================================="

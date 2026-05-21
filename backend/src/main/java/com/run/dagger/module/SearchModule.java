@@ -40,7 +40,7 @@ public class SearchModule {
     @Provides
     public SearchClient searchClient(AppConfig config, Vertx vertx) {
         Search search = config.getSearch();
-        if (search == null || search.getType() == SearchType.LOCAL) {
+        if (search == null || search.getType() == SearchType.LUCENE) {
             String dataPath = config.getSystem().getDataPath();
             Path indexPath = Path.of(dataPath + "/lucene");
             if (!Files.exists(indexPath)) {

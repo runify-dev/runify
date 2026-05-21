@@ -35,7 +35,10 @@ public class ConfigModule {
     }
 
     static class YamlInitConfig implements InitConfig {
-        private final String configurationFilePath = "/opt/runify/conf/runify.yaml";
+        private final String configurationFilePath = System.getProperty(
+                "runify.config",
+                "/opt/runify/conf/runify.yaml"
+        );
 
         @Override
         public boolean support() {

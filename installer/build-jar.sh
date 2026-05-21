@@ -26,10 +26,10 @@ mvn clean package -DskipTests
 echo ""
 echo "[3/3] Copying jar to release..."
 mkdir -p "$PROJECT_DIR/release"
-cp "$PROJECT_DIR/backend/target/backend-1.0.0-jar-with-dependencies.jar" "$PROJECT_DIR/release/backend.jar"
+mv "$PROJECT_DIR/backend/target/backend.jar" "$PROJECT_DIR/release/runify.jar"
 
 echo ""
 echo "========================================="
 echo "  Build complete!"
-echo "  Output: release/backend.jar"
+echo "  Output: release/runify.jar"
 echo "========================================="

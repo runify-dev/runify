@@ -27,6 +27,7 @@
           table: { style: { minWidth: '100%' } },
           thead: { class: 'bg-surface-50' },
           headerRow: { class: 'text-sm font-semibold text-surface-700' },
+          headerCell: { class: 'py-2' },
           bodyRow: { class: 'hover:bg-surface-50 transition-colors duration-150' },
           bodyCell: { class: 'text-sm text-surface-600 py-3' }
         }"

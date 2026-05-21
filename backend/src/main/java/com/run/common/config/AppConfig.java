@@ -29,7 +29,7 @@ public class AppConfig {
         Cache c = new Cache();
         c.setType(CacheType.LOCAL);
         Search search = new Search();
-        search.setType(SearchType.LOCAL);
+        search.setType(SearchType.LUCENE);
         return appConfig;
     }
 }

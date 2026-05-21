@@ -1,6 +1,6 @@
 // ── DataTable 全局样式 ──────────────────────────────────────────────
 .p-datatable-header-cell {
-  padding: 0.5rem 0.75rem;
+  padding: 0.15rem 0.75rem !important;
   font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -20,7 +20,7 @@
 }
 
 .p-datatable-header {
-  padding: 0.5rem 0.75rem;
+  padding: 0.25rem 0.75rem;
 }
 
 .p-paginator-footer {

@@ -48,7 +48,7 @@ function getJrePath() {
 }
 
 function getJarPath() {
-  return path.join(getBaseDir(), 'backend.jar')
+  return path.join(getBaseDir(), 'runify.jar')
 }
 
 function waitForPort(port, timeout = 60000) {
@@ -181,7 +181,26 @@ app.whenReady().then(async () => {
       return
     }
 
+    const v1Dir = path.join(app.getPath('userData'), 'v1')
+    const configPath = path.join(v1Dir, 'runify.yaml')
+
+    if (!fs.existsSync(configPath)) {
+      fs.mkdirSync(v1Dir, { recursive: true })
+      fs.writeFileSync(configPath, [
+        'system:',
+        '  dataPath: data',
+        'database:',
+        '  type: SQLITE',
+        'cache:',
+        '  type: LOCAL',
+        'search:',
+        '  type: LUCENE',
+      ].join('\n') + '\n')
+      console.log(`[Electron] Config initialized: ${configPath}`)
+    }
+
     const javaArgs = [
+      `-Drunify.config=${configPath}`,
       '-Dpolyglotimpl.DisableMultiReleaseCheck=true',
       '-jar',
       jar

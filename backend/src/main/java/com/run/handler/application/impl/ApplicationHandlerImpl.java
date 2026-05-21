@@ -301,8 +301,7 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
         AtomicLong index = new AtomicLong(1);
         Optional<ConversationMessage> first = conversationMessages.stream()
                 .filter(c -> Strings.CS.equals(c.getWorkflowRunId().toString(), workflowRunId.toString()))
-                .filter(c -> c.getType().equals(MessageConstants.ASSISTANT))
-                .sorted(Comparator.comparing(ConversationMessage::getCreateTime).reversed()).findFirst();
+                .filter(c -> c.getType().equals(MessageConstants.ASSISTANT)).max(Comparator.comparing(ConversationMessage::getCreateTime));
         DefaultKeyValue<Function<WorkFlow, Node>, Map<String, Map<String, Object>>> kv = get(question, list.size() > 2 ?
                 first.map(ConversationMessage::getContext).orElse(new JsonArray()) : new JsonArray());
         WorkFlowManage workFlowManage = new WorkFlowManage(WorkFlow.of(workflow, WorkflowType.CHAT_WORKFLOW),
