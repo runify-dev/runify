@@ -182,11 +182,12 @@ app.whenReady().then(async () => {
     }
 
     const v1Dir = path.join(app.getPath('userData'), 'v1')
-    const configPath = path.join(v1Dir, 'runify.yaml')
+    const configDir = path.join(v1Dir, 'config')
+    const configPath = path.join(configDir, 'runify.yaml')
 
     if (!fs.existsSync(configPath)) {
       const { randomBytes } = require('crypto')
-      fs.mkdirSync(v1Dir, { recursive: true })
+      fs.mkdirSync(configDir, { recursive: true })
       fs.writeFileSync(configPath, [
         'system:',
         '  dataPath: data',

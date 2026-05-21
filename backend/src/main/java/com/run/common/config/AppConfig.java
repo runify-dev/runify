@@ -13,7 +13,6 @@ import lombok.Data;
 @Data
 public class AppConfig {
     private DataBase database;
-    private String secretKey;
     private System system;
     private Cache cache;
     private Search search;

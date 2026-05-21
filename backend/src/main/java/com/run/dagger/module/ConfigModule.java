@@ -74,6 +74,7 @@ public class ConfigModule {
             String databaseType = System.getenv("RUNIFY_DATABASE_TYPE");
             com.run.common.config.System system = new com.run.common.config.System();
             system.setDataPath(Optional.ofNullable(systemDataPath).orElse("data"));
+            system.setSecretKey(Optional.ofNullable(System.getenv("RUNIFY_SECRET_KEY")).orElse(JWTUtil.keyGenerator()));
             dataBase.setType(Optional.ofNullable(databaseType).map(SQLDialect::valueOf).orElse(SQLDialect.SQLITE));
             dataBase.setHost(Optional.ofNullable(System.getenv("RUNIFY_DATABASE_HOST")).orElse("127.0.0.1"));
             dataBase.setPort(Optional.ofNullable(System.getenv("RUNIFY_DATABASE_PORT")).map(Integer::valueOf).orElse(5432));
@@ -83,7 +84,6 @@ public class ConfigModule {
             AppConfig result = new AppConfig();
             result.setDatabase(dataBase);
             result.setSystem(system);
-            result.setSecretKey(Optional.ofNullable(System.getenv("RUNIFY_SECRET_KEY")).orElse(JWTUtil.keyGenerator()));
             return result;
         }
     }
@@ -101,7 +101,7 @@ public class ConfigModule {
     @Provides
     @Singleton
     public AppConfig appConfig() {
-        String secretKey = appConfig.getSecretKey();
+        String secretKey = appConfig.getSystem().getSecretKey();
         JWTUtil.setKey(secretKey);
         return appConfig;
     }

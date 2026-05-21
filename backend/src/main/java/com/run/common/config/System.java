@@ -11,4 +11,5 @@ import lombok.Data;
 @Data
 public class System {
     private String dataPath;
+    private String secretKey;
 }
