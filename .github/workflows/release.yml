@@ -36,9 +36,6 @@ jobs:
       - name: Build backend with Maven
         run: mvn clean package -DskipTests
 
-      - name: Rename jar
-        run: mv backend/target/backend.jar backend/target/runify.jar
-
       - name: Upload jar artifact
         uses: actions/upload-artifact@v4
         with:

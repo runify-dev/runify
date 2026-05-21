@@ -48,7 +48,7 @@ echo "========================================="
 echo ""
 echo "[1/5] Building project..."
 mvn clean package -DskipTests
-mv "$PROJECT_DIR/backend/target/backend.jar" "$ELECTRON_DIR/$JAR_NAME"
+cp "$PROJECT_DIR/backend/target/$JAR_NAME" "$ELECTRON_DIR/$JAR_NAME"
 echo "  -> JAR copied to electron/$JAR_NAME"
 
 # Step 2: Prepare JRE
