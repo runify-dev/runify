@@ -187,10 +187,11 @@ app.whenReady().then(async () => {
 
     if (!fs.existsSync(configPath)) {
       const { randomBytes } = require('crypto')
+      const dataPath = path.join(v1Dir, 'data')
       fs.mkdirSync(configDir, { recursive: true })
       fs.writeFileSync(configPath, [
         'system:',
-        '  dataPath: data',
+        '  dataPath: ' + dataPath,
         '  secretKey: ' + randomBytes(32).toString('hex'),
         'database:',
         '  type: SQLITE',

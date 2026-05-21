@@ -28,15 +28,13 @@ import com.run.handler.common.pojo.SimpleNodePojo;
 import com.run.handler.conversation.vo.ModifyConversationNameVO;
 import com.run.sql.DSL;
 import com.run.sql.condition.Condition;
-import com.run.workflow.INode;
-import com.run.workflow.WorkFlowManage;
-import com.run.workflow.WorkflowRunRegistry;
-import com.run.workflow.WorkflowType;
+import com.run.workflow.*;
 import com.run.workflow.entity.Node;
 import com.run.workflow.entity.NodeSerialize;
 import com.run.workflow.entity.WorkFlow;
 import com.run.workflow.message.struct.Content;
 import com.run.workflow.message.struct.ContentConverter;
+import com.run.workflow.message.struct.FailureContent;
 import com.run.workflow.message.struct.Message;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
@@ -291,63 +289,73 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
                            UUID workflowRunId,
                            List<ConversationMessage> conversationMessages,
                            Content question) {
-        List<ConversationMessage> list = conversationMessages.stream().sorted(Comparator.comparing(ConversationMessage::getCreateTime)).toList();
-        context.response().setChunked(true);
-        context.response().putHeader("Content-Type", "text/event-stream;charset=utf-8");
-        context.response().putHeader("Cache-Control", "no-cache");
-        context.response().putHeader("Character-Encoding", "utf-8");
-        context.response().write(Buffer.buffer("", "utf-8"));
-        messageQueue.create(conversationId.toString());
-        AtomicLong index = new AtomicLong(1);
-        Optional<ConversationMessage> first = conversationMessages.stream()
-                .filter(c -> Strings.CS.equals(c.getWorkflowRunId().toString(), workflowRunId.toString()))
-                .filter(c -> c.getType().equals(MessageConstants.ASSISTANT)).max(Comparator.comparing(ConversationMessage::getCreateTime));
-        DefaultKeyValue<Function<WorkFlow, Node>, Map<String, Map<String, Object>>> kv = get(question, list.size() > 2 ?
-                first.map(ConversationMessage::getContext).orElse(new JsonArray()) : new JsonArray());
-        WorkFlowManage workFlowManage = new WorkFlowManage(WorkFlow.of(workflow, WorkflowType.CHAT_WORKFLOW),
-                new HashMap<>(Map.of(
-                        "messages", list,
-                        "content", JsonObject.mapFrom(question),
-                        "conversationId", conversationId,
-                        "applicationId", applicationId,
-                        "workflowRunId", workflowRunId.toString())),
-                kv.getValue(), (wm, node, chunk, isEnd) -> {
-            if (isEnd) {
-                WorkflowRunRegistry.unregister(conversationId.toString());
-                messageQueue.complete(conversationId.toString());
-                messageQueue.delete(conversationId.toString());
-                List<Content> chunks = wm.getChunks();
-                List<INode<?, ?>> nodes = wm.getNodes();
-                int promptTokens = wm.getPromptTokens();
-                int completionTokens = wm.getCompletionTokens();
-                long runtime = wm.getRuntime();
-                wm.clear();
-                List<ConversationMessage> messageArrayList = new ArrayList<>();
-                ConversationMessage conversationMessage = new ConversationMessage(UUID.randomUUID(),
-                        conversationId,
-                        applicationId, workflowRunId,
-                        MessageConstants.ASSISTANT,
-                        new JsonArray(chunks),
-                        new JsonArray(nodes.stream().map(INode::serialize).toList()),
-                        promptTokens,
-                        completionTokens,
-                        runtime,
-                        LocalDateTime.now(),
-                        LocalDateTime.now());
-                messageArrayList.add(conversationMessage);
+        try {
 
-                conversationMessageMapper.batch_save(messageArrayList)
-                        .onSuccess(_ -> context.response().end())
-                        .onFailure(context::fail);
-                return;
-            }
-            Message message = new Message(List.of(chunk), index.getAndIncrement());
+
+            List<ConversationMessage> list = conversationMessages.stream().sorted(Comparator.comparing(ConversationMessage::getCreateTime)).toList();
+            context.response().setChunked(true);
+            context.response().putHeader("Content-Type", "text/event-stream;charset=utf-8");
+            context.response().putHeader("Cache-Control", "no-cache");
+            context.response().putHeader("Character-Encoding", "utf-8");
+            context.response().write(Buffer.buffer("", "utf-8"));
+            messageQueue.create(conversationId.toString());
+            AtomicLong index = new AtomicLong(1);
+            Optional<ConversationMessage> first = conversationMessages.stream()
+                    .filter(c -> Strings.CS.equals(c.getWorkflowRunId().toString(), workflowRunId.toString()))
+                    .filter(c -> c.getType().equals(MessageConstants.ASSISTANT)).max(Comparator.comparing(ConversationMessage::getCreateTime));
+            DefaultKeyValue<Function<WorkFlow, Node>, Map<String, Map<String, Object>>> kv = get(question, list.size() > 2 ?
+                    first.map(ConversationMessage::getContext).orElse(new JsonArray()) : new JsonArray());
+            WorkFlowManage workFlowManage = new WorkFlowManage(WorkFlow.of(workflow, WorkflowType.CHAT_WORKFLOW),
+                    new HashMap<>(Map.of(
+                            "messages", list,
+                            "content", JsonObject.mapFrom(question),
+                            "conversationId", conversationId,
+                            "applicationId", applicationId,
+                            "workflowRunId", workflowRunId.toString())),
+                    kv.getValue(), (wm, node, chunk, isEnd) -> {
+                if (isEnd) {
+                    WorkflowRunRegistry.unregister(conversationId.toString());
+                    messageQueue.complete(conversationId.toString());
+                    messageQueue.delete(conversationId.toString());
+                    List<Content> chunks = wm.getChunks();
+                    List<INode<?, ?>> nodes = wm.getNodes();
+                    int promptTokens = wm.getPromptTokens();
+                    int completionTokens = wm.getCompletionTokens();
+                    long runtime = wm.getRuntime();
+                    wm.clear();
+                    List<ConversationMessage> messageArrayList = new ArrayList<>();
+                    ConversationMessage conversationMessage = new ConversationMessage(UUID.randomUUID(),
+                            conversationId,
+                            applicationId, workflowRunId,
+                            MessageConstants.ASSISTANT,
+                            new JsonArray(chunks),
+                            new JsonArray(nodes.stream().map(INode::serialize).toList()),
+                            promptTokens,
+                            completionTokens,
+                            runtime,
+                            LocalDateTime.now(),
+                            LocalDateTime.now());
+                    messageArrayList.add(conversationMessage);
+
+                    conversationMessageMapper.batch_save(messageArrayList)
+                            .onSuccess(_ -> context.response().end())
+                            .onFailure(context::fail);
+                    return;
+                }
+                Message message = new Message(List.of(chunk), index.getAndIncrement());
+                String messageString = "data: " + JacksonUtils.toJson(message) + "\n\n";
+                messageQueue.publish(conversationId.toString(), message.index(), messageString);
+                context.response().write(Buffer.buffer(messageString, "utf-8"));
+            }, kv.getKey());
+            WorkflowRunRegistry.register(conversationId.toString(), workFlowManage);
+            workFlowManage.invoke();
+        } catch (Exception e) {
+            Message message = new Message(List.of(new FailureContent(e.getMessage(), workflowRunId.toString(), CommonUtils.uuid7().toString(), NodeStatus.FAIL, "", "")), 0);
             String messageString = "data: " + JacksonUtils.toJson(message) + "\n\n";
-            messageQueue.publish(conversationId.toString(), message.index(), messageString);
-            context.response().write(Buffer.buffer(messageString, "utf-8"));
-        }, kv.getKey());
-        WorkflowRunRegistry.register(conversationId.toString(), workFlowManage);
-        workFlowManage.invoke();
+            context.end(messageString);
+            messageQueue.complete(conversationId.toString());
+            WorkflowRunRegistry.unregister(workflowRunId.toString());
+        }
     }
 
     @Override
