@@ -310,7 +310,8 @@ const getMoreMenuItems = (user: User | null) => {
     {
       label: '授权',
       icon: 'pi pi-share-alt',
-      command: () => openResourceAuth(user)
+      command: () => openResourceAuth(user),
+      disabled: isAdmin
     },
     {
       label: '删除',

@@ -1,5 +1,5 @@
 <template>
-  <div class="login-layout h-screen text-white flex items-center justify-center">
+  <div class="login-layout h-screen flex items-center justify-center">
     <div
       ref="cardRef"
       class="login-card flex backdrop-blur-sm rounded-2xl shadow-2xl overflow-hidden w-[1000px] h-[600px] max-w-[95vw] max-h-[95vh]"
@@ -8,7 +8,7 @@
       @mouseleave="onMouseLeave"
     >
       <div
-        class="left-bg hidden md:flex flex-1 flex-col items-center justify-center text-center relative"
+        class="left-bg hidden md:flex flex-1 flex-col items-center justify-center text-center text-white relative"
       >
         <ParticleNetwork />
         <div class="left-overlay absolute inset-0"></div>
@@ -28,9 +28,7 @@
         </div>
       </div>
 
-      <div
-        class="flex-1 md:flex-none md:w-[400px] min-h-[600px] p-10 md:p-[60px_45px] backdrop-blur-lg flex flex-col justify-center"
-      >
+      <div class="right-panel flex-1 md:flex-none md:w-[400px] min-h-[600px] p-10 md:p-[60px_45px] backdrop-blur-lg flex flex-col justify-center">
         <slot></slot>
       </div>
     </div>
@@ -105,6 +103,8 @@ function onMouseLeave() {
   transform-style: preserve-3d;
   transition: box-shadow 0.3s ease;
   will-change: transform;
+  background: color-mix(in srgb, var(--p-surface-0) 82%, transparent);
+  border: 1px solid color-mix(in srgb, var(--p-primary-color) 14%, var(--p-surface-0));
 }
 
 .left-bg::before {
@@ -125,6 +125,10 @@ function onMouseLeave() {
     var(--login-overlay-start) 0%,
     var(--login-overlay-end) 100%
   );
+}
+
+.right-panel {
+  color: var(--p-surface-900);
 }
 
 .login-title {

@@ -43,7 +43,7 @@
 
       <FormField v-slot="$field" name="nickname" class="flex flex-col gap-1 mt-4">
         <label>昵称</label>
-        <InputText class="mt-1" type="text" placeholder="请输入昵称（3-20位）" fluid />
+        <InputText class="mt-1" type="text" placeholder="请输入昵称（2-20位）" fluid />
         <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">
           {{ $field.error?.message }}
         </Message>
@@ -153,8 +153,8 @@ const resolver = computed(() =>
         .max(20, { message: '用户名长度为 3 - 20 之间' }),
       nickname: z
         .string()
-        .min(3, { message: '昵称长度为 3 - 20 之间' })
-        .max(20, { message: '昵称长度为 3 - 20 之间' }),
+        .min(2, { message: '昵称长度为 2 - 20 之间' })
+        .max(20, { message: '昵称长度为 2 - 20 之间' }),
       email: z
         .string()
         .min(1, { message: '邮箱为必填参数' })

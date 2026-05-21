@@ -73,6 +73,9 @@ const loading = ref<boolean>(false)
 :deep(.p-inputtext),
 :deep(.p-password-input) {
   transition: box-shadow 0.3s ease, border-color 0.3s ease;
+  background: color-mix(in srgb, var(--p-surface-0) 94%, var(--p-primary-50));
+  border-color: color-mix(in srgb, var(--p-primary-color) 20%, var(--p-surface-300));
+  color: var(--p-surface-900);
 
   &:focus {
     border-color: var(--p-primary-color);
@@ -82,11 +85,15 @@ const loading = ref<boolean>(false)
   }
 }
 
+:deep(.p-floatlabel label) {
+  color: var(--p-surface-600);
+}
+
 .login-btn {
-  background: linear-gradient(135deg, var(--p-primary-color), var(--p-primary-400));
+  background: linear-gradient(135deg, var(--p-primary-500), var(--p-primary-400));
   color: var(--p-primary-contrast-color);
   border: none;
-  box-shadow: 0 4px 14px color-mix(in srgb, var(--p-primary-color) 25%, transparent);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--p-primary-color) 22%, transparent);
 
   &:hover {
     box-shadow: 0 8px 24px color-mix(in srgb, var(--p-primary-color) 40%, transparent);
