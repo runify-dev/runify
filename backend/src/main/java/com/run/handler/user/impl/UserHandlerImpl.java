@@ -18,6 +18,7 @@ import com.run.handler.user.IUserHandler;
 import com.run.handler.user.dto.UserDTO;
 import com.run.handler.user.dto.UserProfileTDO;
 import com.run.handler.user.pojo.LoginPojo;
+import com.run.handler.user.vo.EditUserVO;
 import com.run.handler.user.vo.UserQueryVO;
 import com.run.sql.DSL;
 import com.run.sql.condition.Condition;
@@ -85,9 +86,22 @@ public class UserHandlerImpl implements IUserHandler {
     @Override
     public void updateUser(RoutingContext context) {
         String userId = context.pathParam("id");
-        User user = context.body().asPojo(User.class);
+        EditUserVO userVO = context.body().asPojo(EditUserVO.class);
+        User user = new User();
         user.setId(UUID.fromString(userId));
         user.setUpdateTime(LocalDateTime.now());
+        if (StringUtils.isNotEmpty(userVO.getPassword())) {
+            user.setPassword(CommonUtils.getSHA256(userVO.getPassword()));
+        }
+        if (StringUtils.isNotEmpty(userVO.getEmail())) {
+            user.setEmail(userVO.getEmail());
+        }
+        if (StringUtils.isNotEmpty(userVO.getIcon())) {
+            user.setIcon(userVO.getIcon());
+        }
+        if (StringUtils.isNotEmpty(userVO.getPhone())) {
+            user.setPhone(userVO.getPhone());
+        }
         userMapper.update(user).onSuccess(ok -> {
             context.end(Result.success(true).toBuffer());
         }).onFailure(context::fail);
