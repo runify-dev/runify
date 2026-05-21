@@ -213,7 +213,7 @@ public class ConversationHandlerImpl implements IConversationHandler {
                 int promptTokens = wm.getPromptTokens();
                 int completionTokens = wm.getCompletionTokens();
                 long runtime = wm.getRuntime();
-                workflow.clear();
+                wm.clear();
                 ConversationMessage conversationMessage = new ConversationMessage(UUID.randomUUID(),
                         conversationId,
                         applicationId, workflowRunId,

@@ -321,7 +321,7 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
                 int promptTokens = wm.getPromptTokens();
                 int completionTokens = wm.getCompletionTokens();
                 long runtime = wm.getRuntime();
-                workflow.clear();
+                wm.clear();
                 List<ConversationMessage> messageArrayList = new ArrayList<>();
                 ConversationMessage conversationMessage = new ConversationMessage(UUID.randomUUID(),
                         conversationId,
