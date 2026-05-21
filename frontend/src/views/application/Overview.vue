@@ -8,7 +8,7 @@
         <div class="bg-white rounded-lg shadow-sm p-4">
           <div class="flex items-center mb-4">
             <div class="w-8 h-8 rounded-lg  flex items-center justify-center mr-3 overflow-hidden">
-              <img src="/login_icon.png" alt="应用图标" class="w-full h-full object-contain" />
+              <img :src="resetUrl('./application.png')" alt="应用图标" class="w-full h-full object-contain" />
             </div>
             <div class="flex-1">
               <div class="flex items-center">
@@ -178,6 +178,7 @@ import Dropdown from 'primevue/dropdown'
 import Dialog from 'primevue/dialog'
 import DatePicker from 'primevue/datepicker'
 import { useRoute, useRouter } from 'vue-router'
+import {resetUrl} from "@/utils/common"
 import applicationApi from '@/api/application'
 import { Chart, registerables } from 'chart.js'
 

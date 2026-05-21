@@ -103,10 +103,10 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
             application.setWorkflow(workflow);
         }
         String desc = pojo.getDesc();
-        if (StringUtils.isEmpty(desc)) {
+        if (StringUtils.isNotEmpty(desc)) {
             application.setDesc(desc);
         }
-        if (StringUtils.isBlank(pojo.getIcon())) {
+        if (StringUtils.isNotEmpty(pojo.getIcon())) {
             application.setIcon(pojo.getIcon());
         }
         if (pojo.getAllowAnonymousAccess() != null) {
