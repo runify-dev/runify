@@ -381,7 +381,7 @@ public class WorkFlowManage {
                     .toList();
 
         } else {
-            return null;
+            return List::of;
         }
     }
 
@@ -392,7 +392,8 @@ public class WorkFlowManage {
     public int getCompletionTokens() {
         return nodes.stream().map(INode::getCompletionTokens).mapToInt(Integer::intValue).sum();
     }
-    public void clear(){
+
+    public void clear() {
         this.context.clear();
         this.nodes.clear();
         this.aggregationManager.clear();

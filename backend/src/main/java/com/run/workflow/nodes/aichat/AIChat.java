@@ -29,6 +29,7 @@ import com.run.workflow.entity.Node;
 import com.run.workflow.entity.NodeResult;
 import com.run.workflow.message.struct.*;
 import com.run.workflow.nodes.aichat.entity.AIChatNodeData;
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -183,118 +184,124 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
             ModelMapper modelMapper = RunApplication.appComponent.modelMapper();
             FileMapper fileMapper = RunApplication.appComponent.fileMapper();
             Vertx vertx = RunApplication.appComponent.vertx();
-            modelMapper.getById(node.params.getModelId()).onSuccess(model -> {
-                IProvider provider = ModelProvideConstants.valueOf(model.getProvider()).getProvider();
-                String decrypt = RSAUtil.decrypt(model.getCredential());
-                Map<String, Object> map = JacksonUtils.fromJson(decrypt, new TypeReference<Map<String, Object>>() {
-                });
-                // 添加 tools 配置
-                List<Map<String, Object>> toolsList = buildToolsList(tools);
-                if (toolsList != null) {
-                    map.put("tools", toolsList);
-                }
-                JsonArray modelParameterForm = model.getModelParameterForm();
-                for (int i = 0; i < modelParameterForm.size(); i++) {
-                    JsonObject jsonObject = modelParameterForm.getJsonObject(i);
-                    map.put(jsonObject.getString("field"), jsonObject.getValue("defaultValue"));
-                }
-                Boolean stream = Optional.ofNullable(map.get("stream")).map(v -> (Boolean) v).orElse(true);
-                ChatModel llm = provider.getModel(model.getModelType(), model.getModelName(), map, Map.of(), ChatModel.class);
-                llm.transformation(_messages, fileMapper, vertx).thenCompose(ms -> {
-                    if (stream) {
-                        String chunkId = CommonUtils.uuid7().toString();
-                        AsyncStreamResponse<ChatCompletionChunk> streamResp = llm.stream(ms, new JsonObject(map));
-                        node.streamResponse = streamResp;
-                        streamResp.subscribe(new AsyncStreamResponse.Handler<>() {
-                            Boolean isReasoning = false;
-                            Boolean reasoningEnd = false;
+            modelMapper.getById(node.params.getModelId()).compose(model -> {
+                        if (model == null) {
+                            return Future.failedFuture(new RuntimeException("模型不存在"));
+                        }
+                        return Future.succeededFuture(model);
+                    }).onSuccess(model -> {
 
-                            @Override
-                            public void onNext(ChatCompletionChunk chatCompletionChunk) {
-                                for (ChatCompletionChunk.Choice choice : chatCompletionChunk.choices()) {
-                                    JsonValue reasoningContent = choice.delta()._additionalProperties().get("reasoning_content");
-                                    if (reasoningContent != null && !reasoningEnd) {
-                                        isReasoning = true;
-                                        String reasoning = reasoningContent.convert(String.class);
-                                        if (StringUtils.isNotEmpty(reasoning)) {
-                                            workFlowManage.write(node, new ReasoningContent(reasoning, NodeStatus.RUNNING, node, (String) workFlowManage.getParams().get("workflowRunId"), chunkId));
+                        IProvider provider = ModelProvideConstants.valueOf(model.getProvider()).getProvider();
+                        String decrypt = RSAUtil.decrypt(model.getCredential());
+                        Map<String, Object> map = JacksonUtils.fromJson(decrypt, new TypeReference<Map<String, Object>>() {
+                        });
+                        // 添加 tools 配置
+                        List<Map<String, Object>> toolsList = buildToolsList(tools);
+                        if (toolsList != null) {
+                            map.put("tools", toolsList);
+                        }
+                        JsonArray modelParameterForm = model.getModelParameterForm();
+                        for (int i = 0; i < modelParameterForm.size(); i++) {
+                            JsonObject jsonObject = modelParameterForm.getJsonObject(i);
+                            map.put(jsonObject.getString("field"), jsonObject.getValue("defaultValue"));
+                        }
+                        Boolean stream = Optional.ofNullable(map.get("stream")).map(v -> (Boolean) v).orElse(true);
+                        ChatModel llm = provider.getModel(model.getModelType(), model.getModelName(), map, Map.of(), ChatModel.class);
+                        llm.transformation(_messages, fileMapper, vertx).thenCompose(ms -> {
+                            if (stream) {
+                                String chunkId = CommonUtils.uuid7().toString();
+                                AsyncStreamResponse<ChatCompletionChunk> streamResp = llm.stream(ms, new JsonObject(map));
+                                node.streamResponse = streamResp;
+                                streamResp.subscribe(new AsyncStreamResponse.Handler<>() {
+                                    Boolean isReasoning = false;
+                                    Boolean reasoningEnd = false;
+
+                                    @Override
+                                    public void onNext(ChatCompletionChunk chatCompletionChunk) {
+                                        for (ChatCompletionChunk.Choice choice : chatCompletionChunk.choices()) {
+                                            JsonValue reasoningContent = choice.delta()._additionalProperties().get("reasoning_content");
+                                            if (reasoningContent != null && !reasoningEnd) {
+                                                isReasoning = true;
+                                                String reasoning = reasoningContent.convert(String.class);
+                                                if (StringUtils.isNotEmpty(reasoning)) {
+                                                    workFlowManage.write(node, new ReasoningContent(reasoning, NodeStatus.RUNNING, node, (String) workFlowManage.getParams().get("workflowRunId"), chunkId));
+                                                }
+                                            }
+                                            choice.delta().content().ifPresent(content -> {
+                                                if (isReasoning && !reasoningEnd) {
+                                                    reasoningEnd = true;
+                                                    workFlowManage.write(node, new ReasoningContent("", NodeStatus.SUCCESS, node, (String) workFlowManage.getParams().get("workflowRunId"), chunkId));
+                                                }
+                                                workFlowManage.write(node, new TextContent(content, node, (String) workFlowManage.getParams().get("workflowRunId"),
+                                                        chunkId));
+                                            });
+                                        }
+                                        chatCompletionAccumulator.onToolCallChunk(call -> {
+                                            String id = call.getId();
+                                            workFlowManage.write(node, new ToolCallContent(call.getFunctionName(), "", call.getFunctionArguments(), NodeStatus.RUNNING, node, (String) workFlowManage.getParams().get("workflowRunId"),
+                                                    id));
+                                        });
+                                        chatCompletionAccumulator.append(chatCompletionChunk);
+                                    }
+
+                                    @Override
+                                    public void onComplete(Optional<Throwable> error) {
+                                        if (node.cancelled) {
+                                            return;
+                                        }
+                                        if (error.isPresent()) {
+                                            node.status = NodeStatus.FAIL;
+                                            workFlowManage.writeContext(node, "finishReason", "error");
+                                            workFlowManage.nextFailInvoke(node, error.get());
+                                        } else {
+                                            node.status = NodeStatus.SUCCESS;
+                                            ChatCompletionAccumulator.AccumulatedResult complete = chatCompletionAccumulator.complete();
+                                            workFlowManage.writeContext(node, "content", complete.getContent());
+                                            workFlowManage.writeContext(node, "reasoningContent", complete.getAdditionalProperty("reasoning_content").orElse(null));
+                                            workFlowManage.writeContext(node, "refusal", complete.getRefusal());
+                                            workFlowManage.writeContext(node, "isRefusal", complete.isRefusal());
+                                            workFlowManage.writeContext(node, "usage", complete.getUsage().orElse(null));
+                                            workFlowManage.writeContext(node, "toolCalls", complete.getToolCalls().stream().map(JsonObject::mapFrom).toList());
+                                            workFlowManage.writeContext(node, "finishReason", complete.getFinishReason());
+                                            workFlowManage.nextInvoke(node, () -> workFlowManage.getNextList(node.node.getId()).stream().map(DefaultKeyValue::getValue).toList());
+
                                         }
                                     }
-                                    choice.delta().content().ifPresent(content -> {
-                                        if (isReasoning && !reasoningEnd) {
-                                            reasoningEnd = true;
-                                            workFlowManage.write(node, new ReasoningContent("", NodeStatus.SUCCESS, node, (String) workFlowManage.getParams().get("workflowRunId"), chunkId));
-                                        }
-                                        workFlowManage.write(node, new TextContent(content, node, (String) workFlowManage.getParams().get("workflowRunId"),
-                                                chunkId));
-                                    });
-                                }
-                                chatCompletionAccumulator.onToolCallChunk(call -> {
-                                    String id = call.getId();
-                                    workFlowManage.write(node, new ToolCallContent(call.getFunctionName(), "", call.getFunctionArguments(), NodeStatus.RUNNING, node, (String) workFlowManage.getParams().get("workflowRunId"),
-                                            id));
-                                });
-                                chatCompletionAccumulator.append(chatCompletionChunk);
-                            }
 
-                            @Override
-                            public void onComplete(Optional<Throwable> error) {
-                                if (node.cancelled) {
-                                    return;
-                                }
-                                if (error.isPresent()) {
-                                    node.status = NodeStatus.FAIL;
-                                    workFlowManage.writeContext(node, "finishReason", "error");
-                                    workFlowManage.nextFailInvoke(node, error.get());
-                                } else {
+                                    @Override
+                                    public void onCancel() {
+                                        node.status = NodeStatus.CANCELLED;
+                                        workFlowManage.writeContext(node, "finishReason", "cancelled");
+                                        workFlowManage.assertionEnd();
+                                    }
+                                }).onCompleteFuture();
+                            } else {
+                                llm.invoke(ms, new JsonObject(map)).thenAcceptAsync(chatCompletion -> {
+                                    if (node.cancelled) return;
+                                    chatCompletionAccumulator.append(chatCompletion);
                                     node.status = NodeStatus.SUCCESS;
                                     ChatCompletionAccumulator.AccumulatedResult complete = chatCompletionAccumulator.complete();
                                     workFlowManage.writeContext(node, "content", complete.getContent());
                                     workFlowManage.writeContext(node, "reasoningContent", complete.getAdditionalProperty("reasoning_content").orElse(null));
                                     workFlowManage.writeContext(node, "refusal", complete.getRefusal());
                                     workFlowManage.writeContext(node, "isRefusal", complete.isRefusal());
-                                    workFlowManage.writeContext(node, "usage", complete.getUsage().orElse(null));
-                                    workFlowManage.writeContext(node, "toolCalls", complete.getToolCalls().stream().map(JsonObject::mapFrom).toList());
+                                    workFlowManage.writeContext(node, "toolCalls", complete.getToolCalls());
                                     workFlowManage.writeContext(node, "finishReason", complete.getFinishReason());
                                     workFlowManage.nextInvoke(node, () -> workFlowManage.getNextList(node.node.getId()).stream().map(DefaultKeyValue::getValue).toList());
 
-                                }
+                                }).exceptionallyAsync(err -> {
+                                    workFlowManage.nextInvoke(node, node.handleFail(workFlowManage, err));
+                                    return null;
+                                });
                             }
-
-                            @Override
-                            public void onCancel() {
-                                node.status = NodeStatus.CANCELLED;
-                                workFlowManage.writeContext(node, "finishReason", "cancelled");
-                                workFlowManage.assertionEnd();
-                            }
-                        }).onCompleteFuture();
-                    } else {
-                        llm.invoke(ms, new JsonObject(map)).thenAcceptAsync(chatCompletion -> {
-                            if (node.cancelled) return;
-                            chatCompletionAccumulator.append(chatCompletion);
-                            node.status = NodeStatus.SUCCESS;
-                            ChatCompletionAccumulator.AccumulatedResult complete = chatCompletionAccumulator.complete();
-                            workFlowManage.writeContext(node, "content", complete.getContent());
-                            workFlowManage.writeContext(node, "reasoningContent", complete.getAdditionalProperty("reasoning_content").orElse(null));
-                            workFlowManage.writeContext(node, "refusal", complete.getRefusal());
-                            workFlowManage.writeContext(node, "isRefusal", complete.isRefusal());
-                            workFlowManage.writeContext(node, "toolCalls", complete.getToolCalls());
-                            workFlowManage.writeContext(node, "finishReason", complete.getFinishReason());
-                            workFlowManage.nextInvoke(node, () -> workFlowManage.getNextList(node.node.getId()).stream().map(DefaultKeyValue::getValue).toList());
-
-                        }).exceptionallyAsync(err -> {
-                            workFlowManage.nextInvoke(node, node.handleFail(workFlowManage, err));
+                            return CompletableFuture.completedFuture(null);
+                        }).exceptionallyAsync(e -> {
                             return null;
                         });
-                    }
-                    return CompletableFuture.completedFuture(null);
-                }).exceptionallyAsync(e -> {
-                    System.out.println(e);
-                    return null;
-                });
-            }).onFailure(e -> {
-                workFlowManage.nextInvoke(node, node.handleFail(workFlowManage, e));
-            });
+                    })
+                    .onFailure(e -> {
+                        workFlowManage.nextInvoke(node, node.handleFail(workFlowManage, e));
+                    });
             return null;
         }
     }

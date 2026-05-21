@@ -164,7 +164,6 @@ function saveSubCanvasData() {
       ...model.properties.nodeData,
       children: data
     }
-    syncToParentCanvas()
   }
 }
 

@@ -70,14 +70,19 @@ public class UserHandlerImpl implements IUserHandler {
         user.setPassword(CommonUtils.getSHA256(user.getPassword()));
         user.setRole("USER");
         ValidatorUtil.validate(user, Group.Create.class);
-        userMapper.one(field(User::getUsername)
-                                .eq(user.getUsername()),
-                        Map.of())
+        Condition condition = field(User::getUsername).eq(user.getUsername());
+        if (StringUtils.isNotEmpty(user.getEmail())) {
+            condition = condition.or(field(User::getEmail).eq(user.getEmail()));
+        }
+        userMapper.one(condition, Map.of())
                 .compose(u -> {
                     if (u == null) {
                         return userMapper.save(user);
                     }
-                    return Future.failedFuture("用户名存在");
+                    if (u.getUsername().equals(user.getUsername())) {
+                        return Future.failedFuture("用户名存在");
+                    }
+                    return Future.failedFuture("邮箱已被使用");
                 }).onSuccess(ok -> {
                     context.end(Result.success(user).toBuffer());
                 }).onFailure(context::fail);
@@ -102,9 +107,25 @@ public class UserHandlerImpl implements IUserHandler {
         if (StringUtils.isNotEmpty(userVO.getPhone())) {
             user.setPhone(userVO.getPhone());
         }
-        userMapper.update(user).onSuccess(ok -> {
-            context.end(Result.success(true).toBuffer());
-        }).onFailure(context::fail);
+
+        Future<Void> emailCheck;
+        if (StringUtils.isNotEmpty(user.getEmail())) {
+            emailCheck = userMapper.count(DSL.field(User::getId).ne(user.getId())
+                    .and(DSL.field(User::getEmail).eq(user.getEmail())))
+                    .compose(count -> {
+                        if (count > 0) {
+                            return Future.failedFuture("邮箱已被使用");
+                        }
+                        return Future.succeededFuture();
+                    });
+        } else {
+            emailCheck = Future.succeededFuture();
+        }
+
+        emailCheck.compose(v -> userMapper.update(user))
+                .onSuccess(ok -> {
+                    context.end(Result.success(true).toBuffer());
+                }).onFailure(context::fail);
     }
 
     @Override
