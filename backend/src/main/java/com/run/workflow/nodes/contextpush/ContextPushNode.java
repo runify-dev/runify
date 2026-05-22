@@ -67,7 +67,7 @@ public class ContextPushNode extends INode<ContextPushNode, ContextPushNodeData>
                         if (refValue != null) {
                             if (refValue instanceof List<?> list) {
                                 targetList.addAll(list);
-                            } else if (refValue instanceof io.vertx.core.json.JsonArray ja) {
+                            } else if (refValue instanceof JsonArray ja) {
                                 targetList.addAll(ja.getList());
                             } else {
                                 targetList.add(refValue instanceof JsonObject jo ? jo.getMap() : refValue);

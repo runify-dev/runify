@@ -103,17 +103,15 @@ public class NoteSearchNode extends INode<NoteSearchNode, NoteSearchNodeData> {
                 output.put("total", result.getTotal());
                 output.put("pageNo", result.getPageNo());
                 output.put("pageSize", result.getPageSize());
-
                 float topScore = result.getHits().isEmpty() ? 0 : result.getHits().get(0).getScore();
-                String summary = "找到 " + result.getTotal() + " 条结果";
                 String argsJson = JacksonUtils.toJson(Map.of("keyword", keyword, "page_no", config.pageNo(), "page_size", config.pageSize()));
-
                 workFlowManage.writeContext(node, "result", output);
                 workFlowManage.writeContext(node, "hits", hits);
                 workFlowManage.writeContext(node, "total", result.getTotal());
                 workFlowManage.writeContext(node, "topScore", topScore);
                 workFlowManage.writeContext(node, "tool", JsonObject.mapFrom(
-                        new ToolCallContent("note_search", summary, argsJson, NodeStatus.SUCCESS, node, runId, id).withMeta(config.meta)));
+                        new ToolCallContent("note_search", hits.toString(), argsJson, NodeStatus.SUCCESS, node, runId, config.id).withMeta(config.meta)));
+                workFlowManage.write(node, new ToolCallContent("note_search", hits.toString(), "", NodeStatus.SUCCESS, node, runId, config.id));
                 node.status = NodeStatus.SUCCESS;
                 workFlowManage.nextInvoke(node, () -> workFlowManage
                         .getNextList(node.node.getId())

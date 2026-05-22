@@ -6,7 +6,7 @@ import { defaulBranches } from '@/workflow/common/data'
 const CONDITION_HEIGHT = 28
 const CONDITION_LOGIC_HEIGHT = 10
 const ELSE_HEIGHT = 28
-const BRANCH_GAP = 6
+const BRANCH_GAP = 8
 
 const NODE_HEADER_HEIGHT = 50
 const CONTENT_PADDING_TOP = 8

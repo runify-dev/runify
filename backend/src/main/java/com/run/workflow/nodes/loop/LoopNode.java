@@ -170,6 +170,9 @@ public class LoopNode extends INode<LoopNode, LoopNodeData> {
                         if (done) {
                             List<Map<String, Object>> list = wm.getNodes().stream().map(INode::serialize).map(NodeSerialize::toMap).toList();
                             parentWm.writeContext(node, LOOP_CONTEXT_KEY, list);
+
+                            parentWm.writeContext(node, "promptTokens", node.getPromptTokens() + wm.getPromptTokens());
+                            parentWm.writeContext(node, "completionTokens", node.getCompletionTokens() + wm.getCompletionTokens());
                             if (!isBreak.get()) {
                                 iterate(parentWm, node, children, edges, loopWfType, startNode, items, index + 1);
                             } else {
@@ -306,6 +309,22 @@ public class LoopNode extends INode<LoopNode, LoopNodeData> {
     public JsonObject getContext() {
         JsonObject context = super.getContext();
         return context;
+    }
+
+    @Override
+    public int getCompletionTokens() {
+        if (this.context.containsKey("completionTokens")) {
+            return this.context.getInteger("completionTokens");
+        }
+        return 0;
+    }
+
+    @Override
+    public int getPromptTokens() {
+        if (this.context.containsKey("promptTokens")) {
+            return this.context.getInteger("promptTokens");
+        }
+        return 0;
     }
 
     @Override

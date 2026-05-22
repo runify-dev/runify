@@ -330,15 +330,15 @@ public class FileMapper extends BaseMapper<FileEntity> {
                     Map.of()
             ).compose(rows -> vertx.executeBlocking(() -> {
                 if (rows.size() == 0) {
-                    java.nio.file.Path ossPath = CommonUtils.getOssPath();
+                    Path ossPath = CommonUtils.getOssPath();
                     copyToOss(fileEntity, file.getAbsolutePath(), ossPath);
                 } else {
                     String path = rows.iterator().next().getPath();
                     if (org.apache.commons.lang3.StringUtils.isEmpty(path)) {
-                        java.nio.file.Path ossPath = CommonUtils.getOssPath();
+                        Path ossPath = CommonUtils.getOssPath();
                         copyToOss(fileEntity, file.getAbsolutePath(), ossPath);
                     } else {
-                        java.nio.file.Path target = java.nio.file.Paths.get(path);
+                        Path target = java.nio.file.Paths.get(path);
                         if (!java.nio.file.Files.exists(target)) {
                             copyToOss(fileEntity, file.getAbsolutePath(), target);
                         } else {
@@ -351,7 +351,7 @@ public class FileMapper extends BaseMapper<FileEntity> {
         }
     }
 
-    private void copyToOss(FileEntity fileEntity, String sourcePath, java.nio.file.Path targetPath) throws java.io.IOException {
+    private void copyToOss(FileEntity fileEntity, String sourcePath, Path targetPath) throws java.io.IOException {
         if (!java.nio.file.Files.exists(targetPath.getParent())) {
             java.nio.file.Files.createDirectories(targetPath.getParent());
         }

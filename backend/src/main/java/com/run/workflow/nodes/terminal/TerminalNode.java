@@ -177,7 +177,12 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
                     file.mkdirs();
                 }
                 processBuilder.directory(file);
-                processBuilder.command("sh", "-c", config.command());
+                String os = System.getProperty("os.name").toLowerCase();
+                if (os.contains("win")) {
+                    processBuilder.command("powershell", "-NoProfile", "-NonInteractive", "-Command", config.command());
+                } else {
+                    processBuilder.command("sh", "-c", config.command());
+                }
                 processBuilder.redirectErrorStream(false);
 
                 Process process = processBuilder.start();

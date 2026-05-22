@@ -159,11 +159,13 @@ function syncToParentCanvas() {
 function saveSubCanvasData() {
   const data = subCanvasRef.value?.getGraphData()
   if (data) {
-    syncNestedLoopData(data)
     model.properties.nodeData = {
       ...model.properties.nodeData,
       children: data
     }
+     const parentLf = getParentLf?.() || getMainLf?.()
+     if (!parentLf) return
+      parentLf.graphModel.eventCenter.emit('runify:node:data-saved')
   }
 }
 

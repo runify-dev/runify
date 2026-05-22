@@ -61,7 +61,7 @@ public class BaseMapper<T extends BaseEntity<T>> {
     private String saveTemplate;
 
     @Getter
-    private com.run.sql.model.Field<?> primaryField;
+    private Field<?> primaryField;
 
     private EntityConfig<T> entityConfig;
 

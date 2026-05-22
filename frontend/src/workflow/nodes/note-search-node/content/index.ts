@@ -1,6 +1,6 @@
-import { validate } from './validator'
+import {validate} from './validator'
 
-export function init({ model }: { model: any }) {
+export function init({model}: { model: any }) {
   if (!model.properties.nodeData) {
     model.properties.nodeData = {
       folderIds: [],
@@ -16,10 +16,14 @@ export function init({ model }: { model: any }) {
     }
   }
   model.properties.field_list = [
-    { label: '结果列表', value: 'hits' },
-    { label: '总数', value: 'total' },
-    { label: '最高分', value: 'topScore' }
+    {
+      label: '工具执行',
+      value: 'tool'
+    },
+    {label: '结果列表', value: 'hits'},
+    {label: '总数', value: 'total'},
+    {label: '最高分', value: 'topScore'}
   ]
 }
 
-export { validate }
+export {validate}

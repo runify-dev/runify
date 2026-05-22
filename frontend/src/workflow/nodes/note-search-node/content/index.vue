@@ -284,11 +284,6 @@ onMounted(() => {
       pageSize: data.pageSize || 10
     })
   }
-  model.properties.field_list = [
-    { label: '结果列表', value: 'hits' },
-    { label: '总数', value: 'total' },
-    { label: '最高分', value: 'topScore' }
-  ]
 })
 </script>
 

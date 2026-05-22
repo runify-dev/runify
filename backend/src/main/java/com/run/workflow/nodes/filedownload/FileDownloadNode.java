@@ -97,7 +97,7 @@ public class FileDownloadNode extends INode<FileDownloadNode, FileDownloadNodeDa
                         UUID conversationId = (UUID) workFlowManage.getParams().getOrDefault("conversationId", CommonUtils.uuid7());
                         Path basePath = Path.of(System.getProperty("user.home"), ".runify", conversationId.toString());
                         String outputPath = StringUtils.isEmpty(config.path()) ? entity.getFileName() : config.path();
-                        String decodedPath = java.net.URLDecoder.decode(outputPath, java.nio.charset.StandardCharsets.UTF_8);
+                        String decodedPath = java.net.URLDecoder.decode(outputPath, StandardCharsets.UTF_8);
                         Path targetPath = basePath.resolve(decodedPath);
                         java.io.File targetFile = targetPath.toFile();
 
@@ -189,13 +189,13 @@ public class FileDownloadNode extends INode<FileDownloadNode, FileDownloadNodeDa
                 List<Map<String, Object>> list;
                 if (Files.exists(stateFile)) {
                     String existing = Files.readString(stateFile, StandardCharsets.UTF_8);
-                    list = new java.util.ArrayList<>(JacksonUtils.fromJson(existing, new com.fasterxml.jackson.core.type.TypeReference<>() {
+                    list = new ArrayList<>(JacksonUtils.fromJson(existing, new com.fasterxml.jackson.core.type.TypeReference<>() {
                     }));
                 } else {
-                    list = new java.util.ArrayList<>();
+                    list = new ArrayList<>();
                 }
 
-                Map<String, Object> record = new java.util.LinkedHashMap<>();
+                Map<String, Object> record = new LinkedHashMap<>();
                 record.put("file_id", fileId);
                 record.put("status", error.isEmpty() ? "success" : "fail");
                 if (!filePath.isEmpty()) record.put("path", filePath);

@@ -133,7 +133,7 @@ public class ElasticsearchSearchClient implements SearchClient {
     }
 
     @Override
-    public CompletionStage<Void> deleteByQuery(com.run.common.search.SearchQuery query) {
+    public CompletionStage<Void> deleteByQuery(SearchQuery query) {
         com.run.common.search.SearchRequest searchRequest = com.run.common.search.SearchRequest.from(query);
         return client.deleteByQuery(d -> d
                         .index(searchRequest.getIndex())

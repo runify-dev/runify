@@ -119,11 +119,11 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
 
             List<Map<String, Object>> toolsList = new ArrayList<>();
             for (AIChatNodeData.Tool tool : tools) {
-                Map<String, Object> toolMap = new java.util.HashMap<>();
+                Map<String, Object> toolMap = new HashMap<>();
                 toolMap.put("type", tool.getType());
 
                 if (tool.getFunction() != null) {
-                    Map<String, Object> funcMap = new java.util.HashMap<>();
+                    Map<String, Object> funcMap = new HashMap<>();
                     funcMap.put("name", tool.getFunction().getName());
                     funcMap.put("description", tool.getFunction().getDescription());
 
@@ -442,7 +442,7 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
         return files;
     }
 
-    private static java.util.Optional<File> toFile(Object val) {
+    private static Optional<File> toFile(Object val) {
         if (val instanceof JsonObject jo) {
             File file = new File();
             String url = jo.getString("url");
@@ -451,7 +451,7 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
             }
             file.setUrl(url);
             file.setName(jo.getString("fileName"));
-            return StringUtils.isNotEmpty(file.getUrl()) ? java.util.Optional.of(file) : java.util.Optional.empty();
+            return StringUtils.isNotEmpty(file.getUrl()) ? Optional.of(file) : Optional.empty();
         }
         if (val instanceof Map<?, ?> m) {
             File file = new File();
@@ -461,19 +461,19 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
             }
             file.setUrl(url);
             file.setName(m.get("fileName") != null ? m.get("fileName").toString() : null);
-            return StringUtils.isNotEmpty(file.getUrl()) ? java.util.Optional.of(file) : java.util.Optional.empty();
+            return StringUtils.isNotEmpty(file.getUrl()) ? Optional.of(file) : Optional.empty();
         }
         if (val instanceof String s && StringUtils.isNotEmpty(s)) {
             File file = new File();
             file.setUrl(s);
-            return java.util.Optional.of(file);
+            return Optional.of(file);
         }
         if (val != null) {
             File file = new File();
             file.setUrl(val.toString());
-            return StringUtils.isNotEmpty(file.getUrl()) ? java.util.Optional.of(file) : java.util.Optional.empty();
+            return StringUtils.isNotEmpty(file.getUrl()) ? Optional.of(file) : Optional.empty();
         }
-        return java.util.Optional.empty();
+        return Optional.empty();
     }
 
 
