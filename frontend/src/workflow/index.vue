@@ -25,9 +25,8 @@ import CanvasToolbar from '@/workflow/common/CanvasToolbar.vue'
 import LogicFlow from '@logicflow/core'
 import '@logicflow/core/dist/index.css'
 import '@logicflow/extension/lib/style/index.css'
-import { Dagre } from '@logicflow/layout'
+import dagre from 'dagre'
 
-LogicFlow.use(Dagre)
 import RunEdge from './common/edge'
 import { onMounted, onBeforeUnmount, ref, provide, inject, nextTick } from 'vue'
 import type { ValidationResult } from './common/type'
@@ -137,7 +136,60 @@ function onFitView() {
 }
 function onAutoLayout() {
   if (!lf.value) return
-  lf.value.extension.dagre.layout({ rankdir: 'LR', align:'',nodesep: 60, ranksep: 100 })
+
+  const { graphModel } = lf.value
+  const nodeMap = new Map<string, any>(graphModel.nodes.map((n: any) => [n.id, n]))
+
+  // 按源节点分组，对每个节点的出边分别按锚点 Y 坐标排序
+  const edgesBySource = new Map<string, any[]>()
+
+  graphModel.edges.forEach((edge: any) => {
+    if (!edgesBySource.has(edge.sourceNodeId)) {
+      edgesBySource.set(edge.sourceNodeId, [])
+    }
+    edgesBySource.get(edge.sourceNodeId)!.push(edge)
+  })
+
+  const sortedEdges: any[] = []
+  edgesBySource.forEach((edges, nodeId) => {
+    const sourceNode = nodeMap.get(nodeId)
+    if (sourceNode) {
+      edges.sort((a, b) => {
+        const anchorA = sourceNode.anchors.find((an: any) => an.id === a.sourceAnchorId)
+        const anchorB = sourceNode.anchors.find((an: any) => an.id === b.sourceAnchorId)
+        return (anchorA?.y ?? 0) - (anchorB?.y ?? 0)
+      })
+    }
+    sortedEdges.push(...edges)
+  })
+
+  // 使用 Dagre 布局
+  const g = new dagre.graphlib.Graph()
+  g.setGraph({ rankdir: 'LR', align: '', nodesep: 60, ranksep: 100 })
+  g.setDefaultEdgeLabel(() => ({}))
+
+  graphModel.nodes.forEach((node: any) => {
+    g.setNode(node.id, { width: node.width || 150, height: node.height || 50 })
+  })
+
+  sortedEdges.forEach((edge: any) => {
+    g.setEdge(edge.sourceNodeId, edge.targetNodeId)
+  })
+
+  dagre.layout(g)
+
+  // 更新节点坐标
+  graphModel.nodes.forEach((node: any) => {
+    const pos = g.node(node.id)
+    if (pos) {
+      node.x = pos.x
+      node.y = pos.y
+    }
+  })
+
+  // 刷新边的位置
+  graphModel.edges.forEach((edge: any) => edge.updatePathByAnchor?.())
+
   lf.value.fitView(40, 40)
   zoomPercent.value = Math.round(lf.value.getTransform().SCALE_X * 100)
 }
