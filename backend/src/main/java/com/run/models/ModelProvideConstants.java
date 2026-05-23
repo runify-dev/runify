@@ -1,6 +1,7 @@
 package com.run.models;
 
 import com.run.models.impl.deepseek.DeepSeekProvider;
+import com.run.models.impl.mimo.MimoProvider;
 import com.run.models.impl.openai.OpenaiProvider;
 import lombok.Getter;
 
@@ -15,7 +16,8 @@ public enum ModelProvideConstants {
 
 
     openai_provider(new OpenaiProvider()),
-    deepseek_provider(new DeepSeekProvider());
+    deepseek_provider(new DeepSeekProvider()),
+    mimo_provider(new MimoProvider());
 
     ModelProvideConstants(IProvider provider) {
         this.provider = provider;
