@@ -161,6 +161,7 @@ function onMouseLeave() {
 }
 
 .login-subtitle {
+  color: #0f172a;
   animation: text-enter 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.7s both;
 }
 

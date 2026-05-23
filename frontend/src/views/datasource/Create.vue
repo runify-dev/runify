@@ -126,6 +126,7 @@ const submit = () => {
   }
 
   treeCommonAPI.createResource(folderId.value, payload).then((ok) => {
+    bus.emit('datasource:created', { folderId: folderId.value, node: ok.data })
     bus.emit('message:success', ['创建数据源', '成功'])
     router.push({ name: 'datasourceDetails', params: { id: ok.data.id } })
   })

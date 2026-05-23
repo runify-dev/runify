@@ -138,7 +138,7 @@
 import AppMenuContent from '@/layout-plus/app-menu-content/index.vue'
 import CreateFolderDialog from '@/components/create-folder-dialog/index.vue'
 import DropdownMenu from '@/components/dropdown-menu/index.vue'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import Tree, { type TreeSelectionKeys } from 'primevue/tree'
 import { toTree, toTreeNode } from '@/components/tree/index'
 import { useRouter, useRoute } from 'vue-router'
@@ -146,6 +146,7 @@ import { TreeManager } from '@/components/tree/index'
 import { TreeCommonAPI } from '@/api/tree'
 import TreeEmpty from '@/components/tree-empty/index.vue'
 import type { TreeNode } from 'primevue/treenode'
+import bus from '@/bus/index'
 
 const route = useRoute()
 const router = useRouter()
@@ -199,10 +200,22 @@ const removeTreeNode = (node: TreeNode) => {
 
 const nodes = ref<Array<any>>([])
 const treeManage = ref()
-onMounted(() => {
+const reloadTree = () => {
   treeCommonAPI.listTree('root').then((ok) => {
     nodes.value = toTree(ok.data)
     treeManage.value = new TreeManager(nodes.value)
   })
+}
+onMounted(() => {
+  bus.on('datasource:created', ({ folderId }: { folderId: string }) => {
+    reloadTree()
+    expandedKeys.value = { ...expandedKeys.value, [folderId]: true }
+  })
+
+  reloadTree()
+})
+
+onBeforeUnmount(() => {
+  bus.off('datasource:created')
 })
 </script>
