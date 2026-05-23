@@ -16,8 +16,8 @@ public class DeepSeekProvider implements IProvider {
     private static final ProvideInfo provideInfo;
 
     static {
-        ModelInfo deepseek_reasoner = new ModelInfo("deepseek-reasoner", "", ModelType.LLM, new LLMCredential(), LLM.class);
-        ModelInfo deepseek_chat = new ModelInfo("deepseek-chat", "", ModelType.LLM, new LLMCredential(), LLM.class);
+        ModelInfo deepseek_reasoner = new ModelInfo("deepseek-v4-flash", "", ModelType.LLM, new LLMCredential(), LLM.class);
+        ModelInfo deepseek_chat = new ModelInfo("deepseek-v4-pro", "", ModelType.LLM, new LLMCredential(), LLM.class);
         modelInfoManage = ModelInfoManage.builder()
                 .append(deepseek_reasoner, true)
                 .append(deepseek_chat, false).build();
