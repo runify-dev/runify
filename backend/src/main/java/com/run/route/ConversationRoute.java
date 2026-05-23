@@ -116,6 +116,9 @@ public class ConversationRoute implements IRoute {
                 .handler(tokenBasicAuthHandler)
                 .handler(conversationAuthenticator)
                 .handler(conversationHandler::modifyName);
+
+        apiRoute.get("/application/:applicationId/embed")
+                .handler(conversationHandler::embed);
     }
 
     @Override

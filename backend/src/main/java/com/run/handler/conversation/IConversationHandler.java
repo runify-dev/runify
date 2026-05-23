@@ -80,4 +80,6 @@ public interface IConversationHandler {
     void application(RoutingContext context);
 
     void authProfile(RoutingContext context);
+
+    void embed(RoutingContext context);
 }

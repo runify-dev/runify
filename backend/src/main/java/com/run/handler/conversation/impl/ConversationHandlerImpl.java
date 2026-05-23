@@ -52,6 +52,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 
 import javax.inject.Inject;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
@@ -278,6 +279,14 @@ public class ConversationHandlerImpl implements IConversationHandler {
         return condition;
     }
 
+    private Condition getConditionSyncAll(ApplicationQueryVO query) {
+        Condition condition = DSL.noCondition();
+        if (StringUtils.isNotEmpty(query.getName())) {
+            return condition.and(field(Application::getName).like("%" + query.getName() + "%"));
+        }
+        return condition;
+    }
+
     private Future<Condition> getConditionAsync(ApplicationQueryVO query, User user) {
         String userId = user.get("id");
         return isApplicationRead(applicationPermissionMapper, roleMapper, roleUserRelationMapper, userId).map(isRead -> {
@@ -302,7 +311,13 @@ public class ConversationHandlerImpl implements IConversationHandler {
         String type = user.get("type");
         Future<Condition> conditionFuture;
         if (Strings.CS.equals(type, TokenTypeConstants.USER.name())) {
-            conditionFuture = getConditionAsync(query, user);
+            conditionFuture = roleUserRelationMapper.count(field(RoleUserRelation::getRoleId).eq("ADMIN")).compose(count -> {
+                if (count > 0) {
+                    return Future.succeededFuture(getConditionSyncAll(query));
+                } else {
+                    return getConditionAsync(query, user);
+                }
+            });
         } else {
             conditionFuture = Future.succeededFuture(getConditionSync(query));
         }
@@ -393,6 +408,29 @@ public class ConversationHandlerImpl implements IConversationHandler {
             Boolean allowAnonymousAccess = a.getAllowAnonymousAccess();
             context.end(Result.success(Map.of("allowAnonymousAccess", allowAnonymousAccess)).toBuffer());
         }).onFailure(context::fail);
+    }
+
+    @Override
+    public void embed(RoutingContext context) {
+        String applicationId = context.pathParam("applicationId");
+        applicationMapper.getById(applicationId).onSuccess(a -> {
+            String icon = a.getIcon();
+            String iconUrl = icon != null && !icon.isEmpty() ? icon : "./user.png";
+            try {
+                freemarker.template.Configuration cfg = new freemarker.template.Configuration(freemarker.template.Configuration.VERSION_2_3_32);
+                cfg.setClassLoaderForTemplateLoading(getClass().getClassLoader(), "");
+                freemarker.template.Template template = cfg.getTemplate("embed.js");
+                java.io.StringWriter writer = new java.io.StringWriter();
+                template.process(Map.of("applicationId", applicationId, "iconUrl", iconUrl), writer);
+                context.response().putHeader("Content-Type", "application/javascript;charset=utf-8");
+                context.response().putHeader("Cache-Control", "public, max-age=3600");
+                context.end(writer.toString());
+            } catch (Exception e) {
+                context.response().setStatusCode(500).end("Internal server error");
+            }
+        }).onFailure(e -> {
+            context.response().setStatusCode(404).end("Application not found");
+        });
     }
 
     public void resumeStream(RoutingContext context) {

@@ -8,29 +8,36 @@
         <div class="bg-white rounded-lg shadow-sm p-4">
           <div class="flex items-center mb-4">
             <div class="w-8 h-8 rounded-lg  flex items-center justify-center mr-3 overflow-hidden">
-              <img :src="resetUrl('./application.png')" alt="应用图标" class="w-full h-full object-contain" />
+              <img :src="resetUrl('./application.png')" alt="应用图标"
+                   class="w-full h-full object-contain"/>
             </div>
             <div class="flex-1">
               <div class="flex items-center">
-                <span class="text-[14px] font-semibold text-slate-800 mr-2">{{ appInfo.name }}</span>
-                <span class="inline-flex items-center px-2 py-0.5 bg-green-100 text-green-800 rounded text-[12px]">
+                <span class="text-[14px] font-semibold text-slate-800 mr-2">{{
+                    appInfo.name
+                  }}</span>
+                <span
+                  class="inline-flex items-center px-2 py-0.5 bg-green-100 text-green-800 rounded text-[12px]">
                   {{ appInfo.status }}
                 </span>
               </div>
-              <div class="text-[12px] text-slate-500 mt-1">ID: {{ appInfo.id }} | {{ appInfo.updateTime }} 更新</div>
+              <div class="text-[12px] text-slate-500 mt-1">ID: {{ appInfo.id }} |
+                {{ appInfo.updateTime }} 更新
+              </div>
             </div>
           </div>
           <div class="flex flex-wrap gap-2">
-            <Button label="公开链接" icon="pi pi-link" text class="text-xs" />
-            <Button label="API 凭据" icon="pi pi-key" text class="text-xs" />
-            <Button label="显示设置" icon="pi pi-cog" text class="text-xs" />
+            <Button label="公开链接" icon="pi pi-link" text class="text-xs"
+                    @click="copyPublicLink"/>
+            <Button label="嵌入第三方" icon="pi pi-external-link" text class="text-xs" @click="embedDialogRef?.open(applicationId)"/>
           </div>
         </div>
         <div class="bg-white rounded-lg shadow-sm p-4">
           <div class="flex items-center justify-between mb-4">
             <h4 class="text-sm font-semibold text-slate-800">监控统计</h4>
             <div class="flex items-center gap-3">
-              <span v-if="selectedTimeRange === 'custom' && customStartTime && customEndTime" class="text-xs text-slate-600">
+              <span v-if="selectedTimeRange === 'custom' && customStartTime && customEndTime"
+                    class="text-xs text-slate-600">
                 {{ formatDate(customStartTime) }} - {{ formatDate(customEndTime) }}
               </span>
               <Dropdown
@@ -44,16 +51,20 @@
             </div>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <div class="flex items-center gap-3 bg-white rounded-xl p-3 shadow-sm border border-slate-100">
+            <div
+              class="flex items-center gap-3 bg-white rounded-xl p-3 shadow-sm border border-slate-100">
               <div class="w-9 h-9 rounded-lg bg-blue-100 flex items-center justify-center">
                 <i class="pi pi-comments text-blue-600 text-sm"></i>
               </div>
               <div>
                 <p class="text-xs text-slate-500">对话数</p>
-                <p class="text-base font-bold text-slate-800">{{ overviewData.conversationCount }}</p>
+                <p class="text-base font-bold text-slate-800">{{
+                    overviewData.conversationCount
+                  }}</p>
               </div>
             </div>
-            <div class="flex items-center gap-3 bg-white rounded-xl p-3 shadow-sm border border-slate-100">
+            <div
+              class="flex items-center gap-3 bg-white rounded-xl p-3 shadow-sm border border-slate-100">
               <div class="w-9 h-9 rounded-lg bg-orange-100 flex items-center justify-center">
                 <i class="pi pi-comment text-orange-600 text-sm"></i>
               </div>
@@ -62,22 +73,26 @@
                 <p class="text-base font-bold text-slate-800">{{ overviewData.messageCount }}</p>
               </div>
             </div>
-            <div class="flex items-center gap-3 bg-white rounded-xl p-3 shadow-sm border border-slate-100">
+            <div
+              class="flex items-center gap-3 bg-white rounded-xl p-3 shadow-sm border border-slate-100">
               <div class="w-9 h-9 rounded-lg bg-green-100 flex items-center justify-center">
                 <i class="pi pi-clock text-green-600 text-sm"></i>
               </div>
               <div>
                 <p class="text-xs text-slate-500">平均响应时间</p>
-                <p class="text-base font-bold text-slate-800">{{ formatDuration(overviewData.avgDuration) }}</p>
+                <p class="text-base font-bold text-slate-800">
+                  {{ formatDuration(overviewData.avgDuration) }}</p>
               </div>
             </div>
-            <div class="flex items-center gap-3 bg-white rounded-xl p-3 shadow-sm border border-slate-100">
+            <div
+              class="flex items-center gap-3 bg-white rounded-xl p-3 shadow-sm border border-slate-100">
               <div class="w-9 h-9 rounded-lg bg-teal-100 flex items-center justify-center">
                 <i class="pi pi-key text-teal-600 text-sm"></i>
               </div>
               <div>
                 <p class="text-xs text-slate-500">Token 消耗</p>
-                <p class="text-base font-bold text-slate-800">{{ formatTokens(overviewData.totalTokens) }}</p>
+                <p class="text-base font-bold text-slate-800">
+                  {{ formatTokens(overviewData.totalTokens) }}</p>
               </div>
             </div>
           </div>
@@ -96,10 +111,15 @@
         </div>
       </div>
       <div class="order-first lg:order-none space-y-4">
-        <div class="bg-gradient-to-br from-[#10b981] to-[#059669] rounded-lg p-5 text-white shadow-md">
+        <div
+          class="bg-gradient-to-br from-[#10b981] to-[#059669] rounded-lg p-5 text-white shadow-md">
           <div class="text-[16px] font-bold mb-3">快速开始对话</div>
-          <div class="text-sm mb-5 leading-relaxed">通过对话 Agent 帮助您分析数据并导出 Word 报表。</div>
-          <button class="w-full text-center bg-white text-[#10b981] hover:bg-slate-100 text-[14px] py-2 rounded-lg border border-[#10b981] cursor-pointer" @click="goToChat">进入聊天界面</button>
+          <div class="text-sm mb-5 leading-relaxed">通过对话 Agent 帮助您分析数据并导出 Word 报表。
+          </div>
+          <button
+            class="w-full text-center bg-white text-[#10b981] hover:bg-slate-100 text-[14px] py-2 rounded-lg border border-[#10b981] cursor-pointer"
+            @click="goToChat">进入聊天界面
+          </button>
         </div>
 
         <div class="bg-white rounded-xl shadow-sm py-[0.5rem] px-4 pb-[1rem]">
@@ -164,23 +184,28 @@
         </div>
       </div>
       <div class="flex justify-end gap-2">
-        <Button label="取消" text @click="cancelCustomTime" class="text-xs" />
-        <Button label="确定" @click="confirmCustomTime" class="bg-[#10b981] hover:bg-[#059669] text-white text-xs" />
+        <Button label="取消" text @click="cancelCustomTime" class="text-xs"/>
+        <Button label="确定" @click="confirmCustomTime"
+                class="bg-[#10b981] hover:bg-[#059669] text-white text-xs"/>
       </div>
     </div>
   </Dialog>
+
+  <EmbedDialog ref="embedDialogRef"/>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, nextTick } from 'vue'
+import {ref, onMounted, watch, nextTick} from 'vue'
 import Button from 'primevue/button'
 import Dropdown from 'primevue/dropdown'
 import Dialog from 'primevue/dialog'
 import DatePicker from 'primevue/datepicker'
-import { useRoute, useRouter } from 'vue-router'
-import {resetUrl} from "@/utils/common"
+import {useRoute, useRouter} from 'vue-router'
+import {resetUrl,copyContent} from "@/utils/common"
 import applicationApi from '@/api/application'
-import { Chart, registerables } from 'chart.js'
+import {Chart, registerables} from 'chart.js'
+import bus from "@/bus"
+import EmbedDialog from './component/EmbedDialog.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -206,17 +231,18 @@ const overviewData = ref({
 const selectedTimeRange = ref('7')
 
 const timeRangeOptions = ref([
-  { label: '最近7天', value: '7' },
-  { label: '最近30天', value: '30' },
-  { label: '最近90天', value: '90' },
-  { label: '半年', value: '180' },
-  { label: '一年', value: '365' },
-  { label: '自定义时间', value: 'custom' }
+  {label: '最近7天', value: '7'},
+  {label: '最近30天', value: '30'},
+  {label: '最近90天', value: '90'},
+  {label: '半年', value: '180'},
+  {label: '一年', value: '365'},
+  {label: '自定义时间', value: 'custom'}
 ])
 
 const showCustomTimeModal = ref(false)
 const customStartTime = ref<Date | null>(null)
 const customEndTime = ref<Date | null>(null)
+const embedDialogRef = ref<InstanceType<typeof EmbedDialog>>()
 
 watch(selectedTimeRange, (newVal) => {
   if (newVal === 'custom') {
@@ -434,8 +460,18 @@ const fetchApplicationInfo = async () => {
   }
 }
 
+const copyPublicLink = () => {
+  const host = window.location.origin === 'http://localhost:3000' ? 'http://localhost:3001' : window.location.origin
+  const url = `${host}/conversation/a/${applicationId}`
+  copyContent(url).then(() => {
+    bus.emit("message:success", "复制成功")
+  }).catch(() => {
+    bus.emit("message:success", url)
+  })
+}
+
 const goToChat = () => {
-  router.push({ name: 'applicationChat', params: { applicationId } })
+  router.push({name: 'applicationChat', params: {applicationId}})
 }
 
 onMounted(() => {

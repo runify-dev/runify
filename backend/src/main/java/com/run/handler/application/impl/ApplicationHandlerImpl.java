@@ -111,6 +111,7 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
             application.setIcon(pojo.getIcon());
         }
         if (pojo.getAllowAnonymousAccess() != null) {
+            this.cacheStore.delete("c::" + ((User)context.user().get("user")).getId());
             application.setAllowAnonymousAccess(pojo.getAllowAnonymousAccess());
         }
         if (!StringUtils.isBlank(pojo.getName())) {

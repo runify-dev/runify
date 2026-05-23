@@ -6,6 +6,7 @@ import com.run.auth.constants.TokenTypeConstants;
 import com.run.auth.dto.TokenDTO;
 import com.run.common.cache.CacheStore;
 import com.run.dao.entity.Application;
+import com.run.dao.entity.RoleUserRelation;
 import com.run.dao.mapper.*;
 import com.run.handler.common.impl.ResourceHandlerImpl;
 import com.run.handler.common.pojo.QueryResourcePojo;
@@ -70,23 +71,31 @@ public class ConversationTokenProvider implements AuthenticationProvider {
                 applicationMapper.list(DSL.field(Application::getAllowAnonymousAccess).eq(Boolean.TRUE));
 
         if (tokenDTO.getType().equals(TokenTypeConstants.USER)) {
-            Future<Condition> conditionFuture = getConditionAsync(tokenDTO.getId());
-            Future<List<Application>> auth = conditionFuture.compose(c -> {
-                return applicationMapper.list(c, Map.of("userId", tokenDTO.getId(), "permissionView", "VIEW",
-                        "permissionManage", "MANAGE",
-                        "permissionNotAuth", "NOT_AUTH",
-                        "permissionRole", "ROLE"));
-            });
-            a = Future.all(a, auth).compose(composite -> {
-                List<Application> permissionList = composite.resultAt(0);
-                List<Application> anonymousList = composite.resultAt(1);
-                List<Application> result = new ArrayList<>(permissionList);
-                result.addAll(anonymousList);
-                return Future.succeededFuture(result);
-            });
+            return roleUserRelationMapper.count(field(RoleUserRelation::getRoleId).eq("ADMIN"))
+                    .compose(count -> {
+                        if (count > 0) {
+                            return applicationMapper.list(DSL.noCondition());
+                        } else {
+                            Future<Condition> conditionFuture = getConditionAsync(tokenDTO.getId());
+                            Future<List<Application>> auth = conditionFuture.compose(c -> {
+                                return applicationMapper.list(c, Map.of("userId", tokenDTO.getId(), "permissionView", "VIEW",
+                                        "permissionManage", "MANAGE",
+                                        "permissionNotAuth", "NOT_AUTH",
+                                        "permissionRole", "ROLE"));
+                            });
+                            return Future.all(a, auth).compose(composite -> {
+                                List<Application> permissionList = composite.resultAt(0);
+                                List<Application> anonymousList = composite.resultAt(1);
+                                List<Application> result = new ArrayList<>(permissionList);
+                                result.addAll(anonymousList);
+                                return Future.succeededFuture(result);
+                            });
+                        }
+                    }).compose(applications -> Future.succeededFuture(applications.stream().map(Application::getId).map(UUID::toString).toList()));
         }
         return a.compose(applications -> Future.succeededFuture(applications.stream().map(Application::getId).map(UUID::toString).toList()));
     }
+
 
     public Future<List<String>> getCacheApplicationIds(TokenDTO tokenDTO) {
 
