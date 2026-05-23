@@ -17,8 +17,18 @@
       <!-- 操作按钮组 -->
       <div class="flex items-center gap-2 shrink-0">
         <input ref="fileInputRef" type="file" accept=".json" class="hidden" @change="handleImport" />
-        <Button icon="pi pi-upload" label="导入应用" severity="secondary" @click="fileInputRef?.click()" />
-        <Button icon="pi pi-plus" label="新建应用" @click="openCreateApplication" />
+        <Button icon="pi pi-plus" label="创建" @click="toggleCreateMenu" />
+        <Menu ref="createMenuRef" :model="createMenuItems" popup :pt="{ item: { class: '!p-0' }, itemContent: { style: 'justify-content: flex-start !important' }, itemLink: { style: 'justify-content: flex-start !important; text-align: left !important' }, list: { class: '!py-1' } }">
+          <template #item="{ item, props }">
+            <a v-ripple class="flex flex-col gap-0.5 px-3 py-1.5 items-start" v-bind="props.action">
+              <div class="flex items-center gap-2">
+                <span :class="item.icon" class="w-4 text-sm" />
+                <span class="text-sm font-medium">{{ item.label }}</span>
+              </div>
+              <span class="text-xs text-surface-400">{{ item.description }}</span>
+            </a>
+          </template>
+        </Menu>
       </div>
     </div>
 
@@ -122,6 +132,7 @@ const nodeList = ref<Array<Node>>([])
 const folder = ref<Node>()
 const searchText = ref<string>('')
 const menuRef = ref()
+const createMenuRef = ref()
 const activeItem = ref<Node | null>(null)
 const fileInputRef = ref<HTMLInputElement>()
 
@@ -137,6 +148,37 @@ const folderId = computed(() => {
   } = route as any
   return id
 })
+
+const createMenuItems = [
+  {
+    label: '自定义应用',
+    description: '从零开始构建新应用',
+    icon: 'pi pi-plus',
+    command: () => openCreateApplication('workflow')
+  },
+  {
+    label: '智能体应用',
+    description: '基于模型快速创建智能体',
+    icon: 'pi pi-android',
+    command: () => openCreateApplication('agent')
+  },
+  {
+    label: '知识库应用',
+    description: '基于知识库创建问答应用',
+    icon: 'pi pi-book',
+    command: () => openCreateApplication('search')
+  },
+  {
+    label: '导入配置',
+    description: '从JSON文件导入应用',
+    icon: 'pi pi-upload',
+    command: () => fileInputRef.value?.click()
+  }
+]
+
+const toggleCreateMenu = (event: Event) => {
+  createMenuRef.value?.toggle(event)
+}
 
 const menuItems = computed(() => [
   {
@@ -169,8 +211,8 @@ const toggleMenu = (event: Event, item: Node) => {
   menuRef.value?.toggle(event)
 }
 
-const openCreateApplication = () => {
-  bus.emit('open:create:application:dialog', folderId.value)
+const openCreateApplication = (type?: string) => {
+  bus.emit('open:create:application:dialog', { id: folderId.value, type })
 }
 
 const handleOpen = (item: Node) => {

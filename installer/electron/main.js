@@ -321,6 +321,10 @@ app.whenReady().then(async () => {
 
   Menu.setApplicationMenu(Menu.buildFromTemplate(menuTemplate))
 
+  if (process.platform !== 'darwin') {
+    mainWindow.setMenuBarVisibility(false)
+  }
+
   mainWindow.on('closed', () => {
     mainWindow = null
   })

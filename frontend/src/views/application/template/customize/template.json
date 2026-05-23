@@ -1,0 +1,50 @@
+{
+  "nodes": [
+    {
+      "id": "start-node",
+      "type": "start-node",
+      "x": 112,
+      "y": 94,
+      "properties": {
+        "width": 200,
+        "height": 50,
+        "name": "开始节点",
+        "isHovered": false,
+        "field_list": [
+          {
+            "label": "上下文",
+            "value": "messages"
+          },
+          {
+            "label": "用户问题",
+            "value": "question",
+            "children": [
+              {
+                "label": "问题",
+                "value": "content"
+              },
+              {
+                "label": "图片",
+                "value": "images"
+              },
+              {
+                "label": "文本",
+                "value": "texts"
+              },
+              {
+                "label": "视频",
+                "value": "videos"
+              },
+              {
+                "label": "文件",
+                "value": "files"
+              }
+            ]
+          }
+        ],
+        "globalFieldList": []
+      }
+    }
+  ],
+  "edges": []
+}

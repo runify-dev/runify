@@ -183,6 +183,16 @@
         @create:success="createResourceSuccess"
         @edit:success="editResourceSuccess"
       ></ApplicationFormDialog>
+      <AgentFormDialog
+        ref="agentFormDialogRef"
+        :api="treeCommonAPI"
+        @create:success="createResourceSuccess"
+      ></AgentFormDialog>
+      <NoteSearchFormDialog
+        ref="noteSearchFormDialogRef"
+        :api="treeCommonAPI"
+        @create:success="createResourceSuccess"
+      ></NoteSearchFormDialog>
       <CreateFolderDialog
         @create:folder:success="createFolderSuccess"
         ref="createFolderDialogRef"
@@ -201,6 +211,8 @@
 <script setup lang="ts">
 import AppMenuContent from '@/layout-plus/app-menu-content/index.vue'
 import ApplicationFormDialog from './component/ApplicationFormDialog.vue'
+import AgentFormDialog from './component/AgentFormDialog.vue'
+import NoteSearchFormDialog from './component/NoteSearchFormDialog.vue'
 import CreateFolderDialog from '@/components/create-folder-dialog/index.vue'
 import RenameDialog from '@/components/rename-dialog/index.vue'
 import DropdownMenu from '@/components/dropdown-menu/index.vue'
@@ -325,10 +337,18 @@ const createFolderSuccess = (key: string, node: any) => {
   router.push({ name: 'applicationFolders', params: { id: node.id } })
 }
 const applicationFormDialogRef = ref<InstanceType<typeof ApplicationFormDialog>>()
+const agentFormDialogRef = ref<InstanceType<typeof AgentFormDialog>>()
+const noteSearchFormDialogRef = ref<InstanceType<typeof NoteSearchFormDialog>>()
 const createFolderDialogRef = ref<InstanceType<typeof CreateFolderDialog>>()
 const renameDialogRef = ref<InstanceType<typeof RenameDialog>>()
 const openCreateApplicationDialog = (node?: TreeNode) => {
   applicationFormDialogRef.value?.openCreate(node)
+}
+const openAgentFormDialog = (node?: TreeNode) => {
+  agentFormDialogRef.value?.open(node)
+}
+const openNoteSearchFormDialog = (node?: TreeNode) => {
+  noteSearchFormDialogRef.value?.open(node)
 }
 const openEditApplicationDialog = (data: any) => {
   applicationFormDialogRef.value?.openEdit(data)
@@ -354,9 +374,15 @@ const removeTreeNode = (node: TreeNode) => {
 const nodes = ref<Array<any>>([])
 const treeManage = ref<TreeManager>()
 onMounted(() => {
-  bus.on('open:create:application:dialog', (id: string) => {
+  bus.on('open:create:application:dialog', ({ id, type }: { id: string; type?: string }) => {
     const treeNode = treeManage.value?.findNodeByKey(id)
-    openCreateApplicationDialog(treeNode ? treeNode : undefined)
+    if (type === 'agent') {
+      openAgentFormDialog(treeNode ? treeNode : undefined)
+    } else if (type === 'search') {
+      openNoteSearchFormDialog(treeNode ? treeNode : undefined)
+    } else {
+      openCreateApplicationDialog(treeNode ? treeNode : undefined)
+    }
   })
 
   bus.on('open:edit:application:dialog', (data: any) => {

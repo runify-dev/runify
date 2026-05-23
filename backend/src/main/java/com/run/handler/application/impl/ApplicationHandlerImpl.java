@@ -202,7 +202,7 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
     @Override
     protected Application newResource(UUID resourceId, UUID parentUuId, String name, RoutingContext context) {
         CreateApplicationVO createApplicationVO = context.body().asPojo(CreateApplicationVO.class);
-        return new Application(resourceId, parentUuId, createApplicationVO.getName(), createApplicationVO.getDesc(), createApplicationVO.getIcon(), new JsonObject(), new JsonObject(), false, false, createApplicationVO.getAllowAnonymousAccess(), LocalDateTime.now(), LocalDateTime.now());
+        return new Application(resourceId, parentUuId, createApplicationVO.getName(), createApplicationVO.getDesc(), createApplicationVO.getIcon(), createApplicationVO.getWorkflow(), new JsonObject(), false, false, createApplicationVO.getAllowAnonymousAccess(), LocalDateTime.now(), LocalDateTime.now());
     }
 
     @Override

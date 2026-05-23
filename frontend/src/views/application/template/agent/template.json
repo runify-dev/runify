@@ -1,0 +1,2997 @@
+{
+  "nodes": [
+    {
+      "id": "start-node",
+      "type": "start-node",
+      "x": 0,
+      "y": 0,
+      "properties": {
+        "width": 200,
+        "height": 50,
+        "name": "开始节点",
+        "isHovered": false,
+        "field_list": [
+          {
+            "label": "上下文",
+            "value": "messages"
+          },
+          {
+            "label": "用户问题",
+            "value": "question",
+            "children": [
+              {
+                "label": "问题",
+                "value": "content"
+              },
+              {
+                "label": "图片",
+                "value": "images"
+              },
+              {
+                "label": "文本",
+                "value": "texts"
+              },
+              {
+                "label": "视频",
+                "value": "videos"
+              },
+              {
+                "label": "文件",
+                "value": "files"
+              }
+            ]
+          }
+        ],
+        "globalFieldList": []
+      }
+    },
+    {
+      "id": "05e716af-35e7-48a7-9f93-5a5ff978b0d7",
+      "type": "loop-node",
+      "x": 436.234375,
+      "y": 63.875,
+      "properties": {
+        "width": 280,
+        "height": 50,
+        "expanded": true,
+        "name": "外循环",
+        "isHovered": false,
+        "field_list": [
+          {
+            "label": "当前项",
+            "value": "item"
+          },
+          {
+            "label": "当前索引",
+            "value": "index"
+          },
+          {
+            "label": "context",
+            "value": "context"
+          }
+        ],
+        "nodeData": {
+          "loopType": "infinite",
+          "loopVariables": [
+            {
+              "name": "context",
+              "label": "context",
+              "dataType": "array",
+              "defaultValue": "[]"
+            }
+          ],
+          "children": {
+            "nodes": [
+              {
+                "id": "loop-start-node",
+                "type": "loop-start-node",
+                "x": 100,
+                "y": 150,
+                "properties": {
+                  "width": 200,
+                  "height": 50,
+                  "name": "循环开始",
+                  "isHovered": false,
+                  "field_list": []
+                }
+              },
+              {
+                "id": "0db20591-d2bc-4c8e-9e7d-9221429afa7c",
+                "type": "judge-node",
+                "x": 480.0537109375,
+                "y": 191.61376953125006,
+                "properties": {
+                  "width": 200,
+                  "height": 164,
+                  "name": "条件判断",
+                  "isHovered": false,
+                  "field_list": [],
+                  "nodeData": {
+                    "branches": [
+                      {
+                        "id": "6aa401b5-98cb-417a-b6f1-ebb7354f7442",
+                        "type": "if",
+                        "logic": "and",
+                        "conditions": [
+                          {
+                            "id": "764655a3-6923-4bf9-8662-4ad266ded6a0",
+                            "variable": [
+                              "05e716af-35e7-48a7-9f93-5a5ff978b0d7",
+                              "index"
+                            ],
+                            "compare": "eq",
+                            "value": "0"
+                          }
+                        ]
+                      },
+                      {
+                        "id": "f33cafd2-304a-49f1-ab4d-eabbb3ba89f4",
+                        "type": "else"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "id": "2567e578-98ae-4592-8e64-61941556fe9e",
+                "type": "loop-node",
+                "x": 970.9814453125002,
+                "y": 109.62890624999997,
+                "properties": {
+                  "width": 280,
+                  "height": 50,
+                  "expanded": true,
+                  "name": "循环",
+                  "isHovered": false,
+                  "field_list": [
+                    {
+                      "label": "当前项",
+                      "value": "item"
+                    },
+                    {
+                      "label": "当前索引",
+                      "value": "index"
+                    }
+                  ],
+                  "nodeData": {
+                    "loopType": "foreach",
+                    "loopVariable": [
+                      "a0a956f8-7dbd-4347-814c-ce8b61771918",
+                      "result"
+                    ],
+                    "loopVariables": [],
+                    "children": {
+                      "nodes": [
+                        {
+                          "id": "loop-start-node",
+                          "type": "loop-start-node",
+                          "x": 100,
+                          "y": 150,
+                          "properties": {
+                            "width": 200,
+                            "height": 50,
+                            "name": "循环开始",
+                            "isHovered": false,
+                            "field_list": []
+                          }
+                        },
+                        {
+                          "id": "6b10dcc9-c92a-4b9c-8edf-1066f3dea2d5",
+                          "type": "context-push-node",
+                          "x": 500,
+                          "y": 150,
+                          "properties": {
+                            "width": 200,
+                            "height": 50,
+                            "name": "推送上下文",
+                            "isHovered": false,
+                            "field_list": [],
+                            "nodeData": {
+                              "items": [
+                                {
+                                  "variable": [
+                                    "05e716af-35e7-48a7-9f93-5a5ff978b0d7",
+                                    "context"
+                                  ],
+                                  "mode": "reference",
+                                  "reference": [
+                                    "2567e578-98ae-4592-8e64-61941556fe9e",
+                                    "item"
+                                  ],
+                                  "role": "user"
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      ],
+                      "edges": [
+                        {
+                          "id": "0bf02d9c-267a-419f-9d73-f8a96341c124",
+                          "type": "run-edge",
+                          "properties": {},
+                          "sourceNodeId": "loop-start-node",
+                          "targetNodeId": "6b10dcc9-c92a-4b9c-8edf-1066f3dea2d5",
+                          "sourceAnchorId": "loop-start-node_right_main_success",
+                          "targetAnchorId": "6b10dcc9-c92a-4b9c-8edf-1066f3dea2d5_left_main_success",
+                          "startPoint": {
+                            "x": 200,
+                            "y": 150
+                          },
+                          "endPoint": {
+                            "x": 400,
+                            "y": 150
+                          },
+                          "pointsList": [
+                            {
+                              "x": 200,
+                              "y": 150
+                            },
+                            {
+                              "x": 300,
+                              "y": 150
+                            },
+                            {
+                              "x": 300,
+                              "y": 150
+                            },
+                            {
+                              "x": 400,
+                              "y": 150
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  },
+                  "loopFieldList": []
+                }
+              },
+              {
+                "id": "c3a343b9-39ad-444a-820f-1188cdf96683",
+                "type": "context-push-node",
+                "x": 1300.83740234375,
+                "y": 140,
+                "properties": {
+                  "width": 200,
+                  "height": 50,
+                  "name": "推送上下文",
+                  "isHovered": false,
+                  "field_list": [],
+                  "nodeData": {
+                    "items": [
+                      {
+                        "variable": [
+                          "05e716af-35e7-48a7-9f93-5a5ff978b0d7",
+                          "context"
+                        ],
+                        "mode": "custom",
+                        "content": "用户问题\n\n:::variable {value=\"context%5B'start-node'%5D%5B'question'%5D%5B'content'%5D\" label=\"%E5%BC%80%E5%A7%8B%E8%8A%82%E7%82%B9%20%2F%20%E7%94%A8%E6%88%B7%E9%97%AE%E9%A2%98%20%2F%20%E9%97%AE%E9%A2%98\"} :::\n\n\n图片  \n:::variable {value=\"context%5B'start-node'%5D%5B'question'%5D%5B'images'%5D\" label=\"%E5%BC%80%E5%A7%8B%E8%8A%82%E7%82%B9%20%2F%20%E7%94%A8%E6%88%B7%E9%97%AE%E9%A2%98%20%2F%20%E5%9B%BE%E7%89%87\"} :::\n\n\n文本\n\n:::variable {value=\"context%5B'start-node'%5D%5B'question'%5D%5B'texts'%5D\" label=\"%E5%BC%80%E5%A7%8B%E8%8A%82%E7%82%B9%20%2F%20%E7%94%A8%E6%88%B7%E9%97%AE%E9%A2%98%20%2F%20%E6%96%87%E6%9C%AC\"} :::\n\n\n视频\n\n:::variable {value=\"context%5B'start-node'%5D%5B'question'%5D%5B'videos'%5D\" label=\"%E5%BC%80%E5%A7%8B%E8%8A%82%E7%82%B9%20%2F%20%E7%94%A8%E6%88%B7%E9%97%AE%E9%A2%98%20%2F%20%E8%A7%86%E9%A2%91\"} :::\n\n\n文件\n\n:::variable {value=\"context%5B'start-node'%5D%5B'question'%5D%5B'files'%5D\" label=\"%E5%BC%80%E5%A7%8B%E8%8A%82%E7%82%B9%20%2F%20%E7%94%A8%E6%88%B7%E9%97%AE%E9%A2%98%20%2F%20%E6%96%87%E4%BB%B6\"} :::\n",
+                        "role": "user"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "id": "cabe76e6-9448-4d45-bcf9-0c27aada72bd",
+                "type": "ai-chat-node",
+                "x": 1266.3415524506595,
+                "y": 389.8059402286982,
+                "properties": {
+                  "width": 200,
+                  "height": 50,
+                  "name": "ai对话",
+                  "isHovered": false,
+                  "field_list": [
+                    {
+                      "label": "回答结果",
+                      "value": "content"
+                    },
+                    {
+                      "label": "思考过程",
+                      "value": "reasoningContent"
+                    },
+                    {
+                      "label": "拒绝原因文本",
+                      "value": "refusal"
+                    },
+                    {
+                      "label": "是否拒绝回答",
+                      "value": "isRefusal"
+                    },
+                    {
+                      "label": "工具调用",
+                      "value": "toolCalls"
+                    },
+                    {
+                      "label": "结束原因",
+                      "value": "finishReason"
+                    }
+                  ],
+                  "nodeData": {
+                    "modelId": "ffab3c87-ed0f-4ba4-97a9-d658ef73ec5d",
+                    "system": "```markdown\n# AI Coding Agent 操作规范\n\n## 核心原则\n\n1. 源码/文本文件只能用 apply_patch 创建或修改\n2. 修改前必须 read_file 读取原文\n3. 修复错误必须先定位根因行，不改相邻无关行\n4. 最小修改，不顺手格式化无关代码\n5. 命令必须非交互\n\n---\n\n## 工具使用规则\n\n### file_download（下载远端文件到本地）\n\n用户上传的文件存储在远端，本地不存在，必须先下载。\n\n流程：\n1. list_dir 查看远程文件列表（已下载的会标注本地路径）\n2. 读取 `_tool_state/downloads.json` 确认是否已下载\n3. 未下载的文件调用 file_download\n4. 下载成功后自动记录到 `_tool_state/downloads.json`\n\n注意：\n- 图片/视频是二进制文件，不要调用 read_file（除非用户需要识别内容）\n- 下载后所有后续操作必须引用本地路径，禁止引用远端路径\n\n### file_upload（上传本地文件到远端）\n\n每次创建或修改文件后，都必须调用 file_upload 上传，生成下载链接供用户使用。\n\n适用场景：\n- apply_patch 创建了新文件 → file_upload\n- apply_patch 修改了已有文件 → file_upload\n- run_command 生成了产物（.pptx/.pdf/.docx/.zip/.png 等）→ file_upload\n- 任何用户需要拿到的文件 → file_upload\n\n返回的 URL 必须原样使用，一个字符都不能改：\n- 正确：`./api/storage/file/0eb95a7f-...`\n- 错误：加域名、URL encode、拼接改写\n\n### apply_patch（创建/修改/删除文件）\n\n修改源码的唯一方式。格式：\n\n```\n\ndiff --git a/路径 b/路径\n--- a/路径\n+++ b/路径\n@@ -起始行,旧行数 +起始行,新行数 @@\n 上下文行\n-删除行\n+新增行\n 上下文行\n\n```\n\n规则：\n- 上下文行和删除行必须与 read_file 输出逐字节一致\n- 每个 hunk 前后各保留 3 行上下文\n- hunk 行数必须计算正确\n- 禁止把普通字符改成 Unicode 转义\n- 禁止用 Markdown 链接格式写路径\n\n### read_file（读取文件）\n\n修改前必须调用。读取范围要覆盖目标行及前后上下文。\n\n### list_dir（列出目录树）\n\n展示本地目录结构 + 远程文件列表。\n- 远程文件已下载的会标注：`-> 本地路径`\n- 远程文件未下载的无标注，需要 file_download\n\n### glob（文件名模式搜索）\n\n示例：`**/*.py`、`src/**/*.ts`、`*.java`\n\n### grep（正则搜索文件内容）\n\n用于定位函数、类名、错误文本。\n\n### run_command（执行 shell 命令）\n\n允许：运行测试、编译、lint、执行已有脚本、查看环境信息\n\n禁止：写源码、heredoc、重定向写文件、sed -i、交互命令\n\n工作目录规则：\n- 优先直接在当前目录执行，不要习惯性 cd\n- 推荐：`npm --prefix frontend run build`、`mvn -f backend/pom.xml test`\n- 只有确实需要子目录时才 `cd 子目录 && 命令`\n- 禁止：`cd ..`、`cd /absolute/path`、单独 `cd`\n\n### note_search（搜索笔记）\n\n基于全文检索搜索笔记内容。\n\n---\n\n## 生成产物流程\n\n```\n\napply_patch 创建/修改生成脚本\n  → run_command 执行脚本\n  → file_upload 上传产物\n  → 返回下载表格\n\n```\n\n禁止用 run_command 临时写脚本（heredoc/重定向/python -c 写文件都不行）。\n\n---\n\n## 标准工作流\n\n1. **理解任务** → 判断要做什么\n2. **处理用户上传文件** → 先 file_download 到本地\n3. **定位文件** → list_dir / glob / grep\n4. **读取文件** → read_file\n5. **修改文件** → apply_patch\n6. **验证** → 运行测试/编译/lint\n7. **上传产物** → file_upload（如有）\n\n---\n\n## 修复错误流程\n\n1. 从错误日志定位文件名、行号、列号\n2. read_file 读取错误行前后上下文\n3. 确认真正导致错误的行\n4. apply_patch 只修改那一行\n5. 验证\n\n---\n\n## 路径规则\n\n- 所有路径相对当前工作目录\n- 禁止 `../`、`/absolute/path`\n- patch 路径必须纯文本，不用 Markdown 链接\n\n---\n\n## 最终回复格式\n\n简洁说明：\n- 修改了哪些文件\n- 做了什么\n- 验证结果\n- 下载链接（如有），格式：\n\n| 文件名称 | output.pptx |\n| --- | --- |\n| 文件大小 | 1.2 MB |\n| 操作 | [点击下载](./api/storage/file/xxx) |\n\n```\n\n",
+                    "user": "",
+                    "enableContext": true,
+                    "contextVariable": [
+                      "05e716af-35e7-48a7-9f93-5a5ff978b0d7",
+                      "context"
+                    ],
+                    "contextNumber": 0,
+                    "images": [],
+                    "videos": [],
+                    "tools": {
+                      "location": "customize",
+                      "reference": [],
+                      "tools": [
+                        {
+                          "type": "function",
+                          "function": {
+                            "name": "run_command",
+                            "description": "执行 shell 命令。在隔离的工作目录中运行命令，返回 stdout、stderr 和 exitCode。支持设置超时时间。",
+                            "parameters": {
+                              "type": "object",
+                              "properties": {
+                                "command": {
+                                  "type": "string",
+                                  "description": "要执行的 shell 命令"
+                                }
+                              },
+                              "required": [
+                                "command"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "function",
+                          "function": {
+                            "name": "read_file",
+                            "description": "读取文件内容。支持指定行号偏移和读取行数，返回带行号的内容。自动检测二进制文件（图片、视频、PDF等）。",
+                            "parameters": {
+                              "type": "object",
+                              "properties": {
+                                "path": {
+                                  "type": "string",
+                                  "description": "文件路径（相对于工作目录）"
+                                },
+                                "offset": {
+                                  "type": "integer",
+                                  "description": "起始行号（从1开始，默认1）",
+                                  "default": 1
+                                },
+                                "limit": {
+                                  "type": "integer",
+                                  "description": "读取行数（-1表示读取全部，默认-1）",
+                                  "default": -1
+                                }
+                              },
+                              "required": [
+                                "path"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "function",
+                          "function": {
+                            "name": "list_dir",
+                            "description": "列出目录内容，以树形结构展示。自动忽略 .git、node_modules 等目录。同时显示远程文件。",
+                            "parameters": {
+                              "type": "object",
+                              "properties": {
+                                "path": {
+                                  "type": "string",
+                                  "description": "目录路径（相对于工作目录，\".\" 表示根目录）"
+                                },
+                                "depth": {
+                                  "type": "integer",
+                                  "description": "递归深度（默认3）",
+                                  "default": 3
+                                }
+                              },
+                              "required": [
+                                "path"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "function",
+                          "function": {
+                            "name": "glob",
+                            "description": "使用 glob 模式搜索文件。支持 **、*、? 等通配符。自动忽略 .git、node_modules 等目录。",
+                            "parameters": {
+                              "type": "object",
+                              "properties": {
+                                "pattern": {
+                                  "type": "string",
+                                  "description": "glob 匹配模式，如 \"**/*.ts\"、\"*.java\""
+                                },
+                                "path": {
+                                  "type": "string",
+                                  "description": "搜索起始路径（相对于工作目录，默认 \".\"）",
+                                  "default": "."
+                                },
+                                "max_results": {
+                                  "type": "integer",
+                                  "description": "最大返回结果数（默认1000）",
+                                  "default": 1000
+                                }
+                              },
+                              "required": [
+                                "pattern"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "function",
+                          "function": {
+                            "name": "grep",
+                            "description": "在文件中搜索文本（正则表达式）。返回匹配行及上下文。自动跳过二进制文件和忽略目录。",
+                            "parameters": {
+                              "type": "object",
+                              "properties": {
+                                "pattern": {
+                                  "type": "string",
+                                  "description": "搜索的正则表达式模式"
+                                },
+                                "path": {
+                                  "type": "string",
+                                  "description": "搜索路径（相对于工作目录）"
+                                },
+                                "file_pattern": {
+                                  "type": "string",
+                                  "description": "文件名过滤模式，如 \"*.java\"、\"*.ts\"（默认 \"*\"）",
+                                  "default": "*"
+                                },
+                                "context_lines": {
+                                  "type": "integer",
+                                  "description": "匹配行前后显示的上下文行数（默认0）",
+                                  "default": 0
+                                },
+                                "max_results": {
+                                  "type": "integer",
+                                  "description": "最大匹配结果数（默认50）",
+                                  "default": 50
+                                }
+                              },
+                              "required": [
+                                "pattern",
+                                "path"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "function",
+                          "function": {
+                            "name": "apply_patch",
+                            "description": "应用 unified diff 格式的补丁文件。支持创建、修改、删除文件。使用标准 diff 格式（--- a/file, +++ b/file）。如果应用失败会自动回滚。",
+                            "parameters": {
+                              "type": "object",
+                              "properties": {
+                                "patch": {
+                                  "type": "string",
+                                  "description": "unified diff 格式的补丁内容"
+                                },
+                                "path": {
+                                  "type": "string",
+                                  "description": "工作目录（补丁中相对路径的基准目录，默认当前工作目录）",
+                                  "default": "."
+                                }
+                              },
+                              "required": [
+                                "patch"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "function",
+                          "function": {
+                            "name": "note_search",
+                            "description": "搜索笔记内容。基于全文检索，返回匹配的笔记列表及相关度评分。支持分页。",
+                            "parameters": {
+                              "type": "object",
+                              "properties": {
+                                "keyword": {
+                                  "type": "string",
+                                  "description": "搜索关键词"
+                                },
+                                "page_no": {
+                                  "type": "integer",
+                                  "description": "页码（从1开始，默认1）",
+                                  "default": 1
+                                },
+                                "page_size": {
+                                  "type": "integer",
+                                  "description": "每页数量（默认10）",
+                                  "default": 10
+                                }
+                              },
+                              "required": [
+                                "keyword"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "function",
+                          "function": {
+                            "name": "file_upload",
+                            "description": "上传本地文件到远程存储。上传后返回文件ID和URL，可用于分享或在其他节点中引用。",
+                            "parameters": {
+                              "type": "object",
+                              "properties": {
+                                "path": {
+                                  "type": "string",
+                                  "description": "要上传的文件路径（相对于工作目录）"
+                                }
+                              },
+                              "required": [
+                                "path"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "function",
+                          "function": {
+                            "name": "file_download",
+                            "description": "下载远程文件到本地工作目录。注意：必须先调用 list_dir 查看可用的远程文件列表，仅可下载列表中出现的文件。",
+                            "parameters": {
+                              "type": "object",
+                              "properties": {
+                                "file_id": {
+                                  "type": "string",
+                                  "description": "文件ID或URL，从 list_dir 远程文件列表中获取（如 ./api/storage/file/xxx）"
+                                },
+                                "path": {
+                                  "type": "string",
+                                  "description": "保存路径（相对于工作目录，默认使用原文件名）"
+                                }
+                              },
+                              "required": [
+                                "file_id"
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "id": "30eca289-a102-459c-9d48-a2797d6988f0",
+                "type": "loop-node",
+                "x": 2174.305605665735,
+                "y": 198.29044010768305,
+                "properties": {
+                  "width": 280,
+                  "height": 50,
+                  "expanded": true,
+                  "name": "循环",
+                  "isHovered": false,
+                  "field_list": [
+                    {
+                      "label": "当前项",
+                      "value": "item"
+                    },
+                    {
+                      "label": "当前索引",
+                      "value": "index"
+                    }
+                  ],
+                  "nodeData": {
+                    "loopType": "foreach",
+                    "loopVariable": [
+                      "cabe76e6-9448-4d45-bcf9-0c27aada72bd",
+                      "toolCalls"
+                    ],
+                    "loopVariables": [],
+                    "children": {
+                      "nodes": [
+                        {
+                          "id": "loop-start-node",
+                          "type": "loop-start-node",
+                          "x": 220,
+                          "y": 202,
+                          "properties": {
+                            "width": 200,
+                            "height": 50,
+                            "name": "循环开始",
+                            "isHovered": false,
+                            "field_list": []
+                          }
+                        },
+                        {
+                          "id": "4edfe85c-5594-43a9-a413-28a41edf03aa",
+                          "type": "terminal-node",
+                          "x": 1120,
+                          "y": 202,
+                          "properties": {
+                            "width": 200,
+                            "height": 50,
+                            "name": "终端执行",
+                            "isHovered": false,
+                            "field_list": [
+                              {
+                                "label": "工具执行",
+                                "value": "tool"
+                              },
+                              {
+                                "label": "执行结果",
+                                "value": "result"
+                              },
+                              {
+                                "label": "标准输出",
+                                "value": "stdout"
+                              },
+                              {
+                                "label": "错误输出",
+                                "value": "stderr"
+                              },
+                              {
+                                "label": "退出码",
+                                "value": "exitCode"
+                              }
+                            ],
+                            "nodeData": {
+                              "location": "tool_call",
+                              "reference": [
+                                "30eca289-a102-459c-9d48-a2797d6988f0",
+                                "item"
+                              ],
+                              "codeLocation": "customize",
+                              "code": "",
+                              "timeoutLocation": "customize",
+                              "timeout": 30
+                            }
+                          }
+                        },
+                        {
+                          "id": "16b2926f-d0f9-4158-9570-70d0ea17328b",
+                          "type": "context-push-node",
+                          "x": 1420,
+                          "y": 202,
+                          "properties": {
+                            "width": 200,
+                            "height": 50,
+                            "name": "推送上下文",
+                            "isHovered": false,
+                            "field_list": [],
+                            "nodeData": {
+                              "items": [
+                                {
+                                  "variable": [
+                                    "05e716af-35e7-48a7-9f93-5a5ff978b0d7",
+                                    "context"
+                                  ],
+                                  "mode": "reference",
+                                  "reference": [
+                                    "4edfe85c-5594-43a9-a413-28a41edf03aa",
+                                    "tool"
+                                  ],
+                                  "role": "user"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "id": "1a225600-f404-48f6-af9f-a620f0a8d7cd",
+                          "type": "file-upload-node",
+                          "x": 1153.4703038674031,
+                          "y": 323.33546270718233,
+                          "properties": {
+                            "width": 200,
+                            "height": 50,
+                            "name": "文件上传",
+                            "isHovered": false,
+                            "field_list": [
+                              {
+                                "label": "工具执行",
+                                "value": "tool"
+                              },
+                              {
+                                "label": "文件ID",
+                                "value": "fileId"
+                              },
+                              {
+                                "label": "文件名",
+                                "value": "fileName"
+                              },
+                              {
+                                "label": "文件大小",
+                                "value": "fileSize"
+                              }
+                            ],
+                            "nodeData": {
+                              "location": "tool_call",
+                              "reference": [
+                                "30eca289-a102-459c-9d48-a2797d6988f0",
+                                "item"
+                              ],
+                              "pathLocation": "reference",
+                              "pathReference": [
+                                "30eca289-a102-459c-9d48-a2797d6988f0",
+                                "item"
+                              ],
+                              "path": "",
+                              "fileName": ""
+                            }
+                          }
+                        },
+                        {
+                          "id": "4caf5e3e-096f-415f-b24e-8ab031f0800f",
+                          "type": "context-push-node",
+                          "x": 1420,
+                          "y": 312,
+                          "properties": {
+                            "width": 200,
+                            "height": 50,
+                            "name": "推送上下文",
+                            "isHovered": false,
+                            "field_list": [],
+                            "nodeData": {
+                              "items": [
+                                {
+                                  "variable": [
+                                    "05e716af-35e7-48a7-9f93-5a5ff978b0d7",
+                                    "context"
+                                  ],
+                                  "mode": "reference",
+                                  "reference": [
+                                    "1a225600-f404-48f6-af9f-a620f0a8d7cd",
+                                    "tool"
+                                  ],
+                                  "role": "user"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "id": "ec34caf3-7e85-4915-9cf9-4fd8902640ba",
+                          "type": "extract-node",
+                          "x": 440.0009704968944,
+                          "y": 299.0401664402174,
+                          "properties": {
+                            "width": 200,
+                            "height": 50,
+                            "name": "参数提取",
+                            "isHovered": false,
+                            "field_list": [
+                              {
+                                "label": "函数名",
+                                "value": "functionName"
+                              }
+                            ],
+                            "nodeData": {
+                              "sourceReference": [
+                                "30eca289-a102-459c-9d48-a2797d6988f0",
+                                "item"
+                              ],
+                              "rules": [
+                                {
+                                  "name": "functionName",
+                                  "description": "函数名",
+                                  "path": "$.functionName"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "id": "6e9ea3d5-0e34-494d-9d20-f2869d631c77",
+                          "type": "judge-node",
+                          "x": 463.5826200717181,
+                          "y": 265.61745174714747,
+                          "properties": {
+                            "width": 200,
+                            "height": 413,
+                            "name": "条件判断",
+                            "isHovered": false,
+                            "field_list": [],
+                            "nodeData": {
+                              "branches": [
+                                {
+                                  "id": "bec87dfb-7872-4b3d-8c72-156baaf0a3ca",
+                                  "type": "if",
+                                  "logic": "and",
+                                  "conditions": [
+                                    {
+                                      "id": "c930b06d-803e-4411-a254-dcacd4669ccf",
+                                      "variable": [
+                                        "ec34caf3-7e85-4915-9cf9-4fd8902640ba",
+                                        "functionName"
+                                      ],
+                                      "compare": "eq",
+                                      "value": "run_command"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "id": "4fab5fbc-d97e-4a83-a201-cd191754a01a",
+                                  "type": "elseif",
+                                  "logic": "and",
+                                  "conditions": [
+                                    {
+                                      "id": "990b81d3-1c4f-4665-85d5-e52317aeb57a",
+                                      "variable": [
+                                        "ec34caf3-7e85-4915-9cf9-4fd8902640ba",
+                                        "functionName"
+                                      ],
+                                      "compare": "eq",
+                                      "value": "read_file"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "id": "feb0a10c-0b20-40d0-9b3b-785511222be2",
+                                  "type": "elseif",
+                                  "logic": "and",
+                                  "conditions": [
+                                    {
+                                      "id": "0403eefe-fb33-45fc-8b94-cfbdb3c5cac5",
+                                      "variable": [
+                                        "ec34caf3-7e85-4915-9cf9-4fd8902640ba",
+                                        "functionName"
+                                      ],
+                                      "compare": "eq",
+                                      "value": "apply_patch"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "id": "21db2db0-de58-4bf5-b0e4-8cb913a3ec89",
+                                  "type": "elseif",
+                                  "logic": "and",
+                                  "conditions": [
+                                    {
+                                      "id": "f5c18fef-481e-4a01-9718-96272613eb0e",
+                                      "variable": [
+                                        "ec34caf3-7e85-4915-9cf9-4fd8902640ba",
+                                        "functionName"
+                                      ],
+                                      "compare": "eq",
+                                      "value": "glob"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "id": "91467043-a563-4743-9645-dbd8a5f8c705",
+                                  "type": "elseif",
+                                  "logic": "and",
+                                  "conditions": [
+                                    {
+                                      "id": "8a40f1ec-20a2-485a-8288-47c60e219e8b",
+                                      "variable": [
+                                        "ec34caf3-7e85-4915-9cf9-4fd8902640ba",
+                                        "functionName"
+                                      ],
+                                      "compare": "eq",
+                                      "value": "grep"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "id": "c09f0fb9-f9bf-43b0-b025-2f05a6730182",
+                                  "type": "elseif",
+                                  "logic": "and",
+                                  "conditions": [
+                                    {
+                                      "id": "ecedaa80-5672-4eec-b14b-5efaf89933c1",
+                                      "variable": [
+                                        "ec34caf3-7e85-4915-9cf9-4fd8902640ba",
+                                        "functionName"
+                                      ],
+                                      "compare": "eq",
+                                      "value": "list_dir"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "id": "d20342ec-5952-4f20-8046-8b2054c3a76f",
+                                  "type": "elseif",
+                                  "logic": "and",
+                                  "conditions": [
+                                    {
+                                      "id": "86685e08-9556-4b84-84e1-68a065349fec",
+                                      "variable": [
+                                        "ec34caf3-7e85-4915-9cf9-4fd8902640ba",
+                                        "functionName"
+                                      ],
+                                      "compare": "eq",
+                                      "value": "file_upload"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "id": "5d21a5ca-feed-4aee-bf08-0766e18dd505",
+                                  "type": "elseif",
+                                  "logic": "and",
+                                  "conditions": [
+                                    {
+                                      "id": "5a8017f7-bdb4-4fb6-91d0-68ad6e0671b3",
+                                      "variable": [
+                                        "ec34caf3-7e85-4915-9cf9-4fd8902640ba",
+                                        "functionName"
+                                      ],
+                                      "compare": "eq",
+                                      "value": "file_download"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "id": "14988a23-8d80-496f-8047-0eabcbbc5811",
+                                  "type": "elseif",
+                                  "logic": "and",
+                                  "conditions": [
+                                    {
+                                      "id": "49b60d83-fb74-402f-ade2-7118d9b9d665",
+                                      "variable": [
+                                        "ec34caf3-7e85-4915-9cf9-4fd8902640ba",
+                                        "functionName"
+                                      ],
+                                      "compare": "eq",
+                                      "value": "note_search"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "id": "6b991dd2-3e52-4935-853f-c082b50540f9",
+                                  "type": "else"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "id": "ed6ad25e-ad6f-48d8-b39f-e16c5312a2ce",
+                          "type": "list-dir-node",
+                          "x": 1192.744302486188,
+                          "y": 412.75448895027625,
+                          "properties": {
+                            "width": 200,
+                            "height": 50,
+                            "name": "目录列表",
+                            "isHovered": false,
+                            "field_list": [
+                              {
+                                "label": "工具执行",
+                                "value": "tool"
+                              },
+                              {
+                                "label": "目录树",
+                                "value": "content"
+                              },
+                              {
+                                "label": "摘要",
+                                "value": "summary"
+                              },
+                              {
+                                "label": "文件数",
+                                "value": "files"
+                              },
+                              {
+                                "label": "目录数",
+                                "value": "dirs"
+                              }
+                            ],
+                            "nodeData": {
+                              "location": "tool_call",
+                              "reference": [
+                                "30eca289-a102-459c-9d48-a2797d6988f0",
+                                "item"
+                              ],
+                              "pathLocation": "customize",
+                              "pathReference": [],
+                              "path": "",
+                              "depthLocation": "customize",
+                              "depthReference": []
+                            }
+                          }
+                        },
+                        {
+                          "id": "6689a9d8-b172-4132-aa8e-ee722b534786",
+                          "type": "grep-node",
+                          "x": 1120,
+                          "y": 532,
+                          "properties": {
+                            "width": 200,
+                            "height": 50,
+                            "name": "内容搜索",
+                            "isHovered": false,
+                            "field_list": [
+                              {
+                                "label": "工具执行",
+                                "value": "tool"
+                              },
+                              {
+                                "label": "搜索结果",
+                                "value": "content"
+                              },
+                              {
+                                "label": "摘要",
+                                "value": "summary"
+                              },
+                              {
+                                "label": "匹配数",
+                                "value": "matches"
+                              },
+                              {
+                                "label": "文件数",
+                                "value": "files"
+                              }
+                            ],
+                            "nodeData": {
+                              "location": "tool_call",
+                              "reference": [
+                                "30eca289-a102-459c-9d48-a2797d6988f0",
+                                "item"
+                              ],
+                              "patternLocation": "customize",
+                              "patternReference": [],
+                              "pattern": "",
+                              "pathLocation": "customize",
+                              "pathReference": [],
+                              "path": "",
+                              "filePatternLocation": "customize",
+                              "filePatternReference": [],
+                              "filePattern": "",
+                              "contextLinesLocation": "customize",
+                              "contextLinesReference": [],
+                              "maxResultsLocation": "customize",
+                              "maxResultsReference": []
+                            }
+                          }
+                        },
+                        {
+                          "id": "82797f50-877f-4c16-b3f8-50edc939e97f",
+                          "type": "glob-node",
+                          "x": 1120,
+                          "y": 642,
+                          "properties": {
+                            "width": 200,
+                            "height": 50,
+                            "name": "文件搜索",
+                            "isHovered": false,
+                            "field_list": [
+                              {
+                                "label": "工具执行",
+                                "value": "tool"
+                              },
+                              {
+                                "label": "文件列表",
+                                "value": "content"
+                              },
+                              {
+                                "label": "摘要",
+                                "value": "summary"
+                              },
+                              {
+                                "label": "文件数",
+                                "value": "files"
+                              }
+                            ],
+                            "nodeData": {
+                              "location": "tool_call",
+                              "reference": [
+                                "30eca289-a102-459c-9d48-a2797d6988f0",
+                                "item"
+                              ],
+                              "patternLocation": "customize",
+                              "patternReference": [],
+                              "pattern": "",
+                              "pathLocation": "customize",
+                              "pathReference": [],
+                              "path": "",
+                              "maxResultsLocation": "customize",
+                              "maxResultsReference": []
+                            }
+                          }
+                        },
+                        {
+                          "id": "66b540dd-904b-4fde-b03b-c274c3d9bde6",
+                          "type": "apply-patch-node",
+                          "x": 1120,
+                          "y": 752,
+                          "properties": {
+                            "width": 200,
+                            "height": 50,
+                            "name": "数据修补",
+                            "isHovered": false,
+                            "field_list": [
+                              {
+                                "label": "工具执行",
+                                "value": "tool"
+                              },
+                              {
+                                "label": "执行结果",
+                                "value": "result"
+                              },
+                              {
+                                "label": "标准输出",
+                                "value": "stdout"
+                              },
+                              {
+                                "label": "错误输出",
+                                "value": "stderr"
+                              }
+                            ],
+                            "nodeData": {
+                              "location": "tool_call",
+                              "reference": [
+                                "30eca289-a102-459c-9d48-a2797d6988f0",
+                                "item"
+                              ],
+                              "pathLocation": "customize",
+                              "pathReference": [],
+                              "path": "",
+                              "patchLocation": "customize",
+                              "patchReference": [],
+                              "patch": ""
+                            },
+                            "errorCaptureEnabled": true
+                          }
+                        },
+                        {
+                          "id": "52e7d29c-09a3-48a2-b3aa-3b384a2edbf2",
+                          "type": "read-file-node",
+                          "x": 1030.8064222631988,
+                          "y": 876.793102193323,
+                          "properties": {
+                            "width": 200,
+                            "height": 50,
+                            "name": "读取文件",
+                            "isHovered": false,
+                            "field_list": [
+                              {
+                                "label": "工具执行",
+                                "value": "tool"
+                              },
+                              {
+                                "label": "提问内容(用户下次ai交互push上下文) -> 二进制文件才会存在",
+                                "value": "question"
+                              },
+                              {
+                                "label": "带行号内容",
+                                "value": "content"
+                              },
+                              {
+                                "label": "原始内容",
+                                "value": "rawContent"
+                              },
+                              {
+                                "label": "总行数",
+                                "value": "totalLines"
+                              },
+                              {
+                                "label": "读取行数",
+                                "value": "lines"
+                              }
+                            ],
+                            "nodeData": {
+                              "location": "tool_call",
+                              "reference": [
+                                "30eca289-a102-459c-9d48-a2797d6988f0",
+                                "item"
+                              ],
+                              "pathLocation": "customize",
+                              "pathReference": [],
+                              "path": "",
+                              "offsetLocation": "customize",
+                              "offsetReference": [],
+                              "limitLocation": "customize",
+                              "limitReference": []
+                            },
+                            "errorCaptureEnabled": true
+                          }
+                        },
+                        {
+                          "id": "1b747dfe-3274-4117-8f20-dbe823533128",
+                          "type": "context-push-node",
+                          "x": 1420,
+                          "y": 422,
+                          "properties": {
+                            "width": 200,
+                            "height": 50,
+                            "name": "推送上下文",
+                            "isHovered": false,
+                            "field_list": [],
+                            "nodeData": {
+                              "items": [
+                                {
+                                  "variable": [
+                                    "05e716af-35e7-48a7-9f93-5a5ff978b0d7",
+                                    "context"
+                                  ],
+                                  "mode": "reference",
+                                  "reference": [
+                                    "ed6ad25e-ad6f-48d8-b39f-e16c5312a2ce",
+                                    "tool"
+                                  ],
+                                  "role": "user"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "id": "18211019-cb99-4531-ad2b-0dc93ed088d2",
+                          "type": "context-push-node",
+                          "x": 1363.0583996506211,
+                          "y": 892.5250388198758,
+                          "properties": {
+                            "width": 200,
+                            "height": 50,
+                            "name": "推送上下文",
+                            "isHovered": false,
+                            "field_list": [],
+                            "nodeData": {
+                              "items": [
+                                {
+                                  "variable": [
+                                    "05e716af-35e7-48a7-9f93-5a5ff978b0d7",
+                                    "context"
+                                  ],
+                                  "mode": "reference",
+                                  "reference": [
+                                    "52e7d29c-09a3-48a2-b3aa-3b384a2edbf2",
+                                    "tool"
+                                  ],
+                                  "role": "user"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "id": "e02990ab-8168-49ed-8a3e-8b99c8dbe7e7",
+                          "type": "context-push-node",
+                          "x": 1420,
+                          "y": 752,
+                          "properties": {
+                            "width": 200,
+                            "height": 50,
+                            "name": "推送上下文",
+                            "isHovered": false,
+                            "field_list": [],
+                            "nodeData": {
+                              "items": [
+                                {
+                                  "variable": [
+                                    "05e716af-35e7-48a7-9f93-5a5ff978b0d7",
+                                    "context"
+                                  ],
+                                  "mode": "reference",
+                                  "reference": [
+                                    "66b540dd-904b-4fde-b03b-c274c3d9bde6",
+                                    "tool"
+                                  ],
+                                  "role": "user"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "id": "793c389c-8682-4518-9c78-829c5c9ba926",
+                          "type": "context-push-node",
+                          "x": 1420,
+                          "y": 642,
+                          "properties": {
+                            "width": 200,
+                            "height": 50,
+                            "name": "推送上下文",
+                            "isHovered": false,
+                            "field_list": [],
+                            "nodeData": {
+                              "items": [
+                                {
+                                  "variable": [
+                                    "05e716af-35e7-48a7-9f93-5a5ff978b0d7",
+                                    "context"
+                                  ],
+                                  "mode": "reference",
+                                  "reference": [
+                                    "82797f50-877f-4c16-b3f8-50edc939e97f",
+                                    "tool"
+                                  ],
+                                  "role": "user"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "id": "1e8b968d-897f-485a-baeb-ed46f81b24bd",
+                          "type": "context-push-node",
+                          "x": 1420,
+                          "y": 532,
+                          "properties": {
+                            "width": 200,
+                            "height": 50,
+                            "name": "推送上下文",
+                            "isHovered": false,
+                            "field_list": [],
+                            "nodeData": {
+                              "items": [
+                                {
+                                  "variable": [
+                                    "05e716af-35e7-48a7-9f93-5a5ff978b0d7",
+                                    "context"
+                                  ],
+                                  "mode": "reference",
+                                  "reference": [
+                                    "6689a9d8-b172-4132-aa8e-ee722b534786",
+                                    "tool"
+                                  ],
+                                  "role": "user"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "id": "0bcd34d6-f8da-4f3a-a964-6fed09aa0311",
+                          "type": "file-download-node",
+                          "x": 695.3937854821172,
+                          "y": 710.9012227188496,
+                          "properties": {
+                            "width": 200,
+                            "height": 50,
+                            "name": "文件下载",
+                            "isHovered": false,
+                            "field_list": [
+                              {
+                                "label": "工具执行",
+                                "value": "tool"
+                              },
+                              {
+                                "label": "文件路径",
+                                "value": "filePath"
+                              },
+                              {
+                                "label": "文件名",
+                                "value": "fileName"
+                              },
+                              {
+                                "label": "文件大小",
+                                "value": "fileSize"
+                              }
+                            ],
+                            "nodeData": {
+                              "location": "tool_call",
+                              "reference": [
+                                "30eca289-a102-459c-9d48-a2797d6988f0",
+                                "item"
+                              ],
+                              "fileIdLocation": "customize",
+                              "fileIdReference": [],
+                              "fileId": "",
+                              "pathLocation": "customize",
+                              "pathReference": [],
+                              "path": ""
+                            }
+                          }
+                        },
+                        {
+                          "id": "aef67c7f-8232-4322-80f6-7ba8d90f0641",
+                          "type": "context-push-node",
+                          "x": 894.3540193718687,
+                          "y": 997.9606171287875,
+                          "properties": {
+                            "width": 200,
+                            "height": 50,
+                            "name": "推送上下文",
+                            "isHovered": false,
+                            "field_list": [],
+                            "nodeData": {
+                              "items": [
+                                {
+                                  "variable": [
+                                    "05e716af-35e7-48a7-9f93-5a5ff978b0d7",
+                                    "context"
+                                  ],
+                                  "mode": "reference",
+                                  "reference": [
+                                    "0bcd34d6-f8da-4f3a-a964-6fed09aa0311",
+                                    "tool"
+                                  ],
+                                  "role": "user"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "id": "b6e69b66-5c03-402f-86e8-3ee010164c43",
+                          "type": "judge-node",
+                          "x": 1763.0583996506211,
+                          "y": 892.5250388198758,
+                          "properties": {
+                            "width": 200,
+                            "height": 164,
+                            "name": "条件判断",
+                            "isHovered": false,
+                            "field_list": [],
+                            "nodeData": {
+                              "branches": [
+                                {
+                                  "id": "c9774143-bdf1-44c5-993d-9204d277ac51",
+                                  "type": "if",
+                                  "logic": "and",
+                                  "conditions": [
+                                    {
+                                      "id": "15df8695-f621-4b5c-8995-99dc5254c801",
+                                      "variable": [
+                                        "52e7d29c-09a3-48a2-b3aa-3b384a2edbf2",
+                                        "question"
+                                      ],
+                                      "compare": "is_not_null",
+                                      "value": ""
+                                    }
+                                  ]
+                                },
+                                {
+                                  "id": "dbde766d-b504-4432-a6f2-cbf694de76c2",
+                                  "type": "else"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "id": "22515607-f13c-4f2a-b786-284503f29655",
+                          "type": "context-push-node",
+                          "x": 2163.058399650621,
+                          "y": 882.5250388198758,
+                          "properties": {
+                            "width": 200,
+                            "height": 50,
+                            "name": "推送上下文",
+                            "isHovered": false,
+                            "field_list": [],
+                            "nodeData": {
+                              "items": [
+                                {
+                                  "variable": [
+                                    "05e716af-35e7-48a7-9f93-5a5ff978b0d7",
+                                    "context"
+                                  ],
+                                  "mode": "reference",
+                                  "reference": [
+                                    "52e7d29c-09a3-48a2-b3aa-3b384a2edbf2",
+                                    "question"
+                                  ],
+                                  "role": "user"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "id": "313f6ad0-b223-4e5a-bedc-e77a72a0b59f",
+                          "type": "context-push-node",
+                          "x": 1589.1739071772524,
+                          "y": 1034.1181190610719,
+                          "properties": {
+                            "width": 200,
+                            "height": 50,
+                            "name": "推送上下文",
+                            "isHovered": false,
+                            "field_list": [],
+                            "nodeData": {
+                              "items": [
+                                {
+                                  "variable": [
+                                    "05e716af-35e7-48a7-9f93-5a5ff978b0d7",
+                                    "context"
+                                  ],
+                                  "mode": "reference",
+                                  "reference": [
+                                    "a78da13a-f16e-420d-bf98-003bf55a13d7",
+                                    "tool"
+                                  ],
+                                  "role": "user"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "id": "a78da13a-f16e-420d-bf98-003bf55a13d7",
+                          "type": "note-search-node",
+                          "x": 1081.0565926434592,
+                          "y": 1004.1442736491574,
+                          "properties": {
+                            "width": 200,
+                            "height": 50,
+                            "name": "笔记检索",
+                            "isHovered": false,
+                            "field_list": [
+                              {
+                                "label": "工具执行",
+                                "value": "tool"
+                              },
+                              {
+                                "label": "文件路径",
+                                "value": "filePath"
+                              },
+                              {
+                                "label": "文件名",
+                                "value": "fileName"
+                              },
+                              {
+                                "label": "文件大小",
+                                "value": "fileSize"
+                              }
+                            ],
+                            "nodeData": {
+                              "folderIds": [
+                                "root"
+                              ],
+                              "location": "tool_call",
+                              "reference": [
+                                "30eca289-a102-459c-9d48-a2797d6988f0",
+                                "item"
+                              ],
+                              "keywordLocation": "reference",
+                              "keywordReference": [],
+                              "keyword": "",
+                              "pageNoLocation": "customize",
+                              "pageNoReference": [],
+                              "pageNo": 1,
+                              "pageSizeLocation": "customize",
+                              "pageSizeReference": [],
+                              "pageSize": 10
+                            }
+                          }
+                        }
+                      ],
+                      "edges": [
+                        {
+                          "id": "870f3a0c-3fa3-4b59-bd3e-a8ba6f903d72",
+                          "type": "run-edge",
+                          "properties": {},
+                          "sourceNodeId": "4edfe85c-5594-43a9-a413-28a41edf03aa",
+                          "targetNodeId": "16b2926f-d0f9-4158-9570-70d0ea17328b",
+                          "sourceAnchorId": "4edfe85c-5594-43a9-a413-28a41edf03aa_right_main_success",
+                          "targetAnchorId": "16b2926f-d0f9-4158-9570-70d0ea17328b_left_main_success",
+                          "startPoint": {
+                            "x": 1220,
+                            "y": 202
+                          },
+                          "endPoint": {
+                            "x": 1320,
+                            "y": 202
+                          },
+                          "pointsList": [
+                            {
+                              "x": 1220,
+                              "y": 202
+                            },
+                            {
+                              "x": 1320,
+                              "y": 202
+                            },
+                            {
+                              "x": 1220,
+                              "y": 202
+                            },
+                            {
+                              "x": 1320,
+                              "y": 202
+                            }
+                          ]
+                        },
+                        {
+                          "id": "9e4289ed-530c-4866-91bb-2af0a333e844",
+                          "type": "run-edge",
+                          "properties": {},
+                          "sourceNodeId": "1a225600-f404-48f6-af9f-a620f0a8d7cd",
+                          "targetNodeId": "4caf5e3e-096f-415f-b24e-8ab031f0800f",
+                          "sourceAnchorId": "1a225600-f404-48f6-af9f-a620f0a8d7cd_right_main_success",
+                          "targetAnchorId": "4caf5e3e-096f-415f-b24e-8ab031f0800f_left_main_success",
+                          "startPoint": {
+                            "x": 1253.4703038674031,
+                            "y": 323.33546270718233
+                          },
+                          "endPoint": {
+                            "x": 1320,
+                            "y": 312
+                          },
+                          "pointsList": [
+                            {
+                              "x": 1253.4703038674031,
+                              "y": 323.33546270718233
+                            },
+                            {
+                              "x": 1353.4703038674031,
+                              "y": 323.33546270718233
+                            },
+                            {
+                              "x": 1220,
+                              "y": 312
+                            },
+                            {
+                              "x": 1320,
+                              "y": 312
+                            }
+                          ]
+                        },
+                        {
+                          "id": "5e1da766-b458-44e8-8e02-89b31a278ad0",
+                          "type": "run-edge",
+                          "properties": {},
+                          "sourceNodeId": "loop-start-node",
+                          "targetNodeId": "ec34caf3-7e85-4915-9cf9-4fd8902640ba",
+                          "sourceAnchorId": "loop-start-node_right_main_success",
+                          "targetAnchorId": "ec34caf3-7e85-4915-9cf9-4fd8902640ba_left_main_success",
+                          "startPoint": {
+                            "x": 320,
+                            "y": 202
+                          },
+                          "endPoint": {
+                            "x": 340.0009704968944,
+                            "y": 299.0401664402174
+                          },
+                          "pointsList": [
+                            {
+                              "x": 320,
+                              "y": 202
+                            },
+                            {
+                              "x": 420,
+                              "y": 202
+                            },
+                            {
+                              "x": 240.0009704968944,
+                              "y": 299.0401664402174
+                            },
+                            {
+                              "x": 340.0009704968944,
+                              "y": 299.0401664402174
+                            }
+                          ]
+                        },
+                        {
+                          "id": "dddc2560-8b2f-4ed2-9d2b-f1c3e1b00ab3",
+                          "type": "run-edge",
+                          "properties": {},
+                          "sourceNodeId": "ec34caf3-7e85-4915-9cf9-4fd8902640ba",
+                          "targetNodeId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77",
+                          "sourceAnchorId": "ec34caf3-7e85-4915-9cf9-4fd8902640ba_right_main_success",
+                          "targetAnchorId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77_left_main_success",
+                          "startPoint": {
+                            "x": 540.0009704968944,
+                            "y": 299.0401664402174
+                          },
+                          "endPoint": {
+                            "x": 363.5826200717181,
+                            "y": 265.61745174714747
+                          },
+                          "pointsList": [
+                            {
+                              "x": 540.0009704968944,
+                              "y": 299.0401664402174
+                            },
+                            {
+                              "x": 640.0009704968944,
+                              "y": 299.0401664402174
+                            },
+                            {
+                              "x": 263.5826200717181,
+                              "y": 265.61745174714747
+                            },
+                            {
+                              "x": 363.5826200717181,
+                              "y": 265.61745174714747
+                            }
+                          ]
+                        },
+                        {
+                          "id": "63bd4851-b7fe-49ef-ab91-4ec5eb40c017",
+                          "type": "run-edge",
+                          "properties": {},
+                          "sourceNodeId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77",
+                          "targetNodeId": "4edfe85c-5594-43a9-a413-28a41edf03aa",
+                          "sourceAnchorId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77_right_bec87dfb-7872-4b3d-8c72-156baaf0a3ca_success",
+                          "targetAnchorId": "4edfe85c-5594-43a9-a413-28a41edf03aa_left_main_success",
+                          "startPoint": {
+                            "x": 563.5826200717181,
+                            "y": 131.11745174714747
+                          },
+                          "endPoint": {
+                            "x": 1020,
+                            "y": 202
+                          },
+                          "pointsList": [
+                            {
+                              "x": 563.5826200717181,
+                              "y": 131.11745174714747
+                            },
+                            {
+                              "x": 663.5826200717181,
+                              "y": 131.11745174714747
+                            },
+                            {
+                              "x": 920,
+                              "y": 202
+                            },
+                            {
+                              "x": 1020,
+                              "y": 202
+                            }
+                          ]
+                        },
+                        {
+                          "id": "53337a22-4dfe-4a9c-a5eb-ab23aada2c22",
+                          "type": "run-edge",
+                          "properties": {},
+                          "sourceNodeId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77",
+                          "targetNodeId": "1a225600-f404-48f6-af9f-a620f0a8d7cd",
+                          "sourceAnchorId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77_right_d20342ec-5952-4f20-8046-8b2054c3a76f_success",
+                          "targetAnchorId": "1a225600-f404-48f6-af9f-a620f0a8d7cd_left_main_success",
+                          "startPoint": {
+                            "x": 563.5826200717181,
+                            "y": 335.11745174714747
+                          },
+                          "endPoint": {
+                            "x": 1053.4703038674031,
+                            "y": 323.33546270718233
+                          },
+                          "pointsList": [
+                            {
+                              "x": 563.5826200717181,
+                              "y": 335.11745174714747
+                            },
+                            {
+                              "x": 663.5826200717181,
+                              "y": 335.11745174714747
+                            },
+                            {
+                              "x": 953.4703038674031,
+                              "y": 323.33546270718233
+                            },
+                            {
+                              "x": 1053.4703038674031,
+                              "y": 323.33546270718233
+                            }
+                          ]
+                        },
+                        {
+                          "id": "1bf2de4d-2629-45d3-85a5-5e46750da532",
+                          "type": "run-edge",
+                          "properties": {},
+                          "sourceNodeId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77",
+                          "targetNodeId": "ed6ad25e-ad6f-48d8-b39f-e16c5312a2ce",
+                          "sourceAnchorId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77_right_c09f0fb9-f9bf-43b0-b025-2f05a6730182_success",
+                          "targetAnchorId": "ed6ad25e-ad6f-48d8-b39f-e16c5312a2ce_left_main_success",
+                          "startPoint": {
+                            "x": 563.5826200717181,
+                            "y": 301.11745174714747
+                          },
+                          "endPoint": {
+                            "x": 1092.744302486188,
+                            "y": 412.75448895027625
+                          },
+                          "pointsList": [
+                            {
+                              "x": 563.5826200717181,
+                              "y": 301.11745174714747
+                            },
+                            {
+                              "x": 663.5826200717181,
+                              "y": 301.11745174714747
+                            },
+                            {
+                              "x": 992.744302486188,
+                              "y": 412.75448895027625
+                            },
+                            {
+                              "x": 1092.744302486188,
+                              "y": 412.75448895027625
+                            }
+                          ]
+                        },
+                        {
+                          "id": "f09d6c5a-34ff-489e-9a90-6c1132d2cc78",
+                          "type": "run-edge",
+                          "properties": {},
+                          "sourceNodeId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77",
+                          "targetNodeId": "6689a9d8-b172-4132-aa8e-ee722b534786",
+                          "sourceAnchorId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77_right_91467043-a563-4743-9645-dbd8a5f8c705_success",
+                          "targetAnchorId": "6689a9d8-b172-4132-aa8e-ee722b534786_left_main_success",
+                          "startPoint": {
+                            "x": 563.5826200717181,
+                            "y": 267.11745174714747
+                          },
+                          "endPoint": {
+                            "x": 1020,
+                            "y": 532
+                          },
+                          "pointsList": [
+                            {
+                              "x": 563.5826200717181,
+                              "y": 267.11745174714747
+                            },
+                            {
+                              "x": 663.5826200717181,
+                              "y": 267.11745174714747
+                            },
+                            {
+                              "x": 920,
+                              "y": 532
+                            },
+                            {
+                              "x": 1020,
+                              "y": 532
+                            }
+                          ]
+                        },
+                        {
+                          "id": "38996806-7272-4022-8928-902818974eda",
+                          "type": "run-edge",
+                          "properties": {},
+                          "sourceNodeId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77",
+                          "targetNodeId": "82797f50-877f-4c16-b3f8-50edc939e97f",
+                          "sourceAnchorId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77_right_21db2db0-de58-4bf5-b0e4-8cb913a3ec89_success",
+                          "targetAnchorId": "82797f50-877f-4c16-b3f8-50edc939e97f_left_main_success",
+                          "startPoint": {
+                            "x": 563.5826200717181,
+                            "y": 233.11745174714747
+                          },
+                          "endPoint": {
+                            "x": 1020,
+                            "y": 642
+                          },
+                          "pointsList": [
+                            {
+                              "x": 563.5826200717181,
+                              "y": 233.11745174714747
+                            },
+                            {
+                              "x": 663.5826200717181,
+                              "y": 233.11745174714747
+                            },
+                            {
+                              "x": 920,
+                              "y": 642
+                            },
+                            {
+                              "x": 1020,
+                              "y": 642
+                            }
+                          ]
+                        },
+                        {
+                          "id": "90a47ea8-1129-43b6-99bf-3201cdfeabcd",
+                          "type": "run-edge",
+                          "properties": {},
+                          "sourceNodeId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77",
+                          "targetNodeId": "66b540dd-904b-4fde-b03b-c274c3d9bde6",
+                          "sourceAnchorId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77_right_feb0a10c-0b20-40d0-9b3b-785511222be2_success",
+                          "targetAnchorId": "66b540dd-904b-4fde-b03b-c274c3d9bde6_left_main_success",
+                          "startPoint": {
+                            "x": 563.5826200717181,
+                            "y": 199.11745174714747
+                          },
+                          "endPoint": {
+                            "x": 1020,
+                            "y": 752
+                          },
+                          "pointsList": [
+                            {
+                              "x": 563.5826200717181,
+                              "y": 199.11745174714747
+                            },
+                            {
+                              "x": 663.5826200717181,
+                              "y": 199.11745174714747
+                            },
+                            {
+                              "x": 920,
+                              "y": 752
+                            },
+                            {
+                              "x": 1020,
+                              "y": 752
+                            }
+                          ]
+                        },
+                        {
+                          "id": "8ecc720c-389c-4d44-988f-db2d6022ce5f",
+                          "type": "run-edge",
+                          "properties": {},
+                          "sourceNodeId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77",
+                          "targetNodeId": "52e7d29c-09a3-48a2-b3aa-3b384a2edbf2",
+                          "sourceAnchorId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77_right_4fab5fbc-d97e-4a83-a201-cd191754a01a_success",
+                          "targetAnchorId": "52e7d29c-09a3-48a2-b3aa-3b384a2edbf2_left_main_success",
+                          "startPoint": {
+                            "x": 563.5826200717181,
+                            "y": 165.11745174714747
+                          },
+                          "endPoint": {
+                            "x": 930.8064222631988,
+                            "y": 876.793102193323
+                          },
+                          "pointsList": [
+                            {
+                              "x": 563.5826200717181,
+                              "y": 165.11745174714747
+                            },
+                            {
+                              "x": 663.5826200717181,
+                              "y": 165.11745174714747
+                            },
+                            {
+                              "x": 830.8064222631988,
+                              "y": 876.793102193323
+                            },
+                            {
+                              "x": 930.8064222631988,
+                              "y": 876.793102193323
+                            }
+                          ]
+                        },
+                        {
+                          "id": "c8c3741b-8c1a-4480-be1e-d6fff49977a6",
+                          "type": "run-edge",
+                          "properties": {},
+                          "sourceNodeId": "ed6ad25e-ad6f-48d8-b39f-e16c5312a2ce",
+                          "targetNodeId": "1b747dfe-3274-4117-8f20-dbe823533128",
+                          "sourceAnchorId": "ed6ad25e-ad6f-48d8-b39f-e16c5312a2ce_right_main_success",
+                          "targetAnchorId": "1b747dfe-3274-4117-8f20-dbe823533128_left_main_success",
+                          "startPoint": {
+                            "x": 1292.744302486188,
+                            "y": 412.75448895027625
+                          },
+                          "endPoint": {
+                            "x": 1320,
+                            "y": 422
+                          },
+                          "pointsList": [
+                            {
+                              "x": 1292.744302486188,
+                              "y": 412.75448895027625
+                            },
+                            {
+                              "x": 1392.744302486188,
+                              "y": 412.75448895027625
+                            },
+                            {
+                              "x": 1220,
+                              "y": 422
+                            },
+                            {
+                              "x": 1320,
+                              "y": 422
+                            }
+                          ]
+                        },
+                        {
+                          "id": "573448d3-b8dc-41ef-86f6-e7a32ad61e4a",
+                          "type": "run-edge",
+                          "properties": {},
+                          "sourceNodeId": "52e7d29c-09a3-48a2-b3aa-3b384a2edbf2",
+                          "targetNodeId": "18211019-cb99-4531-ad2b-0dc93ed088d2",
+                          "sourceAnchorId": "52e7d29c-09a3-48a2-b3aa-3b384a2edbf2_right_main_success",
+                          "targetAnchorId": "18211019-cb99-4531-ad2b-0dc93ed088d2_left_main_success",
+                          "startPoint": {
+                            "x": 1130.8064222631988,
+                            "y": 866.793102193323
+                          },
+                          "endPoint": {
+                            "x": 1263.0583996506211,
+                            "y": 892.5250388198758
+                          },
+                          "pointsList": [
+                            {
+                              "x": 1130.8064222631988,
+                              "y": 866.793102193323
+                            },
+                            {
+                              "x": 1230.8064222631988,
+                              "y": 866.793102193323
+                            },
+                            {
+                              "x": 1163.0583996506211,
+                              "y": 892.5250388198758
+                            },
+                            {
+                              "x": 1263.0583996506211,
+                              "y": 892.5250388198758
+                            }
+                          ]
+                        },
+                        {
+                          "id": "98c2bb66-69ea-42af-aaa5-8b6719eb0d82",
+                          "type": "run-edge",
+                          "properties": {},
+                          "sourceNodeId": "66b540dd-904b-4fde-b03b-c274c3d9bde6",
+                          "targetNodeId": "e02990ab-8168-49ed-8a3e-8b99c8dbe7e7",
+                          "sourceAnchorId": "66b540dd-904b-4fde-b03b-c274c3d9bde6_right_main_success",
+                          "targetAnchorId": "e02990ab-8168-49ed-8a3e-8b99c8dbe7e7_left_main_success",
+                          "startPoint": {
+                            "x": 1220,
+                            "y": 742
+                          },
+                          "endPoint": {
+                            "x": 1320,
+                            "y": 752
+                          },
+                          "pointsList": [
+                            {
+                              "x": 1220,
+                              "y": 742
+                            },
+                            {
+                              "x": 1320,
+                              "y": 742
+                            },
+                            {
+                              "x": 1220,
+                              "y": 752
+                            },
+                            {
+                              "x": 1320,
+                              "y": 752
+                            }
+                          ]
+                        },
+                        {
+                          "id": "c9dfabc2-460d-49c9-b468-274a527d93f3",
+                          "type": "run-edge",
+                          "properties": {},
+                          "sourceNodeId": "82797f50-877f-4c16-b3f8-50edc939e97f",
+                          "targetNodeId": "793c389c-8682-4518-9c78-829c5c9ba926",
+                          "sourceAnchorId": "82797f50-877f-4c16-b3f8-50edc939e97f_right_main_success",
+                          "targetAnchorId": "793c389c-8682-4518-9c78-829c5c9ba926_left_main_success",
+                          "startPoint": {
+                            "x": 1220,
+                            "y": 642
+                          },
+                          "endPoint": {
+                            "x": 1320,
+                            "y": 642
+                          },
+                          "pointsList": [
+                            {
+                              "x": 1220,
+                              "y": 642
+                            },
+                            {
+                              "x": 1320,
+                              "y": 642
+                            },
+                            {
+                              "x": 1220,
+                              "y": 642
+                            },
+                            {
+                              "x": 1320,
+                              "y": 642
+                            }
+                          ]
+                        },
+                        {
+                          "id": "110d8eef-f364-4555-9185-e0f11434539b",
+                          "type": "run-edge",
+                          "properties": {},
+                          "sourceNodeId": "6689a9d8-b172-4132-aa8e-ee722b534786",
+                          "targetNodeId": "1e8b968d-897f-485a-baeb-ed46f81b24bd",
+                          "sourceAnchorId": "6689a9d8-b172-4132-aa8e-ee722b534786_right_main_success",
+                          "targetAnchorId": "1e8b968d-897f-485a-baeb-ed46f81b24bd_left_main_success",
+                          "startPoint": {
+                            "x": 1220,
+                            "y": 532
+                          },
+                          "endPoint": {
+                            "x": 1320,
+                            "y": 532
+                          },
+                          "pointsList": [
+                            {
+                              "x": 1220,
+                              "y": 532
+                            },
+                            {
+                              "x": 1320,
+                              "y": 532
+                            },
+                            {
+                              "x": 1220,
+                              "y": 532
+                            },
+                            {
+                              "x": 1320,
+                              "y": 532
+                            }
+                          ]
+                        },
+                        {
+                          "id": "8d12bfd9-5c01-4f7e-9c1e-f4938b8ccaef",
+                          "type": "run-edge",
+                          "properties": {},
+                          "sourceNodeId": "66b540dd-904b-4fde-b03b-c274c3d9bde6",
+                          "targetNodeId": "e02990ab-8168-49ed-8a3e-8b99c8dbe7e7",
+                          "sourceAnchorId": "66b540dd-904b-4fde-b03b-c274c3d9bde6_right_main_fail",
+                          "targetAnchorId": "e02990ab-8168-49ed-8a3e-8b99c8dbe7e7_left_main_success",
+                          "startPoint": {
+                            "x": 1220,
+                            "y": 767
+                          },
+                          "endPoint": {
+                            "x": 1320,
+                            "y": 752
+                          },
+                          "pointsList": [
+                            {
+                              "x": 1220,
+                              "y": 767
+                            },
+                            {
+                              "x": 1320,
+                              "y": 767
+                            },
+                            {
+                              "x": 1220,
+                              "y": 752
+                            },
+                            {
+                              "x": 1320,
+                              "y": 752
+                            }
+                          ]
+                        },
+                        {
+                          "id": "bce1de3a-f9bf-4495-86f3-31c090f01729",
+                          "type": "run-edge",
+                          "properties": {},
+                          "sourceNodeId": "52e7d29c-09a3-48a2-b3aa-3b384a2edbf2",
+                          "targetNodeId": "18211019-cb99-4531-ad2b-0dc93ed088d2",
+                          "sourceAnchorId": "52e7d29c-09a3-48a2-b3aa-3b384a2edbf2_right_main_fail",
+                          "targetAnchorId": "18211019-cb99-4531-ad2b-0dc93ed088d2_left_main_success",
+                          "startPoint": {
+                            "x": 1130.8064222631988,
+                            "y": 891.793102193323
+                          },
+                          "endPoint": {
+                            "x": 1263.0583996506211,
+                            "y": 892.5250388198758
+                          },
+                          "pointsList": [
+                            {
+                              "x": 1130.8064222631988,
+                              "y": 891.793102193323
+                            },
+                            {
+                              "x": 1230.8064222631988,
+                              "y": 891.793102193323
+                            },
+                            {
+                              "x": 1163.0583996506211,
+                              "y": 892.5250388198758
+                            },
+                            {
+                              "x": 1263.0583996506211,
+                              "y": 892.5250388198758
+                            }
+                          ]
+                        },
+                        {
+                          "id": "dcbbd377-4d63-45cf-9d87-90efc3cce801",
+                          "type": "run-edge",
+                          "properties": {},
+                          "sourceNodeId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77",
+                          "targetNodeId": "0bcd34d6-f8da-4f3a-a964-6fed09aa0311",
+                          "sourceAnchorId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77_right_5d21a5ca-feed-4aee-bf08-0766e18dd505_success",
+                          "targetAnchorId": "0bcd34d6-f8da-4f3a-a964-6fed09aa0311_left_main_success",
+                          "startPoint": {
+                            "x": 563.5826200717181,
+                            "y": 369.11745174714747
+                          },
+                          "endPoint": {
+                            "x": 595.3937854821172,
+                            "y": 710.9012227188496
+                          },
+                          "pointsList": [
+                            {
+                              "x": 563.5826200717181,
+                              "y": 369.11745174714747
+                            },
+                            {
+                              "x": 663.5826200717181,
+                              "y": 369.11745174714747
+                            },
+                            {
+                              "x": 495.3937854821172,
+                              "y": 710.9012227188496
+                            },
+                            {
+                              "x": 595.3937854821172,
+                              "y": 710.9012227188496
+                            }
+                          ]
+                        },
+                        {
+                          "id": "807dc43c-a4ef-43c6-803c-55b3f11f173f",
+                          "type": "run-edge",
+                          "properties": {},
+                          "sourceNodeId": "0bcd34d6-f8da-4f3a-a964-6fed09aa0311",
+                          "targetNodeId": "aef67c7f-8232-4322-80f6-7ba8d90f0641",
+                          "sourceAnchorId": "0bcd34d6-f8da-4f3a-a964-6fed09aa0311_right_main_success",
+                          "targetAnchorId": "aef67c7f-8232-4322-80f6-7ba8d90f0641_left_main_success",
+                          "startPoint": {
+                            "x": 795.3937854821172,
+                            "y": 710.9012227188496
+                          },
+                          "endPoint": {
+                            "x": 794.3540193718687,
+                            "y": 997.9606171287875
+                          },
+                          "pointsList": [
+                            {
+                              "x": 795.3937854821172,
+                              "y": 710.9012227188496
+                            },
+                            {
+                              "x": 895.3937854821172,
+                              "y": 710.9012227188496
+                            },
+                            {
+                              "x": 694.3540193718687,
+                              "y": 997.9606171287875
+                            },
+                            {
+                              "x": 794.3540193718687,
+                              "y": 997.9606171287875
+                            }
+                          ]
+                        },
+                        {
+                          "id": "69ed058c-561b-4a96-a68a-379500947937",
+                          "type": "run-edge",
+                          "properties": {},
+                          "sourceNodeId": "18211019-cb99-4531-ad2b-0dc93ed088d2",
+                          "targetNodeId": "b6e69b66-5c03-402f-86e8-3ee010164c43",
+                          "sourceAnchorId": "18211019-cb99-4531-ad2b-0dc93ed088d2_right_main_success",
+                          "targetAnchorId": "b6e69b66-5c03-402f-86e8-3ee010164c43_left_main_success",
+                          "startPoint": {
+                            "x": 1463.0583996506211,
+                            "y": 892.5250388198758
+                          },
+                          "endPoint": {
+                            "x": 1663.0583996506211,
+                            "y": 892.5250388198758
+                          },
+                          "pointsList": [
+                            {
+                              "x": 1463.0583996506211,
+                              "y": 892.5250388198758
+                            },
+                            {
+                              "x": 1563.0583996506211,
+                              "y": 892.5250388198758
+                            },
+                            {
+                              "x": 1563.0583996506211,
+                              "y": 892.5250388198758
+                            },
+                            {
+                              "x": 1663.0583996506211,
+                              "y": 892.5250388198758
+                            }
+                          ]
+                        },
+                        {
+                          "id": "ccce3468-946b-4f94-8f90-0a19de53dac2",
+                          "type": "run-edge",
+                          "properties": {},
+                          "sourceNodeId": "b6e69b66-5c03-402f-86e8-3ee010164c43",
+                          "targetNodeId": "22515607-f13c-4f2a-b786-284503f29655",
+                          "sourceAnchorId": "b6e69b66-5c03-402f-86e8-3ee010164c43_right_c9774143-bdf1-44c5-993d-9204d277ac51_success",
+                          "targetAnchorId": "22515607-f13c-4f2a-b786-284503f29655_left_main_success",
+                          "startPoint": {
+                            "x": 1863.0583996506211,
+                            "y": 882.5250388198758
+                          },
+                          "endPoint": {
+                            "x": 2063.058399650621,
+                            "y": 882.5250388198758
+                          },
+                          "pointsList": [
+                            {
+                              "x": 1863.0583996506211,
+                              "y": 882.5250388198758
+                            },
+                            {
+                              "x": 1963.0583996506211,
+                              "y": 882.5250388198758
+                            },
+                            {
+                              "x": 1963.0583996506211,
+                              "y": 882.5250388198758
+                            },
+                            {
+                              "x": 2063.058399650621,
+                              "y": 882.5250388198758
+                            }
+                          ]
+                        },
+                        {
+                          "id": "d2993948-98f8-4f72-b00d-09dde17115e2",
+                          "type": "run-edge",
+                          "properties": {},
+                          "sourceNodeId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77",
+                          "targetNodeId": "a78da13a-f16e-420d-bf98-003bf55a13d7",
+                          "sourceAnchorId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77_right_14988a23-8d80-496f-8047-0eabcbbc5811_success",
+                          "targetAnchorId": "a78da13a-f16e-420d-bf98-003bf55a13d7_left_main_success",
+                          "startPoint": {
+                            "x": 563.5826200717181,
+                            "y": 403.11745174714747
+                          },
+                          "endPoint": {
+                            "x": 981.0565926434592,
+                            "y": 1004.1442736491574
+                          },
+                          "pointsList": [
+                            {
+                              "x": 563.5826200717181,
+                              "y": 403.11745174714747
+                            },
+                            {
+                              "x": 663.5826200717181,
+                              "y": 403.11745174714747
+                            },
+                            {
+                              "x": 881.0565926434592,
+                              "y": 1004.1442736491574
+                            },
+                            {
+                              "x": 981.0565926434592,
+                              "y": 1004.1442736491574
+                            }
+                          ]
+                        },
+                        {
+                          "id": "056f7ed7-28a1-4806-9274-15cf96b6edf3",
+                          "type": "run-edge",
+                          "properties": {},
+                          "sourceNodeId": "a78da13a-f16e-420d-bf98-003bf55a13d7",
+                          "targetNodeId": "313f6ad0-b223-4e5a-bedc-e77a72a0b59f",
+                          "sourceAnchorId": "a78da13a-f16e-420d-bf98-003bf55a13d7_right_main_success",
+                          "targetAnchorId": "313f6ad0-b223-4e5a-bedc-e77a72a0b59f_left_main_success",
+                          "startPoint": {
+                            "x": 1181.0565926434592,
+                            "y": 1004.1442736491574
+                          },
+                          "endPoint": {
+                            "x": 1489.1739071772524,
+                            "y": 1034.1181190610719
+                          },
+                          "pointsList": [
+                            {
+                              "x": 1181.0565926434592,
+                              "y": 1004.1442736491574
+                            },
+                            {
+                              "x": 1281.0565926434592,
+                              "y": 1004.1442736491574
+                            },
+                            {
+                              "x": 1389.1739071772524,
+                              "y": 1034.1181190610719
+                            },
+                            {
+                              "x": 1489.1739071772524,
+                              "y": 1034.1181190610719
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  },
+                  "loopFieldList": []
+                }
+              },
+              {
+                "id": "4963e3e0-b169-47f0-ae2d-b1b7faf04c4a",
+                "type": "judge-node",
+                "x": 1908.2619401278266,
+                "y": 317.6227562478705,
+                "properties": {
+                  "width": 200,
+                  "height": 164,
+                  "name": "条件判断",
+                  "isHovered": false,
+                  "field_list": [],
+                  "nodeData": {
+                    "branches": [
+                      {
+                        "id": "3f1ea753-e609-40f3-9ad0-5f012648737b",
+                        "type": "if",
+                        "logic": "and",
+                        "conditions": [
+                          {
+                            "id": "32c2bed6-ec00-43ce-998b-106c3ae8a02c",
+                            "variable": [
+                              "cabe76e6-9448-4d45-bcf9-0c27aada72bd",
+                              "finishReason"
+                            ],
+                            "compare": "eq",
+                            "value": "tool_calls"
+                          }
+                        ]
+                      },
+                      {
+                        "id": "e2082f2e-e84e-4498-a17f-b22e5b3cebe4",
+                        "type": "else"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "id": "66dc8937-76c3-4b27-b194-ec864a86b680",
+                "type": "loop-break-node",
+                "x": 2217.1965992187356,
+                "y": 446.5162221569615,
+                "properties": {
+                  "width": 200,
+                  "height": 50,
+                  "name": "跳出循环",
+                  "isHovered": false,
+                  "field_list": [],
+                  "nodeData": {
+                    "conditions": [],
+                    "logic": "and"
+                  }
+                }
+              },
+              {
+                "id": "39620bf3-7d42-4afa-85d1-42722ea0312d",
+                "type": "java-script-node",
+                "x": 1487.8891376779318,
+                "y": 404.10814193324364,
+                "properties": {
+                  "width": 200,
+                  "height": 50,
+                  "name": "javaScript执行",
+                  "isHovered": false,
+                  "field_list": [
+                    {
+                      "label": "结果",
+                      "value": "result"
+                    }
+                  ],
+                  "nodeData": {
+                    "mode": "function",
+                    "codeLocation": "customize",
+                    "codeReference": [],
+                    "functionName": "test",
+                    "code": "const test=(params)=>{\nreturn params.context.filter(item=>{\n     if(item.type===\"QUESTION\"){\n         if(item.images||item.videos||item.files){\n             return false\n         }\n        \n     }\n    return true\n})\n    \n}",
+                    "allowIO": false,
+                    "parameters": [
+                      {
+                        "field": "context",
+                        "description": "上下文",
+                        "location": "reference",
+                        "value": [
+                          "05e716af-35e7-48a7-9f93-5a5ff978b0d7",
+                          "context"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "id": "1f9da35d-6009-40e0-9b1e-8eb2b88eb309",
+                "type": "variable-assign-node",
+                "x": 1726.9338819961133,
+                "y": 436.7963521605164,
+                "properties": {
+                  "width": 200,
+                  "height": 50,
+                  "name": "变量赋值",
+                  "isHovered": false,
+                  "field_list": [],
+                  "nodeData": {
+                    "variables": [
+                      {
+                        "variable": [
+                          "05e716af-35e7-48a7-9f93-5a5ff978b0d7",
+                          "context"
+                        ],
+                        "type": "reference",
+                        "reference": [
+                          "39620bf3-7d42-4afa-85d1-42722ea0312d",
+                          "result"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "id": "a0a956f8-7dbd-4347-814c-ce8b61771918",
+                "type": "java-script-node",
+                "x": 706.0180664062498,
+                "y": 185.37353515625006,
+                "properties": {
+                  "width": 200,
+                  "height": 50,
+                  "name": "javaScript执行",
+                  "isHovered": false,
+                  "field_list": [
+                    {
+                      "label": "结果",
+                      "value": "result"
+                    }
+                  ],
+                  "nodeData": {
+                    "mode": "function",
+                    "codeLocation": "customize",
+                    "codeReference": [],
+                    "functionName": "filter_tools",
+                    "code": "const filter_tools=(params)=>{\n   return params.context.filter(item=>{\n     if(item.type===\"QUESTION\"){\n         if(item.images||item.videos||item.files){\n             return false\n         }\n        \n     }\n       if(item.type==='TOOL'){\n           return false\n       }\n    return true\n})\n}",
+                    "allowIO": false,
+                    "parameters": [
+                      {
+                        "field": "context",
+                        "description": "context",
+                        "location": "reference",
+                        "value": [
+                          "start-node",
+                          "messages"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            ],
+            "edges": [
+              {
+                "id": "87f5ae67-63ad-4336-90c9-b24d31df854b",
+                "type": "run-edge",
+                "properties": {},
+                "sourceNodeId": "loop-start-node",
+                "targetNodeId": "0db20591-d2bc-4c8e-9e7d-9221429afa7c",
+                "sourceAnchorId": "loop-start-node_right_main_success",
+                "targetAnchorId": "0db20591-d2bc-4c8e-9e7d-9221429afa7c_left_main_success",
+                "startPoint": {
+                  "x": 200,
+                  "y": 150
+                },
+                "endPoint": {
+                  "x": 380.0537109375,
+                  "y": 191.61376953125006
+                },
+                "pointsList": [
+                  {
+                    "x": 200,
+                    "y": 150
+                  },
+                  {
+                    "x": 300,
+                    "y": 150
+                  },
+                  {
+                    "x": 280.0537109375,
+                    "y": 191.61376953125006
+                  },
+                  {
+                    "x": 380.0537109375,
+                    "y": 191.61376953125006
+                  }
+                ]
+              },
+              {
+                "id": "5033db62-d94e-4258-b018-b05e925684dd",
+                "type": "run-edge",
+                "properties": {},
+                "sourceNodeId": "2567e578-98ae-4592-8e64-61941556fe9e",
+                "targetNodeId": "c3a343b9-39ad-444a-820f-1188cdf96683",
+                "sourceAnchorId": "2567e578-98ae-4592-8e64-61941556fe9e_right_main_success",
+                "targetAnchorId": "c3a343b9-39ad-444a-820f-1188cdf96683_left_main_success",
+                "startPoint": {
+                  "x": 1110.9814453125002,
+                  "y": 109.62890624999997
+                },
+                "endPoint": {
+                  "x": 1200.83740234375,
+                  "y": 140
+                },
+                "pointsList": [
+                  {
+                    "x": 1110.9814453125002,
+                    "y": 109.62890624999997
+                  },
+                  {
+                    "x": 1210.9814453125002,
+                    "y": 109.62890624999997
+                  },
+                  {
+                    "x": 1100.83740234375,
+                    "y": 140
+                  },
+                  {
+                    "x": 1200.83740234375,
+                    "y": 140
+                  }
+                ]
+              },
+              {
+                "id": "5aa89e21-da97-4883-82a1-7a11e4547e71",
+                "type": "run-edge",
+                "properties": {},
+                "sourceNodeId": "c3a343b9-39ad-444a-820f-1188cdf96683",
+                "targetNodeId": "cabe76e6-9448-4d45-bcf9-0c27aada72bd",
+                "sourceAnchorId": "c3a343b9-39ad-444a-820f-1188cdf96683_right_main_success",
+                "targetAnchorId": "cabe76e6-9448-4d45-bcf9-0c27aada72bd_left_main_success",
+                "startPoint": {
+                  "x": 1400.83740234375,
+                  "y": 140
+                },
+                "endPoint": {
+                  "x": 1166.3415524506595,
+                  "y": 389.8059402286982
+                },
+                "pointsList": [
+                  {
+                    "x": 1400.83740234375,
+                    "y": 140
+                  },
+                  {
+                    "x": 1500.83740234375,
+                    "y": 140
+                  },
+                  {
+                    "x": 1066.3415524506595,
+                    "y": 389.8059402286982
+                  },
+                  {
+                    "x": 1166.3415524506595,
+                    "y": 389.8059402286982
+                  }
+                ]
+              },
+              {
+                "id": "72b0ef1b-4387-4538-9c1e-4a8723257ccb",
+                "type": "run-edge",
+                "properties": {},
+                "sourceNodeId": "0db20591-d2bc-4c8e-9e7d-9221429afa7c",
+                "targetNodeId": "cabe76e6-9448-4d45-bcf9-0c27aada72bd",
+                "sourceAnchorId": "0db20591-d2bc-4c8e-9e7d-9221429afa7c_right_f33cafd2-304a-49f1-ab4d-eabbb3ba89f4_success",
+                "targetAnchorId": "cabe76e6-9448-4d45-bcf9-0c27aada72bd_left_main_success",
+                "startPoint": {
+                  "x": 580.0537109375,
+                  "y": 215.61376953125006
+                },
+                "endPoint": {
+                  "x": 1166.3415524506595,
+                  "y": 389.8059402286982
+                },
+                "pointsList": [
+                  {
+                    "x": 580.0537109375,
+                    "y": 215.61376953125006
+                  },
+                  {
+                    "x": 680.0537109375,
+                    "y": 215.61376953125006
+                  },
+                  {
+                    "x": 1066.3415524506595,
+                    "y": 389.8059402286982
+                  },
+                  {
+                    "x": 1166.3415524506595,
+                    "y": 389.8059402286982
+                  }
+                ]
+              },
+              {
+                "id": "ebd38722-69ee-4009-af95-740a3b0df954",
+                "type": "run-edge",
+                "properties": {},
+                "sourceNodeId": "4963e3e0-b169-47f0-ae2d-b1b7faf04c4a",
+                "targetNodeId": "30eca289-a102-459c-9d48-a2797d6988f0",
+                "sourceAnchorId": "4963e3e0-b169-47f0-ae2d-b1b7faf04c4a_right_3f1ea753-e609-40f3-9ad0-5f012648737b_success",
+                "targetAnchorId": "30eca289-a102-459c-9d48-a2797d6988f0_left_main_success",
+                "startPoint": {
+                  "x": 2008.2619401278266,
+                  "y": 307.6227562478705
+                },
+                "endPoint": {
+                  "x": 2034.3056056657351,
+                  "y": 198.29044010768305
+                },
+                "pointsList": [
+                  {
+                    "x": 2008.2619401278266,
+                    "y": 307.6227562478705
+                  },
+                  {
+                    "x": 2108.2619401278266,
+                    "y": 307.6227562478705
+                  },
+                  {
+                    "x": 1934.3056056657351,
+                    "y": 198.29044010768305
+                  },
+                  {
+                    "x": 2034.3056056657351,
+                    "y": 198.29044010768305
+                  }
+                ]
+              },
+              {
+                "id": "03e05874-9c43-47bd-be55-9f6df485ed81",
+                "type": "run-edge",
+                "properties": {},
+                "sourceNodeId": "4963e3e0-b169-47f0-ae2d-b1b7faf04c4a",
+                "targetNodeId": "66dc8937-76c3-4b27-b194-ec864a86b680",
+                "sourceAnchorId": "4963e3e0-b169-47f0-ae2d-b1b7faf04c4a_right_e2082f2e-e84e-4498-a17f-b22e5b3cebe4_success",
+                "targetAnchorId": "66dc8937-76c3-4b27-b194-ec864a86b680_left_main_success",
+                "startPoint": {
+                  "x": 2008.2619401278266,
+                  "y": 341.6227562478705
+                },
+                "endPoint": {
+                  "x": 2117.1965992187356,
+                  "y": 446.5162221569615
+                },
+                "pointsList": [
+                  {
+                    "x": 2008.2619401278266,
+                    "y": 341.6227562478705
+                  },
+                  {
+                    "x": 2108.2619401278266,
+                    "y": 341.6227562478705
+                  },
+                  {
+                    "x": 2017.1965992187356,
+                    "y": 446.5162221569615
+                  },
+                  {
+                    "x": 2117.1965992187356,
+                    "y": 446.5162221569615
+                  }
+                ]
+              },
+              {
+                "id": "6bd3bb55-e0d5-47bd-b873-ff70dc9ad6c8",
+                "type": "run-edge",
+                "properties": {},
+                "sourceNodeId": "cabe76e6-9448-4d45-bcf9-0c27aada72bd",
+                "targetNodeId": "39620bf3-7d42-4afa-85d1-42722ea0312d",
+                "sourceAnchorId": "cabe76e6-9448-4d45-bcf9-0c27aada72bd_right_main_success",
+                "targetAnchorId": "39620bf3-7d42-4afa-85d1-42722ea0312d_left_main_success",
+                "startPoint": {
+                  "x": 1366.3415524506595,
+                  "y": 389.8059402286982
+                },
+                "endPoint": {
+                  "x": 1387.8891376779318,
+                  "y": 404.10814193324364
+                },
+                "pointsList": [
+                  {
+                    "x": 1366.3415524506595,
+                    "y": 389.8059402286982
+                  },
+                  {
+                    "x": 1466.3415524506595,
+                    "y": 389.8059402286982
+                  },
+                  {
+                    "x": 1287.8891376779318,
+                    "y": 404.10814193324364
+                  },
+                  {
+                    "x": 1387.8891376779318,
+                    "y": 404.10814193324364
+                  }
+                ]
+              },
+              {
+                "id": "9b2fc4d5-56ae-48e2-b28f-102e632c9a14",
+                "type": "run-edge",
+                "properties": {},
+                "sourceNodeId": "39620bf3-7d42-4afa-85d1-42722ea0312d",
+                "targetNodeId": "1f9da35d-6009-40e0-9b1e-8eb2b88eb309",
+                "sourceAnchorId": "39620bf3-7d42-4afa-85d1-42722ea0312d_right_main_success",
+                "targetAnchorId": "1f9da35d-6009-40e0-9b1e-8eb2b88eb309_left_main_success",
+                "startPoint": {
+                  "x": 1587.8891376779318,
+                  "y": 404.10814193324364
+                },
+                "endPoint": {
+                  "x": 1626.9338819961133,
+                  "y": 436.7963521605164
+                },
+                "pointsList": [
+                  {
+                    "x": 1587.8891376779318,
+                    "y": 404.10814193324364
+                  },
+                  {
+                    "x": 1687.8891376779318,
+                    "y": 404.10814193324364
+                  },
+                  {
+                    "x": 1526.9338819961133,
+                    "y": 436.7963521605164
+                  },
+                  {
+                    "x": 1626.9338819961133,
+                    "y": 436.7963521605164
+                  }
+                ]
+              },
+              {
+                "id": "e627a10d-bafb-4652-a79b-84986170ab9e",
+                "type": "run-edge",
+                "properties": {},
+                "sourceNodeId": "1f9da35d-6009-40e0-9b1e-8eb2b88eb309",
+                "targetNodeId": "4963e3e0-b169-47f0-ae2d-b1b7faf04c4a",
+                "sourceAnchorId": "1f9da35d-6009-40e0-9b1e-8eb2b88eb309_right_main_success",
+                "targetAnchorId": "4963e3e0-b169-47f0-ae2d-b1b7faf04c4a_left_main_success",
+                "startPoint": {
+                  "x": 1826.9338819961133,
+                  "y": 436.7963521605164
+                },
+                "endPoint": {
+                  "x": 1808.2619401278266,
+                  "y": 317.6227562478705
+                },
+                "pointsList": [
+                  {
+                    "x": 1826.9338819961133,
+                    "y": 436.7963521605164
+                  },
+                  {
+                    "x": 1926.9338819961133,
+                    "y": 436.7963521605164
+                  },
+                  {
+                    "x": 1708.2619401278266,
+                    "y": 317.6227562478705
+                  },
+                  {
+                    "x": 1808.2619401278266,
+                    "y": 317.6227562478705
+                  }
+                ]
+              },
+              {
+                "id": "ec50b4b6-f759-4c3e-a9e4-30c84fe44379",
+                "type": "run-edge",
+                "properties": {},
+                "sourceNodeId": "0db20591-d2bc-4c8e-9e7d-9221429afa7c",
+                "targetNodeId": "a0a956f8-7dbd-4347-814c-ce8b61771918",
+                "sourceAnchorId": "0db20591-d2bc-4c8e-9e7d-9221429afa7c_right_6aa401b5-98cb-417a-b6f1-ebb7354f7442_success",
+                "targetAnchorId": "a0a956f8-7dbd-4347-814c-ce8b61771918_left_main_success",
+                "startPoint": {
+                  "x": 580.0537109375,
+                  "y": 181.61376953125006
+                },
+                "endPoint": {
+                  "x": 606.0180664062498,
+                  "y": 185.37353515625006
+                },
+                "pointsList": [
+                  {
+                    "x": 580.0537109375,
+                    "y": 181.61376953125006
+                  },
+                  {
+                    "x": 680.0537109375,
+                    "y": 181.61376953125006
+                  },
+                  {
+                    "x": 506.0180664062498,
+                    "y": 185.37353515625006
+                  },
+                  {
+                    "x": 606.0180664062498,
+                    "y": 185.37353515625006
+                  }
+                ]
+              },
+              {
+                "id": "ca557de1-93dc-4e65-bbd8-488b46eaae2d",
+                "type": "run-edge",
+                "properties": {},
+                "sourceNodeId": "a0a956f8-7dbd-4347-814c-ce8b61771918",
+                "targetNodeId": "2567e578-98ae-4592-8e64-61941556fe9e",
+                "sourceAnchorId": "a0a956f8-7dbd-4347-814c-ce8b61771918_right_main_success",
+                "targetAnchorId": "2567e578-98ae-4592-8e64-61941556fe9e_left_main_success",
+                "startPoint": {
+                  "x": 806.0180664062498,
+                  "y": 185.37353515625006
+                },
+                "endPoint": {
+                  "x": 830.9814453125002,
+                  "y": 109.62890624999997
+                },
+                "pointsList": [
+                  {
+                    "x": 806.0180664062498,
+                    "y": 185.37353515625006
+                  },
+                  {
+                    "x": 906.0180664062498,
+                    "y": 185.37353515625006
+                  },
+                  {
+                    "x": 730.9814453125002,
+                    "y": 109.62890624999997
+                  },
+                  {
+                    "x": 830.9814453125002,
+                    "y": 109.62890624999997
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "loopFieldList": [
+          {
+            "label": "context",
+            "value": "context"
+          }
+        ]
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "1ae615b4-94bb-452c-bcd3-9a83ee5890c4",
+      "type": "run-edge",
+      "properties": {},
+      "sourceNodeId": "start-node",
+      "targetNodeId": "05e716af-35e7-48a7-9f93-5a5ff978b0d7",
+      "sourceAnchorId": "start-node_right_main_success",
+      "targetAnchorId": "05e716af-35e7-48a7-9f93-5a5ff978b0d7_left_main_success",
+      "startPoint": {
+        "x": 100,
+        "y": 0
+      },
+      "endPoint": {
+        "x": 296.234375,
+        "y": 63.875
+      },
+      "pointsList": [
+        {
+          "x": 100,
+          "y": 0
+        },
+        {
+          "x": 200,
+          "y": 0
+        },
+        {
+          "x": 196.234375,
+          "y": 63.875
+        },
+        {
+          "x": 296.234375,
+          "y": 63.875
+        }
+      ]
+    }
+  ]
+}

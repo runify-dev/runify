@@ -2,10 +2,23 @@
   <Dialog
     v-model:visible="visible"
     modal
-    :header="isEdit ? '编辑应用' : '新建应用'"
+    header="创建知识库应用"
     :style="{ width: '28rem' }"
   >
     <div class="flex flex-col gap-4">
+      <!-- 模型选择 -->
+      <div class="flex flex-col gap-1.5">
+        <label class="text-sm font-medium text-surface-700">选择模型</label>
+        <Select
+          v-model="form.modelId"
+          :options="modelList"
+          optionLabel="name"
+          optionValue="id"
+          placeholder="请选择模型"
+          class="w-full"
+        />
+      </div>
+
       <!-- 应用图标 -->
       <div class="flex flex-col gap-2">
         <label class="text-sm font-medium text-surface-700">应用图标</label>
@@ -75,34 +88,34 @@
     <template #footer>
       <div class="flex justify-end gap-2">
         <Button label="取消" severity="secondary" variant="outlined" @click="close"/>
-        <Button :label="isEdit ? '保存' : '创建'" @click="submit"/>
+        <Button label="创建" @click="submit"/>
       </div>
     </template>
   </Dialog>
 </template>
 <script setup lang="ts">
-import {ref, reactive, computed} from 'vue'
+import {ref, reactive, onMounted} from 'vue'
 import fileAPI from '@/api/file'
-import applicationAPI from '@/api/application'
 import {TreeCommonAPI} from '@/api/tree'
 import type {TreeNode} from 'primevue/treenode'
 import {getWorkflowCall} from "@/views/application/template";
 
 const props = defineProps<{ api: TreeCommonAPI }>()
-const emit = defineEmits(['create:success', 'edit:success'])
+const emit = defineEmits(['create:success'])
 
 const fileInputRef = ref<HTMLInputElement>()
 const visible = ref(false)
 const current = ref<TreeNode>()
-const editData = ref<any>(null)
 
-const isEdit = computed(() => !!editData.value)
+const modelCommonAPI = new TreeCommonAPI('model')
+const modelList = ref<Array<any>>([])
 
 const form = reactive({
   name: '',
   icon: '',
   desc: '',
-  allowAnonymousAccess: false
+  allowAnonymousAccess: false,
+  modelId: ''
 })
 
 const resetForm = () => {
@@ -110,6 +123,7 @@ const resetForm = () => {
   form.icon = ''
   form.desc = ''
   form.allowAnonymousAccess = false
+  form.modelId = ''
 }
 
 const triggerFileInput = () => {
@@ -137,46 +151,33 @@ const submit = () => {
     desc: form.desc,
     icon: form.icon,
     allowAnonymousAccess: form.allowAnonymousAccess,
-    workflow: getWorkflowCall('customize')()
+    workflow: getWorkflowCall('search')(form.modelId)
   }
 
-  if (isEdit.value) {
-    applicationAPI.edit(editData.value.id, data).then(() => {
-      emit('edit:success', editData.value.id, data)
+  props.api
+    .createResource(current.value ? current.value.key : 'root', data)
+    .then((ok) => {
+      emit('create:success', current.value ? current.value.key : undefined, ok.data)
       close()
     })
-  } else {
-    props.api
-      .createResource(current.value ? current.value.key : 'root', data)
-      .then((ok) => {
-        emit('create:success', current.value ? current.value.key : undefined, ok.data)
-        close()
-      })
-  }
 }
 
-const openCreate = (node?: TreeNode) => {
-  editData.value = null
+const open = (node?: TreeNode) => {
   current.value = node
   resetForm()
   visible.value = true
 }
 
-const openEdit = (data: any) => {
-  editData.value = data
-  current.value = undefined
-  form.name = data.name || ''
-  form.icon = data.icon || ''
-  form.desc = data.desc || ''
-  form.allowAnonymousAccess = data.allowAnonymousAccess || false
-  visible.value = true
-}
-
 const close = () => {
   current.value = undefined
-  editData.value = null
   visible.value = false
 }
 
-defineExpose({openCreate, openEdit, close})
+onMounted(() => {
+  modelCommonAPI.listResource('root').then((ok) => {
+    modelList.value = ok.data
+  })
+})
+
+defineExpose({open, close})
 </script>
