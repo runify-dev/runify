@@ -21,6 +21,6 @@ public class BooleanConverter extends AbstractConverter<Boolean, Boolean> {
 
     @Override
     public Boolean deserialize(Row row, String column) {
-        return row.getBoolean("column");
+        return row. getBoolean(column);
     }
 }

@@ -9,13 +9,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-
 @Getter
 public class AggregatePermission {
     private final List<Function<RoutingContext, PermissionConstants.Permission>> permissionCalls;
     private final List<PermissionConstants> permissionConstants;
     private final List<AggregatePermission> aggregatePermissions;
     private final List<PermissionConstants.Role> roles;
+    private final List<Function<RoutingContext, Boolean>> customCalls;
     private final PermissionConstants.Compare compare;
 
     private AggregatePermission(Builder builder) {
@@ -23,6 +23,7 @@ public class AggregatePermission {
         this.permissionConstants = builder.permissionConstants;
         this.aggregatePermissions = builder.aggregatePermissions;
         this.roles = builder.roles;
+        this.customCalls = builder.customCalls;
         this.compare = builder.compare;
     }
 
@@ -32,7 +33,8 @@ public class AggregatePermission {
         if (CollectionUtils.isEmpty(this.permissionCalls) &&
                 CollectionUtils.isEmpty(this.permissionConstants) &&
                 CollectionUtils.isEmpty(this.aggregatePermissions) &&
-                CollectionUtils.isEmpty(this.roles)) {
+                CollectionUtils.isEmpty(this.roles) &&
+                CollectionUtils.isEmpty(this.customCalls)) {
             return true;
         }
         for (Function<RoutingContext, PermissionConstants.Permission> permissionCall : permissionCalls) {
@@ -84,6 +86,18 @@ public class AggregatePermission {
                 }
             }
         }
+        for (Function<RoutingContext, Boolean> customCall : customCalls) {
+            boolean hasPerm = Authenticator.hasCustomPermission(customCall, context, userRoles, userPermissions);
+            if (hasPerm) {
+                if (compare == PermissionConstants.Compare.OR) {
+                    return true;
+                }
+            } else {
+                if (compare == PermissionConstants.Compare.AND) {
+                    return false;
+                }
+            }
+        }
         return compare == PermissionConstants.Compare.AND;
     }
 
@@ -96,6 +110,7 @@ public class AggregatePermission {
         private List<PermissionConstants> permissionConstants;
         private List<AggregatePermission> aggregatePermissions;
         private List<PermissionConstants.Role> roles;
+        private List<Function<RoutingContext, Boolean>> customCalls;
         private PermissionConstants.Compare compare;
 
         private Builder() {
@@ -103,6 +118,7 @@ public class AggregatePermission {
             this.permissionConstants = new ArrayList<>();
             this.aggregatePermissions = new ArrayList<>();
             this.roles = new ArrayList<>();
+            this.customCalls = new ArrayList<>();
             this.compare = PermissionConstants.Compare.OR;
         }
 
@@ -123,6 +139,11 @@ public class AggregatePermission {
 
         public Builder roles(List<PermissionConstants.Role> roles) {
             this.roles = roles;
+            return this;
+        }
+
+        public Builder customCalls(List<Function<RoutingContext, Boolean>> customCalls) {
+            this.customCalls = customCalls;
             return this;
         }
 
@@ -162,6 +183,14 @@ public class AggregatePermission {
                 this.roles = new ArrayList<>();
             }
             this.roles.add(role);
+            return this;
+        }
+
+        public Builder addCustomCall(Function<RoutingContext, Boolean> customCall) {
+            if (this.customCalls == null) {
+                this.customCalls = new ArrayList<>();
+            }
+            this.customCalls.add(customCall);
             return this;
         }
 

@@ -119,6 +119,30 @@ public final class DSL {
         return Field.expression("json_text", ctx -> ctx.dialect().json().text(ctx, jsonField, path));
     }
 
+    public static <T> Field<T> sum(Field<?> field) {
+        return Field.expression("sum", ctx -> "sum(" + field.renderRef(ctx) + ")");
+    }
+
+    public static <T> Field<T> avg(Field<?> field) {
+        return Field.expression("avg", ctx -> "avg(" + field.renderRef(ctx) + ")");
+    }
+
+    @SafeVarargs
+    public static <T> Field<T> coalesce(Value<?> first, Value<?>... rest) {
+        return Field.expression("coalesce", ctx -> {
+            StringBuilder sb = new StringBuilder("coalesce(").append(first.render(ctx));
+            for (Value<?> v : rest) {
+                sb.append(", ").append(v.render(ctx));
+            }
+            sb.append(")");
+            return sb.toString();
+        });
+    }
+
+    public static Field<Object> date(Field<?> field) {
+        return Field.expression("date", ctx -> "date(" + field.renderRef(ctx) + ")");
+    }
+
     public static <T> Param<T> param(String name, T value) {
         return Param.of(name, value);
     }

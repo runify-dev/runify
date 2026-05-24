@@ -1,6 +1,6 @@
 CREATE TABLE "user"
 (
-    "id"          VARCHAR(32)              NOT NULL,
+    "id"          UUID              NOT NULL,
     "email"       VARCHAR(255)             NOT NULL,
     "phone"       VARCHAR(32),
     "nick_name"   VARCHAR(255)             NOT NULL,
@@ -8,8 +8,8 @@ CREATE TABLE "user"
     "icon"        VARCHAR(255),
     "role"        VARCHAR(32)              NOT NULL,
     "password"    VARCHAR(255)             NOT NULL,
-    "create_time" TIMESTAMP WITH TIME ZONE NOT NULL,
-    "update_time" TIMESTAMP WITH TIME ZONE NOT NULL,
+    "create_time" TIMESTAMP NOT NULL,
+    "update_time" TIMESTAMP NOT NULL,
     PRIMARY KEY ("id")
 );
 
@@ -21,13 +21,13 @@ VALUES ('22d90f6c-2092-43b8-aa14-d1f9731522ac', '', NULL, '系统管理员', 'ad
 
 CREATE TABLE "file"
 (
-    "id"          VARCHAR(32)  NOT NULL,
+    "id"          UUID           NOT NULL,
     "file_name"   VARCHAR(255),
     "lo_id"       BIGINT,
     "sha256_hash" VARCHAR(255),
     "ref_type"    VARCHAR(64),
-    "ref"         VARCHAR(32),
-    "meta"        TEXT,
+    "ref"         VARCHAR(255),
+    "meta"        JSONB,
     "create_time" TIMESTAMP,
     "update_time" TIMESTAMP,
     "path"        TEXT,
@@ -38,25 +38,25 @@ CREATE TABLE "file"
 
 CREATE TABLE "application_relation"
 (
-    "id"            VARCHAR(32) NOT NULL,
-    "ancestor_id"   VARCHAR(32),
-    "descendant_id" VARCHAR(32),
+    "id"            UUID NOT NULL,
+    "ancestor_id"   UUID,
+    "descendant_id" UUID,
     "depth"         INTEGER,
     PRIMARY KEY ("id")
 );
 
 CREATE TABLE "application"
 (
-    "id"                     VARCHAR(32) NOT NULL,
-    "parent_id"              VARCHAR(32),
+    "id"                     UUID NOT NULL,
+    "parent_id"              UUID,
     "name"                   VARCHAR(256),
     "icon"                   VARCHAR(256),
     "desc"                   VARCHAR(256),
-    "workflow"               TEXT,
-    "setting"                TEXT,
-    "star"                   SMALLINT,
-    "share"                  SMALLINT,
-    "allow_anonymous_access" SMALLINT,
+    "workflow"               JSONB,
+    "setting"                JSONB,
+    "star"                   BOOLEAN,
+    "share"                  BOOLEAN,
+    "allow_anonymous_access" BOOLEAN,
     "create_time"            TIMESTAMP,
     "update_time"            TIMESTAMP,
     PRIMARY KEY ("id")
@@ -64,8 +64,8 @@ CREATE TABLE "application"
 
 CREATE TABLE "application_folder"
 (
-    "id"          VARCHAR(32) NOT NULL,
-    "parent_id"   VARCHAR(32),
+    "id"          UUID NOT NULL,
+    "parent_id"   UUID,
     "name"        VARCHAR(256),
     "desc"        VARCHAR(256),
     "create_time" TIMESTAMP,
@@ -75,9 +75,9 @@ CREATE TABLE "application_folder"
 
 CREATE TABLE "application_permission"
 (
-    "id"          VARCHAR(32) NOT NULL,
-    "user_id"     VARCHAR(32),
-    "target"      VARCHAR(255),
+    "id"          UUID NOT NULL,
+    "user_id"     UUID,
+    "target"      UUID,
     "permission"  VARCHAR(255),
     "create_time" TIMESTAMP,
     "update_time" TIMESTAMP,
@@ -86,8 +86,8 @@ CREATE TABLE "application_permission"
 
 CREATE TABLE "model"
 (
-    "id"                   VARCHAR(32) NOT NULL,
-    "parent_id"            VARCHAR(32),
+    "id"                   UUID NOT NULL,
+    "parent_id"            UUID,
     "name"                 VARCHAR(256),
     "icon"                 VARCHAR(256),
     "desc"                 VARCHAR(256),
@@ -95,10 +95,10 @@ CREATE TABLE "model"
     "model_type"           VARCHAR(256),
     "model_name"           VARCHAR(256),
     "credential"           TEXT,
-    "model_parameter_form" TEXT,
-    "meta"                 TEXT,
-    "star"                 SMALLINT,
-    "share"                SMALLINT,
+    "model_parameter_form" JSONB,
+    "meta"                 JSONB,
+    "star"                 BOOLEAN,
+    "share"                BOOLEAN,
     "create_time"          TIMESTAMP,
     "update_time"          TIMESTAMP,
     PRIMARY KEY ("id")
@@ -106,8 +106,8 @@ CREATE TABLE "model"
 
 CREATE TABLE "model_folder"
 (
-    "id"          VARCHAR(32) NOT NULL,
-    "parent_id"   VARCHAR(32),
+    "id"          UUID NOT NULL,
+    "parent_id"   UUID,
     "name"        VARCHAR(256),
     "desc"        VARCHAR(256),
     "create_time" TIMESTAMP,
@@ -117,18 +117,18 @@ CREATE TABLE "model_folder"
 
 CREATE TABLE "model_relation"
 (
-    "id"            VARCHAR(32) NOT NULL,
-    "ancestor_id"   VARCHAR(32),
-    "descendant_id" VARCHAR(32),
+    "id"            UUID NOT NULL,
+    "ancestor_id"   UUID,
+    "descendant_id" UUID,
     "depth"         INTEGER,
     PRIMARY KEY ("id")
 );
 
 CREATE TABLE "model_permission"
 (
-    "id"          VARCHAR(32) NOT NULL,
-    "user_id"     VARCHAR(32),
-    "target"      VARCHAR(255),
+    "id"          UUID NOT NULL,
+    "user_id"     UUID,
+    "target"      UUID,
     "permission"  VARCHAR(255),
     "create_time" TIMESTAMP,
     "update_time" TIMESTAMP,
@@ -139,21 +139,21 @@ CREATE TABLE "model_permission"
 CREATE TABLE "system_setting"
 (
     "type" VARCHAR(64) NOT NULL,
-    "meta" TEXT,
+    "meta" JSONB,
     PRIMARY KEY ("type")
 );
 
 
 CREATE TABLE "note"
 (
-    "id"          VARCHAR(32) NOT NULL,
-    "parent_id"   VARCHAR(32),
+    "id"          UUID NOT NULL,
+    "parent_id"   UUID,
     "name"        VARCHAR(256),
     "icon"        VARCHAR(256),
     "content"     TEXT,
     "excerpt"     VARCHAR(256),
-    "star"        SMALLINT,
-    "share"       SMALLINT,
+    "star"        BOOLEAN,
+    "share"       BOOLEAN,
     "create_time" TIMESTAMP,
     "update_time" TIMESTAMP,
     PRIMARY KEY ("id")
@@ -161,8 +161,8 @@ CREATE TABLE "note"
 
 CREATE TABLE "note_folder"
 (
-    "id"          VARCHAR(32) NOT NULL,
-    "parent_id"   VARCHAR(32),
+    "id"          UUID NOT NULL,
+    "parent_id"   UUID,
     "name"        VARCHAR(256),
     "desc"        VARCHAR(256),
     "create_time" TIMESTAMP,
@@ -172,17 +172,17 @@ CREATE TABLE "note_folder"
 
 CREATE TABLE "note_relation"
 (
-    "id"            VARCHAR(32) NOT NULL,
-    "ancestor_id"   VARCHAR(32),
-    "descendant_id" VARCHAR(32),
+    "id"            UUID NOT NULL,
+    "ancestor_id"   UUID,
+    "descendant_id" UUID,
     "depth"         INTEGER,
     PRIMARY KEY ("id")
 );
 CREATE TABLE "note_permission"
 (
-    "id"          VARCHAR(32) NOT NULL,
-    "user_id"     VARCHAR(32),
-    "target"      VARCHAR(255),
+    "id"          UUID NOT NULL,
+    "user_id"     UUID,
+    "target"      UUID,
     "permission"  VARCHAR(255),
     "create_time" TIMESTAMP,
     "update_time" TIMESTAMP,
@@ -191,12 +191,12 @@ CREATE TABLE "note_permission"
 
 CREATE TABLE "conversation"
 (
-    "id"                     VARCHAR(32) NOT NULL,
+    "id"                     UUID NOT NULL,
     "name"                   VARCHAR(256),
-    "application_id"         VARCHAR(32),
-    "is_deleted"             SMALLINT,
-    "meta"                   TEXT,
-    "conversation_user_id"   VARCHAR(32),
+    "application_id"         UUID,
+    "is_deleted"             BOOLEAN,
+    "meta"                   JSONB,
+    "conversation_user_id"   VARCHAR(255),
     "conversation_user_type" VARCHAR(64),
     "execute_type"           VARCHAR(64),
     "star_num"               INTEGER,
@@ -210,16 +210,16 @@ CREATE TABLE "conversation"
 
 CREATE TABLE "conversation_message"
 (
-    "id"                VARCHAR(128) NOT NULL,
-    "application_id"    VARCHAR(128),
-    "conversation_id"   VARCHAR(128),
-    "workflow_run_id"   VARCHAR(128),
+    "id"                UUID NOT NULL,
+    "application_id"    UUID,
+    "conversation_id"   UUID,
+    "workflow_run_id"   UUID,
     "type"              VARCHAR(20),
-    "content"           TEXT,
-    "context"           TEXT,
+    "content"           JSONB,
+    "context"           JSONB,
     "prompt_tokens"     INTEGER,
     "completion_tokens" INTEGER,
-    "duration"          INTEGER,
+    "duration"          BIGINT,
     "create_time"       TIMESTAMP,
     "update_time"       TIMESTAMP,
     PRIMARY KEY ("id")
@@ -227,14 +227,14 @@ CREATE TABLE "conversation_message"
 
 CREATE TABLE "project"
 (
-    "id"          VARCHAR(32) NOT NULL,
-    "parent_id"   VARCHAR(32),
+    "id"          UUID NOT NULL,
+    "parent_id"   UUID,
     "desc"        VARCHAR(256),
     "name"        VARCHAR(256),
     "icon"        VARCHAR(256),
     "path"        TEXT,
-    "star"        SMALLINT,
-    "share"       SMALLINT,
+    "star"        BOOLEAN,
+    "share"       BOOLEAN,
     "create_time" TIMESTAMP,
     "update_time" TIMESTAMP,
     PRIMARY KEY ("id")
@@ -243,8 +243,8 @@ CREATE TABLE "project"
 
 CREATE TABLE "project_folder"
 (
-    "id"          VARCHAR(32) NOT NULL,
-    "parent_id"   VARCHAR(32),
+    "id"          UUID NOT NULL,
+    "parent_id"   UUID,
     "name"        VARCHAR(256),
     "desc"        VARCHAR(256),
     "create_time" TIMESTAMP,
@@ -255,18 +255,18 @@ CREATE TABLE "project_folder"
 
 CREATE TABLE "project_relation"
 (
-    "id"            VARCHAR(32) NOT NULL,
-    "ancestor_id"   VARCHAR(32),
-    "descendant_id" VARCHAR(32),
+    "id"            UUID NOT NULL,
+    "ancestor_id"   UUID,
+    "descendant_id" UUID,
     "depth"         INTEGER,
     PRIMARY KEY ("id")
 );
 
 CREATE TABLE "project_permission"
 (
-    "id"          VARCHAR(32) NOT NULL,
-    "user_id"     VARCHAR(32),
-    "target"      VARCHAR(255),
+    "id"          UUID NOT NULL,
+    "user_id"     UUID,
+    "target"      UUID,
     "permission"  VARCHAR(255),
     "create_time" TIMESTAMP,
     "update_time" TIMESTAMP,
@@ -275,14 +275,14 @@ CREATE TABLE "project_permission"
 
 CREATE TABLE "processor"
 (
-    "id"          VARCHAR(32) NOT NULL,
-    "project_id"  VARCHAR(32) NOT NULL,
+    "id"          UUID NOT NULL,
+    "project_id"  UUID NOT NULL,
     "name"        VARCHAR(256),
     "desc"        VARCHAR(256),
     "protocol"    VARCHAR(32),
-    "meta"        TEXT,
-    "workflow"    TEXT,
-    "activate"    SMALLINT,
+    "meta"        JSONB,
+    "workflow"    JSONB,
+    "activate"    BOOLEAN,
     "create_time" TIMESTAMP,
     "update_time" TIMESTAMP,
     PRIMARY KEY ("id")
@@ -292,7 +292,7 @@ CREATE TABLE "role"
 (
     "id"          VARCHAR(32) NOT NULL,
     "name"        VARCHAR(255),
-    "internal"    INTEGER,
+    "internal"    BOOLEAN,
     "type"        VARCHAR(64),
     "create_time" TIMESTAMP,
     "update_time" TIMESTAMP,
@@ -301,7 +301,7 @@ CREATE TABLE "role"
 
 CREATE TABLE "role_permission_relation"
 (
-    "id"            VARCHAR(32) NOT NULL,
+    "id"            UUID NOT NULL,
     "role_id"       VARCHAR(32),
     "permission_id" VARCHAR(255),
     PRIMARY KEY ("id")
@@ -309,23 +309,23 @@ CREATE TABLE "role_permission_relation"
 
 CREATE TABLE "role_user_relation"
 (
-    "id"      VARCHAR(32) NOT NULL,
+    "id"      UUID NOT NULL,
     "role_id" VARCHAR(32),
-    "user_id" VARCHAR(32),
+    "user_id" UUID,
     PRIMARY KEY ("id")
 );
 
 INSERT INTO "role" ("id", "name", "internal", "type", "create_time", "update_time")
-VALUES ('ADMIN', 'ADMIN', 1, 'ADMIN', '2026-04-16 23:00:01', '2026-04-16 23:00:01'),
-       ('USER', 'USER', 1, 'USER', '2026-04-16 23:00:01', '2026-04-16 23:00:01');
+VALUES ('ADMIN', 'ADMIN', TRUE, 'ADMIN', '2026-04-16 23:00:01', '2026-04-16 23:00:01'),
+       ('USER', 'USER', TRUE, 'USER', '2026-04-16 23:00:01', '2026-04-16 23:00:01');
 
 INSERT INTO "role_user_relation" ("id", "role_id", "user_id")
-VALUES ('1', 'ADMIN', '22d90f6c-2092-43b8-aa14-d1f9731522ac');
+VALUES ('a0b1c2d3-e4f5-6789-abcd-ef0123456789', 'ADMIN', '22d90f6c-2092-43b8-aa14-d1f9731522ac');
 
 CREATE TABLE "datasource"
 (
-    "id"               VARCHAR(32) NOT NULL,
-    "parent_id"        VARCHAR(32),
+    "id"               UUID NOT NULL,
+    "parent_id"        UUID,
     "name"             VARCHAR(256),
     "desc"             VARCHAR(256),
     "data_source_type" VARCHAR(32),
@@ -338,8 +338,8 @@ CREATE TABLE "datasource"
 
 CREATE TABLE "datasource_folder"
 (
-    "id"          VARCHAR(32) NOT NULL,
-    "parent_id"   VARCHAR(32),
+    "id"          UUID NOT NULL,
+    "parent_id"   UUID,
     "name"        VARCHAR(256),
     "desc"        VARCHAR(256),
     "create_time" TIMESTAMP,
@@ -349,18 +349,18 @@ CREATE TABLE "datasource_folder"
 
 CREATE TABLE "datasource_relation"
 (
-    "id"            VARCHAR(32) NOT NULL,
-    "ancestor_id"   VARCHAR(32),
-    "descendant_id" VARCHAR(32),
+    "id"            UUID NOT NULL,
+    "ancestor_id"   UUID,
+    "descendant_id" UUID,
     "depth"         INTEGER,
     PRIMARY KEY ("id")
 );
 
 CREATE TABLE "datasource_permission"
 (
-    "id"          VARCHAR(32) NOT NULL,
-    "user_id"     VARCHAR(32),
-    "target"      VARCHAR(255),
+    "id"          UUID NOT NULL,
+    "user_id"     UUID,
+    "target"      UUID,
     "permission"  VARCHAR(255),
     "create_time" TIMESTAMP,
     "update_time" TIMESTAMP,

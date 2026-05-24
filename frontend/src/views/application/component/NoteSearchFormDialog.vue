@@ -94,7 +94,7 @@
   </Dialog>
 </template>
 <script setup lang="ts">
-import {ref, reactive, onMounted} from 'vue'
+import {ref, reactive} from 'vue'
 import fileAPI from '@/api/file'
 import {TreeCommonAPI} from '@/api/tree'
 import type {TreeNode} from 'primevue/treenode'
@@ -166,18 +166,15 @@ const open = (node?: TreeNode) => {
   current.value = node
   resetForm()
   visible.value = true
+  modelCommonAPI.listResource('root').then((ok) => {
+    modelList.value = ok.data
+  })
 }
 
 const close = () => {
   current.value = undefined
   visible.value = false
 }
-
-onMounted(() => {
-  modelCommonAPI.listResource('root').then((ok) => {
-    modelList.value = ok.data
-  })
-})
 
 defineExpose({open, close})
 </script>

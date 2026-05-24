@@ -23,6 +23,7 @@ public class Authenticator implements Handler<RoutingContext> {
     private final List<PermissionConstants> permissionConstants;
     private final List<PermissionConstants.Role> roles;
     private final List<AggregatePermission> aggregatePermissions;
+    private final List<Function<RoutingContext, Boolean>> customCalls;
     private final PermissionConstants.Compare compare;
 
     /**
@@ -77,7 +78,8 @@ public class Authenticator implements Handler<RoutingContext> {
         if (CollectionUtils.isEmpty(this.permissionCalls) &&
                 CollectionUtils.isEmpty(this.permissionConstants) &&
                 CollectionUtils.isEmpty(this.aggregatePermissions) &&
-                CollectionUtils.isEmpty(this.roles)) {
+                CollectionUtils.isEmpty(this.roles) &&
+                CollectionUtils.isEmpty(this.customCalls)) {
             context.next();
             return;
         }
@@ -88,6 +90,8 @@ public class Authenticator implements Handler<RoutingContext> {
         if (checkPermissionCollection(this.aggregatePermissions, Authenticator::hasPermission, context, roleIds, permissions))
             return;
         if (checkPermissionCollection(this.roles, Authenticator::hasPermission, context, roleIds, permissions)) return;
+        if (checkPermissionCollection(this.customCalls, Authenticator::hasCustomPermission, context, roleIds, permissions))
+            return;
         if (compare == PermissionConstants.Compare.AND) {
             context.next();
         } else {
@@ -126,11 +130,19 @@ public class Authenticator implements Handler<RoutingContext> {
         return permission.hasPermission(context, userRoles, userPermissions);
     }
 
+    protected static boolean hasCustomPermission(Function<RoutingContext, Boolean> customCall,
+                                                 RoutingContext context,
+                                                 List<String> userRoles,
+                                                 Map<String, Long> userPermissions) {
+        return customCall.apply(context);
+    }
+
     private Authenticator(Builder builder) {
         this.permissionCalls = builder.permissionCalls;
         this.permissionConstants = builder.permissionConstants;
         this.roles = builder.roles;
         this.aggregatePermissions = builder.aggregatePermissions;
+        this.customCalls = builder.customCalls;
         this.compare = builder.compare;
     }
 
@@ -144,6 +156,7 @@ public class Authenticator implements Handler<RoutingContext> {
         private List<PermissionConstants> permissionConstants;
         private List<PermissionConstants.Role> roles;
         private List<AggregatePermission> aggregatePermissions;
+        private List<Function<RoutingContext, Boolean>> customCalls;
         private PermissionConstants.Compare compare;
 
         private Builder() {
@@ -151,6 +164,7 @@ public class Authenticator implements Handler<RoutingContext> {
             this.permissionConstants = new ArrayList<>();
             this.roles = new ArrayList<>();
             this.aggregatePermissions = new ArrayList<>();
+            this.customCalls = new ArrayList<>();
             this.compare = PermissionConstants.Compare.OR;
         }
 
@@ -171,6 +185,11 @@ public class Authenticator implements Handler<RoutingContext> {
 
         public Builder aggregatePermissions(List<AggregatePermission> aggregatePermissions) {
             this.aggregatePermissions = aggregatePermissions;
+            return this;
+        }
+
+        public Builder customCalls(List<Function<RoutingContext, Boolean>> customCalls) {
+            this.customCalls = customCalls;
             return this;
         }
 
@@ -210,6 +229,14 @@ public class Authenticator implements Handler<RoutingContext> {
                 this.roles = new ArrayList<>();
             }
             this.roles.add(role);
+            return this;
+        }
+
+        public Builder addCustomCall(Function<RoutingContext, Boolean> customCall) {
+            if (this.customCalls == null) {
+                this.customCalls = new ArrayList<>();
+            }
+            this.customCalls.add(customCall);
             return this;
         }
 

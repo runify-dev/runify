@@ -2,6 +2,7 @@ package com.run.dao.common.entity;
 
 import com.run.dao.common.annotations.Table;
 import com.run.dao.common.convert.EntityConvert;
+import com.run.dao.common.convert.postgres.PostgresConvert;
 import com.run.dao.common.convert.sqlite.SqliteConvert;
 import com.run.sql.dialect.SQLDialect;
 
@@ -33,6 +34,7 @@ public class EntityConfig<T> {
         Table t = clazz.getAnnotation(Table.class);
         config = new HashMap<>();
         config.put(SQLDialect.SQLITE, new Item<>(SQLDialect.SQLITE, table(t.catalogName(), t.schemaName(), t.name()), new SqliteConvert<>(clazz)));
+        config.put(SQLDialect.POSTGRESQL, new Item<>(SQLDialect.POSTGRESQL, table(t.catalogName(), t.schemaName(), t.name()), new PostgresConvert<>(clazz)));
     }
 
     public com.run.sql.model.Table getTable(SQLDialect sqlDialect) {

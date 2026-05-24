@@ -19,9 +19,9 @@ public enum PermissionConstants {
     APPLICATION_FOLDER_EDIT(new Permission(Group.APPLICATION, Group.FOLDER, Operate.EDIT, 4), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
     APPLICATION_FOLDER_DELETE(new Permission(Group.APPLICATION, Group.FOLDER, Operate.DELETE, 5), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
     APPLICATION_FOLDER_CREATE(new Permission(Group.APPLICATION, Group.FOLDER, Operate.CREATE, 6), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
-    APPLICATION_OVERVIEW_READ(new Permission(Group.APPLICATION, Group.OVERVIEW, Operate.READ, 7), List.of(ResourcePermissionGroup.VIEW,ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
-    APPLICATION_SETTING_READ(new Permission(Group.APPLICATION, Group.SETTING, Operate.READ, 8), List.of(ResourcePermissionGroup.VIEW,ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
-    APPLICATION_CONVERSATION_LOG_READ(new Permission(Group.APPLICATION, Group.CONVERSATION_LOG, Operate.READ, 9), List.of(ResourcePermissionGroup.VIEW,ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    APPLICATION_OVERVIEW_READ(new Permission(Group.APPLICATION, Group.OVERVIEW, Operate.READ, 7), List.of(ResourcePermissionGroup.VIEW, ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    APPLICATION_SETTING_READ(new Permission(Group.APPLICATION, Group.SETTING, Operate.READ, 8), List.of(ResourcePermissionGroup.VIEW, ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    APPLICATION_CONVERSATION_LOG_READ(new Permission(Group.APPLICATION, Group.CONVERSATION_LOG, Operate.READ, 9), List.of(ResourcePermissionGroup.VIEW, ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
 
     NOTE_READ(new Permission(Group.NOTE, Group.NOTE, Operate.READ, 0), List.of(ResourcePermissionGroup.VIEW, ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
     NOTE_EDIT(new Permission(Group.NOTE, Group.NOTE, Operate.EDIT, 1), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
@@ -211,5 +211,9 @@ public enum PermissionConstants {
 
     public Function<RoutingContext, Permission> getResourcePermission() {
         return c -> new Permission(this.permission.group, this.permission.subGroup, this.permission.operate, this.permission.bitIndex, c.pathParam("resourceId"));
+    }
+
+    public Function<RoutingContext, Permission> getFolderPermission() {
+        return c -> new Permission(this.permission.group, this.permission.subGroup, this.permission.operate, this.permission.bitIndex, c.pathParam("folderId"));
     }
 }

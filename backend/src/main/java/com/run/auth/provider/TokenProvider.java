@@ -128,7 +128,7 @@ public class TokenProvider implements AuthenticationProvider {
         var currentTargets = permissionMapper.getDslContext()
                 .select(targetField)
                 .from(permissionMapper.getTable())
-                .where(permissionField.eq(DSL.param("permission", DSL.param(view.get(resourcePermissionGroup)))))
+                .where(permissionField.eq(DSL.param(view.get(resourcePermissionGroup))))
                 .and(userIdField.eq(DSL.param("userId")));
         var otherTargets = permissionMapper.getDslContext()
                 .select(targetField)

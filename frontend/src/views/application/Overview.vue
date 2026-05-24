@@ -297,18 +297,23 @@ const formatTokens = (tokens: number) => {
   return String(tokens)
 }
 
-const parseQuestionContent = (content: string) => {
+const parseQuestionContent = (content: any): string => {
   try {
-    const parsed = JSON.parse(content)
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      const text = parsed[0]?.text || parsed[0]?.content || ''
-      return text.length > 30 ? text.slice(0, 30) + '...' : text
-    }
-    return content.length > 30 ? content.slice(0, 30) + '...' : content
+    const items = typeof content === 'string' ? JSON.parse(content) : content
+    if (!Array.isArray(items) || items.length === 0) return '暂无内容'
+    const item = items[0]
+    if (item.content) return truncate(item.content)
+    if (item.texts?.length) return truncate(item.texts[0].text || item.texts[0].content || '')
+    if (item.images?.length) return '[图片]'
+    if (item.files?.length) return `[文件] ${item.files[0].name || ''}`
+    if (item.videos?.length) return '[视频]'
+    return truncate(JSON.stringify(item))
   } catch {
-    return content.length > 30 ? content.slice(0, 30) + '...' : content
+    return typeof content === 'string' ? truncate(content) : '暂无内容'
   }
 }
+
+const truncate = (s: string) => s.length > 30 ? s.slice(0, 30) + '...' : s
 
 Chart.register(...registerables)
 const userChartCanvas = ref<HTMLCanvasElement | null>(null)

@@ -5,6 +5,7 @@ import com.run.auth.constants.PermissionConstants;
 import com.run.auth.constants.TokenTypeConstants;
 import com.run.auth.dto.UserProfile;
 import com.run.common.cache.CacheStore;
+import com.run.common.config.AppConfig;
 import com.run.common.constants.ConversationExecuteConstants;
 import com.run.common.constants.MessageConstants;
 import com.run.common.keyvalue.DefaultKeyValue;
@@ -14,8 +15,15 @@ import com.run.common.util.CommonUtils;
 import com.run.common.util.ConversationWorkflowExecutor;
 import com.run.common.util.JacksonUtils;
 import com.run.common.util.TreeUtil;
+import com.run.dao.common.convert.EntityConvert;
+import com.run.dao.common.convert.postgres.PostgresConvert;
+import com.run.dao.common.convert.sqlite.SqliteConvert;
 import com.run.dao.entity.*;
 import com.run.dao.mapper.*;
+import com.run.handler.application.vo.MessageTrendVO;
+import com.run.handler.application.vo.OverviewStatsVO;
+import com.run.handler.application.vo.TokenTrendVO;
+import com.run.sql.dialect.SQLDialect;
 import com.run.handler.application.IApplicationHandler;
 import com.run.handler.application.dto.ConversationDTO;
 import com.run.handler.application.pojo.ConversationQuery;
@@ -29,6 +37,7 @@ import com.run.handler.common.pojo.SimpleNodePojo;
 import com.run.handler.conversation.vo.ModifyConversationNameVO;
 import com.run.sql.DSL;
 import com.run.sql.condition.Condition;
+import com.run.sql.model.Field;
 import com.run.workflow.*;
 import com.run.workflow.entity.Node;
 import com.run.workflow.entity.NodeSerialize;
@@ -43,8 +52,8 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.templates.SqlTemplate;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 
@@ -74,6 +83,7 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
     private final ConversationMessageMapper conversationMessageMapper;
     private final MessageQueue<String> messageQueue;
     private final ConversationWorkflowExecutor executor;
+    private final AppConfig appConfig;
 
     @Inject
     public ApplicationHandlerImpl(ApplicationMapper applicationMapper,
@@ -83,12 +93,14 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
                                   ConversationMapper conversationMapper,
                                   ConversationMessageMapper conversationMessageMapper,
                                   CacheStore cacheStore,
-                                  MessageQueue<String> messageQueue) {
+                                  MessageQueue<String> messageQueue,
+                                  AppConfig appConfig) {
         super(applicationMapper, applicationFolderMapper, applicationRelationMapper, applicationPermissionMapper, cacheStore);
         this.applicationMapper = applicationMapper;
         this.conversationMapper = conversationMapper;
         this.conversationMessageMapper = conversationMessageMapper;
         this.messageQueue = messageQueue;
+        this.appConfig = appConfig;
         executor = new ConversationWorkflowExecutor(messageQueue, conversationMessageMapper);
     }
 
@@ -446,6 +458,11 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
 
     }
 
+    private <T> EntityConvert<T> converter(Class<T> clazz) {
+        SQLDialect dialect = appConfig.getDatabase().getType();
+        return dialect == SQLDialect.POSTGRESQL ? new PostgresConvert<>(clazz) : new SqliteConvert<>(clazz);
+    }
+
     public void overview(RoutingContext context) {
         String applicationId = context.pathParam("applicationId");
         String daysParam = context.queryParams().get("days");
@@ -456,79 +473,118 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
             } catch (NumberFormatException ignored) {
             }
         }
-        String startTime = LocalDateTime.now().minusDays(days).toLocalDate().toString();
+        LocalDateTime startTime = LocalDateTime.now().minusDays(days).toLocalDate().atStartOfDay();
 
+        var dsl = conversationMessageMapper.getDslContext();
         var client = conversationMessageMapper.getClient();
 
+        var msgTable = DSL.table("conversation_message");
+        var convTable = DSL.table("conversation");
+        var appId = DSL.<String>field("application_id");
+        var createTime = DSL.<LocalDateTime>field("create_time");
+        var typeField = DSL.<String>field("type");
+        var durationField = DSL.<Long>field("duration");
+
+        Condition appCondition = appId.eq(param("applicationId", applicationId));
+
         // 1. 统计卡片
-        Future<Row> statsFuture = SqlTemplate.forQuery(client,
-                        "SELECT " +
-                                "(SELECT COUNT(*) FROM conversation WHERE application_id = #{applicationId} AND is_deleted = 0) AS conversation_count, " +
-                                "(SELECT COUNT(*) FROM conversation_message WHERE application_id = #{applicationId}) AS message_count, " +
-                                "(SELECT COALESCE(SUM(prompt_tokens + completion_tokens), 0) FROM conversation_message WHERE application_id = #{applicationId}) AS total_tokens, " +
-                                "(SELECT COALESCE(AVG(duration), 0) FROM conversation_message WHERE application_id = #{applicationId} AND type = 'ASSISTANT') AS avg_duration")
-                .execute(Map.of("applicationId", applicationId))
+        EntityConvert<OverviewStatsVO> statsConvert = converter(OverviewStatsVO.class);
+        var convCountSub = dsl.select(DSL.count()).from(convTable)
+                .where(appCondition.and(field(Conversation::getIsDeleted).eq(false)));
+        var msgCountSub = dsl.select(DSL.count()).from(msgTable)
+                .where(appCondition);
+        var totalTokensSub = dsl.select(DSL.coalesce(DSL.sum(DSL.rawField("prompt_tokens + completion_tokens")), DSL.inline(0L)))
+                .from(msgTable)
+                .where(appCondition);
+        var avgDurationSub = dsl.select(DSL.coalesce(DSL.avg(durationField), DSL.inline(0L)))
+                .from(msgTable)
+                .where(appCondition.and(typeField.eq("ASSISTANT")));
+
+        var statsSql = dsl.select(
+                        Field.<Long>expression("conversation_count", ctx -> convCountSub.render(ctx)).as("conversation_count"),
+                        Field.<Long>expression("message_count", ctx -> msgCountSub.render(ctx)).as("message_count"),
+                        Field.<Long>expression("total_tokens", ctx -> totalTokensSub.render(ctx)).as("total_tokens"),
+                        Field.<Long>expression("avg_duration", ctx -> avgDurationSub.render(ctx)).as("avg_duration")
+                ).render();
+
+        Future<OverviewStatsVO> statsFuture = SqlTemplate.forQuery(client, statsSql.sql())
+                .mapTo(statsConvert::mapTo)
+                .execute(statsSql.params())
                 .map(rows -> rows.iterator().next());
 
         // 2. 消息趋势
-        Future<List<JsonObject>> messageTrendFuture = SqlTemplate.forQuery(client,
-                        "SELECT DATE(create_time) AS date, COUNT(*) AS count " +
-                                "FROM conversation_message " +
-                                "WHERE application_id = #{applicationId} AND create_time >= #{startTime} " +
-                                "GROUP BY DATE(create_time) ORDER BY date")
-                .execute(Map.of("applicationId", applicationId, "startTime", startTime))
+        EntityConvert<MessageTrendVO> msgTrendConvert = converter(MessageTrendVO.class);
+        var msgTrendSql = dsl.select(DSL.date(createTime).as("date"), DSL.count().as("count"))
+                .from(msgTable)
+                .where(appCondition.and(createTime.ge(param("startTime", startTime))))
+                .groupBy(DSL.date(createTime))
+                .orderBy(DSL.date(createTime).asc())
+                .render();
+
+        Future<List<JsonObject>> messageTrendFuture = SqlTemplate.forQuery(client, msgTrendSql.sql())
+                .mapTo(msgTrendConvert::mapTo)
+                .execute(msgTrendSql.params())
                 .map(rows -> {
                     List<JsonObject> list = new ArrayList<>();
-                    for (Row row : rows) {
+                    for (MessageTrendVO item : rows) {
                         list.add(new JsonObject()
-                                .put("date", row.getString("date"))
-                                .put("count", row.getLong("count")));
+                                .put("date", item.getDate() == null ? null : item.getDate().toString())
+                                .put("count", item.getCount()));
                     }
                     return list;
                 });
 
         // 3. Token 趋势
-        Future<List<JsonObject>> tokenTrendFuture = SqlTemplate.forQuery(client,
-                        "SELECT DATE(create_time) AS date, COALESCE(SUM(prompt_tokens + completion_tokens), 0) AS total " +
-                                "FROM conversation_message " +
-                                "WHERE application_id = #{applicationId} AND create_time >= #{startTime} " +
-                                "GROUP BY DATE(create_time) ORDER BY date")
-                .execute(Map.of("applicationId", applicationId, "startTime", startTime))
+        EntityConvert<TokenTrendVO> tokenTrendConvert = converter(TokenTrendVO.class);
+        var tokenTrendSql = dsl.select(
+                        DSL.date(createTime).as("date"),
+                        DSL.coalesce(DSL.sum(DSL.<Long>rawField("prompt_tokens + completion_tokens")), DSL.inline(0L)).as("total")
+                ).from(msgTable)
+                .where(appCondition.and(createTime.ge(param("startTime", startTime))))
+                .groupBy(DSL.date(createTime))
+                .orderBy(DSL.date(createTime).asc())
+                .render();
+
+        Future<List<JsonObject>> tokenTrendFuture = SqlTemplate.forQuery(client, tokenTrendSql.sql())
+                .mapTo(tokenTrendConvert::mapTo)
+                .execute(tokenTrendSql.params())
                 .map(rows -> {
                     List<JsonObject> list = new ArrayList<>();
-                    for (Row row : rows) {
+                    for (TokenTrendVO item : rows) {
                         list.add(new JsonObject()
-                                .put("date", row.getString("date"))
-                                .put("total", row.getLong("total")));
+                                .put("date", item.getDate() == null ? null : item.getDate().toString())
+                                .put("total", item.getTotal()));
                     }
                     return list;
                 });
 
         // 4. 最近提问
-        Future<List<JsonObject>> recentQuestionsFuture = SqlTemplate.forQuery(client,
-                        "SELECT content, create_time " +
-                                "FROM conversation_message " +
-                                "WHERE application_id = #{applicationId} AND type = 'USER' " +
-                                "ORDER BY create_time DESC LIMIT 5")
-                .execute(Map.of("applicationId", applicationId))
-                .map(rows -> {
+        Condition recentCondition = field(ConversationMessage::getApplicationId).eq(applicationId)
+                .and(field(ConversationMessage::getType).eq(MessageConstants.USER));
+        Future<List<JsonObject>> recentQuestionsFuture = conversationMessageMapper.list(
+                        conversationMessageMapper.select()
+                                .where(recentCondition)
+                                .orderBy(field(ConversationMessage::getCreateTime).desc())
+                                .limit(5L)
+                                .render())
+                .map(messages -> {
                     List<JsonObject> list = new ArrayList<>();
-                    for (Row row : rows) {
+                    for (ConversationMessage msg : messages) {
                         list.add(new JsonObject()
-                                .put("content", row.getString("content"))
-                                .put("createTime", row.getLocalDateTime("create_time").toString()));
+                                .put("content", msg.getContent())
+                                .put("createTime", msg.getCreateTime().toString()));
                     }
                     return list;
                 });
 
         Future.all(statsFuture, messageTrendFuture, tokenTrendFuture, recentQuestionsFuture)
                 .onSuccess(ok -> {
-                    Row stats = ok.resultAt(0);
+                    OverviewStatsVO stats = ok.resultAt(0);
                     JsonObject result = new JsonObject()
-                            .put("conversationCount", stats.getLong("conversation_count"))
-                            .put("messageCount", stats.getLong("message_count"))
-                            .put("totalTokens", stats.getLong("total_tokens"))
-                            .put("avgDuration", stats.getLong("avg_duration"))
+                            .put("conversationCount", stats.getConversationCount())
+                            .put("messageCount", stats.getMessageCount())
+                            .put("totalTokens", stats.getTotalTokens())
+                            .put("avgDuration", stats.getAvgDuration())
                             .put("messageTrend", ok.<List<JsonObject>>resultAt(1))
                             .put("tokenTrend", ok.<List<JsonObject>>resultAt(2))
                             .put("recentQuestions", ok.<List<JsonObject>>resultAt(3));
