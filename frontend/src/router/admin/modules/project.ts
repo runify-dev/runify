@@ -1,4 +1,4 @@
-import { PermissionConstants } from '@/permission/data'
+import {PermissionConstants} from '@/permission/data'
 import {
   AggregatePermission,
   Compare,
@@ -6,6 +6,7 @@ import {
   buildBasePermission,
   buildBaseResourcePermission
 } from '@/permission/common'
+import {ROOT_FOLDER_ID} from "@/constants/common"
 
 const projectRouter = {
   path: '/project',
@@ -20,12 +21,12 @@ const projectRouter = {
     fallbackRouteNames: ['application']
   },
   component: () => import('@/views/project/index.vue'),
-  redirect: '/project/folders/root',
+  redirect: `/project/folders/${ROOT_FOLDER_ID}`,
   children: [
     {
       path: 'folders/:id',
       name: 'projectFolders',
-      meta: { title: 'common.fileUpload.document', activeMenu: 'project' },
+      meta: {title: 'common.fileUpload.document', activeMenu: 'project'},
       component: () => import('@/views/project/List.vue'),
       permission: (to: any) => {
         return [buildBaseResourcePermission(PermissionConstants.PROJECT_READ, String(to.params.id))]
@@ -34,28 +35,28 @@ const projectRouter = {
     {
       path: 'resources/:id',
       name: 'projectDetails',
-      meta: { title: 'common.fileUpload.document', activeMenu: 'project' },
+      meta: {title: 'common.fileUpload.document', activeMenu: 'project'},
       component: () => import('@/views/project/Details.vue'),
-      redirect: { name: 'projectProcessor' },
+      redirect: {name: 'projectProcessor'},
       children: [
-        
+
         {
           path: 'processor',
           name: 'projectProcessor',
-          meta: { title: '处理器', activeMenu: 'project' },
+          meta: {title: '处理器', activeMenu: 'project'},
           component: () => import('@/views/project/processor/index.vue'),
-          redirect: { name: 'processorTable' },
+          redirect: {name: 'processorTable'},
           children: [
             {
               path: 'workflow/:processorId',
               name: 'processorWorkflow',
-              meta: { title: '处理器', activeMenu: 'project', activeSubMenu: 'processor' },
+              meta: {title: '处理器', activeMenu: 'project', activeSubMenu: 'processor'},
               component: () => import('@/views/project/processor/workflow/index.vue')
             },
             {
               path: 'index',
               name: 'processorTable',
-              meta: { title: '处理器', activeMenu: 'project', activeSubMenu: 'processor' },
+              meta: {title: '处理器', activeMenu: 'project', activeSubMenu: 'processor'},
               component: () => import('@/views/project/processor/table/index.vue')
             }
           ]

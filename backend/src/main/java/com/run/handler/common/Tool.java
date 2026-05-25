@@ -9,11 +9,8 @@ import com.run.sql.condition.Condition;
 import io.vertx.core.Future;
 import io.vertx.sqlclient.RowSet;
 import org.apache.commons.lang3.Strings;
- 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+
+import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -136,9 +133,9 @@ public class Tool {
             FourFunction<UUID, UUID, UUID, Integer, Relation> newRelation,
             Function<Relation, UUID> getAncestorId,
             Function<Relation, Integer> getDepth) {
-        if (parentId == null) {
+        if (Objects.equals(parentId, new UUID(0, 0))) {
             return Future.succeededFuture(List.of(
-                    newRelation.apply(UUID.randomUUID(), null, nodeId, 1),
+                    newRelation.apply(UUID.randomUUID(), new UUID(0, 0), nodeId, 1),
                     newRelation.apply(UUID.randomUUID(), nodeId, nodeId, 0)));
         }
         return relationMapper.list(DSL.field("descendant_id").eq(DSL.param("descendant_id")),

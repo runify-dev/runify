@@ -34,10 +34,10 @@ public class DatasourceRoute implements IRoute {
 
     @Inject
     public DatasourceRoute(@Named("apiRoute") Router apiRoute,
-                         OpenAPI openAPI,
-                         @Named("tokenBasicAuthHandler") TokenBasicAuthHandler tokenBasicAuthHandler,
-                         DataSourceHandlerImpl dataSourceHandler,
-                         DataSourceFolderHandlerImpl dataSourceFolderHandler) {
+                           OpenAPI openAPI,
+                           @Named("tokenBasicAuthHandler") TokenBasicAuthHandler tokenBasicAuthHandler,
+                           DataSourceHandlerImpl dataSourceHandler,
+                           DataSourceFolderHandlerImpl dataSourceFolderHandler) {
         this.apiRoute = apiRoute;
         this.openAPI = openAPI;
         this.dataSourceHandler = dataSourceHandler;
@@ -116,7 +116,7 @@ public class DatasourceRoute implements IRoute {
                 .handler(Authenticator.builder()
                         .addPermission(AggregatePermission.builder()
                                 .addPermission(PermissionConstants.DATASOURCE_FOLDER_EDIT)
-                                .addPermission(PermissionConstants.DATASOURCE_FOLDER_EDIT.getResourcePermission())
+                                .addPermission(PermissionConstants.DATASOURCE_FOLDER_EDIT.getFolderPermission())
                                 .compare(PermissionConstants.Compare.AND).build())
                         .addRole(PermissionConstants.Role.ADMIN)
                         .compare(PermissionConstants.Compare.OR)
@@ -128,7 +128,7 @@ public class DatasourceRoute implements IRoute {
                 .handler(Authenticator.builder()
                         .addPermission(AggregatePermission.builder()
                                 .addPermission(PermissionConstants.DATASOURCE_READ)
-                                .addPermission(PermissionConstants.DATASOURCE_READ.getResourcePermission())
+                                .addPermission(PermissionConstants.DATASOURCE_READ.getFolderPermission())
                                 .compare(PermissionConstants.Compare.AND).build())
                         .addRole(PermissionConstants.Role.ADMIN)
                         .compare(PermissionConstants.Compare.OR)
@@ -140,7 +140,7 @@ public class DatasourceRoute implements IRoute {
                 .handler(Authenticator.builder()
                         .addPermission(AggregatePermission.builder()
                                 .addPermission(PermissionConstants.DATASOURCE_FOLDER_DELETE)
-                                .addPermission(PermissionConstants.DATASOURCE_FOLDER_DELETE.getResourcePermission())
+                                .addPermission(PermissionConstants.DATASOURCE_FOLDER_DELETE.getFolderPermission())
                                 .compare(PermissionConstants.Compare.AND).build())
                         .addRole(PermissionConstants.Role.ADMIN)
                         .compare(PermissionConstants.Compare.OR)
@@ -153,7 +153,7 @@ public class DatasourceRoute implements IRoute {
                 .handler(Authenticator.builder()
                         .addPermission(AggregatePermission.builder()
                                 .addPermission(PermissionConstants.DATASOURCE_FOLDER_CREATE)
-                                .addPermission(PermissionConstants.DATASOURCE_FOLDER_CREATE.getResourcePermission())
+                                .addPermission(PermissionConstants.DATASOURCE_FOLDER_CREATE.getFolderPermission())
                                 .compare(PermissionConstants.Compare.AND).build())
                         .addRole(PermissionConstants.Role.ADMIN)
                         .compare(PermissionConstants.Compare.OR)
@@ -166,9 +166,9 @@ public class DatasourceRoute implements IRoute {
                 .handler(Authenticator.builder()
                         .addPermission(AggregatePermission.builder()
                                 .addPermission(PermissionConstants.DATASOURCE_READ)
-                                .addPermission(PermissionConstants.DATASOURCE_READ.getResourcePermission())
                                 .compare(PermissionConstants.Compare.AND).build())
                         .addRole(PermissionConstants.Role.ADMIN)
+                        .addRole(PermissionConstants.Role.USER)
                         .compare(PermissionConstants.Compare.OR)
                         .build())
                 .handler(dataSourceHandler::tree);
@@ -178,9 +178,9 @@ public class DatasourceRoute implements IRoute {
                 .handler(Authenticator.builder()
                         .addPermission(AggregatePermission.builder()
                                 .addPermission(PermissionConstants.DATASOURCE_READ)
-                                .addPermission(PermissionConstants.DATASOURCE_READ.getResourcePermission())
                                 .compare(PermissionConstants.Compare.AND).build())
                         .addRole(PermissionConstants.Role.ADMIN)
+                        .addRole(PermissionConstants.Role.USER)
                         .compare(PermissionConstants.Compare.OR)
                         .build())
                 .handler(dataSourceHandler::list);
@@ -191,7 +191,7 @@ public class DatasourceRoute implements IRoute {
                 .handler(Authenticator.builder()
                         .addPermission(AggregatePermission.builder()
                                 .addPermission(PermissionConstants.DATASOURCE_CREATE)
-                                .addPermission(PermissionConstants.DATASOURCE_CREATE.getResourcePermission())
+                                .addPermission(PermissionConstants.DATASOURCE_CREATE.getFolderPermission())
                                 .compare(PermissionConstants.Compare.AND).build())
                         .addRole(PermissionConstants.Role.ADMIN)
                         .compare(PermissionConstants.Compare.OR)

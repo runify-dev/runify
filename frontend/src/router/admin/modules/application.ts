@@ -1,4 +1,4 @@
-import { PermissionConstants } from '@/permission/data'
+import {PermissionConstants} from '@/permission/data'
 import {
   AggregatePermission,
   Compare,
@@ -6,6 +6,7 @@ import {
   buildBasePermission,
   buildBaseResourcePermission
 } from '@/permission/common'
+import {ROOT_FOLDER_ID} from "@/constants/common"
 
 const noteRouter = {
   path: '/application',
@@ -20,7 +21,7 @@ const noteRouter = {
     fallbackRouteNames: ['note']
   },
   component: () => import('@/views/application/index.vue'),
-  redirect: '/application/folders/root',
+  redirect: `/application/folders/${ROOT_FOLDER_ID}`,
   children: [
     {
       path: 'folders/:id',
@@ -51,7 +52,7 @@ const noteRouter = {
         fallbackRouteNames: ['application403']
       },
       component: () => import('@/views/application/Details.vue'),
-      redirect: { name: 'applicationOverview' },
+      redirect: {name: 'applicationOverview'},
       children: [
         {
           path: 'overview',

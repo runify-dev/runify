@@ -1,4 +1,4 @@
-import { PermissionConstants } from '@/permission/data'
+import {PermissionConstants} from '@/permission/data'
 import {
   AggregatePermission,
   Compare,
@@ -6,6 +6,8 @@ import {
   buildBasePermission,
   buildBaseResourcePermission
 } from '@/permission/common'
+import {ROOT_FOLDER_ID} from "@/constants/common"
+
 const modelRouter = {
   path: '/model',
   name: 'model',
@@ -19,7 +21,7 @@ const modelRouter = {
     fallbackRouteNames: ['note']
   },
   component: () => import('@/views/model/index.vue'),
-  redirect: '/model/folders/root',
+  redirect: `/model/folders/${ROOT_FOLDER_ID}`,
 
   children: [
     {

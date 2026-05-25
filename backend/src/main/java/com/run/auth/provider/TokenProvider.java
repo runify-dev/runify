@@ -28,6 +28,7 @@ import io.vertx.ext.auth.authentication.Credentials;
 import io.vertx.ext.auth.authentication.TokenCredentials;
 import io.vertx.ext.auth.impl.UserImpl;
 import io.vertx.sqlclient.Pool;
+import org.apache.commons.lang3.Strings;
 
 
 import java.util.*;
@@ -158,55 +159,37 @@ public class TokenProvider implements AuthenticationProvider {
             RelationMapper extends BaseMapper<Relation>,
             Resource extends BaseEntity<Resource>,
             ResourceMapper extends BaseMapper<Resource>>
-    Future<Map<String, Long>> getResourcePermission(ResourceMapper resourceMapper,
-                                                    PermissionMapper permissionMapper,
-                                                    RelationMapper relationMapper,
-                                                    String userId,
-                                                    Function<Relation, UUID> getId,
-                                                    List<RolePermissionRelation> rolePermissionRelations,
-                                                    PermissionConstants.Group group) {
-        Future<List<Relation>> view = relationMapper.list(getWhereByPermission(permissionMapper, relationMapper, PermissionConstants.ResourcePermissionGroup.VIEW),
-                Map.of("userId", userId, "permissionView", "VIEW",
-                        "permissionManage", "MANAGE",
-                        "permissionNotAuth", "NOT_AUTH",
-                        "permissionRole", "ROLE"));
-        Future<List<Relation>> manage = relationMapper.list(getWhereByPermission(permissionMapper, relationMapper, PermissionConstants.ResourcePermissionGroup.MANAGE),
-                Map.of("userId", userId, "permissionView", "VIEW",
-                        "permissionManage", "MANAGE",
-                        "permissionNotAuth", "NOT_AUTH",
-                        "permissionRole", "ROLE"));
-
-        Future<List<Relation>> role = relationMapper.list(getWhereByPermission(permissionMapper, relationMapper, PermissionConstants.ResourcePermissionGroup.ROLE),
-                Map.of("userId", userId, "permissionView", "VIEW",
-                        "permissionManage", "MANAGE",
-                        "permissionNotAuth", "NOT_AUTH",
-                        "permissionRole", "ROLE"));
-
-        return Future.all(view, manage, role).compose(result -> {
-            List<Relation> v = result.resultAt(0);
-            List<Relation> m = result.resultAt(1);
-            List<Relation> r = result.resultAt(2);
+    Future<Map<String, Long>> getResourcePermission(
+            PermissionMapper permissionMapper,
+            String userId,
+            Function<Permission, UUID> getResourceId,
+            Function<Permission, String> getPermission,
+            List<RolePermissionRelation> rolePermissionRelations,
+            PermissionConstants.Group group) {
+        Future<List<Permission>> permission = permissionMapper.list(field("user_id").eq(userId));
+        return permission.compose(permissions -> {
             HashMap<String, Long> permissionMap = new HashMap<>();
-            for (Relation relation : v) {
-                UUID apply = getId.apply(relation);
-                permissionMap.put(group.name() + ":" + apply.toString(), PermissionDataConstants.viewPermissionBit.get(group));
-            }
-            for (Relation relation : m) {
-                UUID apply = getId.apply(relation);
-                permissionMap.put(group.name() + ":" + apply.toString(), PermissionDataConstants.managePermissionBit.get(group));
-            }
-            for (Relation relation : r) {
-                UUID apply = getId.apply(relation);
-                Long reduce = rolePermissionRelations.stream()
-                        .map(RolePermissionRelation::getPermissionId)
-                        .map(PermissionDataConstants.permissionMap::get)
-                        .filter(p -> p.getGroup() == group)
-                        .map(PermissionConstants.Permission::bit).reduce(0L, (x, y) -> x | y);
-                permissionMap.put(group.name() + ":" + apply.toString(), reduce);
-
-            }
+            permissions.forEach(p -> {
+                String _permission = getPermission.apply(p);
+                UUID target = getResourceId.apply(p);
+                String key = group.name() + ":" + target.toString();
+                if (Strings.CS.equals(_permission, PermissionConstants.ResourcePermissionGroup.VIEW.name())) {
+                    permissionMap.put(key, PermissionDataConstants.viewPermissionBit.get(group));
+                } else if (Strings.CS.equals(_permission, PermissionConstants.ResourcePermissionGroup.MANAGE.name())) {
+                    permissionMap.put(key, PermissionDataConstants.managePermissionBit.get(group));
+                } else if (Strings.CS.equals(_permission, PermissionConstants.ResourcePermissionGroup.ROLE.name())) {
+                    Long reduce = rolePermissionRelations.stream()
+                            .map(RolePermissionRelation::getPermissionId)
+                            .map(PermissionDataConstants.permissionMap::get)
+                            .filter(_p -> _p.getGroup() == group)
+                            .map(PermissionConstants.Permission::bit).reduce(0L, (x, y) -> x | y);
+                    permissionMap.put(key, reduce);
+                }
+            });
             return Future.succeededFuture(permissionMap);
         });
+
+
     }
 
 
@@ -285,39 +268,35 @@ public class TokenProvider implements AuthenticationProvider {
         return rolePermissionRelations.compose(rolePermissionRelationResult -> {
             Future<Map<String, Long>> applicationPermissions =
                     getResourcePermission(
-                            applicationMapper,
                             applicationPermissionBaseMapper,
-                            applicationRelationMapper,
                             userId,
-                            ApplicationRelation::getDescendantId,
+                            ApplicationPermission::getTarget,
+                            ApplicationPermission::getPermission,
                             rolePermissionRelationResult,
                             PermissionConstants.Group.APPLICATION);
             Future<Map<String, Long>> notePermissions =
                     getResourcePermission(
-                            noteMapper,
                             notePermissionBaseMapper,
-                            noteRelationMapper,
                             userId,
-                            NoteRelation::getDescendantId,
+                            NotePermission::getTarget,
+                            NotePermission::getPermission,
                             rolePermissionRelationResult,
                             PermissionConstants.Group.NOTE);
             Future<Map<String, Long>> moelPermissions =
                     getResourcePermission(
-                            modelMapper,
                             modelPermissionBaseMapper,
-                            modelRelationMapper,
                             userId,
-                            ModelRelation::getDescendantId,
+                            ModelPermission::getTarget,
+                            ModelPermission::getPermission,
                             rolePermissionRelationResult,
                             PermissionConstants.Group.MODEL);
             Future<com.run.dao.entity.User> userFuture = userMapper.getById(userId);
             Future<Map<String, Long>> projectPermissions =
                     getResourcePermission(
-                            projectMapper,
                             projectPermissionBaseMapper,
-                            projectRelationMapper,
                             userId,
-                            ProjectRelation::getDescendantId,
+                            ProjectPermission::getTarget,
+                            ProjectPermission::getPermission,
                             rolePermissionRelationResult,
                             PermissionConstants.Group.PROJECT);
             return Future.all(applicationPermissions, notePermissions, moelPermissions, projectPermissions, rolePermissionRelations, userFuture);

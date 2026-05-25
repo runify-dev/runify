@@ -1,3 +1,5 @@
+import {ROOT_FOLDER_ID} from "@/constants/common"
+
 const datasourceRouter = {
   path: '/datasource',
   name: 'datasource',
@@ -7,7 +9,7 @@ const datasourceRouter = {
     activeMenu: 'datasource'
   },
   component: () => import('@/views/datasource/index.vue'),
-  redirect: '/datasource/folders/root',
+  redirect: `/datasource/folders/${ROOT_FOLDER_ID}`,
   children: [
     {
       path: 'folders/:id',

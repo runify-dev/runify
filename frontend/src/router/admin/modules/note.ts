@@ -1,4 +1,4 @@
-import { PermissionConstants } from '@/permission/data'
+import {PermissionConstants} from '@/permission/data'
 import {
   AggregatePermission,
   Compare,
@@ -6,6 +6,8 @@ import {
   buildBasePermission,
   buildBaseResourcePermission
 } from '@/permission/common'
+import {ROOT_FOLDER_ID} from "@/constants/common"
+
 const knowledgeRouter = {
   path: '/note',
   name: 'note',
@@ -19,7 +21,7 @@ const knowledgeRouter = {
     fallbackRouteNames: ['model']
   },
   component: () => import('@/views/note/index.vue'),
-  redirect: '/note/folders/root',
+  redirect: `/note/folders/${ROOT_FOLDER_ID}`,
   children: [
     {
       path: 'folders/:id',

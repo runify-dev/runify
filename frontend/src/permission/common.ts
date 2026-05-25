@@ -267,6 +267,7 @@ export const buildBaseResourcePermission = (permission: Permission, resourceId: 
     : AggregatePermission.builder()
       .addPermission(permission.newResourcePermission(resourceId))
       .addRole(Role.ADMIN)
+      .addRole(Role.USER)
       .compare(Compare.OR)
       .build()
 }

@@ -26,54 +26,6 @@
             <i class="pi pi-folder" v-if="scope.node.type == 'folder'"></i>
             <i class="pi pi-database" v-else></i>
           </template>
-          <template #header>
-            <div @click="nodeSelect(undefined)" class="p-tree-node">
-              <div
-                class="p-tree-node-content p-tree-node-selectable"
-                :class="selectedKeys ? '' : 'p-tree-node-selected'"
-              >
-                <div class="p-tree-node-label w-full">
-                  <div class="flex items-center justify-between w-full group">
-                    <span>全部</span>
-                    <div class="action-buttons">
-                      <DropdownMenu
-                        :items="[
-                          {
-                            label: '新建',
-                            items: [
-                              {
-                                label: '数据源',
-                                command: () => {
-                                  openCreateResourceDialog()
-                                }
-                              },
-                              {
-                                label: '文件夹',
-                                command: () => {
-                                  openCreateFolderDialog()
-                                }
-                              }
-                            ]
-                          }
-                        ]"
-                      >
-                        <template #default>
-                          <Button
-                            v-tooltip="'操作'"
-                            icon="pi pi-ellipsis-v"
-                            variant="text"
-                            aria-label="Filter"
-                            severity="secondary"
-                            size="small"
-                          ></Button>
-                        </template>
-                      </DropdownMenu>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </template>
           <template #default="{ node }">
             <div class="flex items-center justify-between w-full group">
               <span>{{ node.label }}</span>
@@ -147,23 +99,20 @@ import { TreeCommonAPI } from '@/api/tree'
 import TreeEmpty from '@/components/tree-empty/index.vue'
 import type { TreeNode } from 'primevue/treenode'
 import bus from '@/bus/index'
+import {ROOT_FOLDER_ID} from "@/constants/common.ts";
 
 const route = useRoute()
 const router = useRouter()
 const expandedKeys = ref<TreeSelectionKeys>()
 const selectedKeys = computed(() => {
   const id = route.params.id as string
-  if (id === 'root') {
-    return undefined
-  } else {
-    return { [id]: true }
-  }
+  return { [id]: true }
 })
 const treeCommonAPI = new TreeCommonAPI('datasource')
 
 const nodeSelect = (treeNode?: TreeNode) => {
   if (treeNode === undefined) {
-    router.push({ name: 'datasourceFolders', params: { id: 'root' } })
+    router.push({ name: 'datasourceFolders', params: { id: ROOT_FOLDER_ID } })
     return
   }
   if (treeNode.data.type == 'folder') {
@@ -180,7 +129,7 @@ const createFolderSuccess = (key: string, node: any) => {
 }
 
 const openCreateResourceDialog = (node?: TreeNode) => {
-  const folderId = node ? node.key : 'root'
+  const folderId = node ? node.key : ROOT_FOLDER_ID
   router.push({ name: 'datasourceCreate', params: { folderId } })
 }
 
@@ -201,7 +150,7 @@ const removeTreeNode = (node: TreeNode) => {
 const nodes = ref<Array<any>>([])
 const treeManage = ref()
 const reloadTree = () => {
-  treeCommonAPI.listTree('root').then((ok) => {
+  treeCommonAPI.listTree(ROOT_FOLDER_ID).then((ok) => {
     nodes.value = toTree(ok.data)
     treeManage.value = new TreeManager(nodes.value)
   })

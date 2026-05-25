@@ -1,15 +1,15 @@
 CREATE TABLE "user"
 (
-    "id"          UUID              NOT NULL,
-    "email"       VARCHAR(255)             NOT NULL,
+    "id"          UUID         NOT NULL,
+    "email"       VARCHAR(255) NOT NULL,
     "phone"       VARCHAR(32),
-    "nick_name"   VARCHAR(255)             NOT NULL,
-    "username"    VARCHAR(255)             NOT NULL,
+    "nick_name"   VARCHAR(255) NOT NULL,
+    "username"    VARCHAR(255) NOT NULL,
     "icon"        VARCHAR(255),
-    "role"        VARCHAR(32)              NOT NULL,
-    "password"    VARCHAR(255)             NOT NULL,
-    "create_time" TIMESTAMP NOT NULL,
-    "update_time" TIMESTAMP NOT NULL,
+    "role"        VARCHAR(32)  NOT NULL,
+    "password"    VARCHAR(255) NOT NULL,
+    "create_time" TIMESTAMP    NOT NULL,
+    "update_time" TIMESTAMP    NOT NULL,
     PRIMARY KEY ("id")
 );
 
@@ -21,7 +21,7 @@ VALUES ('22d90f6c-2092-43b8-aa14-d1f9731522ac', '', NULL, '系统管理员', 'ad
 
 CREATE TABLE "file"
 (
-    "id"          UUID           NOT NULL,
+    "id"          UUID NOT NULL,
     "file_name"   VARCHAR(255),
     "lo_id"       BIGINT,
     "sha256_hash" VARCHAR(255),
@@ -73,6 +73,13 @@ CREATE TABLE "application_folder"
     PRIMARY KEY ("id")
 );
 
+INSERT INTO application_folder (id, parent_id, name, "desc", create_time, update_time)
+VALUES ('00000000-0000-0000-0000-000000000000', NULL, 'root', '', NOW(), NOW());
+
+INSERT INTO application_relation (id, ancestor_id, descendant_id, depth)
+VALUES (gen_random_uuid(), '00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000000', 0);
+
+
 CREATE TABLE "application_permission"
 (
     "id"          UUID NOT NULL,
@@ -123,6 +130,13 @@ CREATE TABLE "model_relation"
     "depth"         INTEGER,
     PRIMARY KEY ("id")
 );
+
+INSERT INTO model_folder (id, parent_id, name, "desc", create_time, update_time)
+VALUES ('00000000-0000-0000-0000-000000000000', NULL, 'root', '', NOW(), NOW());
+
+INSERT INTO model_relation (id, ancestor_id, descendant_id, depth)
+VALUES (gen_random_uuid(), '00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000000', 0);
+
 
 CREATE TABLE "model_permission"
 (
@@ -178,6 +192,13 @@ CREATE TABLE "note_relation"
     "depth"         INTEGER,
     PRIMARY KEY ("id")
 );
+
+INSERT INTO note_folder (id, parent_id, name, "desc", create_time, update_time)
+VALUES ('00000000-0000-0000-0000-000000000000', NULL, 'root', '', NOW(), NOW());
+
+INSERT INTO note_relation (id, ancestor_id, descendant_id, depth)
+VALUES (gen_random_uuid(), '00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000000', 0);
+
 CREATE TABLE "note_permission"
 (
     "id"          UUID NOT NULL,
@@ -261,6 +282,13 @@ CREATE TABLE "project_relation"
     "depth"         INTEGER,
     PRIMARY KEY ("id")
 );
+
+INSERT INTO project_folder (id, parent_id, name, "desc", create_time, update_time)
+VALUES ('00000000-0000-0000-0000-000000000000', NULL, 'root', '', NOW(), NOW());
+
+INSERT INTO project_relation (id, ancestor_id, descendant_id, depth)
+VALUES (gen_random_uuid(), '00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000000', 0);
+
 
 CREATE TABLE "project_permission"
 (
@@ -355,6 +383,11 @@ CREATE TABLE "datasource_relation"
     "depth"         INTEGER,
     PRIMARY KEY ("id")
 );
+INSERT INTO datasource_folder (id, parent_id, name, "desc", create_time, update_time)
+VALUES ('00000000-0000-0000-0000-000000000000', NULL, 'root', '', NOW(), NOW());
+
+INSERT INTO datasource_relation (id, ancestor_id, descendant_id, depth)
+VALUES (gen_random_uuid(), '00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000000', 0);
 
 CREATE TABLE "datasource_permission"
 (

@@ -5,7 +5,7 @@
       <!-- 搜索框 -->
       <InputGroup class="max-w-sm">
         <InputGroupAddon class="!bg-surface-0 !border-surface-200">
-          <i class="pi pi-search text-surface-400 text-sm" />
+          <i class="pi pi-search text-surface-400 text-sm"/>
         </InputGroupAddon>
         <InputText
           v-model="searchText"
@@ -15,7 +15,7 @@
       </InputGroup>
 
       <!-- 新建按钮 -->
-      <Button icon="pi pi-plus" label="新建模型" @click="openCreate" class="shrink-0" />
+      <Button icon="pi pi-plus" label="新建模型" @click="openCreate" class="shrink-0"/>
     </div>
 
     <!-- 应用网格 -->
@@ -35,7 +35,7 @@
             <div
               class="w-10 h-10 rounded-xl bg-primary-50 flex items-center justify-center text-primary-500 text-lg shrink-0"
             >
-              <i class="pi pi-th-large" />
+              <i class="pi pi-th-large"/>
             </div>
 
             <div @click.stop>
@@ -68,7 +68,7 @@
               模型
             </span>
             <span class="flex items-center gap-1 text-[11px] text-surface-400">
-              <i class="pi pi-clock text-[10px]" />
+              <i class="pi pi-clock text-[10px]"/>
               {{ item.updateTime }}
             </span>
           </div>
@@ -80,27 +80,27 @@
         v-if="filteredList.length === 0"
         class="col-span-full flex flex-col items-center justify-center py-16 text-surface-400"
       >
-        <i class="pi pi-inbox text-5xl mb-4 opacity-40" />
+        <i class="pi pi-inbox text-5xl mb-4 opacity-40"/>
         <p class="text-sm">暂无模型，点击「新建模型」开始创建</p>
       </div>
     </div>
 
     <!-- 操作菜单 -->
-    <Menu ref="menuRef" :model="menuItems" popup />
+    <Menu ref="menuRef" :model="menuItems" popup/>
 
     <!-- 删除确认 -->
-    <ConfirmDialog />
+    <ConfirmDialog/>
   </div>
 </template>
 
 <script setup lang="ts">
-import { useRoute, useRouter } from 'vue-router'
-import { computed, onMounted, ref, watch } from 'vue'
-import { type Node } from '@/api/type/node'
-import { useConfirm } from 'primevue/useconfirm'
-import { useToast } from 'primevue/usetoast'
+import {useRoute, useRouter} from 'vue-router'
+import {computed, onMounted, ref, watch} from 'vue'
+import {type Node} from '@/api/type/node'
+import {useConfirm} from 'primevue/useconfirm'
+import {useToast} from 'primevue/usetoast'
 import bus from '@/bus/index'
-import { TreeCommonAPI } from '@/api/tree'
+import {TreeCommonAPI} from '@/api/tree'
 
 const treeCommonAPI = new TreeCommonAPI('model')
 const router = useRouter()
@@ -109,7 +109,6 @@ const confirm = useConfirm()
 const toast = useToast()
 
 const nodeList = ref<Array<Node>>([])
-const folder = ref<Node>()
 const searchText = ref<string>('')
 const menuRef = ref()
 const activeItem = ref<Node | null>(null)
@@ -122,7 +121,7 @@ const filteredList = computed(() =>
 
 const folderId = computed(() => {
   const {
-    params: { id }
+    params: {id}
   } = route as any
   return id
 })
@@ -133,7 +132,7 @@ const menuItems = computed(() => [
     icon: 'pi pi-arrow-up-right',
     command: () => activeItem.value && handleOpen(activeItem.value)
   },
-  { separator: true },
+  {separator: true},
   {
     label: '删除',
     icon: 'pi pi-trash',
@@ -152,7 +151,7 @@ const openCreate = () => {
 }
 
 const handleOpen = (item: Node) => {
-  router.push({ name: 'modelDetails', params: { id: item.id } })
+  router.push({name: 'modelDetails', params: {id: item.id}})
   bus.emit('sidebar:flip')
 }
 
@@ -165,13 +164,13 @@ const handleDelete = (item: Node) => {
     message: `确定要删除「${item.name}」吗？此操作不可撤销。`,
     header: '删除确认',
     icon: 'pi pi-exclamation-triangle',
-    rejectProps: { label: '取消', severity: 'secondary', variant: 'outlined' },
-    acceptProps: { label: '删除', severity: 'danger' },
+    rejectProps: {label: '取消', severity: 'secondary', variant: 'outlined'},
+    acceptProps: {label: '删除', severity: 'danger'},
     accept: () => {
       treeCommonAPI.removeResource(item.id).then(() => {
         nodeList.value = nodeList.value.filter((n) => n.id !== item.id)
         bus.emit('tree:remove', item.id)
-        toast.add({ severity: 'success', summary: '删除成功', life: 2000 })
+        toast.add({severity: 'success', summary: '删除成功', life: 2000})
       })
     }
   })
@@ -183,21 +182,14 @@ const lisResource = () => {
   })
 }
 
-const forderInfo = () => {
-  if (!['root', 'shar', 'share'].includes(folderId.value)) {
-    treeCommonAPI.getFolder(folderId.value).then((ok) => {
-      folder.value = ok.data
-    })
-  }
-}
 
 watch(folderId, () => {
   lisResource()
-  forderInfo()
+
 })
 
 onMounted(() => {
-  forderInfo()
+
   lisResource()
 })
 </script>

@@ -19,9 +19,9 @@
 
       <IconField>
         <InputIcon>
-          <i class="pi pi-search" />
+          <i class="pi pi-search"/>
         </InputIcon>
-        <InputText v-model="searchKeyword" placeholder="搜索名称" fluid />
+        <InputText v-model="searchKeyword" placeholder="搜索名称" fluid/>
       </IconField>
 
       <div
@@ -46,19 +46,19 @@
                   "
                   class="text-primary"
                 >
-                  <i class="pi pi-folder" />
+                  <i class="pi pi-folder"/>
                 </span>
                 <span v-else-if="active === 'application'" class="text-primary">
-                  <i class="pi pi-reddit" />
+                  <i class="pi pi-reddit"/>
                 </span>
                 <span v-else-if="active === 'model'" class="text-primary">
-                  <i class="pi pi-box" />
+                  <i class="pi pi-box"/>
                 </span>
                 <span v-else-if="active === 'project'" class="text-primary">
-                  <i class="pi pi-android" />
+                  <i class="pi pi-android"/>
                 </span>
                 <span v-else class="text-primary">
-                  <i class="pi pi-file" />
+                  <i class="pi pi-file"/>
                 </span>
                 <span class="font-medium text-surface-800 dark:text-surface-100 tracking-wide">
                   {{ node.data.name }}
@@ -94,13 +94,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import {ref, watch} from 'vue'
 import Drawer from 'primevue/drawer'
 import TreeTable from 'primevue/treetable'
 import Column from 'primevue/column'
 import RadioButton from 'primevue/radiobutton'
-import { TreeCommonAPI } from '@/api/tree'
-import { toTree } from '@/utils/common'
+import {TreeCommonAPI} from '@/api/tree'
+import {toTree} from '@/utils/common'
 
 const visible = ref(false)
 const userId = ref<string>()
@@ -112,10 +112,10 @@ const treeTableRef = ref<any>(null)
 const expandedKeys = ref<string[]>([])
 
 const menuOptions = [
-  { label: '应用', value: 'application' as const, icon: 'app-icon app-application' },
-  { label: '笔记', value: 'note' as const, icon: 'app-icon app-document' },
-  { label: '模型', value: 'model' as const, icon: 'app-icon app-model' },
-  { label: '项目', value: 'project' as const, icon: 'app-icon app-document' }
+  {label: '应用', value: 'application' as const, icon: 'app-icon app-application'},
+  {label: '笔记', value: 'note' as const, icon: 'app-icon app-document'},
+  {label: '模型', value: 'model' as const, icon: 'app-icon app-model'},
+  {label: '项目', value: 'project' as const, icon: 'app-icon app-document'}
 ]
 
 // 将普通树形数据转换为 TreeTable 需要的 TreeNode 格式
@@ -128,13 +128,13 @@ const toTreeNodes = (items: any[]): any[] => {
 }
 
 const getPermOptions = (row: any) => {
-  const base = [
-    { label: '不授权', value: 'NOT_AUTH' },
-    { label: '查看', value: 'VIEW' },
-    { label: '管理', value: 'MANAGE' },
-    { label: '按角色', value: 'ROLE' }
+  return [
+    {label: '不授权', value: 'NOT_AUTH'},
+    {label: '查看', value: 'VIEW'},
+    {label: '管理', value: 'MANAGE'},
+    {label: '按角色', value: 'ROLE'}
   ]
-  return row.parentId ? [{ label: '继承', value: 'INHERIT' }, ...base] : base
+
 }
 
 const close = () => {
@@ -223,5 +223,5 @@ const open = (uId: string) => {
   listResourcePermission()
 }
 
-defineExpose({ close, open })
+defineExpose({close, open})
 </script>

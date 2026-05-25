@@ -63,6 +63,7 @@ import type { BaseNodeModel } from '@logicflow/core'
 import { locationOptions } from './type'
 import databaseConnectionPoolAPI from '@/api/database-connection-pool.ts'
 import { cloneDeep } from 'lodash'
+import {ROOT_FOLDER_ID} from "@/constants/common.ts";
 
 const getModel = inject('getModel') as () => BaseNodeModel
 const model = getModel()
@@ -70,7 +71,7 @@ const getNodeFieldOptions = inject('getNodeFieldOptions') as any
 const fieldOptions = getNodeFieldOptions()
 const dataSourceList = ref<any>([])
 
-databaseConnectionPoolAPI.listResource('root').then((ok) => {
+databaseConnectionPoolAPI.listResource(ROOT_FOLDER_ID).then((ok) => {
   dataSourceList.value = ok.data
     .filter((item: any) => item.dataSourceType === 'CACHE')
     .map((item: any) => ({ label: item.name, value: item.id }))

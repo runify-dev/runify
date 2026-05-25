@@ -5,7 +5,7 @@
       <!-- 搜索框 -->
       <InputGroup class="max-w-sm">
         <InputGroupAddon class="!bg-surface-0 !border-surface-200">
-          <i class="pi pi-search text-surface-400 text-sm" />
+          <i class="pi pi-search text-surface-400 text-sm"/>
         </InputGroupAddon>
         <InputText
           v-model="searchText"
@@ -16,13 +16,16 @@
 
       <!-- 操作按钮组 -->
       <div class="flex items-center gap-2 shrink-0">
-        <input ref="fileInputRef" type="file" accept=".json" class="hidden" @change="handleImport" />
-        <Button icon="pi pi-plus" label="创建" @click="toggleCreateMenu" />
-        <Menu ref="createMenuRef" :model="createMenuItems" popup :pt="{ item: { class: '!p-0' }, itemContent: { style: 'justify-content: flex-start !important' }, itemLink: { style: 'justify-content: flex-start !important; text-align: left !important' }, list: { class: '!py-1' } }">
+        <input ref="fileInputRef" type="file" accept=".json" class="hidden" @change="handleImport"/>
+        <Button icon="pi pi-plus"
+                v-if="permissionCreate"
+                label="创建" @click="toggleCreateMenu"/>
+        <Menu ref="createMenuRef" :model="createMenuItems" popup
+              :pt="{ item: { class: '!p-0' }, itemContent: { style: 'justify-content: flex-start !important' }, itemLink: { style: 'justify-content: flex-start !important; text-align: left !important' }, list: { class: '!py-1' } }">
           <template #item="{ item, props }">
             <a v-ripple class="flex flex-col gap-0.5 px-3 py-1.5 items-start" v-bind="props.action">
               <div class="flex items-center gap-2">
-                <span :class="item.icon" class="w-4 text-sm" />
+                <span :class="item.icon" class="w-4 text-sm"/>
                 <span class="text-sm font-medium">{{ item.label }}</span>
               </div>
               <span class="text-xs text-surface-400">{{ item.description }}</span>
@@ -55,7 +58,7 @@
                 alt="icon"
                 class="w-full h-full object-cover"
               />
-              <i v-else class="pi pi-th-large" />
+              <i v-else class="pi pi-th-large"/>
             </div>
 
             <div @click.stop>
@@ -88,7 +91,7 @@
               应用
             </span>
             <span class="flex items-center gap-1 text-[11px] text-surface-400">
-              <i class="pi pi-clock text-[10px]" />
+              <i class="pi pi-clock text-[10px]"/>
               {{ item.updateTime }}
             </span>
           </div>
@@ -100,27 +103,30 @@
         v-if="filteredList.length === 0"
         class="col-span-full flex flex-col items-center justify-center py-16 text-surface-400"
       >
-        <i class="pi pi-inbox text-5xl mb-4 opacity-40" />
+        <i class="pi pi-inbox text-5xl mb-4 opacity-40"/>
         <p class="text-sm">暂无应用，点击「新建应用」开始创建</p>
       </div>
     </div>
 
     <!-- 操作菜单 -->
-    <Menu ref="menuRef" :model="menuItems" popup />
+    <Menu ref="menuRef" :model="menuItems" popup/>
 
     <!-- 删除确认 -->
-    <ConfirmDialog />
+    <ConfirmDialog/>
   </div>
 </template>
 
 <script setup lang="ts">
-import { useRoute, useRouter } from 'vue-router'
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
-import { type Node } from '@/api/type/node'
-import { useConfirm } from 'primevue/useconfirm'
-import { useToast } from 'primevue/usetoast'
+import {useRoute, useRouter} from 'vue-router'
+import {computed, onMounted, onUnmounted, ref, watch} from 'vue'
+import {type Node} from '@/api/type/node'
+import {useConfirm} from 'primevue/useconfirm'
+import {useToast} from 'primevue/usetoast'
 import bus from '@/bus/index'
-import { TreeCommonAPI } from '@/api/tree'
+import {TreeCommonAPI} from '@/api/tree'
+import {PermissionConstants} from "@/permission/data.ts";
+import {Role} from "@/permission/common.ts";
+import {hasPermission} from "@/permission";
 
 const treeCommonAPI = new TreeCommonAPI('application')
 const router = useRouter()
@@ -141,10 +147,12 @@ const filteredList = computed(() =>
     ? nodeList.value.filter((n) => n.name?.includes(searchText.value))
     : nodeList.value
 )
-
+const permissionCreate = computed(() => {
+  return hasPermission([PermissionConstants.APPLICATION_CREATE.newResourcePermission(folderId.value), Role.ADMIN], 'OR')
+})
 const folderId = computed(() => {
   const {
-    params: { id }
+    params: {id}
   } = route as any
   return id
 })
@@ -184,23 +192,35 @@ const menuItems = computed(() => [
   {
     label: '打开',
     icon: 'pi pi-arrow-up-right',
+    visible: hasPermission([
+      PermissionConstants.APPLICATION_READ.newResourcePermission(activeItem.value?.id || ''),
+      Role.ADMIN], "OR"),
     command: () => activeItem.value && handleOpen(activeItem.value)
   },
   {
     label: '编辑',
     icon: 'pi pi-pencil',
+    visible: hasPermission([
+      PermissionConstants.APPLICATION_EDIT.newResourcePermission(activeItem.value?.id || ''),
+      Role.ADMIN], "OR"),
     command: () => activeItem.value && handleEdit(activeItem.value)
   },
-  { separator: true },
+  {separator: true},
   {
     label: '删除',
+    visible: hasPermission([
+      PermissionConstants.APPLICATION_DELETE.newResourcePermission(activeItem.value?.id || ''),
+      Role.ADMIN], "OR"),
     icon: 'pi pi-trash',
     class: '!text-red-500 [&_.p-menuitem-icon]:!text-red-500',
     command: () => activeItem.value && handleDelete(activeItem.value)
   },
-  { separator: true },
+  {separator: true},
   {
     label: '导出',
+    visible: hasPermission([
+      PermissionConstants.APPLICATION_READ.newResourcePermission(activeItem.value?.id || ''),
+      Role.ADMIN], "OR"),
     icon: 'pi pi-download',
     command: () => activeItem.value && handleExport(activeItem.value)
   }
@@ -212,11 +232,11 @@ const toggleMenu = (event: Event, item: Node) => {
 }
 
 const openCreateApplication = (type?: string) => {
-  bus.emit('open:create:application:dialog', { id: folderId.value, type })
+  bus.emit('open:create:application:dialog', {id: folderId.value, type})
 }
 
 const handleOpen = (item: Node) => {
-  router.push({ name: 'applicationDetails', params: { id: item.id } })
+  router.push({name: 'applicationDetails', params: {id: item.id}})
   bus.emit('sidebar:flip')
 }
 
@@ -229,13 +249,13 @@ const handleDelete = (item: Node) => {
     message: `确定要删除「${item.name}」吗？此操作不可撤销。`,
     header: '删除确认',
     icon: 'pi pi-exclamation-triangle',
-    rejectProps: { label: '取消', severity: 'secondary', variant: 'outlined' },
-    acceptProps: { label: '删除', severity: 'danger' },
+    rejectProps: {label: '取消', severity: 'secondary', variant: 'outlined'},
+    acceptProps: {label: '删除', severity: 'danger'},
     accept: () => {
       treeCommonAPI.removeResource(item.id).then(() => {
         nodeList.value = nodeList.value.filter((n) => n.id !== item.id)
         bus.emit('tree:remove', item.id)
-        toast.add({ severity: 'success', summary: '删除成功', life: 2000 })
+        toast.add({severity: 'success', summary: '删除成功', life: 2000})
       })
     }
   })
@@ -258,7 +278,7 @@ const handleImport = (event: Event) => {
   if (!file) return
   treeCommonAPI.importResource(folderId.value, file).then(() => {
     lisResource()
-    toast.add({ severity: 'success', summary: '导入成功', life: 2000 })
+    toast.add({severity: 'success', summary: '导入成功', life: 2000})
     input.value = ''
   })
 }

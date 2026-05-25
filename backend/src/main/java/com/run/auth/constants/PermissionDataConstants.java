@@ -1,6 +1,7 @@
 package com.run.auth.constants;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -37,4 +38,9 @@ public class PermissionDataConstants {
             .filter(p -> p.getResourcePermissionGroups().contains(PermissionConstants.ResourcePermissionGroup.MANAGE))
             .collect(Collectors.groupingBy(p -> p.getPermission().getGroup(),
                     Collectors.mapping(p -> p.getPermission().bit(), Collectors.reducing(0L, (a, b) -> a | b))));
+
+    public final static Map<PermissionConstants.ResourcePermissionGroup, Map<PermissionConstants.Group, Long>> resourcePermissionMap =
+            Map.of(PermissionConstants.ResourcePermissionGroup.VIEW, viewPermissionBit,
+                    PermissionConstants.ResourcePermissionGroup.MANAGE, managePermissionBit);
+
 }

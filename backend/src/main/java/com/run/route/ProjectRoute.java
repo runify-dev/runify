@@ -35,7 +35,7 @@ public class ProjectRoute implements IRoute {
 
     @Inject
     public ProjectRoute(@Named("apiRoute") Router apiRoute, OpenAPI openAPI,
-                        @Named("tokenBasicAuthHandler")TokenBasicAuthHandler tokenBasicAuthHandler,
+                        @Named("tokenBasicAuthHandler") TokenBasicAuthHandler tokenBasicAuthHandler,
                         ProjectHandlerImpl iProjectHandler,
                         ProjectFolderHandlerImpl iProjectFolderHandler) {
         this.apiRoute = apiRoute;
@@ -132,7 +132,7 @@ public class ProjectRoute implements IRoute {
                 .handler(Authenticator.builder()
                         .addPermission(AggregatePermission.builder()
                                 .addPermission(PermissionConstants.PROJECT_CREATE)
-                                .addPermission(PermissionConstants.PROJECT_CREATE.getResourcePermission())
+                                .addPermission(PermissionConstants.PROJECT_CREATE.getFolderPermission())
                                 .compare(PermissionConstants.Compare.AND).build())
                         .addRole(PermissionConstants.Role.ADMIN)
                         .compare(PermissionConstants.Compare.OR)
@@ -144,9 +144,10 @@ public class ProjectRoute implements IRoute {
                 .handler(Authenticator.builder()
                         .addPermission(AggregatePermission.builder()
                                 .addPermission(PermissionConstants.PROJECT_READ)
-                                .addPermission(PermissionConstants.PROJECT_READ.getResourcePermission())
+
                                 .compare(PermissionConstants.Compare.AND).build())
                         .addRole(PermissionConstants.Role.ADMIN)
+                        .addRole(PermissionConstants.Role.USER)
                         .compare(PermissionConstants.Compare.OR)
                         .build())
                 .handler(iProjectHandler::tree);
@@ -156,9 +157,9 @@ public class ProjectRoute implements IRoute {
                 .handler(Authenticator.builder()
                         .addPermission(AggregatePermission.builder()
                                 .addPermission(PermissionConstants.PROJECT_READ)
-                                .addPermission(PermissionConstants.PROJECT_READ.getResourcePermission())
                                 .compare(PermissionConstants.Compare.AND).build())
                         .addRole(PermissionConstants.Role.ADMIN)
+                        .addRole(PermissionConstants.Role.USER)
                         .compare(PermissionConstants.Compare.OR)
                         .build())
                 .handler(iProjectHandler::list);
@@ -169,7 +170,7 @@ public class ProjectRoute implements IRoute {
                 .handler(Authenticator.builder()
                         .addPermission(AggregatePermission.builder()
                                 .addPermission(PermissionConstants.PROJECT_CREATE)
-                                .addPermission(PermissionConstants.PROJECT_CREATE.getResourcePermission())
+                                .addPermission(PermissionConstants.PROJECT_CREATE.getFolderPermission())
                                 .compare(PermissionConstants.Compare.AND).build())
                         .addRole(PermissionConstants.Role.ADMIN)
                         .compare(PermissionConstants.Compare.OR)

@@ -210,18 +210,18 @@ CREATE TABLE "conversation"
 
 CREATE TABLE "conversation_message"
 (
-    "id"               text(128) NOT NULL,
-    "application_id"   text(128),
-    "conversation_id"  text(128),
-    "workflow_run_id"  text(128),
-    "type"             text(20),
-    "content"          TEXT,
-    "context"          TEXT,
-    "prompt_tokens"    INTEGER,
+    "id"                text(128) NOT NULL,
+    "application_id"    text(128),
+    "conversation_id"   text(128),
+    "workflow_run_id"   text(128),
+    "type"              text(20),
+    "content"           TEXT,
+    "context"           TEXT,
+    "prompt_tokens"     INTEGER,
     "completion_tokens" INTEGER,
-    "duration"         INTEGER,
-    "create_time"      TIMESTAMP,
-    "update_time"      TIMESTAMP,
+    "duration"          INTEGER,
+    "create_time"       TIMESTAMP,
+    "update_time"       TIMESTAMP,
     PRIMARY KEY ("id")
 );
 
@@ -366,3 +366,33 @@ CREATE TABLE "datasource_permission"
     "update_time" TIMESTAMP,
     PRIMARY KEY ("id")
 );
+
+INSERT INTO application_folder (id, parent_id, name, "desc", create_time, update_time)
+VALUES ('00000000-0000-0000-0000-000000000000', NULL, 'root', '', '2026-04-16 23:00:01', '2026-04-16 23:00:01');
+
+INSERT INTO application_relation (id, ancestor_id, descendant_id, depth)
+VALUES ('35f984af-7f7d-4cdb-b230-2dab798a70c9', '00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000000', 0);
+
+INSERT INTO model_folder (id, parent_id, name, "desc", create_time, update_time)
+VALUES ('00000000-0000-0000-0000-000000000000', NULL, 'root', '', '2026-04-16 23:00:01', '2026-04-16 23:00:01');
+
+INSERT INTO model_relation (id, ancestor_id, descendant_id, depth)
+VALUES ('f9c32425-d4f5-406a-a3ae-91ef290b00b9', '00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000000', 0);
+
+INSERT INTO note_folder (id, parent_id, name, "desc", create_time, update_time)
+VALUES ('00000000-0000-0000-0000-000000000000', NULL, 'root', '', '2026-04-16 23:00:01', '2026-04-16 23:00:01');
+
+INSERT INTO note_relation (id, ancestor_id, descendant_id, depth)
+VALUES ('10b206ac-eb1a-4346-9d89-1fe9d2e5c11e', '00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000000', 0);
+
+INSERT INTO project_folder (id, parent_id, name, "desc", create_time, update_time)
+VALUES ('00000000-0000-0000-0000-000000000000', NULL, 'root', '', '2026-04-16 23:00:01', '2026-04-16 23:00:01');
+
+INSERT INTO project_relation (id, ancestor_id, descendant_id, depth)
+VALUES ('aa7e413e-77cb-4b4b-b3c2-87be95ff0197', '00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000000', 0);
+
+INSERT INTO datasource_folder (id, parent_id, name, "desc", create_time, update_time)
+VALUES ('00000000-0000-0000-0000-000000000000', NULL, 'root', '', '2026-04-16 23:00:01', '2026-04-16 23:00:01');
+
+INSERT INTO datasource_relation (id, ancestor_id, descendant_id, depth)
+VALUES ('c10f604f-76f9-43d3-a6ed-4f2dbb77f3dd', '00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000000', 0);

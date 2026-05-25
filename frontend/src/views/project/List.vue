@@ -115,7 +115,6 @@ const confirm = useConfirm()
 const toast = useToast()
 
 const nodeList = ref<Array<Node>>([])
-const folder = ref<Node>()
 const searchText = ref<string>('')
 const menuRef = ref()
 const activeItem = ref<Node | null>(null)
@@ -189,21 +188,12 @@ const lisResource = () => {
   })
 }
 
-const forderInfo = () => {
-  if (!['root', 'shar', 'share'].includes(folderId.value)) {
-    treeCommonAPI.getFolder(folderId.value).then((ok) => {
-      folder.value = ok.data
-    })
-  }
-}
-
 watch(folderId, () => {
   lisResource()
-  forderInfo()
 })
 
 onMounted(() => {
-  forderInfo()
+
   lisResource()
 })
 </script>

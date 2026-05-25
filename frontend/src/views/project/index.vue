@@ -28,55 +28,6 @@
                 <template #nodeicon="scope">
                   <i class="pi pi-folder" v-if="scope.node.type == 'folder'"></i>
                 </template>
-                <template #header>
-                  <div @click="nodeSelect(undefined)" class="p-tree-node">
-                    <div
-                      class="p-tree-node-content p-tree-node-selectable"
-                      :class="selectedKeys ? '' : 'p-tree-node-selected'"
-                    >
-                      <div class="p-tree-node-label w-full">
-                        <div class="flex items-center justify-between w-full group">
-                          <span>全部</span>
-                          <div class="action-buttons">
-                            <DropdownMenu
-                              :items="[
-                                {
-                                  label: '新建',
-
-                                  items: [
-                                    {
-                                      label: '项目',
-                                      command: () => {
-                                        openCreateProjectDialog()
-                                      }
-                                    },
-                                    {
-                                      label: '文件夹',
-                                      command: () => {
-                                        openCreateFolderDialog()
-                                      }
-                                    }
-                                  ]
-                                }
-                              ]"
-                            >
-                              <template #default>
-                                <Button
-                                  v-tooltip="'操作'"
-                                  icon="pi pi-ellipsis-v"
-                                  variant="text"
-                                  aria-label="Filter"
-                                  severity="secondary"
-                                  size="small"
-                                ></Button>
-                              </template>
-                            </DropdownMenu>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </template>
                 <template #default="{ node }">
                   <div class="flex items-center justify-between w-full group">
                     <span>{{ node.label }}</span>
@@ -114,7 +65,7 @@
                         <template #item="scope">
                           <div class="p-tieredmenu-item-link">
                             <span>{{ scope.label }}</span>
-                            <span v-if="scope.hasSubmenu" class="pi pi-angle-right ml-auto" />
+                            <span v-if="scope.hasSubmenu" class="pi pi-angle-right ml-auto"/>
                           </div>
                         </template>
                         <template #default>
@@ -158,13 +109,13 @@
                   :class="item.activeNames.includes(route.name) ? 'p-menu-item-selected' : ''"
                   v-bind="props.action"
                 >
-                  <span :class="item.icon" />
+                  <span :class="item.icon"/>
                   <span>{{ item.label }}</span>
-                  <Badge v-if="item.badge" class="ml-auto" :value="item.badge" />
+                  <Badge v-if="item.badge" class="ml-auto" :value="item.badge"/>
                   <span
                     v-if="item.shortcut"
                     class="ml-auto border border-surface rounded bg-emphasis text-muted-color text-xs p-1"
-                    >{{ item.shortcut }}</span
+                  >{{ item.shortcut }}</span
                   >
                 </a>
               </template>
@@ -192,20 +143,22 @@ import AppMenuContent from '@/layout-plus/app-menu-content/index.vue'
 import CreateProjectDialog from '@/views/project/components/CreateProjectDialog .vue'
 import CreateFolderDialog from '@/components/create-folder-dialog/index.vue'
 import DropdownMenu from '@/components/dropdown-menu/index.vue'
-import { onMounted, ref, computed, onBeforeUnmount, provide } from 'vue'
-import Tree, { type TreeSelectionKeys } from 'primevue/tree'
-import { toTree, toTreeNode } from '@/components/tree/index'
-import { useRouter, useRoute } from 'vue-router'
-import { TreeManager } from '@/components/tree/index'
-import { TreeCommonAPI } from '@/api/tree'
+import {onMounted, ref, computed, onBeforeUnmount, provide} from 'vue'
+import Tree, {type TreeSelectionKeys} from 'primevue/tree'
+import {toTree, toTreeNode} from '@/components/tree/index'
+import {useRouter, useRoute} from 'vue-router'
+import {TreeManager} from '@/components/tree/index'
+import {TreeCommonAPI} from '@/api/tree'
 import FlipCard from '@/components/flip-card/index.vue'
 import TreeEmpty from '@/components/tree-empty/index.vue'
-import type { TreeNode } from 'primevue/treenode'
+import type {TreeNode} from 'primevue/treenode'
 import bus from '@/bus/index'
+import {ROOT_FOLDER_ID} from "@/constants/common.ts";
+
 const route = useRoute()
 
 const to = (routeName: string) => {
-  router.push({ name: routeName })
+  router.push({name: routeName})
 }
 const isFlipped = ref<boolean>(
   ['databaseCollectionPool', 'projectProcessor', 'processorTable', 'processorWorkflow'].includes(
@@ -224,11 +177,7 @@ const items = ref([
 const expandedKeys = ref<TreeSelectionKeys>()
 const selectedKeys = computed(() => {
   const id = route.params.id as string
-  if (id === 'root') {
-    return undefined
-  } else {
-    return { [id]: true }
-  }
+  return {[id]: true}
 })
 const treeCommonAPI = new TreeCommonAPI('project')
 provide('treeCommonAPI', treeCommonAPI)
@@ -238,41 +187,41 @@ const back = () => {
   const id = route.params.id as string
   const parent = treeManage.value?.findParentNode(id)
   if (parent) {
-    router.push({ name: 'projectFolders', params: { id: parent?.key } })
+    router.push({name: 'projectFolders', params: {id: parent?.key}})
   } else {
-    router.push({ name: 'projectFolders', params: { id: 'root' } })
+    router.push({name: 'projectFolders', params: {id: ROOT_FOLDER_ID}})
   }
   flipCardRef.value?.unflip()
 }
 
 const nodeSelect = (treeNode?: TreeNode) => {
   if (treeNode === undefined) {
-    router.push({ name: 'projectFolders', params: { id: 'root' } })
+    router.push({name: 'projectFolders', params: {id: ROOT_FOLDER_ID}})
     return
   }
   if (treeNode.data.type == 'folder') {
-    router.push({ name: 'projectFolders', params: { id: treeNode.key } })
+    router.push({name: 'projectFolders', params: {id: treeNode.key}})
   } else {
     flipCardRef.value?.flip()
     if (!['projectPublic', 'projectProcessor'].includes(route.name as string)) {
-      router.push({ name: 'projectProcessor', params: { id: treeNode.key } })
+      router.push({name: 'projectProcessor', params: {id: treeNode.key}})
     } else {
-      router.push({ name: route.name, params: { id: treeNode.key } })
+      router.push({name: route.name, params: {id: treeNode.key}})
     }
   }
 }
 const createResourceSuccess = (key: string, node: any) => {
-  const treeNode = toTreeNode({ ...node, type: 'project' })
+  const treeNode = toTreeNode({...node, type: 'project'})
   treeManage.value?.addChild(key, treeNode)
-  expandedKeys.value = { ...expandedKeys.value, [key]: true }
+  expandedKeys.value = {...expandedKeys.value, [key]: true}
   flipCardRef.value?.flip()
-  router.push({ name: 'projectDetails', params: { id: node.id } })
+  router.push({name: 'projectDetails', params: {id: node.id}})
 }
 const createFolderSuccess = (key: string, node: any) => {
-  const treeNode = toTreeNode({ ...node, type: 'folder' })
+  const treeNode = toTreeNode({...node, type: 'folder'})
   treeManage.value?.addChild(key, treeNode)
-  expandedKeys.value = { [key]: true }
-  router.push({ name: 'projectFolders', params: { id: node.id } })
+  expandedKeys.value = {[key]: true}
+  router.push({name: 'projectFolders', params: {id: node.id}})
 }
 const createProjectDialogRef = ref<InstanceType<typeof CreateProjectDialog>>()
 const createFolderDialogRef = ref<InstanceType<typeof CreateFolderDialog>>()
@@ -284,8 +233,8 @@ const openCreateFolderDialog = (node?: TreeNode) => {
 }
 const removeTreeNode = (node: TreeNode) => {
   ;(node.data.type === 'folder'
-    ? treeCommonAPI.removeFolder(node.key)
-    : treeCommonAPI.removeResource(node.key)
+      ? treeCommonAPI.removeFolder(node.key)
+      : treeCommonAPI.removeResource(node.key)
   ).then(() => {
     treeManage.value?.remove(node.key)
   })
@@ -305,7 +254,7 @@ onMounted(() => {
   bus.on('sidebar:flip', () => {
     flipCardRef.value?.flip()
   })
-  treeCommonAPI.listTree('root').then((ok) => {
+  treeCommonAPI.listTree(ROOT_FOLDER_ID).then((ok) => {
     nodes.value = toTree(ok.data)
     treeManage.value = new TreeManager(nodes.value)
   })

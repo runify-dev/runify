@@ -41,7 +41,7 @@
     <Fieldset legend="自定义上下文">
       <div class="flex flex-col gap-3 mt-2">
         <div class="flex items-center gap-2">
-          <ToggleSwitch v-model="formData.enableContext" />
+          <ToggleSwitch v-model="formData.enableContext"/>
           <label>启用自定义上下文</label>
         </div>
         <template v-if="formData.enableContext">
@@ -143,18 +143,19 @@
     </Fieldset>
 
     <Fieldset legend="工具配置">
-      <Tools v-model="toolsConfig" />
+      <Tools v-model="toolsConfig"/>
     </Fieldset>
   </div>
 </template>
 <script setup lang="ts">
-import { ref, inject, onMounted, reactive } from 'vue'
-import type { BaseNodeModel } from '@logicflow/core'
+import {ref, inject, onMounted, reactive} from 'vue'
+import type {BaseNodeModel} from '@logicflow/core'
 import TemplateEditor from '@/components/template-editor/index.vue'
 import InputNumber from 'primevue/inputnumber'
-import { TreeCommonAPI } from '@/api/tree'
+import {TreeCommonAPI} from '@/api/tree'
 import Cascader from '@/components/cascader/index.vue'
 import Tools from '@/workflow/nodes/ai-chat-node/components/tools/index.vue'
+
 const treeCommonAPI = new TreeCommonAPI('model')
 const getModel = inject('getModel') as () => BaseNodeModel
 const model = getModel()
@@ -164,7 +165,8 @@ const variables = getTemplateVariables()
 const getNodeFieldOptions = inject('getNodeFieldOptions') as any
 const fieldOptions = getNodeFieldOptions()
 
-import type { ToolsConfig } from '../components/tools/type'
+import type {ToolsConfig} from '../components/tools/type'
+import {ROOT_FOLDER_ID} from "@/constants/common.ts";
 
 const toolsConfig = ref<ToolsConfig>({
   location: 'customize',
@@ -183,18 +185,18 @@ const defaultFormData = {
   videos: [] as any[]
 }
 
-const formData = reactive({ ...defaultFormData })
+const formData = reactive({...defaultFormData})
 
 const validate = () => {
   const errors: Record<string, string> = {}
   if (!formData.modelId) {
     errors.modelId = '请选择模型'
   }
-  return Promise.resolve({ values: { ...formData }, errors })
+  return Promise.resolve({values: {...formData}, errors})
 }
 
 const submit = () => {
-  return validate().then(({ values, errors }:any) => {
+  return validate().then(({values, errors}: any) => {
     if (Object.keys(errors).length == 0) {
       values.tools = JSON.parse(JSON.stringify(toolsConfig.value))
       model.properties.nodeData = values
@@ -206,19 +208,19 @@ const submit = () => {
 
 const setField = () => {
   model.properties.field_list = [
-    { label: '回答结果', value: 'content' },
-    { label: '思考过程', value: 'reasoningContent' },
-    { label: '拒绝原因文本', value: 'refusal' },
-    { label: '是否拒绝回答', value: 'isRefusal' },
-    { label: '工具调用', value: 'toolCalls' },
-    { label: '结束原因', value: 'finishReason' }
+    {label: '回答结果', value: 'content'},
+    {label: '思考过程', value: 'reasoningContent'},
+    {label: '拒绝原因文本', value: 'refusal'},
+    {label: '是否拒绝回答', value: 'isRefusal'},
+    {label: '工具调用', value: 'toolCalls'},
+    {label: '结束原因', value: 'finishReason'}
   ]
 }
 
-defineExpose({ validate, submit, setField })
+defineExpose({validate, submit, setField})
 
 onMounted(() => {
-  treeCommonAPI.listResource('root').then((ok) => {
+  treeCommonAPI.listResource(ROOT_FOLDER_ID).then((ok) => {
     modelList.value = ok.data
   })
   if (model.properties.nodeData) {
@@ -228,7 +230,7 @@ onMounted(() => {
       toolsConfig.value = data.tools
     }
   } else {
-    model.properties.nodeData = { ...defaultFormData }
+    model.properties.nodeData = {...defaultFormData}
   }
   setField()
 })

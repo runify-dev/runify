@@ -99,6 +99,7 @@ import fileAPI from '@/api/file'
 import {TreeCommonAPI} from '@/api/tree'
 import type {TreeNode} from 'primevue/treenode'
 import {getWorkflowCall} from "@/views/application/template";
+import {ROOT_FOLDER_ID} from "@/constants/common.ts";
 
 const props = defineProps<{ api: TreeCommonAPI }>()
 const emit = defineEmits(['create:success'])
@@ -166,7 +167,7 @@ const open = (node?: TreeNode) => {
   current.value = node
   resetForm()
   visible.value = true
-  modelCommonAPI.listResource('root').then((ok) => {
+  modelCommonAPI.listResource(ROOT_FOLDER_ID).then((ok) => {
     modelList.value = ok.data
   })
 }
