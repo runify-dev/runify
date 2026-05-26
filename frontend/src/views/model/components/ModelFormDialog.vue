@@ -1,6 +1,6 @@
 <template>
   <Dialog v-model:visible="visible" modal header="新建模型" :style="{ width: '36rem' }">
-    <div class="flex flex-col gap-4">
+    <div v-loading="loading" class="flex flex-col gap-4">
       <!-- 名称 -->
       <div class="flex flex-col gap-1.5">
         <label class="text-sm font-medium text-surface-700">名称</label>
@@ -112,8 +112,9 @@
 
     <template #footer>
       <div class="flex justify-end gap-2">
-        <Button label="取消" severity="secondary" variant="outlined" @click="close"/>
-        <Button label="创建" @click="submit"/>
+        <Button label="取消" :loading="loading" severity="secondary" variant="outlined"
+                @click="close"/>
+        <Button label="创建" :loading="loading" @click="submit"/>
       </div>
     </template>
   </Dialog>
@@ -138,7 +139,7 @@ const visible = ref(false)
 const current = ref<TreeNode>()
 const dynamicsFormRef = ref<InstanceType<typeof DynamicsForm>>()
 const modelParameterFormRef = ref<InstanceType<typeof ModelParameterForm>>()
-
+const loading = ref<boolean>(false);
 const providerList = ref<Array<any>>([])
 const modelList = ref<Array<any>>([])
 const modelDict = ref<any>({})
@@ -278,7 +279,8 @@ const submit = () => {
     ...credential,
     modelParameterForm: modelParameterForm.value
   }
-  ModelAPI.validate(current.value ? current.value.key : ROOT_FOLDER_ID, payload).then(ok => {
+
+  ModelAPI.validate(current.value ? current.value.key : ROOT_FOLDER_ID, payload, loading).then(ok => {
     if (ok.code == 500) {
       bus.emit('message:error', ok.message)
       return
