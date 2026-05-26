@@ -161,7 +161,7 @@ run/
 
 ## 技术交流
 
-<img width="300" height="300" alt="c177135ae214abf9370e57496da28f76" src="https://github.com/user-attachments/assets/06fc662a-38bd-40e8-9e7d-0a020f154093" />
+<img width="300" height="300" alt="c177135ae214abf9370e57496da28f76" src="https://github.com/user-attachments/assets/f6f2f99f-9dce-42f9-b63b-3d9c81d0dd6e" />
 
 
 ## 参与讨论
