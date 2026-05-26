@@ -40,6 +40,15 @@ PostgreSQL、SQLite、H2、MySQL — Agent 可直接查询你的业务数据。
 
 前端响应式设计，PC 和手机端自适应，随时随地管理你的 Agent 和笔记。
 
+## 项目截图
+
+<!-- 在 docs/images/ 目录下放置项目图片，然后在此处引用 -->
+| <img width="400" src="https://github.com/user-attachments/assets/2ea7088b-a1a1-45c4-a235-bc19bcde2b8a" /> | <img width="400" src="https://github.com/user-attachments/assets/565a2868-5c7d-439f-9993-d4a01cb95d9b" /> |
+|---|---|
+| <img width="400" src="https://github.com/user-attachments/assets/e0f92360-8ff5-483e-99ee-a846b8905714" /> | <img width="400" src="https://github.com/user-attachments/assets/28a3fe5e-dcf3-4e2d-96b2-217420cfb81d" /> |
+## 项目视频
+<video width="300" src="https://github.com/user-attachments/assets/05e68693-d2f1-41c7-93e9-f8848d243d6b"></video>
+
 ## 技术栈
 
 | 层 | 技术 |
@@ -121,7 +130,7 @@ run/
 
 ## 技术交流
 
-<img width="930" height="1446" alt="c177135ae214abf9370e57496da28f76" src="https://github.com/user-attachments/assets/06fc662a-38bd-40e8-9e7d-0a020f154093" />
+<img width="300" height="300" alt="c177135ae214abf9370e57496da28f76" src="https://github.com/user-attachments/assets/06fc662a-38bd-40e8-9e7d-0a020f154093" />
 
 
 ## 参与讨论
