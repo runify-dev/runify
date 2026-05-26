@@ -27,7 +27,7 @@ public class RunApplication extends AbstractVerticle {
         vertx
                 .createHttpServer()
                 .requestHandler(router)
-                .listen(8080);
+                .listen(Integer.getInteger("port", 8080));
     }
 
 

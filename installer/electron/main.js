@@ -6,6 +6,23 @@ const net = require('net')
 
 let mainWindow = null
 let javaProcess = null
+let quitting = false
+const javaLogs = []
+
+const MAX_LOG_LINES = 200
+
+function collectLog(data) {
+  const lines = data.toString().trim().split('\n')
+  javaLogs.push(...lines)
+  if (javaLogs.length > MAX_LOG_LINES) {
+    javaLogs.splice(0, javaLogs.length - MAX_LOG_LINES)
+  }
+}
+
+function getRecentLogs(maxChars = 2000) {
+  const joined = javaLogs.join('\n')
+  return joined.length > maxChars ? joined.slice(-maxChars) : joined
+}
 
 function findJavaBin(dir) {
   const javaName = process.platform === 'win32' ? 'java.exe' : 'java'
@@ -51,20 +68,33 @@ function getJarPath() {
   return path.join(getBaseDir(), 'runify.jar')
 }
 
-function waitForPort(port, timeout = 60000) {
-  const javaLogs = []
+function getAvailablePort() {
+  return new Promise((resolve, reject) => {
+    const server = net.createServer()
+    server.on('error', reject)
+    server.listen(0, '127.0.0.1', () => {
+      const port = server.address().port
+      server.close(() => resolve(port))
+    })
+  })
+}
 
+function waitForPort(port, timeout = 60000) {
   return new Promise((resolve, reject) => {
     const startTime = Date.now()
+    let settled = false
 
-    if (javaProcess) {
-      javaProcess.stdout.on('data', (data) => javaLogs.push(data.toString()))
-      javaProcess.stderr.on('data', (data) => javaLogs.push(data.toString()))
+    function settle(fn) {
+      if (settled) return
+      settled = true
+      fn()
     }
 
     function tryConnect() {
+      if (settled) return
+
       if (!javaProcess) {
-        reject(new Error(`Java 进程已退出\n\n日志:\n${javaLogs.join('')}`))
+        settle(() => reject(new Error(`Java 进程已退出\n\n日志:\n${getRecentLogs()}`)))
         return
       }
 
@@ -73,13 +103,13 @@ function waitForPort(port, timeout = 60000) {
 
       socket.on('connect', () => {
         socket.destroy()
-        resolve()
+        settle(() => resolve())
       })
 
       socket.on('error', () => {
         socket.destroy()
         if (Date.now() - startTime > timeout) {
-          reject(new Error(`端口 ${port} ${timeout / 1000}s 内未就绪\n\n日志:\n${javaLogs.join('').slice(-2000)}`))
+          settle(() => reject(new Error(`端口 ${port} ${timeout / 1000}s 内未就绪\n\n日志:\n${getRecentLogs()}`)))
         } else {
           setTimeout(tryConnect, 1000)
         }
@@ -88,7 +118,7 @@ function waitForPort(port, timeout = 60000) {
       socket.on('timeout', () => {
         socket.destroy()
         if (Date.now() - startTime > timeout) {
-          reject(new Error(`端口 ${port} ${timeout / 1000}s 内未就绪\n\n日志:\n${javaLogs.join('').slice(-2000)}`))
+          settle(() => reject(new Error(`端口 ${port} ${timeout / 1000}s 内未就绪\n\n日志:\n${getRecentLogs()}`)))
         } else {
           setTimeout(tryConnect, 1000)
         }
@@ -115,135 +145,135 @@ function showErrorAndQuit(title, message) {
   }
 }
 
-function isPortInUse(port) {
-  return new Promise((resolve) => {
-    const socket = new net.Socket()
-    socket.setTimeout(2000)
+function initConfig() {
+  const v1Dir = path.join(app.getPath('userData'), 'v1')
+  const configDir = path.join(v1Dir, 'config')
+  const configPath = path.join(configDir, 'runify.yaml')
 
-    socket.on('connect', () => {
-      socket.destroy()
-      resolve(true)
-    })
+  if (!fs.existsSync(configPath)) {
+    const { randomBytes } = require('crypto')
+    const dataPath = path.join(v1Dir, 'data')
+    fs.mkdirSync(configDir, { recursive: true })
+    fs.writeFileSync(configPath, [
+      'system:',
+      '  dataPath: ' + dataPath,
+      '  secretKey: ' + randomBytes(32).toString('hex'),
+      'database:',
+      '  type: SQLITE',
+      'cache:',
+      '  type: LOCAL',
+      'search:',
+      '  type: LUCENE',
+    ].join('\n') + '\n')
+    console.log(`[Electron] Config initialized: ${configPath}`)
+  }
 
-    socket.on('error', () => {
-      socket.destroy()
-      resolve(false)
-    })
-
-    socket.on('timeout', () => {
-      socket.destroy()
-      resolve(false)
-    })
-
-    socket.connect(port, '127.0.0.1')
-  })
+  return configPath
 }
 
+function killJavaProcess() {
+  if (!javaProcess) return
+
+  const proc = javaProcess
+  javaProcess = null
+
+  try {
+    if (process.platform === 'win32') {
+      spawn('taskkill', ['/pid', String(proc.pid), '/f', '/t'])
+    } else {
+      proc.kill('SIGTERM')
+      setTimeout(() => {
+        try { proc.kill('SIGKILL') } catch (_) { /* already dead */ }
+      }, 5000)
+    }
+  } catch (_) {
+    /* process already exited */
+  }
+}
+
+
 app.whenReady().then(async () => {
-  const alreadyRunning = await isPortInUse(8080)
+  let port
+  try {
+    port = await getAvailablePort()
+  } catch (err) {
+    showErrorAndQuit('启动失败', `无法获取可用端口:\n${err.message}`)
+    return
+  }
+  console.log(`[Electron] Using port: ${port}`)
 
-  if (alreadyRunning) {
-    const { response } = await dialog.showMessageBox({
-      type: 'warning',
-      title: '端口冲突',
-      message: '端口 8080 已被占用',
-      detail: '可能是其他程序或已启动的后端服务。点击"继续"尝试连接，点击"退出"关闭程序。',
-      buttons: ['继续', '退出'],
-      defaultId: 0,
-      cancelId: 1
-    })
+  const java = getJrePath()
+  const jar = getJarPath()
+  const cwd = path.dirname(jar)
 
-    if (response === 1) {
-      app.quit()
-      return
+  const javaExists = fs.existsSync(java)
+  const jarExists = fs.existsSync(jar)
+
+  console.log(`[Electron] java: ${java} (exists: ${javaExists})`)
+  console.log(`[Electron] jar: ${jar} (exists: ${jarExists})`)
+  console.log(`[Electron] cwd: ${cwd}`)
+
+  if (!javaExists) {
+    showErrorAndQuit('启动失败', `找不到 Java:\n${java}`)
+    return
+  }
+
+  if (!jarExists) {
+    showErrorAndQuit('启动失败', `找不到 JAR:\n${jar}`)
+    return
+  }
+
+  let configPath
+  try {
+    configPath = initConfig()
+  } catch (err) {
+    showErrorAndQuit('启动失败', `配置初始化失败:\n${err.message}`)
+    return
+  }
+
+  const javaArgs = [
+    `-Dport=${port}`,
+    `-Drunify.config=${configPath}`,
+    '-Dpolyglotimpl.DisableMultiReleaseCheck=true',
+    '-jar',
+    jar
+  ]
+
+  console.log(`[Electron] java args: ${javaArgs.join(' ')}`)
+
+  javaProcess = spawn(java, javaArgs, {
+    cwd,
+    stdio: ['ignore', 'pipe', 'pipe']
+  })
+
+  javaProcess.stdout.on('data', (data) => {
+    collectLog(data)
+    console.log(`[Java] ${data.toString().trim()}`)
+  })
+
+  javaProcess.stderr.on('data', (data) => {
+    collectLog(data)
+    console.error(`[Java] ${data.toString().trim()}`)
+  })
+
+  javaProcess.on('error', (err) => {
+    showErrorAndQuit('启动失败', `无法启动 Java:\n${err.message}`)
+  })
+
+  javaProcess.on('exit', (code) => {
+    console.log(`[Java] exited with code ${code}`)
+    javaProcess = null
+
+    if (!quitting && mainWindow && !mainWindow.isDestroyed()) {
+      showErrorAndQuit('后端异常', `Java 退出 (code: ${code})\n\n日志:\n${getRecentLogs()}`)
     }
+  })
 
-    console.log('[Electron] Backend already running on port 8080, attempting to connect')
-  } else {
-    const java = getJrePath()
-    const jar = getJarPath()
-    const cwd = path.dirname(jar)
-
-    const javaExists = fs.existsSync(java)
-    const jarExists = fs.existsSync(jar)
-
-    console.log(`[Electron] java: ${java} (exists: ${javaExists})`)
-    console.log(`[Electron] jar: ${jar} (exists: ${jarExists})`)
-    console.log(`[Electron] cwd: ${cwd}`)
-
-    if (!javaExists) {
-      showErrorAndQuit('启动失败', `找不到 Java:\n${java}`)
-      return
-    }
-
-    if (!jarExists) {
-      showErrorAndQuit('启动失败', `找不到 JAR:\n${jar}`)
-      return
-    }
-
-    const v1Dir = path.join(app.getPath('userData'), 'v1')
-    const configDir = path.join(v1Dir, 'config')
-    const configPath = path.join(configDir, 'runify.yaml')
-
-    if (!fs.existsSync(configPath)) {
-      const { randomBytes } = require('crypto')
-      const dataPath = path.join(v1Dir, 'data')
-      fs.mkdirSync(configDir, { recursive: true })
-      fs.writeFileSync(configPath, [
-        'system:',
-        '  dataPath: ' + dataPath,
-        '  secretKey: ' + randomBytes(32).toString('hex'),
-        'database:',
-        '  type: SQLITE',
-        'cache:',
-        '  type: LOCAL',
-        'search:',
-        '  type: LUCENE',
-      ].join('\n') + '\n')
-      console.log(`[Electron] Config initialized: ${configPath}`)
-    }
-
-    const javaArgs = [
-      `-Drunify.config=${configPath}`,
-      '-Dpolyglotimpl.DisableMultiReleaseCheck=true',
-      '-jar',
-      jar
-    ]
-
-    console.log(`[Electron] java args: ${javaArgs.join(' ')}`)
-
-    javaProcess = spawn(java, javaArgs, {
-      cwd,
-      stdio: ['ignore', 'pipe', 'pipe']
-    })
-
-    javaProcess.stdout.on('data', (data) => {
-      console.log(`[Java] ${data.toString().trim()}`)
-    })
-
-    javaProcess.stderr.on('data', (data) => {
-      console.error(`[Java] ${data.toString().trim()}`)
-    })
-
-    javaProcess.on('error', (err) => {
-      showErrorAndQuit('启动失败', `无法启动 Java:\n${err.message}`)
-    })
-
-    javaProcess.on('exit', (code) => {
-      console.log(`[Java] exited with code ${code}`)
-      javaProcess = null
-
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        showErrorAndQuit('后端异常', `Java 退出 (code: ${code})`)
-      }
-    })
-
-    try {
-      await waitForPort(8080)
-    } catch (err) {
-      showErrorAndQuit('启动超时', err.message)
-      return
-    }
+  try {
+    await waitForPort(port)
+  } catch (err) {
+    showErrorAndQuit('启动超时', err.message)
+    return
   }
 
   mainWindow = new BrowserWindow({
@@ -257,7 +287,7 @@ app.whenReady().then(async () => {
     }
   })
 
-  const url = 'http://localhost:8080/admin/'
+  const url = `http://localhost:${port}/admin/`
   console.log(`[Electron] Loading: ${url}`)
 
   mainWindow.webContents.on('did-finish-load', () => {
@@ -281,12 +311,12 @@ app.whenReady().then(async () => {
         {
           label: 'Admin',
           accelerator: 'CmdOrCtrl+1',
-          click: () => mainWindow.loadURL('http://localhost:8080/admin/')
+          click: () => mainWindow.loadURL(`http://localhost:${port}/admin/`)
         },
         {
           label: 'Conversation',
           accelerator: 'CmdOrCtrl+2',
-          click: () => mainWindow.loadURL('http://localhost:8080/conversation/')
+          click: () => mainWindow.loadURL(`http://localhost:${port}/conversation/`)
         },
         { type: 'separator' },
         { role: 'quit' }
@@ -335,8 +365,6 @@ app.on('window-all-closed', () => {
 })
 
 app.on('before-quit', () => {
-  if (javaProcess) {
-    javaProcess.kill()
-    javaProcess = null
-  }
+  quitting = true
+  killJavaProcess()
 })
