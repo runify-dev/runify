@@ -121,8 +121,8 @@ run/
 
 ## 技术交流
 
-<!-- TODO: 替换为实际群二维码图片 -->
-<!-- ![微信群](./docs/wechat-qr.png) -->
+<img width="930" height="1446" alt="c177135ae214abf9370e57496da28f76" src="https://github.com/user-attachments/assets/06fc662a-38bd-40e8-9e7d-0a020f154093" />
+
 
 ## 参与讨论
 
