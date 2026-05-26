@@ -649,7 +649,7 @@
                               "codeLocation": "customize",
                               "code": "",
                               "timeoutLocation": "customize",
-                              "timeout": 30
+                              "timeout": 1800
                             }
                           }
                         },

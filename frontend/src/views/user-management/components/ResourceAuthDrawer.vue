@@ -104,7 +104,7 @@ import {toTree} from '@/utils/common'
 
 const visible = ref(false)
 const userId = ref<string>()
-const active = ref<'application' | 'note' | 'model' | 'project'>('application')
+const active = ref<'application' | 'note' | 'model' | 'project' | 'datasource'>('application')
 const treeNodes = ref<any[]>([])
 const filteredTreeNodes = ref<any[]>([])
 const searchKeyword = ref('')
@@ -115,7 +115,8 @@ const menuOptions = [
   {label: '应用', value: 'application' as const, icon: 'app-icon app-application'},
   {label: '笔记', value: 'note' as const, icon: 'app-icon app-document'},
   {label: '模型', value: 'model' as const, icon: 'app-icon app-model'},
-  {label: '项目', value: 'project' as const, icon: 'app-icon app-document'}
+  {label: '项目', value: 'project' as const, icon: 'app-icon app-document'},
+  {label: '数据源', value: 'datasource' as const, icon: 'app-icon app-document'}
 ]
 
 // 将普通树形数据转换为 TreeTable 需要的 TreeNode 格式

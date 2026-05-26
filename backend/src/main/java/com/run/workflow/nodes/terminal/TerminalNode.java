@@ -44,7 +44,7 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
             WorkflowType.PROCESSOR_HTTP_LOOP
     );
 
-    private static final int DEFAULT_TIMEOUT = 30;
+    private static final int DEFAULT_TIMEOUT = 1800;
 
     private volatile Process process;
 
