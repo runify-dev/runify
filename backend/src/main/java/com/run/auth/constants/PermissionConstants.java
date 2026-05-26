@@ -27,11 +27,18 @@ public enum PermissionConstants {
     NOTE_EDIT(new Permission(Group.NOTE, Group.NOTE, Operate.EDIT, 1), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
     NOTE_DELETE(new Permission(Group.NOTE, Group.NOTE, Operate.DELETE, 2), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
     NOTE_CREATE(new Permission(Group.NOTE, Group.NOTE, Operate.CREATE, 3), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    NOTE_FOLDER_EDIT(new Permission(Group.NOTE, Group.FOLDER, Operate.EDIT, 4), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    NOTE_FOLDER_DELETE(new Permission(Group.NOTE, Group.FOLDER, Operate.DELETE, 5), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    NOTE_FOLDER_CREATE(new Permission(Group.NOTE, Group.FOLDER, Operate.CREATE, 6), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
 
     MODEL_READ(new Permission(Group.MODEL, Group.MODEL, Operate.READ, 0), List.of(ResourcePermissionGroup.VIEW, ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
     MODEL_EDIT(new Permission(Group.MODEL, Group.MODEL, Operate.EDIT, 1), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
     MODEL_DELETE(new Permission(Group.MODEL, Group.MODEL, Operate.DELETE, 2), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
     MODEL_CREATE(new Permission(Group.MODEL, Group.MODEL, Operate.CREATE, 3), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    MODEL_FOLDER_EDIT(new Permission(Group.MODEL, Group.FOLDER, Operate.EDIT, 4), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    MODEL_FOLDER_DELETE(new Permission(Group.MODEL, Group.FOLDER, Operate.DELETE, 5), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    MODEL_FOLDER_CREATE(new Permission(Group.MODEL, Group.FOLDER, Operate.CREATE, 6), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+
 
     DATASOURCE_READ(new Permission(Group.DATASOURCE, Group.DATASOURCE, Operate.READ, 0), List.of(ResourcePermissionGroup.VIEW, ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
     DATASOURCE_EDIT(new Permission(Group.DATASOURCE, Group.DATASOURCE, Operate.EDIT, 1), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
@@ -45,6 +52,10 @@ public enum PermissionConstants {
     PROJECT_EDIT(new Permission(Group.PROJECT, Group.PROJECT, Operate.EDIT, 1), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
     PROJECT_DELETE(new Permission(Group.PROJECT, Group.PROJECT, Operate.DELETE, 2), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
     PROJECT_CREATE(new Permission(Group.PROJECT, Group.PROJECT, Operate.CREATE, 3), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    PROJECT_FOLDER_EDIT(new Permission(Group.PROJECT, Group.FOLDER, Operate.EDIT, 4), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    PROJECT_FOLDER_DELETE(new Permission(Group.PROJECT, Group.FOLDER, Operate.DELETE, 5), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    PROJECT_FOLDER_CREATE(new Permission(Group.PROJECT, Group.FOLDER, Operate.CREATE, 6), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+
     /**
      * ---------------------------系统权限---------------------------------------------------------------------------
      */

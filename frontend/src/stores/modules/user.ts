@@ -1,12 +1,14 @@
-import { defineStore } from 'pinia'
-import type { User } from '@/api/type/user'
+import {defineStore} from 'pinia'
+import type {User} from '@/api/type/user'
 import UserApi from '@/api/user'
+
 export interface userStateTypes {
   user?: User
   token?: string,
   permissions: Map<string, bigint>,
   roles: Set<string>
 }
+
 const buildPermissionMap = (data: Record<string, string>): Map<string, bigint> => {
   const map = new Map<string, bigint>()
   if (!data) return map
@@ -36,11 +38,7 @@ const useUserStore = defineStore('user', {
       }
       return token ? token : undefined
     },
-
-    profile() {
-      if (this.user) {
-        return Promise.resolve(this.user)
-      }
+    resetProfile() {
       return UserApi.profile().then(async (ok: any) => {
         this.user = ok.data
         this.permissions = buildPermissionMap(ok.data.permissions)
@@ -58,6 +56,12 @@ const useUserStore = defineStore('user', {
         return ok.data
       })
     },
+    profile() {
+      if (this.user) {
+        return Promise.resolve(this.user)
+      }
+      return this.resetProfile()
+    },
     getPermissions() {
       return this.permissions
     },
@@ -65,7 +69,7 @@ const useUserStore = defineStore('user', {
       return this.roles
     },
     login(username: string, password: string) {
-      return UserApi.login({ username, password }).then((ok: any) => {
+      return UserApi.login({username, password}).then((ok: any) => {
         this.token = ok.data
         localStorage.setItem('token', ok.data)
         return this.profile()

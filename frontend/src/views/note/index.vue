@@ -30,34 +30,7 @@
               <span>{{ node.label }}</span>
               <div class="action-buttons">
                 <DropdownMenu
-                  :items="[
-                    {
-                      label: '新建',
-                      visible: node.data.type == 'folder',
-                      items: [
-                        {
-                          label: '笔记',
-                          visible: node.data.type == 'folder',
-                          command: () => {
-                            openCreateNoteDialog(node)
-                          }
-                        },
-                        {
-                          label: '文件夹',
-                          visible: node.data.type == 'folder',
-                          command: () => {
-                            openCreateFolderDialog(node)
-                          }
-                        }
-                      ]
-                    },
-                    {
-                      label: '删除',
-                      command: () => {
-                        removeTreeNode(node)
-                      }
-                    }
-                  ]"
+                  :items="getMenuItems(node)"
                 >
                   <template #item="scope">
                     <div class="p-tieredmenu-item-link">
@@ -92,6 +65,11 @@
           ref="createFolderDialogRef"
           :api="treeCommonAPI"
         ></CreateFolderDialog>
+        <RenameDialog
+          @rename:success="renameSuccess"
+          ref="renameDialogRef"
+          :api="treeCommonAPI"
+        ></RenameDialog>
       </div>
     </template>
     <router-view :key="route.path"></router-view>
@@ -109,11 +87,18 @@ import {useRouter, useRoute} from 'vue-router'
 import {TreeManager} from '@/components/tree/index'
 import {TreeCommonAPI} from '@/api/tree'
 import bus from '@/bus/index'
-
-const route = useRoute()
 import type {TreeNode} from 'primevue/treenode'
 import TreeEmpty from '@/components/tree-empty/index.vue'
 import {ROOT_FOLDER_ID} from "@/constants/common.ts";
+import useStore from "@/stores";
+import {hasPermission} from "@/permission";
+import {PermissionConstants} from "@/permission/data.ts";
+import {Role} from "@/permission/common.ts";
+import RenameDialog from '@/components/rename-dialog/index.vue'
+
+const {user} = useStore();
+const route = useRoute()
+
 
 const expandedKeys = ref<TreeSelectionKeys>()
 const selectedKeys = computed(() => {
@@ -136,24 +121,79 @@ const nodeSelect = (treeNode?: TreeNode) => {
   }
 }
 const createResourceSuccess = (key: string, node: any) => {
-  const treeNode = toTreeNode({...node, type: 'note'})
-  treeManage.value.addChild(key, treeNode)
-  expandedKeys.value = {...expandedKeys.value, [key]: true}
-  router.push({name: 'noteDetails', params: {id: node.id}})
+  user.resetProfile().then(ok => {
+    const treeNode = toTreeNode({...node, type: 'note'})
+    treeManage.value.addChild(key, treeNode)
+    expandedKeys.value = {...expandedKeys.value, [key]: true}
+    router.push({name: 'noteDetails', params: {id: node.id}})
+  })
+
 }
 const createFolderSuccess = (key: string, node: any) => {
-  const treeNode = toTreeNode({...node, type: 'folder'})
-  treeManage.value.addChild(key, treeNode)
-  expandedKeys.value = {...expandedKeys.value, [key]: true}
-  router.push({name: 'noteFolders', params: {id: node.id}})
+  user.resetProfile().then(ok => {
+    const treeNode = toTreeNode({...node, type: 'folder'})
+    treeManage.value.addChild(key, treeNode)
+    expandedKeys.value = {...expandedKeys.value, [key]: true}
+    router.push({name: 'noteFolders', params: {id: node.id}})
+  })
+
 }
+const getMenuItems = (node: any) => {
+  return [
+    {
+      label: '新建',
+      visible: node.data.type === 'folder' && hasPermission([
+        PermissionConstants.NOTE_CREATE.newResourcePermission(node.key),
+        PermissionConstants.NOTE_FOLDER_CREATE.newResourcePermission(node.key),
+        Role.ADMIN], "OR"),
+      items: [
+        {
+          label: '笔记',
+          visible: () => node.data.type === 'folder' && hasPermission([
+            PermissionConstants.NOTE_CREATE.newResourcePermission(node.key),
+            Role.ADMIN], "OR"),
+          command: () => openCreateNoteDialog(node)
+        },
+        {
+          label: '文件夹',
+          visible: node.data.type === 'folder' && hasPermission([
+            PermissionConstants.NOTE_FOLDER_CREATE.newResourcePermission(node.key),
+            Role.ADMIN], "OR"),
+          command: () => openCreateFolderDialog(node)
+        }
+      ]
+    },
+    {
+      label: '重命名',
+      visible: hasPermission([
+        node.data.type === 'folder' ? PermissionConstants.NOTE_FOLDER_EDIT.newResourcePermission(node.key) : PermissionConstants.NOTE_EDIT.newResourcePermission(node.key),
+        Role.ADMIN], "OR"),
+      command: () => openRenameDialog(node)
+    },
+    {
+      visible: hasPermission([
+        node.data.type === 'folder' ? PermissionConstants.NOTE_FOLDER_DELETE.newResourcePermission(node.key) : PermissionConstants.NOTE_DELETE.newResourcePermission(node.key),
+        Role.ADMIN], "OR"),
+      label: '删除',
+      command: () => removeTreeNode(node)
+    }
+  ]
+}
+
 const createResourceDialogRef = ref<InstanceType<typeof CreateResourceDialog>>()
 const openCreateNoteDialog = (node?: TreeNode) => {
   createResourceDialogRef.value?.open(node)
 }
 const createFolderDialogRef = ref<InstanceType<typeof CreateFolderDialog>>()
+const renameDialogRef = ref<InstanceType<typeof RenameDialog>>()
 const openCreateFolderDialog = (node?: TreeNode) => {
   createFolderDialogRef.value?.open(node)
+}
+const openRenameDialog = (node: TreeNode) => {
+  renameDialogRef.value?.open(node.key, node.label || '', node.data.type === 'folder' ? 'folder' : 'resource')
+}
+const renameSuccess = (key: string, node: any) => {
+  treeManage.value?.updateLabel(key, node.name)
 }
 const removeTreeNode = (node: TreeNode) => {
   ;(node.data.type === 'folder'

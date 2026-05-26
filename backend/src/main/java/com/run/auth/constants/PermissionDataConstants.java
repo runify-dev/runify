@@ -1,10 +1,13 @@
 package com.run.auth.constants;
 
+import com.run.dao.entity.RolePermissionRelation;
+
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class PermissionDataConstants {
     /**
@@ -43,4 +46,9 @@ public class PermissionDataConstants {
             Map.of(PermissionConstants.ResourcePermissionGroup.VIEW, viewPermissionBit,
                     PermissionConstants.ResourcePermissionGroup.MANAGE, managePermissionBit);
 
+    public final static Map<String, List<RolePermissionRelation>> ROLE_PERMISSION_MAP = Arrays.stream(PermissionConstants.values()).flatMap(item -> {
+        return item.getRoles().stream().map(role -> {
+            return new RolePermissionRelation(null, role.name(), item.permission.toString());
+        });
+    }).collect(Collectors.groupingBy(RolePermissionRelation::getRoleId));
 }

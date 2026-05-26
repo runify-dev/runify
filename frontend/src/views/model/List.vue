@@ -15,7 +15,8 @@
       </InputGroup>
 
       <!-- 新建按钮 -->
-      <Button icon="pi pi-plus" label="新建模型" @click="openCreate" class="shrink-0"/>
+      <Button icon="pi pi-plus" v-if="permissionCreate" label="新建模型" @click="openCreate"
+              class="shrink-0"/>
     </div>
 
     <!-- 应用网格 -->
@@ -101,6 +102,9 @@ import {useConfirm} from 'primevue/useconfirm'
 import {useToast} from 'primevue/usetoast'
 import bus from '@/bus/index'
 import {TreeCommonAPI} from '@/api/tree'
+import {hasPermission} from "@/permission";
+import {PermissionConstants} from "@/permission/data.ts";
+import {Role} from "@/permission/common.ts";
 
 const treeCommonAPI = new TreeCommonAPI('model')
 const router = useRouter()
@@ -118,7 +122,9 @@ const filteredList = computed(() =>
     ? nodeList.value.filter((n) => n.name?.includes(searchText.value))
     : nodeList.value
 )
-
+const permissionCreate = computed(() => {
+  return hasPermission([PermissionConstants.MODEL_CREATE.newResourcePermission(folderId.value), Role.ADMIN], 'OR')
+})
 const folderId = computed(() => {
   const {
     params: {id}
@@ -130,11 +136,17 @@ const menuItems = computed(() => [
   {
     label: '打开',
     icon: 'pi pi-arrow-up-right',
+    visible: hasPermission([
+      PermissionConstants.MODEL_READ.newResourcePermission(activeItem.value?.id || ''),
+      Role.ADMIN], "OR"),
     command: () => activeItem.value && handleOpen(activeItem.value)
   },
   {separator: true},
   {
     label: '删除',
+    visible: hasPermission([
+      PermissionConstants.MODEL_DELETE.newResourcePermission(activeItem.value?.id || ''),
+      Role.ADMIN], "OR"),
     icon: 'pi pi-trash',
     class: '!text-red-500 [&_.p-menuitem-icon]:!text-red-500',
     command: () => activeItem.value && handleDelete(activeItem.value)

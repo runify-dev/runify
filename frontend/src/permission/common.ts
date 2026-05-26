@@ -9,7 +9,8 @@ export enum Group {
   SETTING = 'SETTING',
   CONVERSATION_LOG = 'CONVERSATION_LOG',
   FOLDER = 'FOLDER',
-  SYSTEM_SETTING = 'SYSTEM_SETTING'
+  SYSTEM_SETTING = 'SYSTEM_SETTING',
+  DATASOURCE = "DATASOURCE"
 }
 
 export enum Operate {
@@ -62,15 +63,18 @@ export class Permission {
 
     return `${groupName}:${this.subGroup !== this.group ? `${subGroupName}:` : ''}${operateName}`
   }
+
   toPermissionKey(): string {
     if (this.resourceId) {
       return `${this.group}:${this.resourceId}`
     }
     return this.toString()
   }
+
   newResourcePermission(resourceId: string) {
     return new Permission(this.group, this.subGroup, this.operate, this.bitIndex, resourceId)
   }
+
   getResourcePermissionKey(resourceId: string): string {
     return `${this.group}:${resourceId}`
   }

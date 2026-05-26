@@ -3,7 +3,7 @@
     <div class="flex items-center justify-between gap-4 mb-6">
       <InputGroup class="max-w-sm">
         <InputGroupAddon class="!bg-surface-0 !border-surface-200">
-          <i class="pi pi-search text-surface-400 text-sm" />
+          <i class="pi pi-search text-surface-400 text-sm"/>
         </InputGroupAddon>
         <InputText
           v-model="searchText"
@@ -11,7 +11,8 @@
           class="!border-l-0 !border-surface-200 !bg-surface-0 text-sm focus:!border-primary-400 focus:!ring-2 focus:!ring-primary-100 placeholder:text-surface-400 transition-all duration-200"
         />
       </InputGroup>
-      <Button icon="pi pi-plus" label="新建数据源" @click="openCreate" class="shrink-0" />
+      <Button icon="pi pi-plus" v-if="permissionCreate" label="新建数据源" @click="openCreate"
+              class="shrink-0"/>
     </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -27,7 +28,7 @@
             <div
               class="w-10 h-10 rounded-xl bg-primary-50 flex items-center justify-center text-primary-500 text-lg shrink-0"
             >
-              <i class="pi pi-database" />
+              <i class="pi pi-database"/>
             </div>
             <div @click.stop>
               <Button
@@ -55,7 +56,7 @@
               {{ item.dataSourceType || '数据源' }}
             </span>
             <span class="flex items-center gap-1 text-[11px] text-surface-400">
-              <i class="pi pi-clock text-[10px]" />
+              <i class="pi pi-clock text-[10px]"/>
               {{ item.updateTime }}
             </span>
           </div>
@@ -66,25 +67,31 @@
         v-if="filteredList.length === 0"
         class="col-span-full flex flex-col items-center justify-center py-16 text-surface-400"
       >
-        <i class="pi pi-inbox text-5xl mb-4 opacity-40" />
+        <i class="pi pi-inbox text-5xl mb-4 opacity-40"/>
         <p class="text-sm">暂无数据源，点击「新建数据源」开始创建</p>
       </div>
     </div>
 
-    <Menu ref="menuRef" :model="menuItems" popup />
-    <ConfirmDialog />
+    <Menu ref="menuRef" :model="menuItems" popup/>
+    <ConfirmDialog/>
   </div>
 </template>
 
 <script setup lang="ts">
-import { useRoute, useRouter } from 'vue-router'
-import { computed, onMounted, ref, watch } from 'vue'
-import { type Node } from '@/api/type/node'
-import { useConfirm } from 'primevue/useconfirm'
-import { useToast } from 'primevue/usetoast'
+import {useRoute, useRouter} from 'vue-router'
+import {computed, onMounted, ref, watch} from 'vue'
+import {type Node} from '@/api/type/node'
+import {useConfirm} from 'primevue/useconfirm'
+import {useToast} from 'primevue/usetoast'
 import bus from '@/bus/index'
-import { TreeCommonAPI } from '@/api/tree'
+import {TreeCommonAPI} from '@/api/tree'
+import {hasPermission} from "@/permission";
+import {PermissionConstants} from "@/permission/data.ts";
+import {Role} from "@/permission/common.ts";
 
+const permissionCreate = computed(() => {
+  return hasPermission([PermissionConstants.DATASOURCE_CREATE.newResourcePermission(folderId.value), Role.ADMIN], 'OR')
+})
 const treeCommonAPI = new TreeCommonAPI('datasource')
 const router = useRouter()
 const route = useRoute()
@@ -104,7 +111,7 @@ const filteredList = computed(() =>
 
 const folderId = computed(() => {
   const {
-    params: { id }
+    params: {id}
   } = route as any
   return id
 })
@@ -113,11 +120,17 @@ const menuItems = computed(() => [
   {
     label: '打开',
     icon: 'pi pi-arrow-up-right',
+    visible: hasPermission([
+      PermissionConstants.DATASOURCE_READ.newResourcePermission(activeItem.value?.id || ''),
+      Role.ADMIN], "OR"),
     command: () => activeItem.value && handleOpen(activeItem.value)
   },
-  { separator: true },
+  {separator: true},
   {
     label: '删除',
+    visible: hasPermission([
+      PermissionConstants.DATASOURCE_DELETE.newResourcePermission(activeItem.value?.id || ''),
+      Role.ADMIN], "OR"),
     icon: 'pi pi-trash',
     class: '!text-red-500 [&_.p-menuitem-icon]:!text-red-500',
     command: () => activeItem.value && handleDelete(activeItem.value)
@@ -130,11 +143,11 @@ const toggleMenu = (event: Event, item: Node) => {
 }
 
 const openCreate = () => {
-  router.push({ name: 'datasourceCreate', params: { folderId: folderId.value } })
+  bus.emit('open:create:datasource:dialog', {folderId: folderId.value})
 }
 
 const handleOpen = (item: Node) => {
-  router.push({ name: 'datasourceDetails', params: { id: item.id } })
+  router.push({name: 'datasourceDetails', params: {id: item.id}})
 }
 
 const handleDelete = (item: Node) => {
@@ -142,13 +155,13 @@ const handleDelete = (item: Node) => {
     message: `确定要删除「${item.name}」吗？此操作不可撤销。`,
     header: '删除确认',
     icon: 'pi pi-exclamation-triangle',
-    rejectProps: { label: '取消', severity: 'secondary', variant: 'outlined' },
-    acceptProps: { label: '删除', severity: 'danger' },
+    rejectProps: {label: '取消', severity: 'secondary', variant: 'outlined'},
+    acceptProps: {label: '删除', severity: 'danger'},
     accept: () => {
       treeCommonAPI.removeResource(item.id).then(() => {
         nodeList.value = nodeList.value.filter((n) => n.id !== item.id)
         bus.emit('tree:remove', item.id)
-        toast.add({ severity: 'success', summary: '删除成功', life: 2000 })
+        toast.add({severity: 'success', summary: '删除成功', life: 2000})
       })
     }
   })

@@ -113,8 +113,8 @@ public class NoteRoute implements IRoute {
                 .handler(tokenBasicAuthHandler)
                 .handler(Authenticator.builder()
                         .addPermission(AggregatePermission.builder()
-                                .addPermission(PermissionConstants.NOTE_EDIT)
-                                .addPermission(PermissionConstants.NOTE_EDIT.getFolderPermission())
+                                .addPermission(PermissionConstants.NOTE_FOLDER_EDIT)
+                                .addPermission(PermissionConstants.NOTE_FOLDER_EDIT.getFolderPermission())
                                 .compare(PermissionConstants.Compare.AND).build())
                         .addRole(PermissionConstants.Role.ADMIN)
                         .compare(PermissionConstants.Compare.OR)
@@ -137,8 +137,8 @@ public class NoteRoute implements IRoute {
                 .handler(tokenBasicAuthHandler)
                 .handler(Authenticator.builder()
                         .addPermission(AggregatePermission.builder()
-                                .addPermission(PermissionConstants.NOTE_DELETE)
-                                .addPermission(PermissionConstants.NOTE_DELETE.getFolderPermission())
+                                .addPermission(PermissionConstants.NOTE_FOLDER_DELETE)
+                                .addPermission(PermissionConstants.NOTE_FOLDER_DELETE.getFolderPermission())
                                 .compare(PermissionConstants.Compare.AND).build())
                         .addRole(PermissionConstants.Role.ADMIN)
                         .compare(PermissionConstants.Compare.OR)
@@ -150,8 +150,8 @@ public class NoteRoute implements IRoute {
                 .handler(tokenBasicAuthHandler)
                 .handler(Authenticator.builder()
                         .addPermission(AggregatePermission.builder()
-                                .addPermission(PermissionConstants.NOTE_CREATE)
-                                .addPermission(PermissionConstants.NOTE_CREATE.getFolderPermission())
+                                .addPermission(PermissionConstants.NOTE_FOLDER_CREATE)
+                                .addPermission(PermissionConstants.NOTE_FOLDER_CREATE.getFolderPermission())
                                 .compare(PermissionConstants.Compare.AND).build())
                         .addRole(PermissionConstants.Role.ADMIN)
                         .compare(PermissionConstants.Compare.OR)
@@ -197,10 +197,16 @@ public class NoteRoute implements IRoute {
 
         apiRoute.get("/note/permissions/:userId")
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .build())
                 .handler(iNoteHandler::listResourcePermission);
 
         apiRoute.put("/note/permissions/:userId/authorization/:resourceId/:permission")
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .build())
                 .handler(iNoteHandler::authResourcePermission);
     }
 

@@ -113,7 +113,7 @@ public class Authenticator implements Handler<RoutingContext> {
                                            List<String> userRoles,
                                            Map<String, Long> userPermissions) {
         PermissionConstants.Permission p = permission.getPermission();
-        String key = StringUtils.isEmpty(p.getResourceId()) ? p.toString() : p.getResourcePermissionKey(p.getResourceId());
+        String key = StringUtils.isEmpty(p.getResourceId()) ? p.getGroup().toString() : p.getResourcePermissionKey(p.getResourceId());
         return userPermissions.containsKey(key) && (userPermissions.get(key) & p.bit()) > 0;
     }
 

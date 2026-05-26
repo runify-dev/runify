@@ -71,7 +71,7 @@
             </div>
             <Menu
               :model="_items"
-              class="w-full application-menu"
+              class="w-full application-menu border-none!"
             >
               <template #item="{ item, props }">
                 <a
@@ -148,6 +148,9 @@ import {PermissionConstants} from '@/permission/data'
 import {hasPermission} from '@/permission'
 import {Role} from '@/permission/common'
 import {ROOT_FOLDER_ID} from "@/constants/common.ts";
+import useStore from "@/stores";
+
+const {user} = useStore();
 
 const route = useRoute()
 const to = (routeName: string) => {
@@ -199,14 +202,16 @@ const getMenuItems = (node: any) => {
   return [
     {
       label: '新建',
-      visible: ()=>{return node.data.type === 'folder' && hasPermission([
-        PermissionConstants.APPLICATION_CREATE.newResourcePermission(node.key),
-        PermissionConstants.APPLICATION_FOLDER_CREATE.newResourcePermission(node.key),
-        Role.ADMIN], "OR")},
+      visible: () => {
+        return node.data.type === 'folder' && hasPermission([
+          PermissionConstants.APPLICATION_CREATE.newResourcePermission(node.key),
+          PermissionConstants.APPLICATION_FOLDER_CREATE.newResourcePermission(node.key),
+          Role.ADMIN], "OR")
+      },
       items: [
         {
           label: '应用',
-          visible: ()=>node.data.type === 'folder' && hasPermission([
+          visible: () => node.data.type === 'folder' && hasPermission([
             PermissionConstants.APPLICATION_CREATE.newResourcePermission(node.key),
             Role.ADMIN], "OR"),
           command: () => openCreateApplicationDialog(node)
@@ -223,7 +228,7 @@ const getMenuItems = (node: any) => {
     {
       label: '重命名',
       visible: hasPermission([
-        node.data.type === 'folder' ? PermissionConstants.APPLICATION_FOLDER_EDIT.newResourcePermission(node.key ) : PermissionConstants.APPLICATION_EDIT.newResourcePermission(node.key ),
+        node.data.type === 'folder' ? PermissionConstants.APPLICATION_FOLDER_EDIT.newResourcePermission(node.key) : PermissionConstants.APPLICATION_EDIT.newResourcePermission(node.key),
         Role.ADMIN], "OR"),
       command: () => openRenameDialog(node)
     },
@@ -281,20 +286,24 @@ const nodeSelect = (treeNode?: TreeNode) => {
   }
 }
 const createResourceSuccess = (key: string, node: any) => {
-  const treeNode = toTreeNode({...node, type: 'application'})
-  treeManage.value?.addChild(key, treeNode)
-  expandedKeys.value = {...expandedKeys.value, [key]: true}
-  nodeSelect(treeNode)
+  user.resetProfile().then(ok => {
+    const treeNode = toTreeNode({...node, type: 'application'})
+    treeManage.value?.addChild(key, treeNode)
+    expandedKeys.value = {...expandedKeys.value, [key]: true}
+    nodeSelect(treeNode)
+  })
 }
 const editResourceSuccess = (id: string, data: any) => {
   treeManage.value?.updateLabel(id, data.name)
   bus.emit('application:edit:success', {id, ...data})
 }
 const createFolderSuccess = (key: string, node: any) => {
-  const treeNode = toTreeNode({...node, type: 'folder'})
-  treeManage.value?.addChild(key, treeNode)
-  expandedKeys.value = {[key]: true}
-  router.push({name: 'applicationFolders', params: {id: node.id}})
+  user.resetProfile().then(ok => {
+    const treeNode = toTreeNode({...node, type: 'folder'})
+    treeManage.value?.addChild(key, treeNode)
+    expandedKeys.value = {[key]: true}
+    router.push({name: 'applicationFolders', params: {id: node.id}})
+  })
 }
 const applicationFormDialogRef = ref<InstanceType<typeof ApplicationFormDialog>>()
 const agentFormDialogRef = ref<InstanceType<typeof AgentFormDialog>>()

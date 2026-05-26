@@ -148,8 +148,8 @@ public class ModelRoute implements IRoute {
                 .handler(tokenBasicAuthHandler)
                 .handler(Authenticator.builder()
                         .addPermission(AggregatePermission.builder()
-                                .addPermission(PermissionConstants.MODEL_CREATE)
-                                .addPermission(PermissionConstants.MODEL_CREATE.getFolderPermission())
+                                .addPermission(PermissionConstants.MODEL_FOLDER_CREATE)
+                                .addPermission(PermissionConstants.MODEL_FOLDER_CREATE.getFolderPermission())
                                 .compare(PermissionConstants.Compare.AND).build())
                         .addRole(PermissionConstants.Role.ADMIN)
                         .compare(PermissionConstants.Compare.OR)
@@ -193,12 +193,31 @@ public class ModelRoute implements IRoute {
                         .build())
                 .handler(modelHandler::create);
 
+        apiRoute.post("/model/folders/:folderId/resources/validate")
+                .handler(BodyHandler.create())
+                .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.MODEL_CREATE)
+                                .addPermission(PermissionConstants.MODEL_CREATE.getFolderPermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
+                .handler(modelHandler::validate);
+
         apiRoute.get("/model/permissions/:userId")
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .build())
                 .handler(modelHandler::listResourcePermission);
 
         apiRoute.put("/model/permissions/:userId/authorization/:resourceId/:permission")
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .build())
                 .handler(modelHandler::authResourcePermission);
     }
 

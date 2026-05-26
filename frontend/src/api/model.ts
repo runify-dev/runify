@@ -1,10 +1,10 @@
-import { Result } from '@/request/Result'
-import { get, post, put, del } from '@/request/admin/index'
+import {Result} from '@/request/Result'
+import {get, post, put, del} from '@/request/admin/index'
 import type {
   MarkdownNode
 } from '@/api/type/knowledge'
-import type { Ref } from 'vue'
-import { type KnowledgeEdit } from '@/api/type/knowledge'
+import type {Ref} from 'vue'
+import {type KnowledgeEdit} from '@/api/type/knowledge'
 
 const getProvider: (
   loading?: Ref<boolean>
@@ -32,9 +32,17 @@ const edit: (
 ) => Promise<Result<any>> = (resourceId, model, loading) => {
   return put(`/model/resources/${resourceId}`, model, {}, loading)
 }
+const validate: (
+  folderId: string,
+  model: any,
+  loading?: Ref<boolean>
+) => Promise<Result<any>> = (folderId, model, loading) => {
+  return post(`/model/folders/${folderId}/resources/validate`, model, {}, loading)
+}
 export default {
   getProvider,
   getProviderModelList,
   listModelType,
-  edit
+  edit,
+  validate
 }

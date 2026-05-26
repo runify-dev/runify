@@ -1,5 +1,7 @@
 package com.run.handler.common.impl;
 
+import com.run.auth.constants.PermissionConstants;
+import com.run.auth.dto.UserProfile;
 import com.run.common.cache.CacheStore;
 import com.run.common.constants.ResourcePermissionConstants;
 import com.run.common.result.Result;
@@ -7,6 +9,9 @@ import com.run.common.util.CommonUtils;
 import com.run.common.util.TreeUtil;
 import com.run.dao.common.entity.BaseEntity;
 import com.run.dao.common.mapper.BaseMapper;
+import com.run.dao.entity.ApplicationPermission;
+import com.run.dao.entity.Role;
+import com.run.dao.entity.RolePermissionRelation;
 import com.run.dao.entity.User;
 import com.run.handler.common.IResourceHandler;
 import com.run.handler.common.Tool;
@@ -211,10 +216,15 @@ public abstract class ResourceHandlerImpl<R extends BaseEntity<R>,
 
     @Override
     public void create(RoutingContext context) {
+        io.vertx.ext.auth.User user = context.user();
+        UserProfile userProfile = (UserProfile) user.get("user");
+        List<Role> roles = userProfile.getRoles();
+        UUID userId = userProfile.getId();
+        boolean isAdmin = roles.stream().anyMatch(r -> r.getId().equals(PermissionConstants.Role.ADMIN.name()));
         UUID parentUuId = TreeUtil.getParentUuId(context.pathParam("folderId"));
         CreateSimpleNodePojo createSimpleResourcePojo = context.body().asPojo(CreateSimpleNodePojo.class);
         String name = createSimpleResourcePojo.getName();
-        Future<?> future;
+        Future<R> future;
         UUID nodeId = UUID.randomUUID();
         if (StringUtils.isEmpty(name)) {
             future = Tool.getNodeRelation(relationMapper, parentUuId, nodeId, this::newRelation, this::getAncestorId, this::getDepth)
@@ -229,6 +239,12 @@ public abstract class ResourceHandlerImpl<R extends BaseEntity<R>,
                     .compose(relationMapper::batch_save)
                     .compose(ok -> resourceMapper.save(resource))
                     .compose(ok -> Future.succeededFuture(resource));
+        }
+        if (!isAdmin) {
+            future = future.compose(source -> {
+                P p = newPermission(UUID.randomUUID(), userId, nodeId, PermissionConstants.ResourcePermissionGroup.MANAGE.name());
+                return permissionMapper.save(p).compose(_ -> Future.fromCompletionStage(cacheStore.delete("permissions:" + userId)).compose(_ -> Future.succeededFuture(source)));
+            });
         }
         future
                 .onSuccess(ok -> context.end(Result.success(ok).toBuffer()))

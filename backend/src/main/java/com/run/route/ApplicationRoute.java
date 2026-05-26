@@ -50,10 +50,26 @@ public class ApplicationRoute implements IRoute {
     public void initRoute() {
         apiRoute.get("/application/resources/:resourceId/export")
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.APPLICATION_READ)
+                                .addPermission(PermissionConstants.APPLICATION_READ.getFolderPermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(applicationHandler::exportApplication);
 
         apiRoute.get("/application/resources/:resourceId")
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.APPLICATION_READ)
+                                .addPermission(PermissionConstants.APPLICATION_READ.getFolderPermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(applicationHandler::get);
 
         apiRoute.put("/application/resources/:resourceId")
@@ -71,55 +87,141 @@ public class ApplicationRoute implements IRoute {
 
         apiRoute.delete("/application/resources/:resourceId")
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.APPLICATION_DELETE)
+                                .addPermission(PermissionConstants.APPLICATION_DELETE.getFolderPermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(applicationHandler::delete);
 
         apiRoute.post("/application/resources/:resourceId/modify-name")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.APPLICATION_EDIT)
+                                .addPermission(PermissionConstants.APPLICATION_EDIT.getFolderPermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(applicationHandler::rename);
 
         apiRoute.post("/application/folders/:folderId/modify-name")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.APPLICATION_FOLDER_EDIT)
+                                .addPermission(PermissionConstants.APPLICATION_FOLDER_EDIT.getFolderPermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(applicationFolderHandler::rename);
 
         apiRoute.get("/application/folders/:folderId")
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.APPLICATION_READ)
+                                .addPermission(PermissionConstants.APPLICATION_READ.getFolderPermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(applicationFolderHandler::get);
 
         apiRoute.delete("/application/folders/:folderId")
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.APPLICATION_FOLDER_DELETE)
+                                .addPermission(PermissionConstants.APPLICATION_FOLDER_DELETE.getFolderPermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(applicationFolderHandler::delete);
 
         apiRoute.post("/application/folders/:folderId")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.APPLICATION_FOLDER_CREATE)
+                                .addPermission(PermissionConstants.APPLICATION_FOLDER_CREATE.getFolderPermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(applicationFolderHandler::create);
 
         apiRoute.get("/application/folders/:folderId/subtree")
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.APPLICATION_READ)
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .addRole(PermissionConstants.Role.USER)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(applicationHandler::tree);
 
         apiRoute.get("/application/folders/:folderId/resources")
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.APPLICATION_READ)
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .addRole(PermissionConstants.Role.USER)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(applicationHandler::list);
 
         apiRoute.post("/application/folders/:folderId/resources")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.APPLICATION_FOLDER_CREATE)
+                                .addPermission(PermissionConstants.APPLICATION_FOLDER_CREATE.getResourcePermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(applicationHandler::create);
 
         apiRoute.post("/application/folders/:folderId/resources/import")
                 .handler(BodyHandler.create().setUploadsDirectory(System.getProperty("java.io.tmpdir")))
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.APPLICATION_CREATE)
+                                .addPermission(PermissionConstants.APPLICATION_CREATE.getResourcePermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
                 .handler(applicationHandler::importApplication);
 
         apiRoute.get("/application/permissions/:userId")
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .build())
                 .handler(applicationHandler::listResourcePermission);
 
         apiRoute.put("/application/permissions/:userId/authorization/:resourceId/:permission")
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .build())
                 .handler(applicationHandler::authResourcePermission);
     }
 

@@ -16,6 +16,7 @@ import com.run.dao.mapper.ModelRelationMapper;
 import com.run.handler.common.impl.ResourceHandlerImpl;
 import com.run.handler.common.pojo.SimpleNodePojo;
 import com.run.handler.model.IModelHandler;
+import com.run.handler.model.pojo.ModelCreateVO;
 import com.run.handler.model.pojo.ModelEditPojo;
 import com.run.models.IProvider;
 import com.run.models.ModelInfo;
@@ -121,13 +122,18 @@ public class ModelHandlerImpl extends ResourceHandlerImpl<Model, ModelFolder, Mo
                     }
 
                     IProvider provider = ModelProvideConstants.valueOf(model.getProvider()).getProvider();
-
+                    HashMap<String, Object> map = new HashMap<>();
+                    for (int i = 0; i < model.getModelParameterForm().size(); i++) {
+                        JsonObject jsonObject = model.getModelParameterForm().getJsonObject(i);
+                        map.put(jsonObject.getString("field"), jsonObject.getValue("defaultValue"));
+                    }
                     return validateInWorker(
                             context,
                             provider,
                             model.getModelType(),
                             model.getModelName(),
-                            body.getCredential().getMap()
+                            body.getCredential().getMap(),
+                            map
                     ).map(model);
                 })
                 .compose(resourceMapper::update)
@@ -135,15 +141,32 @@ public class ModelHandlerImpl extends ResourceHandlerImpl<Model, ModelFolder, Mo
                 .onFailure(context::fail);
     }
 
+    @Override
+    public void validate(RoutingContext context) {
+        ModelCreateVO modelCreateVO = context.body().asPojo(ModelCreateVO.class);
+        IProvider provider = ModelProvideConstants.valueOf(modelCreateVO.getProvider()).getProvider();
+        JsonArray modelParameterForm = modelCreateVO.getModelParameterForm();
+        HashMap<String, Object> map = new HashMap<>();
+        for (int i = 0; i < modelParameterForm.size(); i++) {
+            JsonObject jsonObject = modelParameterForm.getJsonObject(i);
+            map.put(jsonObject.getString("field"), jsonObject.getValue("defaultValue"));
+        }
+        validateInWorker(context, provider, modelCreateVO.getModelType(), modelCreateVO.getModelName(), modelCreateVO.getCredential().getMap(), map)
+                .onSuccess(ok -> context.end(Result.success(true).toBuffer()))
+                .onFailure(context::fail);
+        ;
+    }
+
     private Future<Void> validateInWorker(
             RoutingContext context,
             IProvider provider,
             String modelType,
             String modelName,
-            Map<String, Object> credential
+            Map<String, Object> credential,
+            Map<String, Object> other
     ) {
         return context.vertx().executeBlocking(() -> {
-            provider.validate(modelType, modelName, credential, Map.of());
+            provider.validate(modelType, modelName, credential, other);
             return null;
         }, false);
     }
@@ -218,7 +241,11 @@ public class ModelHandlerImpl extends ResourceHandlerImpl<Model, ModelFolder, Mo
 
     @Override
     protected Model newResource(UUID resourceId, UUID parentUuId, String name, RoutingContext context) {
-        return new Model(resourceId, parentUuId, name, "", "", "openai_provider", "LLM", "", "", new JsonArray(), new JsonObject(), false, false, LocalDateTime.now(), LocalDateTime.now());
+        ModelCreateVO modelCreateVO = context.body().asPojo(ModelCreateVO.class);
+        Model model = new Model(resourceId, parentUuId, name, modelCreateVO.getDesc(), "", modelCreateVO.getProvider(), modelCreateVO.getModelType(), modelCreateVO.getModelName(), modelCreateVO.getCredential().encode(), new JsonArray(), new JsonObject(), false, false, LocalDateTime.now(), LocalDateTime.now());
+        String encrypt = model.encrypt(modelCreateVO.getCredential());
+        model.setCredential(encrypt);
+        return model;
     }
 
     @Override

@@ -110,7 +110,7 @@ public class FileHandlerImpl implements IFileHandler {
                     .putHeader(HttpHeaders.ACCEPT_RANGES, "bytes")
                     .putHeader(HttpHeaders.CONTENT_LENGTH, Long.toString(contentLength))
                     .putHeader(HttpHeaders.CONTENT_RANGE, "bytes " + start + "-" + end + "/" + fileSize)
-                    .putHeader(HttpHeaders.CONTENT_DISPOSITION, "inline;filename=" + file.getFileName());
+                    .putHeader(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + file.getFileName());
 
             BaseReadStream baseReadStream = fileMapper.downloadFile(vertx, file, start, end + 1);
 

@@ -57,8 +57,9 @@ public abstract class BaseOpenaiChatModel implements ChatModel {
     @Override
     public void validate(String modelType, String modelName, Map<String, Object> modelCredential, Map<String, Object> other) {
         try {
+
             this.client.chat().completions().create(ChatCompletionCreateParams.builder()
-                    .addMessage(ChatCompletionMessageParam.ofUser(ChatCompletionUserMessageParam.builder().content("你好").build()))
+                    .addMessage(ChatCompletionMessageParam.ofUser(ChatCompletionUserMessageParam.builder().content("此次是为了校验当前模型参数是否有效 回复1即可").build()))
                     .model(model)
                     .build());
         } catch (Exception e) {

@@ -118,8 +118,8 @@ public class ProjectRoute implements IRoute {
                 .handler(tokenBasicAuthHandler)
                 .handler(Authenticator.builder()
                         .addPermission(AggregatePermission.builder()
-                                .addPermission(PermissionConstants.PROJECT_DELETE)
-                                .addPermission(PermissionConstants.PROJECT_DELETE.getResourcePermission())
+                                .addPermission(PermissionConstants.PROJECT_FOLDER_DELETE)
+                                .addPermission(PermissionConstants.PROJECT_FOLDER_DELETE.getResourcePermission())
                                 .compare(PermissionConstants.Compare.AND).build())
                         .addRole(PermissionConstants.Role.ADMIN)
                         .compare(PermissionConstants.Compare.OR)
@@ -131,8 +131,8 @@ public class ProjectRoute implements IRoute {
                 .handler(tokenBasicAuthHandler)
                 .handler(Authenticator.builder()
                         .addPermission(AggregatePermission.builder()
-                                .addPermission(PermissionConstants.PROJECT_CREATE)
-                                .addPermission(PermissionConstants.PROJECT_CREATE.getFolderPermission())
+                                .addPermission(PermissionConstants.PROJECT_FOLDER_CREATE)
+                                .addPermission(PermissionConstants.PROJECT_FOLDER_CREATE.getFolderPermission())
                                 .compare(PermissionConstants.Compare.AND).build())
                         .addRole(PermissionConstants.Role.ADMIN)
                         .compare(PermissionConstants.Compare.OR)
@@ -144,7 +144,6 @@ public class ProjectRoute implements IRoute {
                 .handler(Authenticator.builder()
                         .addPermission(AggregatePermission.builder()
                                 .addPermission(PermissionConstants.PROJECT_READ)
-
                                 .compare(PermissionConstants.Compare.AND).build())
                         .addRole(PermissionConstants.Role.ADMIN)
                         .addRole(PermissionConstants.Role.USER)
@@ -179,10 +178,16 @@ public class ProjectRoute implements IRoute {
 
         apiRoute.get("/project/permissions/:userId")
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .build())
                 .handler(iProjectHandler::listResourcePermission);
 
         apiRoute.put("/project/permissions/:userId/authorization/:resourceId/:permission")
                 .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .build())
                 .handler(iProjectHandler::authResourcePermission);
     }
 

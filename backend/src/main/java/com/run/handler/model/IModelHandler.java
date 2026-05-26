@@ -33,4 +33,11 @@ public interface IModelHandler extends IResourceHandler<Model> {
     void listModelType(RoutingContext context);
 
     void edit(RoutingContext context);
+
+    /**
+     * 校验模型是否可用
+     *
+     * @param context 上下文
+     */
+    void validate(RoutingContext context);
 }

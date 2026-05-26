@@ -37,6 +37,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.run.auth.constants.PermissionDataConstants.ROLE_PERMISSION_MAP;
 import static com.run.sql.DSL.field;
 
 /**
@@ -264,7 +265,15 @@ public class TokenProvider implements AuthenticationProvider {
         List<String> roleIds = roles.stream().map(Role::getId).toList();
         Future<List<RolePermissionRelation>> rolePermissionRelations = rolePermissionRelationMapper
                 .list(field(RolePermissionRelation::getRoleId).in(roleIds),
-                        Map.of("roleId", roleIds));
+                        Map.of("roleId", roleIds)).compose(rp -> {
+                    if (roleIds.contains("USER")) {
+                        List<RolePermissionRelation> user = ROLE_PERMISSION_MAP.get("USER");
+                        ArrayList<RolePermissionRelation> result = new ArrayList<>(user);
+                        result.addAll(rp);
+                        return Future.succeededFuture(result);
+                    }
+                    return Future.succeededFuture(rp);
+                });
         return rolePermissionRelations.compose(rolePermissionRelationResult -> {
             Future<Map<String, Long>> applicationPermissions =
                     getResourcePermission(
@@ -299,18 +308,18 @@ public class TokenProvider implements AuthenticationProvider {
                             ProjectPermission::getPermission,
                             rolePermissionRelationResult,
                             PermissionConstants.Group.PROJECT);
-            return Future.all(applicationPermissions, notePermissions, moelPermissions, projectPermissions, rolePermissionRelations, userFuture);
+            return Future.all(applicationPermissions, notePermissions, moelPermissions, projectPermissions, rolePermissionRelations);
         }).compose(result -> {
             Map<String, Long> applicationPermissions = result.resultAt(0);
             Map<String, Long> notePermissions = result.resultAt(1);
             Map<String, Long> modelPermissions = result.resultAt(2);
             Map<String, Long> projectPermissions = result.resultAt(3);
             List<RolePermissionRelation> permissionRelations = result.resultAt(4);
-
             Map<String, Long> menuPermissionMap = permissionRelations.stream()
                     .map(RolePermissionRelation::getPermissionId)
                     .map(PermissionDataConstants.permissionMap::get)
-                    .collect(Collectors.toMap(PermissionConstants.Permission::toString, PermissionConstants.Permission::bit));
+                    .collect(Collectors.groupingBy(p -> p.getGroup().toString(),
+                            Collectors.mapping(PermissionConstants.Permission::bit, Collectors.reducing(0L, (x, y) -> x | y))));
 
 
             Map<String, Long> r = Stream.of(applicationPermissions, notePermissions, modelPermissions, projectPermissions, menuPermissionMap)
