@@ -6,6 +6,30 @@
     :style="{ width: '36rem' }"
   >
     <div class="flex flex-col gap-4">
+      <!-- 名称 -->
+      <div class="flex flex-col gap-1.5">
+        <label class="text-sm font-medium text-surface-700">名称</label>
+        <InputText
+          v-model="formData.name"
+          type="text"
+          placeholder="请输入数据源名称"
+          fluid
+          class="!text-sm"
+        />
+      </div>
+
+      <!-- 描述 -->
+      <div class="flex flex-col gap-1.5">
+        <label class="text-sm font-medium text-surface-700">描述</label>
+        <Textarea
+          v-model="formData.desc"
+          placeholder="请输入描述（选填）"
+          rows="3"
+          fluid
+          class="!text-sm !resize-none"
+        />
+      </div>
+
       <!-- 数据源类型 -->
       <div class="flex flex-col gap-1.5">
         <label class="text-sm font-medium text-surface-700">数据源类型</label>
@@ -51,30 +75,6 @@
         :modelValue="metaData"
         @update:modelValue="metaData = $event"
       />
-
-      <!-- 名称 -->
-      <div class="flex flex-col gap-1.5">
-        <label class="text-sm font-medium text-surface-700">名称</label>
-        <InputText
-          v-model="formData.name"
-          type="text"
-          placeholder="请输入数据源名称"
-          fluid
-          class="!text-sm"
-        />
-      </div>
-
-      <!-- 描述 -->
-      <div class="flex flex-col gap-1.5">
-        <label class="text-sm font-medium text-surface-700">描述</label>
-        <Textarea
-          v-model="formData.desc"
-          placeholder="请输入描述（选填）"
-          rows="3"
-          fluid
-          class="!text-sm !resize-none"
-        />
-      </div>
     </div>
 
     <template #footer>
