@@ -130,7 +130,12 @@ java -jar release/runify.jar
 xattr -cr /Applications/Runify.app
 ```
 
-移除隔离属性后即可正常启动。
+移除隔离属性后即可正常启动。默认账号密码如下：
+
+```
+用户名: admin
+密码: Runify@1
+```
 
 ## 项目结构
 
