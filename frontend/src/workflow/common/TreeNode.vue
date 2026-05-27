@@ -69,8 +69,8 @@ const currentLabels = computed(() => [...props.parentLabels, props.node?.label])
 
 function handleCopy() {
   const parts = [props.id, ...currentPath.value]
-  const value = `context${parts.map((p: string) => `['${p}']`).join('')}`
-  const label = [props.name, ...currentLabels.value].join(' / ')
+  const value = parts.join('.')
+  const label = [props.name, ...currentLabels.value].join('.')
   emit('copy', `:::variable {value="${value}" label="${label}"} :::`)
 }
 </script>

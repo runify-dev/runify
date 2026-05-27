@@ -208,6 +208,7 @@ public class WorkFlowManage {
             }
         } catch (Exception e) {
             log.error("执行工作流中发生异常:", e);
+            iNode.status = NodeStatus.FAIL;
             write(iNode, new FailureContent(e.toString(), iNode, (String) this.getParams().get("workflowRunId"), CommonUtils.uuid7().toString()));
             this.assertionEnd();
         }

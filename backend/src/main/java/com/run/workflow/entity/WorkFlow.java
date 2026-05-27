@@ -154,8 +154,14 @@ public class WorkFlow {
         Matcher matcher = VARIABLE_PATTERN.matcher(text);
         StringBuilder sb = new StringBuilder();
         while (matcher.find()) {
-            String decoded = URLDecoder.decode(matcher.group(1), StandardCharsets.UTF_8);
-            matcher.appendReplacement(sb, "\\${(" + Matcher.quoteReplacement(decoded) + ")!\"\"}");
+            String raw = matcher.group(1); // "id1.id2.id3"
+            String[] parts = raw.split("\\.");
+            StringBuilder expr = new StringBuilder("context");
+            for (String part : parts) {
+                expr.append("['").append(part).append("']");
+            }
+            // context['id1']['id2']['id3']
+            matcher.appendReplacement(sb, "\\${(" + Matcher.quoteReplacement(expr.toString()) + ")!\"\"}");
         }
         matcher.appendTail(sb);
         return sb.toString();

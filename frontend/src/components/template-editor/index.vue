@@ -487,7 +487,7 @@ function commitTreeNode(node?: VariableTreeNode | null) {
   const target = node ?? selectedNode.value
   if (!target || target.data?.disabled) return
 
-  const rawValue = target.data?.fullValue
+  const rawValue = target.data?.pathValues?.join('.')
   const rawLabel = target.data?.label
   console.log('[commitTreeNode] target:', JSON.stringify(target.data, null, 2))
   if (!rawValue || !editor.value) return
