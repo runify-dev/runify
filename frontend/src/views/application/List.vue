@@ -157,26 +157,26 @@ const folderId = computed(() => {
 
 const createMenuItems = [
   {
-    label: '自定义应用',
-    description: '从零开始构建新应用',
-    icon: 'pi pi-plus',
-    command: () => openCreateApplication('workflow')
-  },
-  {
     label: '智能体应用',
-    description: '基于模型快速创建智能体',
+    description: '基于大模型能力，快速构建自主决策的智能体',
     icon: 'pi pi-android',
     command: () => openCreateApplication('agent')
   },
   {
     label: '知识库应用',
-    description: '基于知识库创建问答应用',
+    description: '连接专属知识库，打造精准问答助手',
     icon: 'pi pi-book',
     command: () => openCreateApplication('search')
   },
   {
+    label: '自定义应用',
+    description: '自由编排工作流，灵活定制专属应用',
+    icon: 'pi pi-file',
+    command: () => openCreateApplication('workflow')
+  },
+  {
     label: '导入配置',
-    description: '从JSON文件导入应用',
+    description: '通过 JSON 文件一键导入已有应用',
     icon: 'pi pi-upload',
     command: () => fileInputRef.value?.click()
   }
