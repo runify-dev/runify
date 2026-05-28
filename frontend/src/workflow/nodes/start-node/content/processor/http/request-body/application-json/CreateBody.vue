@@ -312,23 +312,23 @@ defineExpose({
 <style lang="scss" scoped>
 .object-hint,
 .parent-info {
-  background-color: #f8f9fa;
+  background-color: var(--p-surface-50);
   border-radius: 6px;
-  border-left: 0px solid #3b82f6;
-  color: #495057;
+  border-left: 0px solid var(--p-primary-color);
+  color: var(--p-text-color);
   font-size: 0.9rem;
   display: flex;
   align-items: center;
 }
 
 .object-hint {
-  border-left-color: #f59e0b;
-  background-color: #fffbeb;
+  border-left-color: var(--p-orange-500);
+  background-color: var(--p-orange-50);
 }
 
 .parent-info {
-  border-left-color: #10b981;
-  background-color: #f0fdf4;
+  border-left-color: var(--p-green-500);
+  background-color: var(--p-green-50);
 }
 
 :deep(.p-selectbutton) {

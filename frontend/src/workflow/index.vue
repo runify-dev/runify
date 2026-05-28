@@ -357,6 +357,8 @@ function onMouseUp(e: MouseEvent) {
   }
 }
 
+const getThemeVar = (name: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+
 const init = (container: HTMLElement) => {
   lf.value = new LogicFlow({
     container: container,
@@ -367,15 +369,15 @@ const init = (container: HTMLElement) => {
     nodeTextDraggable: false,
     edgeTextDraggable: false,
     background: {
-      color: '#F0F0F0',
-      backgroundColor: '#f5f6f7'
+      color: getThemeVar('--p-content-background') || '#F0F0F0',
+      backgroundColor: getThemeVar('--p-content-background') || '#f5f6f7'
     },
     grid: {
       size: 10,
       visible: true,
       type: 'dot',
       config: {
-        color: '#ababab',
+        color: getThemeVar('--p-content-border-color') || '#ababab',
         thickness: 1
       }
     },
@@ -397,7 +399,7 @@ const init = (container: HTMLElement) => {
   })
   lf.value.setTheme({
     bezier: {
-      stroke: '#afafaf',
+      stroke: getThemeVar('--p-surface-400') || '#afafaf',
       strokeWidth: 1
     }
   })

@@ -3,13 +3,12 @@
     <!-- 顶部工具栏 -->
     <div class="flex items-center justify-between gap-4">
       <InputGroup class="max-w-sm">
-        <InputGroupAddon class="!bg-surface-0 !border-surface-200">
-          <i class="pi pi-search text-surface-400 text-sm" />
+        <InputGroupAddon>
+          <i class="pi pi-search"/>
         </InputGroupAddon>
         <InputText
           v-model="searchText"
           placeholder="搜索处理器..."
-          class="!border-l-0 !border-surface-200 !bg-surface-0 text-sm focus:!border-primary-400 focus:!ring-2 focus:!ring-primary-100 placeholder:text-surface-400 transition-all duration-200"
         />
       </InputGroup>
 

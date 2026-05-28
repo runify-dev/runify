@@ -24,7 +24,7 @@
           :autofocus="true"
           style="
             height: calc(100dvh - 160px) !important;
-            border: 1px solid #bbbfc4;
+            border: 1px solid var(--p-content-border-color);
             border-radius: 4px;
           "
         />

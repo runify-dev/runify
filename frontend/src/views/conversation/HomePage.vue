@@ -25,7 +25,7 @@
             :label="store.displayName.substring(0, 1)"
             shape="circle"
             size="normal"
-            style="background: #3370ff; color: #fff"
+            style="background: var(--p-primary-color); color: var(--p-surface-0)"
           />
           <span class="text-sm text-surface-700">{{ store.displayName }}</span>
           <Button icon="pi pi-sign-out" severity="secondary" variant="text" size="small" class="!w-7 !h-7 !p-0" @click="handleLogout" />
@@ -63,7 +63,7 @@
           <div class="max-w-3xl mx-auto">
             <div class="relative group">
               <div class="absolute -inset-0.5 bg-gradient-to-r from-primary-400 to-[#28E3C4] rounded-2xl opacity-0 group-hover:opacity-30 blur-sm transition-opacity duration-300" />
-              <div class="relative flex items-center bg-surface-0 rounded-xl border border-surface-200 shadow-sm group-hover:shadow-md transition-shadow duration-300">
+              <div class="relative flex items-center bg-[var(--p-surface-0)] rounded-xl border border-[var(--p-content-border-color)] shadow-sm group-hover:shadow-md transition-shadow duration-300">
                 <i class="pi pi-search text-surface-400 text-sm ml-4" />
                 <input
                   v-model="searchText"

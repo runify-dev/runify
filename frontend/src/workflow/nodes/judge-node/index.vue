@@ -10,17 +10,17 @@
     <template #content>
       <div class="space-y-1.5 p-2" ref="branchContainerRef">
         <div v-for="branch in branches" :key="branch.id" class="grid grid-cols-[28px_1fr] gap-1.5">
-          <div class="flex items-center justify-end pr-1 text-[11px] font-medium text-slate-400">
+          <div class="flex items-center justify-end pr-1 text-[11px] font-medium text-surface-400 dark:text-surface-500">
             {{ getBranchTitle(branch.type) }}
           </div>
 
           <div
-            class="overflow-hidden rounded border bg-white"
-            :class="hasBranchError(branch) ? 'border-red-300' : 'border-slate-200'"
+            class="overflow-hidden rounded border bg-surface-0 dark:bg-surface-900"
+            :class="hasBranchError(branch) ? 'border-red-300' : 'border-surface-200 dark:border-surface-700'"
           >
             <div
               v-if="branch.type === 'else'"
-              class="flex h-8 items-center px-2 text-[12px] text-slate-500"
+              class="flex h-8 items-center px-2 text-[12px] text-surface-500 dark:text-surface-400"
               @mouseenter="showPreview($event, getBranchTitle(branch.type), '其他所有情况')"
               @mouseleave="hidePreview"
             >
@@ -37,7 +37,7 @@
                     :class="
                       getConditionError(branch, condition).left
                         ? 'bg-red-50 text-red-600 ring-1 ring-red-200'
-                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        : 'bg-surface-100 dark:bg-surface-800 text-surface-700 dark:text-surface-200 hover:bg-surface-200 dark:hover:bg-surface-700'
                     "
                     @mouseenter="
                       showPreview($event, '左值', formatVariable(condition.variable) || '选择变量')
@@ -60,7 +60,7 @@
                     :class="
                       getConditionError(branch, condition).compare
                         ? 'bg-red-50 text-red-600 ring-1 ring-red-200'
-                        : 'text-slate-500'
+                        : 'text-surface-500 dark:text-surface-400'
                     "
                     @mouseenter="showPreview($event, '比较符', getCompareText(condition.compare))"
                     @click="showPreview($event, '比较符', getCompareText(condition.compare))"
@@ -76,7 +76,7 @@
                     :class="
                       getConditionError(branch, condition).right
                         ? 'bg-red-50 text-red-600 ring-1 ring-red-200'
-                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        : 'bg-surface-100 dark:bg-surface-800 text-surface-700 dark:text-surface-200 hover:bg-surface-200 dark:hover:bg-surface-700'
                     "
                     @mouseenter="showPreview($event, '右值', getRightValue(condition))"
                     @click="showPreview($event, '右值', getRightValue(condition))"
@@ -92,8 +92,8 @@
                   v-if="conditionIndex < getConditions(branch).length - 1"
                   class="relative flex h-3 items-center justify-center"
                 >
-                  <div class="absolute left-0 right-0 top-1/2 border-t border-slate-100" />
-                  <span class="relative bg-white px-1 text-[10px] text-slate-400">
+                  <div class="absolute left-0 right-0 top-1/2 border-t border-surface-100 dark:border-surface-700" />
+                  <span class="relative bg-surface-0 dark:bg-surface-900 px-1 text-[10px] text-surface-400 dark:text-surface-500">
                     {{ branch.logic === 'or' ? '或' : '且' }}
                   </span>
                 </div>
@@ -105,11 +105,11 @@
 
       <Popover ref="previewPopoverRef" @mouseenter="cancelHidePreview" @mouseleave="hidePreview">
         <div class="max-w-[260px] space-y-1">
-          <div class="text-[12px] font-medium text-slate-700">
+          <div class="text-[12px] font-medium text-surface-700">
             {{ previewTitle }}
           </div>
 
-          <div class="break-all text-[12px] leading-5 text-slate-500">
+          <div class="break-all text-[12px] leading-5 text-surface-500">
             {{ previewContent }}
           </div>
         </div>

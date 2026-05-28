@@ -109,8 +109,8 @@ const expanded = ref(false)
 }
 
 .as-icon.reject {
-  background: rgba(239, 68, 68, 0.15);
-  color: #ef4444;
+  background: var(--danger-bg);
+  color: var(--danger-text);
 }
 
 .as-text {

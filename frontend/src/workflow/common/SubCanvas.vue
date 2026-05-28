@@ -102,6 +102,8 @@ function onFitView() {
 }
 
 function init(container: HTMLElement) {
+  const getVar = (name: string, fallback: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback
+
   lf.value = new LogicFlow({
     container,
     stopZoomGraph: false,
@@ -111,15 +113,15 @@ function init(container: HTMLElement) {
     nodeTextDraggable: false,
     edgeTextDraggable: false,
     background: {
-      color: '#F8F8F8',
-      backgroundColor: '#f5f6f7'
+      color: getVar('--p-content-background', '#f5f6f7'),
+      backgroundColor: getVar('--p-content-background', '#f5f6f7')
     },
     grid: {
       size: 10,
       visible: true,
       type: 'dot',
       config: {
-        color: '#ababab',
+        color: getVar('--p-surface-400', '#ababab'),
         thickness: 1
       }
     },
@@ -141,7 +143,7 @@ function init(container: HTMLElement) {
 
   lf.value.setTheme({
     bezier: {
-      stroke: '#afafaf',
+      stroke: getVar('--p-content-border-color', '#afafaf'),
       strokeWidth: 1
     }
   })
@@ -364,7 +366,7 @@ defineExpose({getGraphData, render, centerContent, setFullscreen, setSubCanvasMo
   width: 100%;
   height: 300px;
   overflow: hidden;
-  background: #f5f6f7;
+  background: var(--p-content-background);
   margin-bottom: 8px;
 }
 

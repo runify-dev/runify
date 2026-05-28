@@ -8,7 +8,7 @@
         disabled
           ? 'opacity-50 cursor-not-allowed border-surface-border bg-surface-50'
           : modelValue === item[valueField]
-            ? 'border-primary-color text-primary-color bg-primary-50 dark:bg-primary-50/10 shadow-sm'
+            ? 'border-primary-color text-primary-color bg-primary-50 dark:bg-primary-900/30 shadow-sm'
             : 'border-surface-border text-color hover:border-primary-color/50 hover:bg-surface-50'
       ]"
       @click="!disabled && select(item[valueField])"

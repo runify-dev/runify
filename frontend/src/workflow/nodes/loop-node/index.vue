@@ -1,13 +1,17 @@
 <template>
   <SimpleNodeContainer ref="containerRef" :model="model" :validate="validate" :submit="submit" :menu-items="loopMenuItems">
-    <template #header>
+    <template  #header>
       <div class="loop-toggle-btn" @click.stop="toggleFullscreen" title="全屏">
         <i class="pi pi-window-maximize"></i>
       </div>
-      <div class="loop-toggle-btn" @click.stop="handleToggle" :title="expanded.value ? '收起循环体' : '展开循环体'">
+      <div class="loop-toggle-btn" @dblclick.stop @click.stop.="handleToggle" :title="expanded.value ? '收起循环体' : '展开循环体'">
         <i :class="`pi ${expanded?'pi-chevron-up':'pi-chevron-down'}`" ></i>
       </div>
     </template>
+    <template #content>
+     <div v-if="expanded" style="height:148px"></div>
+    </template>
+
     <Content ref="contentRef" :WorkflowType="WorkflowType" :details="details"></Content>
   </SimpleNodeContainer>
 
@@ -109,10 +113,12 @@ function updatePosition() {
   const el = panelRef.value
   const nodeEl = findNodeWrap()
   if (!el || !nodeEl) return
+  void nodeEl.offsetHeight // 强制 reflow，确保撑高的 spacer 已布局
   const rect = nodeEl.getBoundingClientRect()
   const scale = model.graphModel.transformModel?.SCALE_X || 1
   const overlap = 2 * scale
-  const panelHeight = 150 * scale
+  const panelHeight = 149 * scale
+  const spacerHeight = expanded.value ? 150 * scale : 0
 
   // position: absolute，坐标相对于所在容器
   const container = el.parentElement
@@ -120,9 +126,9 @@ function updatePosition() {
 
   Object.assign(el.style, {
     position: 'absolute',
-    left: `${rect.left - cRect.left}px`,
-    top: `${rect.bottom - cRect.top - overlap}px`,
-    width: `${rect.width}px`,
+    left: `${rect.left - cRect.left + 1}px`,
+    top: `${rect.bottom - cRect.top - spacerHeight - overlap}px`,
+    width: `${rect.width-2}px`,
     height: `${panelHeight}px`,
   })
 }
@@ -534,19 +540,18 @@ function movePanelBack() {
   height: 20px;
   border-radius: 4px;
   cursor: pointer;
-  color: #5d6276;
+  color: var(--p-text-muted-color);
   flex-shrink: 0;
 }
 .loop-toggle-btn:hover {
-  background: #f0f3f8;
-  color: #3370ff;
+  background: var(--p-surface-100);
+  color: var(--p-primary-color);
 }
 
 .loop-canvas-panel {
   position: relative;
-  background: #fff;
-  border: 2px solid #dddfe6;
-  border-top: none;
+  background: var(--p-content-background);
+  border: none;
   border-radius: 0 0 8px 8px;
   overflow: hidden;
   box-sizing: border-box;
@@ -554,8 +559,7 @@ function movePanelBack() {
 }
 
 .loop-canvas-panel.loop-selected {
-  border-color: var(--primary-color);
-  border-top: none;
+  outline: none;
 }
 
 .loop-canvas-panel .sub-canvas-container {
@@ -583,11 +587,11 @@ function movePanelBack() {
   display: flex;
   align-items: center;
   gap: 2px;
-  background: #fff;
-  border: 1px solid #dddfe6;
+  background: var(--p-content-background);
+  border: 1px solid var(--p-content-border-color);
   border-radius: 8px;
   padding: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--p-shadow-1);
   z-index: 10;
   pointer-events: auto;
 }
@@ -602,32 +606,32 @@ function movePanelBack() {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #5d6276;
+  color: var(--p-text-muted-color);
   transition: background 0.15s, color 0.15s;
 }
 
 .loop-toolbar-btn:hover {
-  background: #f0f3f8;
-  color: #3370ff;
+  background: var(--p-content-background);
+  color: var(--p-primary-color);
 }
 
 .loop-toolbar-btn-active {
-  background: #e8f0fe;
-  color: #3370ff;
+  background: var(--p-content-background);
+  color: var(--p-primary-color);
 }
 
 .loop-toolbar-zoom {
   min-width: 40px;
   text-align: center;
   font-size: 12px;
-  color: #5d6276;
+  color: var(--p-text-muted-color);
   font-weight: 500;
 }
 
 .loop-toolbar-divider {
   width: 1px;
   height: 20px;
-  background: #dddfe6;
+  background: var(--p-content-border-color);
   margin: 0 2px;
 }
 </style>

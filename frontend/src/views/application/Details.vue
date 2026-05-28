@@ -54,7 +54,7 @@ onBeforeMount(() => {
   margin: 0;
   font-size: 1rem;
   font-weight: 700;
-  color: #888;
+  color: var(--p-text-muted-color);
   text-align: center;
 }
 
@@ -70,15 +70,13 @@ onBeforeMount(() => {
   content: '';
   width: var(--label-width, 100px);
   height: 28px;
-  background: #ffffff;
+  background: var(--p-surface-0);
   position: absolute;
   top: 2px;
   left: 2px;
   z-index: 9;
-  border: 0.5px solid rgba(0, 0, 0, 0.04);
-  box-shadow:
-    0px 3px 8px rgba(0, 0, 0, 0.12),
-    0px 3px 1px rgba(0, 0, 0, 0.04);
+  border: 0.5px solid var(--p-content-border-color);
+  box-shadow: var(--p-shadow-2);
   border-radius: 7px;
   transition: all 0.2s ease-out;
 }

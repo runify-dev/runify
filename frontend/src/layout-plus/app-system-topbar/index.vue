@@ -1,7 +1,7 @@
 <template>
   <div class="layout-topbar">
     <button class="layout-menu-button layout-topbar-action" @click="toggleMenu">
-      <i class="pi pi-th-large"></i>
+      <Avatar :image="AppIcon" style="width: 40px"/>
     </button>
     <Menubar
       breakpoint="480px"
@@ -10,9 +10,6 @@
       }"
       :model="[]"
     >
-      <template #start>
-        <Avatar :image="AppIcon" style="width: 40px"/>
-      </template>
       <template #item="{ item, props, hasSubmenu, root }"></template>
       <template #end>
         <div class="flex items-center gap-2">

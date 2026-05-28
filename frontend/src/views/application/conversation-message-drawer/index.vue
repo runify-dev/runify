@@ -195,7 +195,7 @@ defineExpose({ open, close })
     opacity 0.2s,
     height 0.2s;
   z-index: 10;
-  background: var(--bg, #fff);
+  background: var(--bg, var(--p-surface-0));
 }
 .top-loader.visible {
   opacity: 1;
@@ -208,7 +208,7 @@ defineExpose({ open, close })
   overflow-y: auto;
   padding: 14px 12px;
   scrollbar-width: thin;
-  scrollbar-color: var(--bd, #e5e5e5) transparent;
+  scrollbar-color: var(--bd, var(--p-content-border-color)) transparent;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -232,7 +232,7 @@ defineExpose({ open, close })
   align-items: center;
   justify-content: center;
   gap: 10px;
-  color: var(--t3, #aaa);
+  color: var(--t3, var(--p-text-muted-color));
   min-height: 200px;
 }
 .empty-icon {
@@ -267,11 +267,11 @@ defineExpose({ open, close })
   word-break: break-word;
 }
 .bub.user {
-  background: var(--ub, #e8f0fe);
+  background: var(--ub, var(--p-primary-100));
   border-bottom-right-radius: 3px;
 }
 .bub.assistant {
-  background: var(--ab, #f5f5f5);
+  background: var(--ab, var(--p-surface-50));
   border-bottom-left-radius: 3px;
 }
 .bub p {
@@ -279,7 +279,7 @@ defineExpose({ open, close })
   line-height: 1.6;
   white-space: pre-wrap;
   margin: 0 0 3px;
-  color: var(--t1, #1a1a1a);
+  color: var(--t1, var(--p-text-color));
 }
 
 /* 打字动画 */
@@ -293,7 +293,7 @@ defineExpose({ open, close })
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: #c0c0c0;
+  background: var(--p-surface-400);
   animation: dot 1.2s infinite ease-in-out;
 }
 .typing span:nth-child(2) {

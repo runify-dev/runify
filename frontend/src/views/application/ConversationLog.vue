@@ -18,13 +18,12 @@
         <div class="flex items-center justify-between gap-3">
           <span class="text-sm font-medium text-surface-500">对话日志</span>
           <InputGroup class="max-w-xs">
-            <InputGroupAddon class="!bg-surface-0 !border-surface-200">
-              <i class="pi pi-search text-surface-400 text-sm" />
+            <InputGroupAddon>
+              <i class="pi pi-search"/>
             </InputGroupAddon>
             <InputText
               v-model="filters['name'].value"
               placeholder="搜索名称..."
-              class="!border-l-0 !border-surface-200 !bg-surface-0 text-sm"
             />
           </InputGroup>
         </div>

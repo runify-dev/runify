@@ -21,8 +21,8 @@ defineProps<{ content: any }>()
   gap: 6px;
   padding: 8px 12px;
   border-radius: 8px;
-  background: rgba(239, 68, 68, 0.08);
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-text);
   max-width: 100%;
 }
 
@@ -30,8 +30,8 @@ defineProps<{ content: any }>()
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: rgba(239, 68, 68, 0.15);
-  color: #ef4444;
+  background: var(--danger-bg);
+  color: var(--danger-text);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -41,7 +41,7 @@ defineProps<{ content: any }>()
 .fail-text {
   font-size: 13px;
   line-height: 1.6;
-  color: #ef4444;
+  color: var(--danger-text);
   white-space: pre-wrap;
   word-break: break-word;
 }

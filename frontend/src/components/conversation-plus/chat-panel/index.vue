@@ -988,7 +988,7 @@ onUnmounted(() => {
   border-radius: 50%;
   border: none;
   background: rgba(0, 0, 0, 0.55);
-  color: #fff;
+  color: var(--p-content-background);
   font-size: 9px;
   line-height: 16px;
   text-align: center;
@@ -1011,7 +1011,7 @@ onUnmounted(() => {
   position: fixed;
   inset: 0;
   z-index: 999999;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--mask);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1055,7 +1055,7 @@ onUnmounted(() => {
   border-radius: 50%;
   border: none;
   background: rgba(0, 0, 0, 0.5);
-  color: #fff;
+  color: var(--p-content-background);
   font-size: 14px;
   cursor: pointer;
   display: flex;
@@ -1154,7 +1154,7 @@ onUnmounted(() => {
 
 .sbtn.stop {
   background: #ef4444;
-  color: #fff;
+  color: var(--p-content-background);
   cursor: pointer;
   pointer-events: auto;
 }

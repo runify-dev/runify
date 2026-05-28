@@ -6,7 +6,7 @@
       </div>
     </div>
     <div class="sticky bottom-0 left-0 z-99999 right-0 pb-4 bg-white">
-      <div style="background-color: rgb(243, 244, 246)" class="p-4 rounded-2xl">
+      <div style="background-color: var(--p-surface-100)" class="p-4 rounded-2xl">
         <el-input
           v-model="question.content"
           class="no-border-input custom-textarea"
@@ -92,7 +92,7 @@ const conversation = (q: any) => {
 .no-border-input .el-textarea__inner {
   box-shadow: none !important;
   resize: none; /* 禁用调整大小 */
-  background-color: rgb(243, 244, 246);
+  background-color: var(--p-surface-100);
 }
 .no-border-input .el-input__wrapper:hover {
   box-shadow: none !important;

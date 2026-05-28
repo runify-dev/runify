@@ -264,7 +264,7 @@ watch(content, () => {
   position: fixed;
   inset: 0;
   z-index: 999999;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--mask);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -299,7 +299,7 @@ watch(content, () => {
   position: relative;
   width: min(70vw, 800px);
   height: min(75vh, 600px);
-  background: #fff;
+  background: var(--p-content-background);
   border-radius: 12px;
   overflow: hidden;
   cursor: default;
@@ -321,8 +321,8 @@ watch(content, () => {
   height: 28px;
   border-radius: 50%;
   border: none;
-  background: rgba(0, 0, 0, 0.08);
-  color: #666;
+  background: var(--hover-overlay);
+  color: var(--p-text-muted-color);
   font-size: 14px;
   cursor: pointer;
   display: flex;
@@ -332,6 +332,6 @@ watch(content, () => {
 }
 
 .q-preview-close:hover {
-  background: rgba(0, 0, 0, 0.15);
+  background: rgba(0, 0, 0, 0.12);
 }
 </style>

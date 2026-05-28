@@ -7,41 +7,41 @@
     class="text-sm"
   >
     <div class="grid grid-cols-2 gap-4">
-      <div class="border border-slate-200 rounded-xl p-4 hover:border-[#10b981] transition-colors cursor-pointer group" @click="copyEmbedCode('iframe')">
+      <div class="border border-surface-200 dark:border-surface-700 rounded-xl p-4 hover:border-primary transition-colors cursor-pointer group" @click="copyEmbedCode('iframe')">
         <div class="flex items-center gap-3 mb-3">
-          <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-            <i class="pi pi-window-maximize text-blue-600"></i>
+          <div class="w-10 h-10 rounded-lg bg-primary-100 flex items-center justify-center">
+            <i class="pi pi-window-maximize text-primary-600"></i>
           </div>
           <div>
-            <h4 class="text-sm font-semibold text-slate-800">iframe 嵌入</h4>
-            <p class="text-xs text-slate-500">适合网页嵌入</p>
+            <h4 class="text-sm font-semibold text-surface-900 dark:text-surface-0">iframe 嵌入</h4>
+            <p class="text-xs text-surface-500">适合网页嵌入</p>
           </div>
         </div>
-        <div class="bg-slate-50 rounded-lg p-3 text-[11px] text-slate-600 font-mono break-all leading-relaxed">
+        <div class="bg-surface-50 dark:bg-surface-800 rounded-lg p-3 text-[11px] text-surface-600 dark:text-surface-300 font-mono break-all leading-relaxed">
           {{ embedCode }}
         </div>
         <div class="mt-3 flex justify-end">
-          <span class="text-xs text-[#10b981] opacity-0 group-hover:opacity-100 transition-opacity">
+          <span class="text-xs text-primary-500 opacity-0 group-hover:opacity-100 transition-opacity">
             <i class="pi pi-copy mr-1"></i>点击复制
           </span>
         </div>
       </div>
 
-      <div class="border border-slate-200 rounded-xl p-4 hover:border-[#10b981] transition-colors cursor-pointer group" @click="copyEmbedCode('js')">
+      <div class="border border-surface-200 dark:border-surface-700 rounded-xl p-4 hover:border-primary transition-colors cursor-pointer group" @click="copyEmbedCode('js')">
         <div class="flex items-center gap-3 mb-3">
-          <div class="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center">
-            <i class="pi pi-code text-orange-600"></i>
+          <div class="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center">
+            <i class="pi pi-code text-orange-500"></i>
           </div>
           <div>
-            <h4 class="text-sm font-semibold text-slate-800">JavaScript 嵌入</h4>
-            <p class="text-xs text-slate-500">悬浮对话气泡</p>
+            <h4 class="text-sm font-semibold text-surface-900 dark:text-surface-0">JavaScript 嵌入</h4>
+            <p class="text-xs text-surface-500">悬浮对话气泡</p>
           </div>
         </div>
-        <div class="bg-slate-50 rounded-lg p-3 text-[11px] text-slate-600 font-mono break-all leading-relaxed">
+        <div class="bg-surface-50 dark:bg-surface-800 rounded-lg p-3 text-[11px] text-surface-600 dark:text-surface-300 font-mono break-all leading-relaxed">
           {{ embedJsCode }}
         </div>
         <div class="mt-3 flex justify-end">
-          <span class="text-xs text-[#10b981] opacity-0 group-hover:opacity-100 transition-opacity">
+          <span class="text-xs text-primary-500 opacity-0 group-hover:opacity-100 transition-opacity">
             <i class="pi pi-copy mr-1"></i>点击复制
           </span>
         </div>

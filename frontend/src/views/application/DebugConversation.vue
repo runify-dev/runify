@@ -72,7 +72,7 @@ provide('conversationAPI', (question: any) => {
   z-index: 99999;
   bottom: 2rem;
   right: 1.5rem;
-  background: #fff;
+  background: var(--p-surface-0);
   border-radius: 0.75rem;
   overflow: hidden;
   max-width: 100vw;

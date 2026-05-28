@@ -352,6 +352,6 @@ defineExpose({ validate, submit })
 }
 
 :deep(.p-invalid) {
-  border-color: #ef4444 !important;
+  border-color: var(--p-red-500) !important;
 }
 </style>

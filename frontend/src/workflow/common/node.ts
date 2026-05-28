@@ -283,13 +283,13 @@ class RootModel extends HtmlResize.model {
     if (_anchorInfo.type == 'right' && _anchorInfo.status == 'fail') {
       return {
         stroke: 'var(--p-red-500)',
-        fill: '#fff',
+        fill: 'var(--p-surface-0)',
         r: 4
       }
     }
     return {
       stroke: 'var(--p-primary-color)',
-      fill: '#fff',
+      fill: 'var(--p-surface-0)',
       r: 4
     }
   }

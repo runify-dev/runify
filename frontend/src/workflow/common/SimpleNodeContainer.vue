@@ -83,15 +83,15 @@ defineExpose({ openContent })
 </script>
 <style lang="scss" scope>
 // 定义颜色变量
-$border-color: #dddfe6;
-$text-primary: var(--p-content-color);
-$text-secondary: #7e8393;
-$text-icon: #5d6276;
-$bg-hover: #f0f3f8;
-$bg-light: #f5f7fb;
-$accent-color: #f9a11d;
-$accent-bg: rgba(249, 161, 29, 0.1);
-$white: #fff;
+$border-color: var(--p-content-border-color);
+$text-primary: var(--p-text-color);
+$text-secondary: var(--p-text-muted-color);
+$text-icon: var(--p-text-muted-color);
+$bg-hover: var(--p-content-background);
+$bg-light: var(--p-content-background);
+$accent-color: #f59e0b;
+$accent-bg: rgba(245, 158, 11, 0.1);
+$white: var(--p-content-background);
 .custom-node-wrap {
   box-sizing: border-box;
   width: 190px;

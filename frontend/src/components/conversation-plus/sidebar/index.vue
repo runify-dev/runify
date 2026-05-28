@@ -76,7 +76,7 @@
         <span class="icon">⇄</span
         >{{ mode === 'push' ? t('conversation.drawerMode') : t('conversation.pushMode') }}
       </button>
-      <button @click="$emit('update:isDark', !isDark)">
+      <button @click="toggleDark">
         <span class="icon">{{ isDark ? '☀' : '☾' }}</span>
         {{ isDark ? t('conversation.lightMode') : t('conversation.darkMode') }}
       </button>
@@ -165,15 +165,21 @@ const ITEM_H = 36
 const props = defineProps<{
   open: boolean
   mode: 'push' | 'drawer'
-  isDark: boolean
   type: 'DEBUG' | 'CONVERSATION' | 'ADMIN_CONVERSATION'
 }>()
 
 const emit = defineEmits<{
   'update:open': [val: boolean]
   'update:mode': [val: 'push' | 'drawer']
-  'update:isDark': [val: boolean]
 }>()
+
+// ─── 暗色模式 ─────────────────────────────────────────────────────
+const isDark = computed(() => document.documentElement.classList.contains('app-dark'))
+const toggleDark = () => {
+  const next = !isDark.value
+  document.documentElement.classList.toggle('app-dark', next)
+  localStorage.setItem('theme-dark', String(next))
+}
 
 // ─── Store ──────────────────────────────────────────────────────────
 const tokenStore = useConversationTokenStore()

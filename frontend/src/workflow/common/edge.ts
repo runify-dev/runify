@@ -171,7 +171,7 @@ class RunBezierEdgeModel extends BezierEdgeModel {
     const style = super.getEdgeStyle()
     // svg属性
     style.strokeWidth = 2
-    style.stroke = '#BBBFC4'
+    style.stroke = 'var(--p-content-border-color)'
     style.offset = 0
     return style
   }

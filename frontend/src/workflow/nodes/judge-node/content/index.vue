@@ -1,14 +1,14 @@
 <template>
-  <div class="bg-white">
-    <div class="flex h-10 items-center justify-between border-b border-slate-100 px-3">
-      <div class="text-[14px] font-semibold text-slate-800">条件分支</div>
+  <div class="bg-surface-0 dark:bg-surface-900">
+    <div class="flex h-10 items-center justify-between border-b border-surface-100 dark:border-surface-700 px-3">
+      <div class="text-[14px] font-semibold text-surface-900 dark:text-surface-0">条件分支</div>
 
       <Button
         icon="pi pi-plus"
         size="small"
         text
         rounded
-        class="!h-7 !w-7 !bg-indigo-50 !text-indigo-500 hover:!bg-indigo-100"
+        class="!h-7 !w-7 !bg-primary-50 !text-primary-500 hover:!bg-primary-100"
         @click="addElseIfBranch"
       />
     </div>
@@ -17,10 +17,10 @@
       <div
         v-for="branch in branches"
         :key="branch.id"
-        class="rounded-lg border border-slate-200 bg-white"
+        class="rounded-lg border border-surface-200 dark:border-surface-700 bg-surface-0 dark:bg-surface-900"
       >
         <div class="flex h-8 items-center justify-between px-3">
-          <div class="text-[13px] font-medium text-slate-700">
+          <div class="text-[13px] font-medium text-surface-700 dark:text-surface-200">
             {{ getBranchTitle(branch.type) }}
           </div>
 
@@ -31,14 +31,14 @@
             text
             rounded
             severity="secondary"
-            class="!h-6 !w-6 !text-slate-400"
+            class="!h-6 !w-6 !text-surface-400 dark:text-surface-500"
             @click="removeBranch(branch.id)"
           />
 
-          <span v-else class="flex h-6 w-6 items-center justify-center text-slate-300"> - </span>
+          <span v-else class="flex h-6 w-6 items-center justify-center text-surface-300 dark:text-surface-600"> - </span>
         </div>
 
-        <div v-if="branch.type === 'else'" class="px-3 pb-2 text-[12px] text-slate-400">
+        <div v-if="branch.type === 'else'" class="px-3 pb-2 text-[12px] text-surface-400 dark:text-surface-500">
           以上条件都不满足时，进入该分支
         </div>
 
@@ -48,9 +48,9 @@
               v-if="getConditions(branch).length > 1"
               class="relative flex w-8 shrink-0 items-center justify-center"
             >
-              <div class="absolute bottom-[27px] left-[15px] top-[13px] w-px bg-slate-300" />
-              <div class="absolute left-[15px] top-[13px] h-px w-[13px] bg-slate-300" />
-              <div class="absolute bottom-[27px] left-[15px] h-px w-[13px] bg-slate-300" />
+              <div class="absolute bottom-[27px] left-[15px] top-[13px] w-px bg-surface-300 dark:bg-surface-600" />
+              <div class="absolute left-[15px] top-[13px] h-px w-[13px] bg-surface-300 dark:bg-surface-600" />
+              <div class="absolute bottom-[27px] left-[15px] h-px w-[13px] bg-surface-300 dark:bg-surface-600" />
 
               <Select
                 v-model="branch.logic"
@@ -144,7 +144,7 @@
 
                     <div
                       v-else
-                      class="mt-1 flex h-6 items-center rounded border border-slate-200 bg-slate-50 px-1.5 text-[11px] text-slate-400"
+                      class="mt-1 flex h-6 items-center rounded border border-surface-200 dark:border-surface-700 bg-slate-50 px-1.5 text-[11px] text-surface-400 dark:text-surface-500"
                     >
                       当前条件不需要右值
                     </div>
@@ -164,7 +164,7 @@
                       text
                       rounded
                       severity="secondary"
-                      class="!h-6 !w-6 !text-slate-400"
+                      class="!h-6 !w-6 !text-surface-400 dark:text-surface-500"
                       :disabled="getConditions(branch).length <= 1"
                       @click="removeCondition(branch, condition.id)"
                     />
@@ -481,6 +481,6 @@ defineExpose({
 }
 
 :deep(.p-invalid) {
-  border-color: #ef4444 !important;
+  border-color: var(--p-red-500) !important;
 }
 </style>

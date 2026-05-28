@@ -4,13 +4,12 @@
     <div class="flex items-center justify-between gap-4 mb-6">
       <!-- 搜索框 -->
       <InputGroup class="max-w-sm">
-        <InputGroupAddon class="!bg-surface-0 !border-surface-200">
-          <i class="pi pi-search text-surface-400 text-sm"/>
+        <InputGroupAddon>
+          <i class="pi pi-search"/>
         </InputGroupAddon>
         <InputText
           v-model="searchText"
           placeholder="搜索应用..."
-          class="!border-l-0 !border-surface-200 !bg-surface-0 text-sm focus:!border-primary-400 focus:!ring-2 focus:!ring-primary-100 placeholder:text-surface-400 transition-all duration-200"
         />
       </InputGroup>
 
@@ -38,64 +37,63 @@
     <!-- 应用网格 -->
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
       <template v-for="item in filteredList" :key="item.id">
-        <div
-          class="group relative flex flex-col gap-3 p-4 rounded-xl border border-surface-200 bg-surface-0 cursor-pointer overflow-hidden hover:border-primary-300 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
+        <Card
+          class="group cursor-pointer hover:-translate-y-0.5 transition-all duration-200"
+          :pt="{
+            root: {
+              class: 'h-full flex flex-col',
+              style: 'border: 1px solid var(--p-content-border-color); box-shadow: var(--p-shadow-1); background: var(--p-content-background);'
+            },
+            body: { class: 'flex-1 flex flex-col gap-3' },
+            content: { class: 'flex-1' }
+          }"
           @click="handleOpen(item)"
         >
-          <!-- 顶部渐变条（hover 时显示） -->
-          <div
-            class="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 to-primary-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-          />
-
-          <!-- 头部：图标 + 操作按钮 -->
-          <div class="flex items-start justify-between">
-            <div
-              class="w-10 h-10 rounded-xl bg-primary-50 flex items-center justify-center text-primary-500 text-lg shrink-0 overflow-hidden"
-            >
-              <img
-                v-if="item.icon"
-                :src="item.icon"
-                alt="icon"
-                class="w-full h-full object-cover"
-              />
-              <i v-else class="pi pi-th-large"/>
+          <template #header>
+            <div class="flex items-start justify-between p-4 pb-0">
+              <div
+                class="w-10 h-10 rounded-xl bg-primary-50 flex items-center justify-center text-primary-500 text-lg shrink-0 overflow-hidden"
+              >
+                <img
+                  v-if="item.icon"
+                  :src="item.icon"
+                  alt="icon"
+                  class="w-full h-full object-cover"
+                />
+                <i v-else class="pi pi-th-large"/>
+              </div>
+              <div @click.stop>
+                <Button
+                  icon="pi pi-ellipsis-v"
+                  severity="secondary"
+                  variant="text"
+                  size="small"
+                  class="!w-7 !h-7 !p-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150"
+                  @click.stop="toggleMenu($event, item)"
+                />
+              </div>
             </div>
-
-            <div @click.stop>
-              <Button
-                icon="pi pi-ellipsis-v"
-                severity="secondary"
-                variant="text"
-                size="small"
-                class="!w-7 !h-7 !p-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150"
-                @click.stop="toggleMenu($event, item)"
-              />
-            </div>
-          </div>
-
-          <!-- 名称 & 描述 -->
-          <div class="flex-1 min-w-0">
+          </template>
+          <template #content>
             <h3 class="text-sm font-semibold text-surface-900 truncate mb-1">
               {{ item.name }}
             </h3>
             <p class="text-xs text-surface-500 leading-relaxed line-clamp-2 min-h-[2.5rem]">
               {{ item.desc || '暂无描述' }}
             </p>
-          </div>
-
-          <!-- 底部状态栏 -->
-          <div class="flex items-center justify-between pt-2.5 border-t border-surface-100">
-            <span
-              class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-primary-50 text-primary-600"
-            >
-              应用
-            </span>
-            <span class="flex items-center gap-1 text-[11px] text-surface-400">
-              <i class="pi pi-clock text-[10px]"/>
-              {{ item.updateTime }}
-            </span>
-          </div>
-        </div>
+          </template>
+          <template #footer>
+            <div class="flex items-center justify-between pt-2.5 border-t" style="border-color: var(--p-content-border-color);">
+              <span class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300">
+                应用
+              </span>
+              <span class="flex items-center gap-1 text-[11px] text-surface-400">
+                <i class="pi pi-clock text-[10px]"/>
+                {{ item.updateTime }}
+              </span>
+            </div>
+          </template>
+        </Card>
       </template>
 
       <!-- 空状态 -->

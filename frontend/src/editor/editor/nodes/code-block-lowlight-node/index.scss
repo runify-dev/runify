@@ -12,8 +12,8 @@ code.hljs {
 
 // 亮色主题（默认）
 .hljs {
-  background: #fff;
-  color: black;
+  background: var(--p-content-background);
+  color: var(--p-text-color);
 
   .hljs-comment,
   .hljs-quote {
@@ -90,10 +90,9 @@ code.hljs {
   }
 }
 
-// 暗色主题
-.dark .hljs,
+// 暗色主题 — 语法高亮色保持 One Dark，背景/文字用 PrimeVue 变量
 .app-dark .hljs {
-  background: #282c34;
+  background: var(--p-content-background);
   color: #abb2bf;
 
   .hljs-comment,

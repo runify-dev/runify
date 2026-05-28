@@ -2,11 +2,16 @@ import LogicFlow from '@logicflow/core'
 import '@logicflow/core/dist/index.css';
 import RunEdge from './common/edge'
 const nodes: any = import.meta.glob('./nodes/**/index.ts', { eager: true })
+
+const getVar = (name: string, fallback: string) => {
+    if (typeof document === 'undefined') return fallback
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback
+}
+
 export class Workflow {
     lf
     constructor(container: HTMLElement) {
         this.lf = new LogicFlow({
-            // 容器配置
             container: container,
             stopZoomGraph: false,
             snapline: true,
@@ -15,15 +20,15 @@ export class Workflow {
             nodeTextDraggable: false,
             edgeTextDraggable: false,
             background: {
-                color: '#F0F0F0',
-                backgroundColor: '#f5f6f7'
+                color: getVar('--p-content-background', '#f5f6f7'),
+                backgroundColor: getVar('--p-content-background', '#f5f6f7')
             },
             grid: {
                 size: 10,
                 visible: true,
                 type: 'dot',
                 config: {
-                    color: '#ababab',
+                    color: getVar('--p-surface-400', '#ababab'),
                     thickness: 1,
                 },
             },
@@ -33,7 +38,7 @@ export class Workflow {
         })
         this.lf.setTheme({
             bezier: {
-                stroke: '#afafaf',
+                stroke: getVar('--p-content-border-color', '#afafaf'),
                 strokeWidth: 1
             }
         })

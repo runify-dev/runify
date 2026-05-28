@@ -67,11 +67,11 @@ defineEmits<{
   display: flex;
   align-items: center;
   gap: 2px;
-  background: #fff;
-  border: 1px solid #dddfe6;
+  background: var(--p-content-background);
+  border: 1px solid var(--p-content-border-color);
   border-radius: 8px;
   padding: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--p-shadow-1);
   z-index: 10;
   user-select: none;
 }
@@ -85,28 +85,28 @@ defineEmits<{
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #5d6276;
+  color: var(--p-text-muted-color);
   transition: background 0.15s, color 0.15s;
 }
 .toolbar-btn:hover {
-  background: #f0f3f8;
-  color: #3370ff;
+  background: var(--p-content-background);
+  color: var(--p-primary-color);
 }
 .toolbar-btn-active {
-  background: #e8f0fe;
-  color: #3370ff;
+  background: var(--p-content-background);
+  color: var(--p-primary-color);
 }
 .toolbar-zoom {
   min-width: 40px;
   text-align: center;
   font-size: 12px;
-  color: #5d6276;
+  color: var(--p-text-muted-color);
   font-weight: 500;
 }
 .toolbar-divider {
   width: 1px;
   height: 20px;
-  background: #dddfe6;
+  background: var(--p-content-border-color);
   margin: 0 2px;
 }
 </style>

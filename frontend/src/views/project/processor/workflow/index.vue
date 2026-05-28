@@ -2,7 +2,7 @@
   <div class="relative h-full">
     <!-- 顶部操作栏 -->
     <div
-      class="absolute z-10 right-6 top-4 flex items-center gap-1 bg-white/80 backdrop-blur-sm border border-surface-200 rounded-lg px-1.5 py-1 shadow-sm"
+      class="absolute z-10 right-6 top-4 flex items-center gap-1 bg-[var(--p-surface-0)]/80 backdrop-blur-sm border border-[var(--p-content-border-color)] rounded-lg px-1.5 py-1 shadow-sm"
     >
       <Button
         icon="pi pi-save"

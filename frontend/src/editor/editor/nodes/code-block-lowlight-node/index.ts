@@ -150,7 +150,7 @@ const codeBlockTheme = EditorView.theme(
     "&": {
       fontSize: "13px",
       fontFamily: '"JetBrains Mono", "Fira Code", "Consolas", monospace',
-      background: "var(--p-surface-0)",
+      background: "var(--p-content-background)",
       color: "var(--p-text-color)",
       borderRadius: "0 0 12px 12px",
     },
@@ -163,7 +163,7 @@ const codeBlockTheme = EditorView.theme(
     },
     ".cm-content": { padding: "0", caretColor: "var(--p-text-color)" },
     ".cm-gutters": {
-      background: "var(--p-surface-100)",
+      background: "var(--p-content-background)",
       borderRight: "1px solid var(--p-content-border-color)",
       color: "var(--p-text-muted-color)",
       minWidth: "40px",
@@ -171,23 +171,23 @@ const codeBlockTheme = EditorView.theme(
       cursor: "default",
     },
     ".cm-lineNumbers .cm-gutterElement": { padding: "0 10px 0 14px" },
-    ".cm-activeLine": { backgroundColor: "var(--p-surface-100)" },
+    ".cm-activeLine": { backgroundColor: "var(--p-content-background)" },
     ".cm-activeLineGutter": {
-      backgroundColor: "var(--p-surface-200)",
+      backgroundColor: "var(--p-content-background)",
       color: "var(--p-text-muted-color)",
     },
     ".cm-selectionBackground, &.cm-focused .cm-selectionBackground": {
-      background: "var(--p-primary-200)",
+      background: "var(--p-content-background)",
     },
     ".cm-cursor": { borderLeftColor: "var(--p-text-color)" },
     ".cm-scroller::-webkit-scrollbar": { height: "6px", width: "6px" },
     ".cm-scroller::-webkit-scrollbar-track": { background: "transparent" },
     ".cm-scroller::-webkit-scrollbar-thumb": {
-      background: "var(--p-surface-300)",
+      background: "var(--p-content-border-color)",
       borderRadius: "3px",
       cursor: "pointer",
     },
-    ".cm-scroller::-webkit-scrollbar-thumb:hover": { background: "var(--p-surface-400)" },
+    ".cm-scroller::-webkit-scrollbar-thumb:hover": { background: "var(--p-content-border-color)" },
     ".cm-tooltip.cm-tooltip-autocomplete": {
       border: "1px solid var(--p-content-border-color)",
       borderRadius: "8px",
@@ -207,8 +207,8 @@ const codeBlockTheme = EditorView.theme(
       lineHeight: "1.6",
     },
     ".cm-tooltip-autocomplete > ul > li[aria-selected]": {
-      background: "var(--p-primary-100)",
-      color: "var(--p-primary-700)",
+      background: "var(--p-content-background)",
+      color: "var(--p-text-color)",
     },
     ".cm-completionLabel": { flex: "1" },
     ".cm-completionDetail": {
@@ -463,7 +463,7 @@ class CodeMirrorNodeView implements NodeView {
   selectNode() {
     this.dom.style.borderColor = "var(--p-primary-color)";
     this.dom.style.boxShadow =
-      "0 0 0 3px var(--p-primary-100), 0 2px 8px rgba(0,0,0,0.09)";
+      "0 0 0 3px var(--p-content-background), 0 2px 8px rgba(0,0,0,0.09)";
     this.cm.focus();
   }
 
@@ -516,7 +516,7 @@ class CodeMirrorNodeView implements NodeView {
       alignItems: "center",
       justifyContent: "space-between",
       padding: "6px 12px",
-      background: "var(--p-surface-100)",
+      background: "var(--p-content-background)",
       borderBottom: "1px solid var(--p-content-border-color)",
       borderRadius: "12px 12px 0 0",
       userSelect: "none",
@@ -529,7 +529,7 @@ class CodeMirrorNodeView implements NodeView {
       "display:flex;align-items:center;gap:6px;cursor:pointer;padding:4px 8px;border-radius:6px;transition:background 0.15s;font-size:12px;font-weight:500;color:var(--p-text-color);";
     langSelector.addEventListener("mouseenter", () => {
       if (this.pmView.editable)
-        langSelector.style.background = "var(--p-surface-hover)";
+        langSelector.style.background = "var(--p-content-background)";
     });
     langSelector.addEventListener("mouseleave", () => {
       langSelector.style.background = "";
@@ -567,7 +567,7 @@ class CodeMirrorNodeView implements NodeView {
       "display:inline-flex;align-items:center;gap:4px;padding:4px 8px;border:none;border-radius:6px;background:transparent;cursor:pointer;font-size:11.5px;font-weight:500;color:var(--p-text-muted-color);font-family:inherit;transition:background 0.15s,color 0.15s;";
     copyBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M11 5V3.5A1.5 1.5 0 009.5 2h-6A1.5 1.5 0 002 3.5v6A1.5 1.5 0 003.5 11H5" stroke="currentColor" stroke-width="1.3"/></svg><span>复制</span>`;
     copyBtn.addEventListener("mouseenter", () => {
-      copyBtn.style.background = "var(--p-surface-hover)";
+      copyBtn.style.background = "var(--p-content-background)";
       copyBtn.style.color = "var(--p-text-color)";
     });
     copyBtn.addEventListener("mouseleave", () => {
@@ -616,11 +616,11 @@ class CodeMirrorNodeView implements NodeView {
     });
 
     const searchWrap = document.createElement("div");
-    searchWrap.style.cssText = "padding:8px;border-bottom:1px solid var(--p-surface-200);";
+    searchWrap.style.cssText = "padding:8px;border-bottom:1px solid var(--p-content-border-color);";
     const searchInput = document.createElement("input");
     searchInput.placeholder = "搜索语言...";
     searchInput.style.cssText =
-      "width:100%;box-sizing:border-box;padding:4px 8px;border:1px solid var(--p-content-border-color);border-radius:4px;font-size:12px;font-family:inherit;outline:none;background:var(--p-surface-0);color:var(--p-text-color);";
+      "width:100%;box-sizing:border-box;padding:4px 8px;border:1px solid var(--p-content-border-color);border-radius:4px;font-size:12px;font-family:inherit;outline:none;background:var(--p-content-background);color:var(--p-text-color);";
     searchWrap.appendChild(searchInput);
     dropdown.appendChild(searchWrap);
 
@@ -637,11 +637,11 @@ class CodeMirrorNodeView implements NodeView {
         const item = document.createElement("div");
         const isActive = l.value === this.node.attrs.language;
         item.style.cssText = `display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:4px;font-size:12.5px;cursor:pointer;transition:background 0.1s;color:${isActive ? "var(--p-primary-color)" : "var(--p-text-color)"
-          };background:${isActive ? "var(--p-primary-50)" : ""};font-weight:${isActive ? "600" : "400"
+          };background:${isActive ? "var(--p-content-background)" : ""};font-weight:${isActive ? "600" : "400"
           };`;
         item.innerHTML = `<span style="width:8px;height:8px;border-radius:50%;background:${l.color};flex-shrink:0;display:inline-block;"></span>${l.label}`;
         item.addEventListener("mouseenter", () => {
-          if (!isActive) item.style.background = "var(--p-surface-hover)";
+          if (!isActive) item.style.background = "var(--p-content-background)";
         });
         item.addEventListener("mouseleave", () => {
           if (!isActive) item.style.background = "";

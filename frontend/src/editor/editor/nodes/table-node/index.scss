@@ -26,13 +26,13 @@
     }
 
     th {
-      background-color: var(--p-surface-100);
+      background-color: var(--p-content-background);
       font-weight: bold;
       text-align: left;
     }
 
     .selectedCell:after {
-      background: var(--p-primary-100);
+      background: var(--p-content-background);
       content: '';
       left: 0;
       right: 0;

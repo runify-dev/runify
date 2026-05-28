@@ -81,12 +81,12 @@ const onAfterEnter = (el: Element) => {
 .tc-body { padding: 6px 0 4px 8px; display: flex; flex-direction: column; gap: 6px; }
 
 .tc-term-block {
-  background: #1e1e2e; border-radius: 6px; padding: 10px 12px;
+  background: var(--code-background); border-radius: 6px; padding: 10px 12px;
   font-family: 'JetBrains Mono NL', monospace; font-size: 12.5px; line-height: 1.6;
   max-height: 360px; overflow-y: auto;
 }
 .tc-term-line.cmd { color: #a6e3a1; margin: 0 0 4px; }
-.tc-term-line.out { color: #cdd6f4; margin: 0; white-space: pre-wrap; word-break: break-all; }
+.tc-term-line.out { color: var(--code-color); margin: 0; white-space: pre-wrap; word-break: break-all; }
 .tc-cursor { color: #a6e3a1; animation: blink 0.8s step-start infinite; font-size: 13px; }
 @keyframes blink { 50% { opacity: 0; } }
 </style>

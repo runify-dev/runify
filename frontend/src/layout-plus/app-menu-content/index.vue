@@ -26,6 +26,7 @@ import AppSidebar from '@/layout-plus/app-sidebar/index.vue'
   display: flex;
   flex-direction: column;
   background-color: var(--app-content-bg);
+  border: 1px solid var(--surface-border);
   border-radius: var(--content-border-radius);
   padding: 1.5rem;
   height: calc(100dvh - 4rem);

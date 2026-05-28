@@ -3,13 +3,13 @@
     <el-collapse-item
       title="思考过程"
       name="reasoning"
-      style="--el-collapse-content-text-color: #8b8b8b"
+      style="--el-collapse-content-text-color: var(--p-text-muted-color)"
     >
       <MdPreview
         v-bind:model-value="content"
         ref="editorRef"
         editorId="preview-only"
-        style="color: #8b8b8b"
+        style="color: var(--p-text-muted-color)"
         class="reasoning-md"
       />
     </el-collapse-item>
@@ -26,7 +26,7 @@ const content = computed(() => {
 <style lang="scss" scoped>
 .reasoning-md {
   padding-left: 8px;
-  --md-color: #8b8b8b !important;
+  --md-color: var(--p-text-muted-color) !important;
 }
 .el-collapse {
   border-top: none;

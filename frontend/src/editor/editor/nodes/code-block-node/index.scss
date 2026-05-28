@@ -1,20 +1,10 @@
 .tiptap.ProseMirror {
-  --tt-inline-code-bg-color: var(--tt-gray-light-a-100);
-  --tt-inline-code-text-color: var(--tt-gray-light-a-700);
-  --tt-inline-code-border-color: var(--tt-gray-light-a-200);
-  --tt-codeblock-bg: var(--tt-gray-light-a-50);
-  --tt-codeblock-text: var(--tt-gray-light-a-800);
-  --tt-codeblock-border: var(--tt-gray-light-a-200);
-
-  .app-dark &,
-  .dark & {
-    --tt-inline-code-bg-color: var(--tt-gray-dark-a-100);
-    --tt-inline-code-text-color: var(--tt-gray-dark-a-700);
-    --tt-inline-code-border-color: var(--tt-gray-dark-a-200);
-    --tt-codeblock-bg: var(--tt-gray-dark-a-50);
-    --tt-codeblock-text: var(--tt-gray-dark-a-800);
-    --tt-codeblock-border: var(--tt-gray-dark-a-200);
-  }
+  --tt-inline-code-bg-color: var(--p-content-background);
+  --tt-inline-code-text-color: var(--p-text-color);
+  --tt-inline-code-border-color: var(--p-content-border-color);
+  --tt-codeblock-bg: var(--p-content-background);
+  --tt-codeblock-text: var(--p-text-color);
+  --tt-codeblock-border: var(--p-content-border-color);
 }
 
 /* =====================

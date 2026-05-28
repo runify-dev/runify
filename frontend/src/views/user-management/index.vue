@@ -424,15 +424,15 @@ onMounted(() => pageUser())
 }
 
 :deep(.p-datatable-scrollable .p-datatable-frozen-right) {
-  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--p-shadow-1);
 }
 
 :deep(.p-datatable-scrollable .p-datatable-frozen-right .p-datatable-header-cell) {
-  background: #f8f9fa !important;
+  background: var(--p-surface-50) !important;
 }
 
 :deep(.p-datatable-scrollable .p-datatable-frozen-right .p-datatable-body-cell) {
-  background: white;
+  background: var(--p-surface-0);
 }
 
 :deep(.p-paginator) {

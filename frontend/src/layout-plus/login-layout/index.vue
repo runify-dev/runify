@@ -103,8 +103,8 @@ function onMouseLeave() {
   transform-style: preserve-3d;
   transition: box-shadow 0.3s ease;
   will-change: transform;
-  background: color-mix(in srgb, var(--p-surface-0) 82%, transparent);
-  border: 1px solid color-mix(in srgb, var(--p-primary-color) 14%, var(--p-surface-0));
+  background: var(--login-card-bg);
+  border: 1px solid color-mix(in srgb, var(--p-primary-color) 14%, var(--p-surface-400));
 }
 
 .left-bg::before {

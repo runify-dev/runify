@@ -18,7 +18,7 @@
 
               <!-- 已上传时显示图片 -->
               <div v-else class="relative group">
-                <div class="w-16 h-16 rounded-xl overflow-hidden border border-surface-200">
+                <div class="w-16 h-16 rounded-xl overflow-hidden border border-[var(--p-content-border-color)]">
                   <Image :src="$field.value" alt="icon" width="64" height="64" preview />
                 </div>
                 <button

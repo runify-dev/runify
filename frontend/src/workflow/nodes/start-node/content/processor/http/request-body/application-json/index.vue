@@ -262,9 +262,9 @@ watch(
 }
 
 .default-value {
-  color: #10b981;
+  color: var(--p-green-500);
   font-family: monospace;
-  background: #f0fdf4;
+  background: var(--p-green-50);
   padding: 2px 6px;
   border-radius: 4px;
   font-size: 0.9rem;
@@ -272,7 +272,7 @@ watch(
 
 :deep(.p-treetable) {
   margin-top: 1rem;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--p-content-border-color);
   border-radius: 6px;
 }
 

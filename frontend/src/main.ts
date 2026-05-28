@@ -24,8 +24,18 @@ app.use(components)
 app.use(ConfirmationService)
 app.use(PrimeVue, {
   theme: {
-    preset: Aura
+    preset: Aura,
+    options: {
+      darkModeSelector: '.app-dark'
+    }
   }
 })
 app.use(ToastService)
 app.mount('#app')
+
+// 初始化暗色模式：优先用户偏好，否则跟随系统
+const saved = localStorage.getItem('theme-dark')
+const isDark = saved !== null ? saved === 'true' : window.matchMedia('(prefers-color-scheme: dark)').matches
+if (isDark) {
+  document.documentElement.classList.add('app-dark')
+}

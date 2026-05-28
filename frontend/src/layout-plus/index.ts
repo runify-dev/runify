@@ -1,10 +1,14 @@
-import { computed, reactive } from 'vue';
+import { computed, reactive, watch, onMounted, onUnmounted } from 'vue';
+
+// 初始化：优先用户偏好，否则跟随系统
+const saved = localStorage.getItem('theme-dark');
+const initialDark = saved !== null ? saved === 'true' : window.matchMedia('(prefers-color-scheme: dark)').matches;
 
 const layoutConfig = reactive({
   preset: 'Aura',
   primary: 'emerald',
   surface: null,
-  darkTheme: false,
+  darkTheme: initialDark,
   menuMode: 'static'
 });
 
@@ -23,19 +27,28 @@ const layoutState = reactive({
 });
 
 export function useLayout() {
-  const toggleDarkMode = () => {
-    if (!document.startViewTransition) {
-      executeDarkModeToggle();
+  // 暗色模式变化时同步 class 和 localStorage
+  watch(() => layoutConfig.darkTheme, (val) => {
+    document.documentElement.classList.toggle('app-dark', val);
+    localStorage.setItem('theme-dark', String(val));
+  });
 
-      return;
+  // 监听系统主题，仅在用户未手动设置时跟随
+  const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+  const onSystemThemeChange = (e: MediaQueryListEvent) => {
+    if (localStorage.getItem('theme-dark') === null) {
+      layoutConfig.darkTheme = e.matches;
     }
-
-    document.startViewTransition(() => executeDarkModeToggle());
   };
+  onMounted(() => mediaQuery.addEventListener('change', onSystemThemeChange));
+  onUnmounted(() => mediaQuery.removeEventListener('change', onSystemThemeChange));
 
-  const executeDarkModeToggle = () => {
-    layoutConfig.darkTheme = !layoutConfig.darkTheme;
-    document.documentElement.classList.toggle('app-dark');
+  const toggleDarkMode = () => {
+    if (document.startViewTransition) {
+      document.startViewTransition(() => { layoutConfig.darkTheme = !layoutConfig.darkTheme; });
+    } else {
+      layoutConfig.darkTheme = !layoutConfig.darkTheme;
+    }
   };
 
   const toggleMenu = () => {
@@ -43,7 +56,6 @@ export function useLayout() {
       if (layoutConfig.menuMode === 'static') {
         layoutState.staticMenuInactive = !layoutState.staticMenuInactive;
       }
-
     } else {
       layoutState.mobileMenuActive = !layoutState.mobileMenuActive;
     }

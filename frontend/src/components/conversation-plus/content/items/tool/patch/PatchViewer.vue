@@ -244,11 +244,11 @@ async function copyText(text: string) {
 
 .pv-status-add {
   color: #16a34a;
-  background: #dcfce7;
+  background: rgba(34, 197, 94, 0.1);
 }
 .pv-status-modify {
-  color: var(--p-primary-color);
-  background: #dbeafe;
+  color: #3370ff;
+  background: rgba(51, 112, 255, 0.1);
 }
 .pv-status-delete {
   color: var(--danger-text);
@@ -256,8 +256,8 @@ async function copyText(text: string) {
 }
 .pv-status-rename,
 .pv-status-copy {
-  color: #7c3aed;
-  background: #ede9fe;
+  color: #3370ff;
+  background: rgba(51, 112, 255, 0.1);
 }
 .pv-status-mode,
 .pv-status-binary,
@@ -308,8 +308,8 @@ async function copyText(text: string) {
   font-weight: 600;
 }
 .pv-btn-pri {
-  color: var(--p-primary-contrast-color);
-  background: var(--p-primary-color);
+  color: #ffffff;
+  background: #3370ff;
 }
 .pv-btn-sec {
   color: var(--t1);
@@ -423,7 +423,7 @@ async function copyText(text: string) {
 
 /* 行背景 */
 .pv-row-add {
-  background: #daf5e2;
+  background: rgba(34, 197, 94, 0.1);
 }
 .pv-row-add .pv-ln,
 .pv-row-add .pv-prefix {
@@ -431,7 +431,7 @@ async function copyText(text: string) {
 }
 
 .pv-row-remove {
-  background: #fde8ec;
+  background: rgba(239, 68, 68, 0.1);
 }
 .pv-row-remove .pv-ln,
 .pv-row-remove .pv-prefix {
@@ -446,7 +446,7 @@ async function copyText(text: string) {
 .pv-hunk {
   padding: 3px 12px;
   color: var(--t2);
-  background: #e8f4fd;
+  background: rgba(51, 112, 255, 0.1);
   white-space: pre;
   font-size: 11px;
 }

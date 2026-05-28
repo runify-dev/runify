@@ -110,7 +110,7 @@ const displayLines = computed(() =>
 
 /* 行背景 */
 .fd-row-add {
-  background: #daf5e2;
+  background: rgba(34, 197, 94, 0.1);
 }
 .fd-row-add .fd-ln,
 .fd-row-add .fd-prefix {
@@ -118,7 +118,7 @@ const displayLines = computed(() =>
 }
 
 .fd-row-remove {
-  background: #fde8ec;
+  background: rgba(239, 68, 68, 0.1);
 }
 .fd-row-remove .fd-ln,
 .fd-row-remove .fd-prefix {
@@ -133,32 +133,10 @@ const displayLines = computed(() =>
 .fd-hunk {
   padding: 2px 10px;
   color: var(--t2);
-  background: #e8f4fd;
+  background: rgba(51, 112, 255, 0.1);
   white-space: pre-wrap;
   word-break: break-all;
   font-size: 10px;
-}
-
-/* 暗色主题 */
-.dark .fd-row-add {
-  background: #1a3a2a;
-}
-.dark .fd-row-add .fd-ln,
-.dark .fd-row-add .fd-prefix {
-  color: #50d090;
-}
-
-.dark .fd-row-remove {
-  background: #3b1111;
-}
-.dark .fd-row-remove .fd-ln,
-.dark .fd-row-remove .fd-prefix {
-  color: #f87171;
-}
-
-.dark .fd-hunk {
-  background: #1a2a3b;
-  color: #a0a0a0;
 }
 
 .fd-empty {
