@@ -266,7 +266,7 @@
                           "context"
                         ],
                         "mode": "custom",
-                        "content": "用户问题\n\n:::variable {value=\"context%5B'start-node'%5D%5B'question'%5D%5B'content'%5D\" label=\"%E5%BC%80%E5%A7%8B%E8%8A%82%E7%82%B9%20%2F%20%E7%94%A8%E6%88%B7%E9%97%AE%E9%A2%98%20%2F%20%E9%97%AE%E9%A2%98\"} :::\n\n\n图片  \n:::variable {value=\"context%5B'start-node'%5D%5B'question'%5D%5B'images'%5D\" label=\"%E5%BC%80%E5%A7%8B%E8%8A%82%E7%82%B9%20%2F%20%E7%94%A8%E6%88%B7%E9%97%AE%E9%A2%98%20%2F%20%E5%9B%BE%E7%89%87\"} :::\n\n\n文本\n\n:::variable {value=\"context%5B'start-node'%5D%5B'question'%5D%5B'texts'%5D\" label=\"%E5%BC%80%E5%A7%8B%E8%8A%82%E7%82%B9%20%2F%20%E7%94%A8%E6%88%B7%E9%97%AE%E9%A2%98%20%2F%20%E6%96%87%E6%9C%AC\"} :::\n\n\n视频\n\n:::variable {value=\"context%5B'start-node'%5D%5B'question'%5D%5B'videos'%5D\" label=\"%E5%BC%80%E5%A7%8B%E8%8A%82%E7%82%B9%20%2F%20%E7%94%A8%E6%88%B7%E9%97%AE%E9%A2%98%20%2F%20%E8%A7%86%E9%A2%91\"} :::\n\n\n文件\n\n:::variable {value=\"context%5B'start-node'%5D%5B'question'%5D%5B'files'%5D\" label=\"%E5%BC%80%E5%A7%8B%E8%8A%82%E7%82%B9%20%2F%20%E7%94%A8%E6%88%B7%E9%97%AE%E9%A2%98%20%2F%20%E6%96%87%E4%BB%B6\"} :::\n",
+                        "content": "用户问题\n\n:::variable {value=\"start-node.question.content\" label=\"开始节点 / 用户问题 / 问题\"} :::\n\n\n图片  \n\n:::variable {value=\"start-node.question.images\" label=\"开始节点 / 用户问题 / 图片\"} :::\n\n\n文本\n\n:::variable {value=\"start-node.question.texts\" label=\"开始节点 / 用户问题 / 文本\"} :::\n\n\n视频\n\n:::variable {value=\"start-node.question.videos\" label=\"开始节点 / 用户问题 / 视频\"} :::\n\n\n文件\n\n:::variable {value=\"start-node.question.files\" label=\"开始节点 / 用户问题 / 文件\"} :::\n\n\n",
                         "role": "user"
                       }
                     ]
@@ -2971,8 +2971,8 @@
         "y": 0
       },
       "endPoint": {
-        "x": 296.234375,
-        "y": 63.875
+        "x": 294.765625,
+        "y": -3.12890625
       },
       "pointsList": [
         {

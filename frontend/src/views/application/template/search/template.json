@@ -151,7 +151,7 @@
                           "context"
                         ],
                         "mode": "custom",
-                        "content": ":::variable {value=\"context%5B'start-node'%5D%5B'question'%5D%5B'texts'%5D\" label=\"%E5%BC%80%E5%A7%8B%E8%8A%82%E7%82%B9%20%2F%20%E7%94%A8%E6%88%B7%E9%97%AE%E9%A2%98%20%2F%20%E6%96%87%E6%9C%AC\"} :::\n  \n:::variable {value=\"context%5B'start-node'%5D%5B'question'%5D%5B'content'%5D\" label=\"%E5%BC%80%E5%A7%8B%E8%8A%82%E7%82%B9%20%2F%20%E7%94%A8%E6%88%B7%E9%97%AE%E9%A2%98%20%2F%20%E9%97%AE%E9%A2%98\"} :::\n",
+                        "content": "\n\n:::variable {value=\"start-node.question.content\" label=\"开始节点 / 用户问题 / 问题\"} :::\n\n\n\n\n:::variable {value=\"start-node.question.texts\" label=\"开始节点 / 用户问题 / 文本\"} :::\n\n\n",
                         "role": "user"
                       }
                     ]

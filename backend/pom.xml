@@ -95,7 +95,6 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <scope>provided</scope>
         </dependency>
 
         <dependency>
@@ -405,9 +404,11 @@
                             <minimizeJar>false</minimizeJar>
 
                             <transformers>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
 
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <mainClass>io.vertx.launcher.application.VertxApplication</mainClass>
                                     <manifestEntries>
                                         <Main-Verticle>com.run.RunApplication</Main-Verticle>

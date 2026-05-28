@@ -93,6 +93,7 @@ public class ContextPushNode extends INode<ContextPushNode, ContextPushNodeData>
                 node.status = NodeStatus.SUCCESS;
             } catch (Exception e) {
                 node.status = NodeStatus.FAIL;
+                return node.handleFail(workFlowManage, e);
             }
 
             return () -> workFlowManage.getNextList(node.node.getId()).stream().map(DefaultKeyValue::getValue).toList();
