@@ -20,7 +20,17 @@ import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
 /**
- * 上下文推送节点 - 直接推送 content 元素到目标 JsonArray
+ * 上下文推送节点 - 将 content 元素追加到目标上下文变量（JsonArray）中。
+ *
+ * <p>支持两种推送模式：</p>
+ * <ul>
+ *     <li><b>reference（引用模式）</b>：直接把引用变量的值 push 到目标数组，
+ *     List/JsonArray 会被展开追加，其余类型作为单个元素追加。</li>
+ *     <li><b>custom（自定义模式）</b>：按配置构建 content 元素后再追加，格式与 start-node 保持一致。</li>
+ * </ul>
+ *
+ * <p>同时支持普通工作流与循环工作流（写回时会自动区分循环上下文）。
+ * 适用的工作流类型见 {@link #supportWorkflow}。</p>
  */
 public class ContextPushNode extends INode<ContextPushNode, ContextPushNodeData> {
     public final static String type = "context-push-node";
