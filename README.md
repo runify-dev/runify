@@ -1,104 +1,171 @@
-# Runify
-
 <p align="center">
-  <strong>轻量级白盒 AI Agent 平台</strong><br>
-  低资源占用 · 可视化构建 · 完全可控的自定义 AI Agent
+  <h1 align="center">Runify</h1>
+  <p align="center">
+    <strong>轻量白盒多智能体平台</strong><br/>
+    透明可控 · 可视化编排 · 高精度知识召回 · 企业级权限 · 低成本嵌入第三方 · 桌面安装开箱即用 · 200MB 即可运行
+  </p>
 </p>
 
 <p align="center">
-  <a href="#-核心设计理念">设计理念</a> •
-  <a href="#-轻量特性">轻量特性</a> •
-  <a href="#-技术栈">技术栈</a> •
-  <a href="#-高级配置指南">配置指南</a> •
-  <a href="#-快速开始">快速开始</a> •
-  <a href="#-项目结构">项目结构</a> •
-  <a href="#-生产部署">生产部署</a> •
+  <a href="#-快速开始">快速开始</a> · 
+  <a href="#-为什么选择-runify">为什么选择 Runify</a> · 
+  <a href="#-核心能力">核心能力</a> · 
+  <a href="#-技术栈">技术栈</a> · 
+  <a href="#-项目结构">项目结构</a> · 
+  <a href="#-生产部署">生产部署</a> · 
   <a href="#-参与贡献">参与贡献</a>
 </p>
 
+<p align="center">
+  <a href="https://github.com/runify-dev/runify/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License" /></a>
+  <a href="https://github.com/runify-dev/runify/releases"><img src="https://img.shields.io/github/v/release/runify-dev/runify?include_prereleases" alt="Release" /></a>
+  <a href="https://github.com/runify-dev/runify/stargazers"><img src="https://img.shields.io/github/stars/runify-dev/runify" alt="Stars" /></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/runify-dev/runify/releases/download/v0.2.0-beta/Runify-1.0.0-arm64.dmg">📦 下载 macOS (Apple Silicon)</a>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="https://github.com/runify-dev/runify/releases/download/v0.2.0-beta/Runify.Setup.1.0.0.exe">📦 下载 Windows</a>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="https://github.com/runify-dev/runify/releases/download/v0.2.0-beta/runify.jar">☕ 下载 JAR 包</a>
+</p>
+
 ---
 
-> 💡 **告别黑盒与魔法，一切尽在掌握。**
-> 在 Runify 中，你看到的每一步推理、每一次工具调用、每一个决策节点，都是**完全透明、可编辑且可调试**的。我们致力于将算法与工程的确定性，重新完整地交还给开发者。
+> **告别黑盒与魔法，一切尽在掌握。**  
+> 在 Runify 中，你看到的每一步推理、每一次工具调用、每一个决策节点，都是完全透明、可编辑且可调试的。我们致力于将算法与工程的确定性，重新完整地交还给开发者。
 
 ---
 
-## 轻量运行
-Runify 的核心设计目标是**极简化本地资源占用，让开发者无负担地拉起一套 Agent 环境**：
+## 🔍 为什么选择 Runify
 
-* **低内存占用**：基于 Vert.x 高性能异步框架，系统无需重型依赖。基础运行时内存占用保持在 **100MB~200MB** 之间，启动在 1~2 秒内完成。
-* **配置零门槛**：对硬件要求极低，一台普通的个人电脑（Mac/Windows）或入门级云服务器（1核2G）即可流畅跑满本地流式响应。
-* **灵活的数据源**：系统底层数据库支持 SQLite 与 PostgreSQL。默认使用极简的 SQLite 本地文件存储，实现零配置极简运行；也可根据生产环境需要，一键切换至 PostgreSQL 协同运行。此外，系统内置 Lucene 检索，无需额外拉起庞大的搜索集群。
+| 对比维度 | Runify | Dify | MaxKB | FastGPT |
+|---------|--------|------|-------|---------|
+| 内存占用 | **≈ 200MB** | 4GB+（官方建议 8GB+） | 4GB+（官方建议 4C/8GB） | 4GB+（官方 5 容器起步） |
+| 启动速度 | **1~2 秒** | 分钟级（13 个容器编排） | 分钟级 | 分钟级 |
+| 依赖 Docker | **❌ 不需要** | ✅ 必须 | ✅ 必须 | ✅ 必须 |
+| 桌面安装包 | **✅ macOS / Windows** | ❌ | ❌ | ❌ |
+| 外部组件依赖 | **SQLite 零配置运行** | PostgreSQL + Redis + Weaviate + Nginx + Sandbox 等 | PostgreSQL + pgvector | PostgreSQL + MongoDB + Sandbox |
+| 高并发能力 | **Vert.x NIO 异步架构**，轻量与高吞吐兼得 | Python + Flask/Celery | Python + Django | Next.js + Node.js |
+| 内置搜索引擎 | **✅ Lucene 内置** | ❌ 依赖 Weaviate/Qdrant | ❌ 依赖 pgvector | ❌ 依赖 PG 向量插件 |
+| 内置工作流模板 | **✅ 智能体 + 知识库检索** | 需自行搭建 | 需自行搭建 | 需自行搭建 |
+| 白盒透明度 | **全链路可查看、可编辑、可调试** | 部分可视化 | 部分可视化 | 部分可视化 |
+| 企业级权限 | **✅ RBAC 细粒度权限** | ✅ | 社区版限 1 人 | 基础权限 |
+| 统一对话管理 | **✅ 多 Agent 对话统筹** | 分应用管理 | 分应用管理 | 分应用管理 |
+| 第三方嵌入 | **API / Webhook 低成本接入** | API 接入 | iframe / API | iframe / API |
 
-## 核心能力
+> 💬 以上对比基于各项目官方文档与社区部署实践。Runify 不是要替代这些优秀项目，而是为追求**轻量部署、透明可控、低门槛上手**的开发者和团队提供另一种选择。
 
-### 自定义 AI Agent
+---
 
-通过直观的拖拽式画布，像搭积木一样自由组合、串联核心节点。摒弃了复杂的 BPMN 规范，采用更符合开发者直觉的 DAG（有向无环图）执行引擎：
-通过可视化工作流编辑器，拖拽节点即可构建专属 Agent：
+## 🎬 项目演示
 
-| 节点类型    | 说明 |
-|---------|---|
-| AI 对话   | 多模型接入，支持思维链、工具调用 |
-| 条件判断    | 根据变量 / AI 输出走不同分支 |
-| 循环      | 批量处理、迭代优化 |
-| 数据库查询   | 直连数据源，Agent 自主检索 |
-| 笔记检索    | Agent 可检索笔记内容，精准召回 |
-| 代码执行    | JavaScript / 终端，Agent 可编程 |
-| 文件操作    | 读写文件、上传下载 |
-| 变量赋值    | 流程状态管理 |
-| 缓存读写    | 避免重复计算 |
-| HTTP 请求 | 工作流驱动，调用外部 API / Webhook |
-| 审批节点    | 人机协作，关键步骤人工确认 |
+<!-- 建议替换为你的截图或 GIF -->
 
-### 智能笔记
+| <img width="400" src="https://github.com/user-attachments/assets/2ea7088b-a1a1-45c4-a235-bc19bcde2b8a" /> |  <img width="400" src="https://github.com/user-attachments/assets/565a2868-5c7d-439f-9993-d4a01cb95d9b" /> |
+|:---:|:---:|
+| <img width="400" src="https://github.com/user-attachments/assets/e0f92360-8ff5-483e-99ee-a846b8905714" />|  <img width="400" src="https://github.com/user-attachments/assets/28a3fe5e-dcf3-4e2d-96b2-217420cfb81d" />  |
 
-集成了现代化的富文本编辑器，方便你在打磨 Agent 的同时，随时随地沉淀知识与灵感：
-* **多要素渲染**：完美支持标准 Markdown 语法、代码块高亮、数学公式以及图表多媒体混排，提供所见即所得的丝滑编辑体验。
-* **无感自动保存**：内置实时全自动保存机制。无论是断网、误触关闭还是设备意外断电，平台都会在后台实时暂存你的每一行输入，彻底告别内容丢失的焦虑。
-* **理清设计思路**：它不仅是 Agent 的上下文来源，更是你私人的轻量级知识库。
+---
 
-### 多数据源
+## ✨ 核心能力
 
-平台提供了独立的数据源配置管理，支持一键连接并托管你的外部业务环境，让 Agent 真正具备理解你私有业务数据的能力：
-* **SQL 数据库**：完美适配 PostgreSQL、MySQL，支持连接测试与动态驱动管理。
-* **缓存供应商**：支持高性能的 Redis 集群或单机版，同时提供零依赖的本地缓存方案。
+### 🎯 开箱即用，小白也能无脑上手
 
-### 多端适配
+不需要你装 Docker，不需要你会写 YAML，不需要你碰命令行。Runify 提供 **macOS / Windows 桌面安装包**，双击安装、打开即用，像装一个普通桌面软件一样简单。
 
-为了方便日常运维，前端在视觉呈现上针对不同屏幕尺寸进行了专门的优化：
-* **Web 响应式**：采用前端原子化样式（Tailwind CSS）开发，界面布局灵活自适应，在手机端也能流畅处理 Agent 的人机审批。
-* **桌面端（Electron）**：支持一键打包为原生桌面应用，为 macOS 与 Windows 用户提供低延迟的单窗口管理环境。
+同时内置两套预制工作流模板，安装完成即可直接使用：
 
+- **🤖 智能体工作流模板**：预配置好 AI 对话 + 工具调用 + 条件分支的标准 Agent 流程，改个提示词就能跑
+- **📖 知识库检索工作流模板**：预配置好文档导入 → 知识切片 → 精准检索 → AI 回答的完整 RAG 链路，导入文档即出效果
 
-## 项目截图
+> 💡 从安装到第一个 Agent 跑通，最快 **5 分钟**。
 
-<!-- 在 docs/images/ 目录下放置项目图片，然后在此处引用 -->
-| <img width="400" src="https://github.com/user-attachments/assets/2ea7088b-a1a1-45c4-a235-bc19bcde2b8a" /> | <img width="400" src="https://github.com/user-attachments/assets/565a2868-5c7d-439f-9993-d4a01cb95d9b" /> |
-|---|---|
-| <img width="400" src="https://github.com/user-attachments/assets/e0f92360-8ff5-483e-99ee-a846b8905714" /> | <img width="400" src="https://github.com/user-attachments/assets/28a3fe5e-dcf3-4e2d-96b2-217420cfb81d" /> |
-## 项目视频
-<video width="300" src="https://github.com/user-attachments/assets/05e68693-d2f1-41c7-93e9-f8848d243d6b"></video>
+### 🧩 可视化多智能体工作流
 
-## 技术栈
+通过拖拽式画布，像搭积木一样自由组合核心节点。基于 DAG（有向无环图）执行引擎，摒弃复杂的 BPMN 规范，更符合开发者直觉。
+
+**支持的节点类型：**
+
+| 节点类型 | 说明 |
+|---------|------|
+| AI 对话 | 多模型接入，支持思维链、工具调用 |
+| 条件判断 | 根据变量 / AI 输出走不同分支 |
+| 循环 | 批量处理、迭代优化 |
+| 数据库查询 | 直连数据源，Agent 自主检索 |
+| 笔记检索 | Agent 可检索笔记内容，精准召回 |
+| 代码执行 | JavaScript / 终端，Agent 可编程 |
+| 文件操作 | 读写文件、上传下载 |
+| 变量赋值 | 流程状态管理 |
+| 缓存读写 | 避免重复计算 |
+| HTTP 请求 | 调用外部 API / Webhook |
+| 审批节点 | 人机协作，关键步骤人工确认 |
+
+### 📚 高精度知识召回
+
+集成现代化富文本编辑器，构建你的私有知识库。Agent 不再"瞎猜"，而是基于你的真实数据给出精准回答。
+
+- **多要素渲染**：支持 Markdown、代码块高亮、数学公式及图表多媒体混排
+- **无感自动保存**：实时暂存每一行输入，断网断电也不丢失
+- **精准检索**：内置 Lucene 高精度检索引擎，无需额外搜索集群
+
+### 🏢 企业级权限与对话管理
+
+不止是一个开发者工具，Runify 为团队和企业场景做好了准备：
+
+- **RBAC 权限控制**：细粒度的用户角色与权限管理，满足企业合规需求
+- **统一对话管理**：多 Agent 对话统筹调度，对话记录可追溯、可审计
+- **多数据源接入**：支持 PostgreSQL、MySQL、Redis，一键连接业务数据库
+
+### 🔌 低成本嵌入第三方
+
+Runify 天然为集成而生。通过 API 与 Webhook 即可快速嵌入现有业务系统，无需大规模改造，降低企业 AI 落地门槛。
+
+### 📱 多端适配 & 桌面级安装体验
+
+- **桌面端（Electron）**：提供 macOS / Windows 安装包，双击安装，无需命令行、不依赖 Docker，真正的桌面级应用体验
+- **Web 响应式**：Tailwind CSS 原子化样式，手机端也能流畅处理 Agent 审批
+
+---
+
+## 🛠 技术栈
 
 | 层 | 技术 |
-|---|---|
+|----|------|
 | 后端 | Java 25 · Vert.x · Dagger · Flyway |
 | 前端 | Vue 3 · TypeScript · Vite · PrimeVue · Tailwind CSS |
-| 工作流 | 自研引擎 · LogicFlow 画布 |
-| 搜索 | Lucene / Elasticsearch |
-| 桌面 | Electron (macOS / Windows) |
+| 工作流 | 自研 DAG 引擎 · LogicFlow 画布 |
+| 搜索 | Lucene（内置） / Elasticsearch（可选） |
+| 桌面 | Electron（macOS / Windows） |
 
-## 快速开始
+### ⚡ 轻量级 ≠ 低性能
 
-### 环境要求
+很多轻量框架在并发面前不堪一击，Runify 不是。底层基于 **Vert.x 异步非阻塞（NIO）架构**，仅 200MB 内存即可运行，同时用 Event Loop 驱动 I/O，而非传统的一请求一线程模型：
+
+- **异步全链路**：从 HTTP 接入、工作流调度到数据库查询，全程非阻塞，不会因单个慢请求拖垮整体
+- **高吞吐低延迟**：少量线程即可处理大量并发连接，内存和 CPU 占用远低于同等负载下的传统方案
+- **生产级稳定**：最小化外部依赖，核心组件高度内聚，减少级联故障风险，适合长时间无人值守运行
+- **弹性扩展**：单实例性能不够时，可水平部署多个 JAR 实例，配合 Nginx 实现负载均衡
+
+---
+
+## 🚀 快速开始
+
+### 方式一：桌面安装（推荐，最简单）
+
+| 平台 | 下载 | 大小 |
+|------|------|------|
+| macOS (Apple Silicon) | [📦 Runify-1.0.0-arm64.dmg](https://github.com/runify-dev/runify/releases/download/v0.2.0-beta/Runify-1.0.0-arm64.dmg) | 412 MB |
+| Windows | [📦 Runify Setup 1.0.0.exe](https://github.com/runify-dev/runify/releases/download/v0.2.0-beta/Runify.Setup.1.0.0.exe) | 371 MB |
+| 跨平台 JAR | [☕ runify.jar](https://github.com/runify-dev/runify/releases/download/v0.2.0-beta/runify.jar) | 119 MB |
+
+安装完成后打开 Runify，内置的工作流模板即刻可用，无需任何额外配置。不依赖 Docker。
+
+### 方式二：源码开发
+
+#### 环境要求
 
 - JDK 25+
 - Node.js 20+
 - Maven 3.8+
 
-### 开发模式
+#### 开发模式
 
 ```bash
 # 启动后端
@@ -111,7 +178,7 @@ npm install
 npm run dev
 ```
 
-### 构建部署
+#### 构建部署
 
 ```bash
 # JAR 包
@@ -122,64 +189,68 @@ java -jar release/runify.jar
 ./installer/installer.sh [mac|win]
 ```
 
-### macOS 安装
+#### macOS 安装说明
 
-首次打开 macOS 安装包时，系统提示"无法打开，因为无法验证开发者"，需要执行：
+首次打开 macOS 安装包时，系统可能提示"无法验证开发者"，执行以下命令即可：
 
 ```bash
 xattr -cr /Applications/Runify.app
 ```
 
-移除隔离属性后即可正常启动。默认账号密码如下：
+默认账号：
 
 ```
 用户名: admin
-密码: Runify@1
+密码:   Runify@1
 ```
 
-## 项目结构
+---
+
+## 📂 项目结构
 
 ```
-run/
+runify/
 ├── backend/
 │   └── src/main/java/com/run/
-│       ├── workflow/     # 工作流引擎（Agent 核心）
-│       │   ├── nodes/    # 节点实现
-│       │   └── entity/   # 流程定义
-│       ├── ai/           # AI 模型接入
-│       ├── route/        # API 路由
-│       ├── handler/      # 业务处理
-│       ├── dao/          # 数据访问
-│       └── datasources/  # 多数据源适配
+│       ├── workflow/        # 工作流引擎（Agent 核心）
+│       │   ├── nodes/       # 节点实现
+│       │   └── entity/      # 流程定义
+│       ├── ai/              # AI 模型接入
+│       ├── route/           # API 路由
+│       ├── handler/         # 业务处理
+│       ├── dao/             # 数据访问
+│       └── datasources/     # 多数据源适配
 ├── frontend/
 │   └── src/
-│       ├── workflow/     # 工作流可视化编辑器
-│       ├── views/        # 页面
-│       ├── editor/       # 富文本编辑器
-│       └── locales/      # 国际化
+│       ├── workflow/        # 工作流可视化编辑器
+│       ├── views/           # 页面
+│       ├── editor/          # 富文本编辑器
+│       └── locales/         # 国际化
 ├── installer/
-│   ├── electron/         # 桌面端
+│   ├── electron/            # 桌面端
 │   ├── build-jar.sh
 │   └── installer.sh
 └── pom.xml
 ```
 
+---
 ## 技术交流
 
 <img width="300" height="300" alt="c177135ae214abf9370e57496da28f76" src="https://github.com/user-attachments/assets/f6f2f99f-9dce-42f9-b63b-3d9c81d0dd6e" />
 
+## 🤝 参与贡献
 
-## 参与讨论
+我们欢迎所有形式的参与，不只是代码贡献：
 
-我们欢迎所有人对 Runify 提出看法、建议和想法，不只是代码贡献。
-
-- **[Discussions](../../discussions)** — 分享你的想法、提出建议、讨论功能需求
-- **[Issues](../../issues)** — 提交 Bug 报告、功能请求
-- **[Pull Requests](../../pulls)** — 代码贡献
+- **[Discussions](https://github.com/runify-dev/runify/discussions)** — 分享想法、提出建议、讨论功能需求
+- **[Issues](https://github.com/runify-dev/runify/issues)** — 提交 Bug 报告、功能请求
+- **[Pull Requests](https://github.com/runify-dev/runify/pulls)** — 代码贡献
 
 无论你是开发者、设计师、产品经理还是普通用户，你的意见都对我们很重要。
 
-## License
+---
+
+## 📄 License
 
 [Apache License 2.0](LICENSE)
 
