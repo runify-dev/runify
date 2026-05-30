@@ -6,6 +6,11 @@ on:
       version:
         description: 'Release version (e.g. v1.0.0)'
         required: true
+      make_latest:
+        description: 'Mark as latest release'
+        required: false
+        type: boolean
+        default: true
 
 jobs:
   build-jar:
@@ -49,6 +54,7 @@ jobs:
           name: Release ${{ inputs.version }}
           files: backend/target/runify.jar
           generate_release_notes: true
+          make_latest: ${{ inputs.make_latest }}
 
   build-desktop:
     needs: build-jar
@@ -149,3 +155,4 @@ jobs:
             installer/electron/dist/*.dmg
             installer/electron/dist/*.exe
           generate_release_notes: false
+          make_latest: ${{ inputs.make_latest }}
