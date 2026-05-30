@@ -19,6 +19,7 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.Strings;
 
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -393,6 +394,11 @@ public class WorkFlowManage {
 
     public int getCompletionTokens() {
         return nodes.stream().map(INode::getCompletionTokens).mapToInt(Integer::intValue).sum();
+    }
+
+    public Path getWorkingDirectory() {
+        UUID conversationId = (UUID) this.getParams().getOrDefault("conversationId", CommonUtils.uuid7());
+        return Path.of(System.getProperty("user.home") + "/.runify/" + conversationId);
     }
 
     public void clear() {

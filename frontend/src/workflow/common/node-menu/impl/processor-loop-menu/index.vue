@@ -49,7 +49,8 @@ import {
   grepNode,
   extractNode,
   listDirNode,
-  staticFileNode
+  staticFileNode,
+  createFileNode
 } from '@/workflow/common/data'
 
 const groups = [
@@ -63,7 +64,7 @@ const groups = [
     value: '1',
     label: 'AI 工具',
     icon: 'pi pi-bolt',
-    nodes: [terminalNode, readFileNode, listDirNode, globNode, grepNode, applyPatchNode, fileDownloadNode, fileUploadNode]
+    nodes: [terminalNode, readFileNode, listDirNode, globNode, grepNode, applyPatchNode, fileDownloadNode, fileUploadNode, createFileNode]
   },
   {
     value: '2',

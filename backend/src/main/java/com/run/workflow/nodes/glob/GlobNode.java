@@ -74,11 +74,7 @@ public class GlobNode extends INode<GlobNode, GlobNodeData> {
             }
 
             try {
-                UUID conversationId = (UUID) workFlowManage.getParams().getOrDefault("conversationId", CommonUtils.uuid7());
-                Path basePath = Path.of(System.getProperty("user.home") + "/.runify/" + conversationId);
-                if (!Files.exists(basePath)) {
-                    Files.createDirectories(basePath);
-                }
+                Path basePath = workFlowManage.getWorkingDirectory();
                 Path searchDir = StringUtils.isEmpty(config.searchPath()) ? basePath : basePath.resolve(config.searchPath()).normalize();
 
                 if (!Files.exists(searchDir) || !Files.isDirectory(searchDir)) {

@@ -10,6 +10,7 @@ import ReadFile from './tool/ReadFile.vue'
 import ListDir from './tool/ListDir.vue'
 import Grep from './tool/Grep.vue'
 import Glob from './tool/Glob.vue'
+import CreateFile from './tool/CreateFile.vue'
 import DefaultTool from './tool/index.vue'
 const props = defineProps<{ content: any }>()
 
@@ -29,6 +30,7 @@ const kw: Record<string, any> = {
   list_dir: ListDir,
   grep: Grep,
   glob: Glob,
+  create_file: CreateFile,
   default: DefaultTool
 }
 </script>

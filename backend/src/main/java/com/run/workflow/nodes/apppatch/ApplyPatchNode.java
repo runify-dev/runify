@@ -1,5 +1,6 @@
 package com.run.workflow.nodes.apppatch;
 
+import com.github.difflib.DiffUtils;
 import com.github.difflib.patch.AbstractDelta;
 import com.github.difflib.patch.Patch;
 import com.github.difflib.patch.PatchFailedException;
@@ -19,13 +20,17 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
-import java.nio.charset.MalformedInputException;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.text.Normalizer;
 import java.util.ArrayList;
-import java.util.Comparator;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -63,7 +68,31 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
     public record Result(boolean success, String summary, List<FileChange> applied, List<Failure> failures) {
     }
 
-    private record StagedChange(String operation, Path target, List<String> newLines, int added, int removed) {
+    /**
+     * [FIX-2] originalBytes 保存改动前的原始字节，用于写盘失败时回滚（created 为 null）。
+     * [FIX-3] lineSep / trailingNewline 用于按原文件的行尾风格和结尾换行状态写回，
+     * 避免在 Windows 上把 LF 改成 CRLF，或给无尾换行的文件强加换行。
+     * [FIX-7] renameFrom 非 null 表示这是一次重命名，target 为新路径，renameFrom 为旧路径。
+     */
+    private record StagedChange(
+            String operation,
+            Path target,
+            Path renameFrom,
+            List<String> newLines,
+            String lineSep,
+            boolean trailingNewline,
+            byte[] originalBytes,
+            int added,
+            int removed
+    ) {
+    }
+
+    /** 解码后的文件内容，保留行尾风格与结尾换行信息。 */
+    private record FileContent(List<String> lines, String lineSep, boolean trailingNewline) {
+    }
+
+    /** 新建文件提取出的内容，含是否以换行结尾。 */
+    private record NewFileContent(List<String> lines, boolean trailingNewline) {
     }
 
     // ── 执行 ──
@@ -73,27 +102,28 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
         }
     }
 
-    /**
-     * 读取文件行，优先 UTF-8，失败后 fallback 到系统默认编码。
-     */
-    private static List<String> readFileLines(Path target) throws IOException {
-        try {
-            return Files.readAllLines(target, StandardCharsets.UTF_8);
-        } catch (MalformedInputException e) {
-            return Files.readAllLines(target, Charset.defaultCharset());
-        }
-    }
-
     public static class Handle implements BiFunction<WorkFlowManage, ApplyPatchNode, Supplier<List<Node>>> {
 
         private static final Pattern HUNK_HEADER_PATTERN = Pattern.compile(
                 "@@ -(\\d+)(?:,\\d+)? \\+(\\d+)(?:,\\d+)? @@.*");
 
+        /**
+         * [FIX-5] 搜索兜底时，若同一旧内容块在文件中出现多处且块太短，
+         * 视为歧义、拒绝应用，避免把改动悄悄贴到错误位置。
+         */
+        private static final int MIN_UNIQUE_BLOCK_LINES = 3;
+
         private Supplier<List<Node>> invokeFail(WorkFlowManage wfm, ApplyPatchNode node, PatchConfig config, String runId, Throwable e) {
             String id = config != null ? config.id() : CommonUtils.uuid7().toString();
             String arguments = config != null ? config.toArguments() : "";
             ToolCallMeta meta = config == null ? ToolCallMeta.EMPTY : config.meta;
-            wfm.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("apply_patch", e.getMessage(), arguments,
+            String msg = e.getMessage() != null ? e.getMessage() : e.toString();
+
+            // [FIX-8] 失败路径也写齐下游上下文变量，避免下游读到 null 或上一轮旧值。
+            wfm.writeContext(node, "result", false);
+            wfm.writeContext(node, "stdout", "");
+            wfm.writeContext(node, "stderr", msg);
+            wfm.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("apply_patch", msg, arguments,
                     NodeStatus.FAIL, node, runId, id).withMeta(meta)));
             return node.handleFail(wfm, e);
         }
@@ -137,7 +167,7 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
                     String errMsg = failures.stream()
                             .map(f -> f.path() + ": " + f.reason())
                             .reduce("", (a, b) -> a.isEmpty() ? b : a + "\n" + b);
-                    return invokeFail(workFlowManage, node, config, runId, new RuntimeException("应用失败（已回滚）:\n" + errMsg));
+                    return invokeFail(workFlowManage, node, config, runId, new RuntimeException("应用失败（未写入任何文件）:\n" + errMsg));
                 }
 
                 if (config.withWriteArguments()) {
@@ -145,14 +175,29 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
                             config.toArguments(), NodeStatus.RUNNING, node, runId, config.id()));
                 }
 
+                // [FIX-2] 写盘阶段做真正的回滚：记录已成功写入的项，任一项失败时按原始字节逆序恢复。
                 List<FileChange> applied = new ArrayList<>();
-                for (StagedChange sc : staged) {
-                    writeToDisk(sc);
-                    String relPath = config.workDir().relativize(sc.target).toString();
-                    applied.add(new FileChange(sc.operation, relPath, sc.added, sc.removed));
-                    String verb = "created".equals(sc.operation) ? "Created" : "modified".equals(sc.operation) ? "Modified" : "Deleted";
-                    workFlowManage.write(node, new ToolCallContent("apply_patch", verb + " " + relPath + "\n",
+                List<StagedChange> done = new ArrayList<>();
+                try {
+                    for (StagedChange sc : staged) {
+                        writeToDisk(sc);
+                        done.add(sc);
+                        String relPath = relativize(config.workDir(), sc.target());
+                        applied.add(new FileChange(sc.operation(), relPath, sc.added(), sc.removed()));
+                        String verb = switch (sc.operation()) {
+                            case "created" -> "Created";
+                            case "deleted" -> "Deleted";
+                            case "renamed" -> "Renamed";
+                            default -> "Modified";
+                        };
+                        workFlowManage.write(node, new ToolCallContent("apply_patch", verb + " " + relPath + "\n",
+                                "", NodeStatus.RUNNING, node, runId, config.id()));
+                    }
+                } catch (IOException io) {
+                    rollback(done);
+                    workFlowManage.write(node, new ToolCallContent("apply_patch", "写入失败，已回滚已应用的改动\n",
                             "", NodeStatus.RUNNING, node, runId, config.id()));
+                    throw new RuntimeException("应用失败（已回滚）: " + io.getMessage(), io);
                 }
 
                 String summary = "成功应用 " + applied.size() + " 个文件的改动";
@@ -165,6 +210,14 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
             }
 
             return workFlowManage.nextNodeSupplier(node.node.getId());
+        }
+
+        private String relativize(Path workDir, Path target) {
+            try {
+                return workDir.relativize(target).toString();
+            } catch (Exception e) {
+                return target.toString();
+            }
         }
 
         private StagedChange stage(Path workDir, UnifiedDiffFile file, String patchStr) throws Exception {
@@ -181,8 +234,9 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
                     throw new IllegalStateException("文件已存在，不能用 new file 模式覆盖: " + toPath
                             + "。请使用修改模式（带上下文行的 diff）来编辑已有文件。");
                 }
-                List<String> content = extractNewFileContent(file, patchStr);
-                return new StagedChange("created", target, content, content.size(), 0);
+                NewFileContent nf = extractNewFileContent(file, patchStr);
+                return new StagedChange("created", target, null, nf.lines(),
+                        "\n", nf.trailingNewline(), null, nf.lines().size(), 0);
             }
 
             // ── 删除文件 ──
@@ -191,36 +245,59 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
                 if (!Files.exists(target)) {
                     throw new IllegalStateException("文件不存在: " + fromPath);
                 }
-                int lines = readFileLines(target).size();
-                return new StagedChange("deleted", target, null, 0, lines);
+                byte[] raw = Files.readAllBytes(target);
+                int lines = decodeContent(raw).lines().size();
+                return new StagedChange("deleted", target, null, null,
+                        "\n", false, raw, 0, lines);
             }
 
-            // ── 修改文件 ──
-            Path target = resolve(workDir, toPath);
-            if (!Files.exists(target)) {
-                throw new IllegalStateException("文件不存在: " + toPath);
+            // [FIX-7] 重命名：from / to 都存在且不同。
+            boolean isRename = !fromPath.equals(toPath);
+
+            Path readTarget = resolve(workDir, isRename ? fromPath : toPath);
+            if (!Files.exists(readTarget)) {
+                throw new IllegalStateException("文件不存在: " + (isRename ? fromPath : toPath));
             }
 
-            List<String> original = readFileLines(target);
+            byte[] raw = Files.readAllBytes(readTarget);
+            FileContent fc = decodeContent(raw);
+            List<String> original = fc.lines();
+
             List<String> patched;
-            try {
-                patched = file.getPatch().applyTo(original);
-            } catch (PatchFailedException e) {
-                patched = applyPatchBySearchFallback(file.getPatch(), original, e);
+            if (file.getPatch().getDeltas().isEmpty()) {
+                // 纯重命名，无内容改动。
+                patched = original;
+            } else {
+                try {
+                    patched = file.getPatch().applyTo(original);
+                } catch (PatchFailedException e) {
+                    patched = applyPatchBySearchFallback(file.getPatch(), original, e);
+                }
             }
 
-            if (patched.equals(original)) {
+            if (!isRename && patched.equals(original)) {
                 throw new IllegalStateException("Patch 已解析，但没有产生任何文件变化。请检查 diff 的 -/+ 行是否真的不同。");
             }
 
+            // [FIX-(count)] 基于实际改动重新计算增删行数，happy path 与兜底搜索都准确。
             int added = 0;
             int removed = 0;
-            for (AbstractDelta<String> delta : file.getPatch().getDeltas()) {
+            for (AbstractDelta<String> delta : DiffUtils.diff(original, patched).getDeltas()) {
                 removed += delta.getSource().size();
                 added += delta.getTarget().size();
             }
 
-            return new StagedChange("modified", target, patched, added, removed);
+            if (isRename) {
+                Path newTarget = resolve(workDir, toPath);
+                if (Files.exists(newTarget)) {
+                    throw new IllegalStateException("重命名目标已存在: " + toPath);
+                }
+                return new StagedChange("renamed", newTarget, readTarget, patched,
+                        fc.lineSep(), fc.trailingNewline(), raw, added, removed);
+            }
+
+            return new StagedChange("modified", readTarget, null, patched,
+                    fc.lineSep(), fc.trailingNewline(), raw, added, removed);
         }
 
         /**
@@ -228,7 +305,8 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
          * AI 生成 patch 时最容易错的是 @@ -x,y +x,y @@ 的起始行号。
          * <p>
          * 当 applyTo 失败时，这里按 source block 内容在文件中重新搜索最接近的位置，
-         * 只要旧内容仍然存在，就可以降低“行号不准导致 patch 不生效”的概率。
+         * 只要旧内容仍然存在，就可以降低"行号不准导致 patch 不生效"的概率。
+         * [FIX-5] 命中多处且块太短时判为歧义并拒绝，避免静默贴错位置。
          */
         private List<String> applyPatchBySearchFallback(
                 Patch<String> patch,
@@ -238,7 +316,7 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
             List<String> result = new ArrayList<>(original);
 
             List<AbstractDelta<String>> deltas = new ArrayList<>(patch.getDeltas());
-            deltas.sort(Comparator.comparingInt(d -> d.getSource().getPosition()));
+            deltas.sort((a, b) -> Integer.compare(a.getSource().getPosition(), b.getSource().getPosition()));
 
             int offset = 0;
 
@@ -255,20 +333,38 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
                     pos = preferred;
                 } else {
                     pos = findNearestBlock(result, sourceLines, preferred);
+                    if (pos == -2) {
+                        throw new IllegalStateException(
+                                "上下文不唯一，无法安全定位改动位置（旧内容在文件中出现多处且上下文过短）。"
+                                        + "请在 diff 中提供更多上下文行后重试。\n"
+                                        + buildPatchMismatchMessage(original, patch, cause));
+                    }
                     if (pos < 0) {
                         throw new IllegalStateException(buildPatchMismatchMessage(original, patch, cause));
                     }
                 }
 
+                // [FIX-3] 把搜索偏差（drift）也累加进 offset，
+                // 避免后续 delta 的 preferred 位置因前面的跳跃而错位。
+                int drift = pos - preferred;
+
                 result.subList(pos, pos + sourceLines.size()).clear();
                 result.addAll(pos, targetLines);
 
-                offset += targetLines.size() - sourceLines.size();
+                offset += drift + (targetLines.size() - sourceLines.size());
             }
 
             return result;
         }
 
+        /**
+         * 返回旧内容块在文件中的应用位置：
+         * <ul>
+         *     <li>>= 0：唯一或可信的最近匹配位置</li>
+         *     <li>-1：未找到</li>
+         *     <li>-2：匹配多处且块太短，歧义</li>
+         * </ul>
+         */
         private int findNearestBlock(List<String> content, List<String> block, int preferred) {
             if (block.isEmpty()) {
                 return Math.max(0, Math.min(preferred, content.size()));
@@ -281,34 +377,79 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
 
             preferred = Math.max(0, Math.min(preferred, maxStart));
 
-            int maxRadius = Math.max(preferred, maxStart - preferred);
-            for (int radius = 0; radius <= maxRadius; radius++) {
-                int left = preferred - radius;
-                if (left >= 0 && matchesAt(content, block, left)) {
-                    return left;
-                }
-
-                int right = preferred + radius;
-                if (right != left && right <= maxStart && matchesAt(content, block, right)) {
-                    return right;
+            List<Integer> matches = new ArrayList<>();
+            for (int i = 0; i <= maxStart; i++) {
+                if (matchesAt(content, block, i)) {
+                    matches.add(i);
                 }
             }
 
-            return -1;
+            if (matches.isEmpty()) {
+                return -1;
+            }
+            if (matches.size() == 1) {
+                return matches.get(0);
+            }
+
+            // [FIX-5] 多处匹配：只有当块足够独特（行数较多）时才接受最近匹配，否则判为歧义。
+            if (block.size() < MIN_UNIQUE_BLOCK_LINES) {
+                return -2;
+            }
+
+            int best = matches.get(0);
+            int bestDist = Math.abs(best - preferred);
+            for (int m : matches) {
+                int d = Math.abs(m - preferred);
+                if (d < bestDist) {
+                    best = m;
+                    bestDist = d;
+                }
+            }
+            return best;
         }
 
+        /**
+         * [FIX-5] 先精确匹配，再尝试 stripTrailing 容错匹配。
+         * [FIX-6] 最后尝试 NFC 归一化匹配，处理 Unicode 字符表示不一致。
+         * AI 生成的上下文行经常丢失尾部空格、使用不同的 Unicode 表示形式，
+         * 或者 Tab/空格缩进不一致。
+         */
         private boolean matchesAt(List<String> content, List<String> block, int start) {
             if (start < 0 || start + block.size() > content.size()) {
                 return false;
             }
 
             for (int i = 0; i < block.size(); i++) {
-                if (!content.get(start + i).equals(block.get(i))) {
+                String contentLine = content.get(start + i);
+                String blockLine = block.get(i);
+                // Level 1: 精确匹配
+                if (contentLine.equals(blockLine)) {
+                    continue;
+                }
+                // Level 2: stripTrailing 容错
+                if (contentLine.stripTrailing().equals(blockLine.stripTrailing())) {
+                    continue;
+                }
+                // Level 3: NFC 归一化 + stripTrailing
+                String normContent = Normalizer.normalize(contentLine.stripTrailing(), Normalizer.Form.NFC);
+                String normBlock = Normalizer.normalize(blockLine.stripTrailing(), Normalizer.Form.NFC);
+                if (normContent.equals(normBlock)) {
+                    continue;
+                }
+                // Level 4: [FIX-7] Tab/空格归一化（Tab→4空格，去尾部空白）
+                if (!normalizeWhitespace(normContent).equals(normalizeWhitespace(normBlock))) {
                     return false;
                 }
             }
 
             return true;
+        }
+
+        /**
+         * 将 Tab 替换为 4 空格，去除尾部空白。仅用于 matchesAt 的最后一级容错匹配，不改变实际文件内容。
+         */
+        private String normalizeWhitespace(String line) {
+            return line.replace("\t", "    ").stripTrailing();
         }
 
         private String buildPatchMismatchMessage(List<String> original, Patch<String> patch, PatchFailedException cause) {
@@ -338,15 +479,73 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
         }
 
         private void writeToDisk(StagedChange sc) throws IOException {
-            switch (sc.operation) {
+            switch (sc.operation()) {
                 case "created" -> {
-                    Files.createDirectories(sc.target.getParent());
-                    Files.write(sc.target, sc.newLines, StandardCharsets.UTF_8);
+                    Path parent = sc.target().getParent();
+                    if (parent != null) {
+                        Files.createDirectories(parent);
+                    }
+                    writeLines(sc.target(), sc.newLines(), sc.lineSep(), sc.trailingNewline());
                 }
-                case "modified" -> Files.write(sc.target, sc.newLines, StandardCharsets.UTF_8);
-                case "deleted" -> Files.delete(sc.target);
-                default -> throw new IllegalStateException("未知操作类型: " + sc.operation);
+                case "modified" -> writeLines(sc.target(), sc.newLines(), sc.lineSep(), sc.trailingNewline());
+                case "renamed" -> {
+                    Path parent = sc.target().getParent();
+                    if (parent != null) {
+                        Files.createDirectories(parent);
+                    }
+                    writeLines(sc.target(), sc.newLines(), sc.lineSep(), sc.trailingNewline());
+                    Files.delete(sc.renameFrom());
+                }
+                case "deleted" -> Files.delete(sc.target());
+                default -> throw new IllegalStateException("未知操作类型: " + sc.operation());
             }
+        }
+
+        /**
+         * [FIX-2] 逆序回滚已写入的改动。尽力恢复，单项恢复失败不影响其它项。
+         */
+        private void rollback(List<StagedChange> done) {
+            for (int i = done.size() - 1; i >= 0; i--) {
+                StagedChange sc = done.get(i);
+                try {
+                    switch (sc.operation()) {
+                        case "created" -> Files.deleteIfExists(sc.target());
+                        case "modified", "deleted" -> {
+                            if (sc.originalBytes() != null) {
+                                Files.write(sc.target(), sc.originalBytes());
+                            }
+                        }
+                        case "renamed" -> {
+                            Files.deleteIfExists(sc.target());
+                            if (sc.renameFrom() != null && sc.originalBytes() != null) {
+                                Files.write(sc.renameFrom(), sc.originalBytes());
+                            }
+                        }
+                        default -> {
+                        }
+                    }
+                } catch (IOException ignore) {
+                    // best-effort rollback
+                }
+            }
+        }
+
+        /**
+         * [FIX-3] 按原文件的行尾风格写回，并仅在原文件以换行结尾时补尾部换行，
+         * 不再依赖平台默认分隔符、也不再无脑追加换行。
+         */
+        private void writeLines(Path target, List<String> lines, String lineSep, boolean trailingNewline) throws IOException {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < lines.size(); i++) {
+                sb.append(lines.get(i));
+                if (i < lines.size() - 1) {
+                    sb.append(lineSep);
+                }
+            }
+            if (trailingNewline && !lines.isEmpty()) {
+                sb.append(lineSep);
+            }
+            Files.write(target, sb.toString().getBytes(StandardCharsets.UTF_8));
         }
 
         private String stripPrefix(String path) {
@@ -356,17 +555,75 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
         }
 
         /**
+         * [FIX-6] 判断 lines[i] 是否真正是一个文件头的起点。
+         * 关键点：unified diff 的 "--- " 文件头紧接着一定是 "+++ " 行；
+         * 而内容里被删除的 "-- a/x" 这类行（diff 中表现为 "--- a/x"）后面不会是 "+++ "，
+         * 据此把"真实文件头"和"恰好长得像头的内容行"区分开。
+         */
+        private static boolean isFileHeaderStart(String[] lines, int i) {
+            String l = lines[i];
+            if (l.startsWith("diff --git")) {
+                return true;
+            }
+            if (l.startsWith("--- ")) {
+                return i + 1 < lines.length && lines[i + 1].startsWith("+++ ");
+            }
+            return false;
+        }
+
+        /**
+         * 解码文件字节，UTF-8 优先、失败回退默认编码；保留行尾风格与结尾换行信息。
+         * [FIX-4] 不再对全文做 NFC 归一化重写——只在 matchesAt 匹配时按需归一化，
+         * 未改动的行原样保留，避免悄悄改写整篇文件的 Unicode 表示。
+         */
+        private static FileContent decodeContent(byte[] raw) {
+            String text;
+            try {
+                text = decodeStrict(raw, StandardCharsets.UTF_8);
+            } catch (CharacterCodingException e) {
+                try {
+                    text = decodeStrict(raw, Charset.defaultCharset());
+                } catch (CharacterCodingException ex) {
+                    text = new String(raw, Charset.defaultCharset());
+                }
+            }
+
+            boolean trailingNewline = !text.isEmpty() && text.charAt(text.length() - 1) == '\n';
+            String lineSep = text.contains("\r\n") ? "\r\n" : "\n";
+
+            String norm = text.replace("\r\n", "\n").replace("\r", "\n");
+            List<String> lines = new ArrayList<>(Arrays.asList(norm.split("\n", -1)));
+            if (trailingNewline && !lines.isEmpty()) {
+                // 去掉结尾换行产生的最后一个空元素，与 readAllLines 语义对齐。
+                lines.remove(lines.size() - 1);
+            }
+            return new FileContent(lines, lineSep, trailingNewline);
+        }
+
+        private static String decodeStrict(byte[] raw, Charset charset) throws CharacterCodingException {
+            CharsetDecoder decoder = charset.newDecoder()
+                    .onMalformedInput(CodingErrorAction.REPORT)
+                    .onUnmappableCharacter(CodingErrorAction.REPORT);
+            return decoder.decode(ByteBuffer.wrap(raw)).toString();
+        }
+
+        /**
          * 归一化 AI 输出的 patch：
          * 1. CRLF/CR -> LF，避免 \r 进入行内容导致匹配失败；
          * 2. 兼容 ```diff 代码块；
-         * 3. 补齐结尾换行。
+         * 3. [FIX-1] hunk 内的完全空行补空格前缀，标记为上下文行；
+         * 4. [FIX-6] Unicode NFC 归一化，避免中文引号/emoji 等字符表示不一致导致匹配失败；
+         * 5. 补齐结尾换行。
          */
         private String normalizePatch(String patch) {
             if (patch == null) {
                 return "";
             }
 
-            String s = patch.replace("\r\n", "\n").replace("\r", "\n");
+            // [FIX-6] Unicode NFC 归一化
+            String s = Normalizer.normalize(patch, Normalizer.Form.NFC);
+
+            s = s.replace("\r\n", "\n").replace("\r", "\n");
 
             String trimmed = s.stripLeading();
             if (trimmed.startsWith("```")) {
@@ -383,11 +640,28 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
                 s = trimmed;
             }
 
-            if (!s.endsWith("\n")) {
-                s += "\n";
+            // [FIX-1] hunk 内的完全空行补空格前缀，
+            // 避免 java-diff-utils 解析时丢失上下文行导致匹配失败。
+            // [FIX-6] 文件头边界检测使用 isFileHeaderStart，区分内容行与真实文件头。
+            String[] lines = s.split("\n", -1);
+            StringBuilder sb = new StringBuilder();
+            boolean inHunk = false;
+            for (int i = 0; i < lines.length; i++) {
+                String line = lines[i];
+                if (line.startsWith("@@")) {
+                    inHunk = true;
+                } else if (isFileHeaderStart(lines, i)) {
+                    inHunk = false;
+                }
+                if (inHunk && line.isEmpty()) {
+                    sb.append(" ");
+                } else {
+                    sb.append(line);
+                }
+                sb.append("\n");
             }
 
-            return s;
+            return sb.toString();
         }
 
         /**
@@ -428,7 +702,10 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
                     while (j < lineCount) {
                         String l = rawLines[j];
 
-                        if (l.startsWith("@@") || l.startsWith("diff --git")) {
+                        // [FIX-2/FIX-6] 多文件 patch 边界检测：
+                        // 下一个 @@、或经 isFileHeaderStart 确认的真实文件头才算边界，
+                        // 避免把内容里恰好以 "--- " 开头的删除行误判成新文件边界。
+                        if (l.startsWith("@@") || isFileHeaderStart(rawLines, j)) {
                             break;
                         }
 
@@ -460,25 +737,26 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
         }
 
         /**
-         * 从原始 patch 文本提取新建文件内容。
-         * <p>
-         * 不使用 line.contains(path)，避免子串误匹配。
+         * [FIX-4] 从原始 patch 文本提取新建文件内容。
+         * 统一用 stripPrefix 后的路径匹配，兼容有/无 b/ 前缀的情况。
+         * [FIX-3] 记录是否以换行结尾（识别 "\ No newline at end of file"）。
+         * [FIX-6] 文件边界检测使用 isFileHeaderStart。
          */
-        private List<String> extractNewFileContent(UnifiedDiffFile file, String patchStr) {
-            String toFile = file.getToFile();
-            String normalizedToFile = toFile.startsWith("b/") ? toFile.substring(2) : toFile;
-
-            String exactMatchWithPrefix = "+++ b/" + normalizedToFile;
-            String exactMatchDirect = "+++ " + toFile;
+        private NewFileContent extractNewFileContent(UnifiedDiffFile file, String patchStr) {
+            String stripped = stripPrefix(file.getToFile());
 
             List<String> content = new ArrayList<>();
             boolean foundFile = false;
             boolean inHunk = false;
+            boolean trailingNewline = true;
 
-            for (String line : patchStr.split("\n", -1)) {
+            String[] lines = patchStr.split("\n", -1);
+            for (int i = 0; i < lines.length; i++) {
+                String line = lines[i];
+
                 if (!foundFile && line.startsWith("+++ ")) {
-                    String trimmed = line.trim();
-                    if (trimmed.equals(exactMatchWithPrefix) || trimmed.equals(exactMatchDirect)) {
+                    String pathInLine = stripPrefix(line.substring(4).trim());
+                    if (pathInLine.equals(stripped)) {
                         foundFile = true;
                         continue;
                     }
@@ -490,11 +768,12 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
                 }
 
                 if (inHunk) {
-                    if (line.startsWith("diff --git")) {
+                    if (isFileHeaderStart(lines, i)) {
                         break;
                     }
 
                     if (line.startsWith("\\ No newline at end of file")) {
+                        trailingNewline = false;
                         continue;
                     }
 
@@ -506,9 +785,10 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
 
             if (content.isEmpty()) {
                 file.getPatch().getDeltas().forEach(d -> content.addAll(d.getTarget().getLines()));
+                trailingNewline = true;
             }
 
-            return content;
+            return new NewFileContent(content, trailingNewline);
         }
 
         private Path resolve(Path workDir, String userPath) {

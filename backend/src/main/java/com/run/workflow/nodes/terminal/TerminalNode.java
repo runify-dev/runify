@@ -166,16 +166,7 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
                 }
 
                 ProcessBuilder processBuilder = new ProcessBuilder();
-                UUID conversationId = (UUID) workFlowManage.getParams().getOrDefault("conversationId", CommonUtils.uuid7());
-
-                File baseDir = new File(System.getProperty("user.home"), ".runify");
-                File file = new File(baseDir, conversationId.toString());
-                if (!file.getCanonicalPath().startsWith(baseDir.getCanonicalPath())) {
-                    throw new IllegalArgumentException("非法工作目录路径");
-                }
-                if (!file.exists()) {
-                    file.mkdirs();
-                }
+                File file = workFlowManage.getWorkingDirectory().toFile();
                 processBuilder.directory(file);
                 String os = System.getProperty("os.name").toLowerCase();
                 if (os.contains("win")) {

@@ -76,11 +76,8 @@ public class FileUploadNode extends INode<FileUploadNode, FileUploadNodeData> {
                         config.toArguments(), NodeStatus.RUNNING, node, runId, config.id()));
             }
 
-            UUID conversationId = (UUID) workFlowManage.getParams().getOrDefault("conversationId", CommonUtils.uuid7());
-            Path basePath = Path.of(System.getProperty("user.home"), ".runify", conversationId.toString());
-            String decodedPath = java.net.URLDecoder.decode(config.filePath(), java.nio.charset.StandardCharsets.UTF_8);
-            File file = basePath.resolve(decodedPath).toFile();
-
+            Path basePath = workFlowManage.getWorkingDirectory();
+            File file = basePath.resolve(config.filePath()).toFile();
             if (!file.exists() || !file.isFile()) {
                 return invokeFail(workFlowManage, node, config, runId, new RuntimeException("文件不存在: " + config.filePath()));
             }

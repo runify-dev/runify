@@ -20,7 +20,7 @@
       </button>
       <Transition enter-active-class="tc-expand-enter" leave-active-class="tc-expand-leave">
         <div v-if="expanded && singleFile" class="tc-body">
-          <FileDiff :file="singleFile" />
+          <ScrollDiff :file="singleFile" />
         </div>
       </Transition>
     </template>
@@ -43,7 +43,7 @@
       </button>
       <Transition enter-active-class="tc-expand-enter" leave-active-class="tc-expand-leave">
         <div v-if="expanded" class="tc-body">
-          <div class="tc-files">
+          <div ref="multiScrollRef" class="tc-files tc-scroll-files">
             <div v-for="(file, i) in files" :key="`${file.status}:${file.newPath}:${i}`" class="tc-file-item">
               <button class="tc-file-head" @click="toggleFile(i)">
                 <svg class="tc-chevron sm" :class="{ open: fileExpanded[i] }" viewBox="0 0 16 16" fill="none">
@@ -56,7 +56,7 @@
               </button>
               <Transition enter-active-class="tc-expand-enter" leave-active-class="tc-expand-leave">
                 <div v-if="fileExpanded[i]" class="tc-file-body">
-                  <FileDiff :file="file" />
+                  <ScrollDiff :file="file" />
                 </div>
               </Transition>
             </div>
@@ -68,15 +68,40 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch, nextTick, onMounted } from 'vue'
 import Loading from '@/components/conversation-plus/loading/index.vue'
-import FileDiff from './patch/FileDiff.vue'
+import ScrollDiff from './components/ScrollDiff.vue'
 import { parsePatch } from './patch/parsePatch'
 import type { PatchFileStatus } from './patch/patchTypes'
 import {
   extractPartialJsonField,
 } from '@/utils/extract-partial-json.ts'
+import { Scroll } from '@/components/conversation-plus/index'
+
 const props = defineProps<{ content: any; loading: boolean; expanded: boolean }>()
+
+const multiScrollRef = ref<HTMLElement>()
+let multiScroll: Scroll | null = null
+
+function initScroll() {
+  if (multiScrollRef.value) {
+    multiScroll = new Scroll(multiScrollRef.value)
+    multiScroll.forceBottom()
+  }
+}
+
+onMounted(() => {
+  if (props.expanded) initScroll()
+})
+
+watch(() => props.expanded, async (val) => {
+  if (val) {
+    await nextTick()
+    initScroll()
+  } else {
+    multiScroll = null
+  }
+})
 
 const patchDiff = computed(() => {
   const raw = props.content.functionArguments
@@ -86,6 +111,10 @@ const patchDiff = computed(() => {
   } catch {
     return raw
   }
+})
+
+watch(patchDiff, () => {
+  nextTick(() => multiScroll?.scrollBottom())
 })
 
 const files = computed(() => (patchDiff.value ? parsePatch(patchDiff.value) : []))
@@ -160,6 +189,7 @@ function verb(status: PatchFileStatus) {
 @keyframes tc-close { from { opacity: 1; max-height: 800px; } to { opacity: 0; max-height: 0; } }
 
 .tc-body { padding: 6px 0 4px 8px; display: flex; flex-direction: column; gap: 2px; }
+.tc-scroll-files { max-height: 400px; overflow-y: auto; }
 
 .tc-files {
   background: var(--bg2);
