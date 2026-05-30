@@ -93,11 +93,7 @@ public class GrepNode extends INode<GrepNode, GrepNodeData> {
             Set<String> permissionDenied = new LinkedHashSet<>();
 
             try {
-                UUID conversationId = (UUID) workFlowManage.getParams().getOrDefault("conversationId", CommonUtils.uuid7());
-                Path basePath = Path.of(System.getProperty("user.home") + "/.runify/" + conversationId);
-                if (!Files.exists(basePath)) {
-                    Files.createDirectories(basePath);
-                }
+                Path basePath = workFlowManage.getWorkingDirectory();
                 Path target = basePath.resolve(config.searchPath()).normalize();
 
                 if (!Files.exists(target)) {

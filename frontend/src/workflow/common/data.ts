@@ -640,6 +640,33 @@ export const staticFileNode = {
   }
 }
 
+export const createFileNode = {
+  type: 'create-file-node',
+  text: '',
+  x: 0,
+  y: 0,
+  label: '创建文件',
+  properties: {
+    width: 200,
+    height: 50,
+    name: '创建文件',
+    isHovered: false,
+    field_list: [
+      { label: '执行结果', value: 'result' }
+    ],
+    nodeData: {
+      location: 'customize',
+      reference: [],
+      pathLocation: 'customize',
+      pathReference: [],
+      path: '',
+      contentLocation: 'customize',
+      contentReference: [],
+      content: ''
+    }
+  }
+}
+
 export const contextPushNode = {
   type: 'context-push-node',
   text: '',

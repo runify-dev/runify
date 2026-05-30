@@ -41,6 +41,7 @@ import { ref, computed } from 'vue'
 import { Codemirror } from 'vue-codemirror'
 import { javascript } from '@codemirror/lang-javascript'
 import { oneDark } from '@codemirror/theme-one-dark'
+import { EditorView } from '@codemirror/view'
 const props = defineProps<{
   title: string
   modelValue: any
@@ -55,7 +56,7 @@ const data = computed({
     return props.modelValue
   }
 })
-const extensions = [javascript(), oneDark]
+const extensions = [javascript(), oneDark, EditorView.lineWrapping]
 
 const codemirrorStyle = {
   height: '210px!important',

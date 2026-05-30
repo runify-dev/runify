@@ -3,8 +3,8 @@
     {
       "id": "start-node",
       "type": "start-node",
-      "x": 0,
-      "y": 0,
+      "x": 100,
+      "y": 25,
       "properties": {
         "width": 200,
         "height": 50,
@@ -48,8 +48,8 @@
     {
       "id": "05e716af-35e7-48a7-9f93-5a5ff978b0d7",
       "type": "loop-node",
-      "x": 436.234375,
-      "y": 63.875,
+      "x": 440,
+      "y": 25,
       "properties": {
         "width": 280,
         "height": 50,
@@ -98,8 +98,8 @@
               {
                 "id": "0db20591-d2bc-4c8e-9e7d-9221429afa7c",
                 "type": "judge-node",
-                "x": 480.0537109375,
-                "y": 191.61376953125006,
+                "x": 386.63908124492207,
+                "y": 233.93496431756665,
                 "properties": {
                   "width": 200,
                   "height": 164,
@@ -135,8 +135,8 @@
               {
                 "id": "2567e578-98ae-4592-8e64-61941556fe9e",
                 "type": "loop-node",
-                "x": 970.9814453125002,
-                "y": 109.62890624999997,
+                "x": 1038.2666015625005,
+                "y": 182.78564453125006,
                 "properties": {
                   "width": 280,
                   "height": 50,
@@ -310,8 +310,8 @@
                     }
                   ],
                   "nodeData": {
-                    "modelId": "ffab3c87-ed0f-4ba4-97a9-d658ef73ec5d",
-                    "system": "```markdown\n# AI Coding Agent 操作规范\n\n## 核心原则\n\n1. 源码/文本文件只能用 apply_patch 创建或修改\n2. 修改前必须 read_file 读取原文\n3. 修复错误必须先定位根因行，不改相邻无关行\n4. 最小修改，不顺手格式化无关代码\n5. 命令必须非交互\n\n---\n\n## 工具使用规则\n\n### file_download（下载远端文件到本地）\n\n用户上传的文件存储在远端，本地不存在，必须先下载。\n\n流程：\n1. list_dir 查看远程文件列表（已下载的会标注本地路径）\n2. 读取 `_tool_state/downloads.json` 确认是否已下载\n3. 未下载的文件调用 file_download\n4. 下载成功后自动记录到 `_tool_state/downloads.json`\n\n注意：\n- 图片/视频是二进制文件，不要调用 read_file（除非用户需要识别内容）\n- 下载后所有后续操作必须引用本地路径，禁止引用远端路径\n\n### file_upload（上传本地文件到远端）\n\n每次创建或修改文件后，都必须调用 file_upload 上传，生成下载链接供用户使用。\n\n适用场景：\n- apply_patch 创建了新文件 → file_upload\n- apply_patch 修改了已有文件 → file_upload\n- run_command 生成了产物（.pptx/.pdf/.docx/.zip/.png 等）→ file_upload\n- 任何用户需要拿到的文件 → file_upload\n\n返回的 URL 必须原样使用，一个字符都不能改：\n- 正确：`./api/storage/file/0eb95a7f-...`\n- 错误：加域名、URL encode、拼接改写\n\n### apply_patch（创建/修改/删除文件）\n\n修改源码的唯一方式。格式：\n\n```\n\ndiff --git a/路径 b/路径\n--- a/路径\n+++ b/路径\n@@ -起始行,旧行数 +起始行,新行数 @@\n 上下文行\n-删除行\n+新增行\n 上下文行\n\n```\n\n规则：\n- 上下文行和删除行必须与 read_file 输出逐字节一致\n- 每个 hunk 前后各保留 3 行上下文\n- hunk 行数必须计算正确\n- 禁止把普通字符改成 Unicode 转义\n- 禁止用 Markdown 链接格式写路径\n\n### read_file（读取文件）\n\n修改前必须调用。读取范围要覆盖目标行及前后上下文。\n\n### list_dir（列出目录树）\n\n展示本地目录结构 + 远程文件列表。\n- 远程文件已下载的会标注：`-> 本地路径`\n- 远程文件未下载的无标注，需要 file_download\n\n### glob（文件名模式搜索）\n\n示例：`**/*.py`、`src/**/*.ts`、`*.java`\n\n### grep（正则搜索文件内容）\n\n用于定位函数、类名、错误文本。\n\n### run_command（执行 shell 命令）\n\n允许：运行测试、编译、lint、执行已有脚本、查看环境信息\n\n禁止：写源码、heredoc、重定向写文件、sed -i、交互命令\n\n工作目录规则：\n- 优先直接在当前目录执行，不要习惯性 cd\n- 推荐：`npm --prefix frontend run build`、`mvn -f backend/pom.xml test`\n- 只有确实需要子目录时才 `cd 子目录 && 命令`\n- 禁止：`cd ..`、`cd /absolute/path`、单独 `cd`\n\n### note_search（搜索笔记）\n\n基于全文检索搜索笔记内容。\n\n---\n\n## 生成产物流程\n\n```\n\napply_patch 创建/修改生成脚本\n  → run_command 执行脚本\n  → file_upload 上传产物\n  → 返回下载表格\n\n```\n\n禁止用 run_command 临时写脚本（heredoc/重定向/python -c 写文件都不行）。\n\n---\n\n## 标准工作流\n\n1. **理解任务** → 判断要做什么\n2. **处理用户上传文件** → 先 file_download 到本地\n3. **定位文件** → list_dir / glob / grep\n4. **读取文件** → read_file\n5. **修改文件** → apply_patch\n6. **验证** → 运行测试/编译/lint\n7. **上传产物** → file_upload（如有）\n\n---\n\n## 修复错误流程\n\n1. 从错误日志定位文件名、行号、列号\n2. read_file 读取错误行前后上下文\n3. 确认真正导致错误的行\n4. apply_patch 只修改那一行\n5. 验证\n\n---\n\n## 路径规则\n\n- 所有路径相对当前工作目录\n- 禁止 `../`、`/absolute/path`\n- patch 路径必须纯文本，不用 Markdown 链接\n\n---\n\n## 最终回复格式\n\n简洁说明：\n- 修改了哪些文件\n- 做了什么\n- 验证结果\n- 下载链接（如有），格式：\n\n| 文件名称 | output.pptx |\n| --- | --- |\n| 文件大小 | 1.2 MB |\n| 操作 | [点击下载](./api/storage/file/xxx) |\n\n```\n\n",
+                    "modelId": "668cc66e-9e11-41d2-81cb-d57d91d99944",
+                    "system": "# ⛔ ABSOLUTE RULE — READ THIS FIRST BEFORE DOING ANYTHING ⛔\n\n**File creation and modification can ONLY be done through these two tools:**\n\n- `create_file` → Create new files (write content directly, no special format needed)\n- `apply_patch` → Modify existing files (unified diff format, must read_file first)\n\n`run_command` must NEVER be used to create or modify files. This includes but is not limited to:\n\n- ❌ `cat << 'EOF' > file.py` — BANNED\n- ❌ `cat << 'PYEOF' > /tmp/create_ppt.py` — BANNED\n- ❌ `python3 << 'PYEOF'` — BANNED\n- ❌ `python3 << 'EOF'` — BANNED\n- ❌ `python3 -c \"with open('file','w')...\"` — BANNED\n- ❌ `echo \"content\" > file` — BANNED\n- ❌ `printf \"content\" > file` — BANNED\n- ❌ `tee file` — BANNED\n- ❌ `sed -i 's/old/new/' file` — BANNED\n- ❌ `node -e \"fs.writeFileSync(...)\"` — BANNED\n- ❌ Any heredoc (`<<`, `<<-`, `<<'EOF'`, `<<'PYEOF'`, `<<HEREDOC`) writing to a file or piped to an interpreter that writes a file — BANNED\n- ❌ Any `run_command` where the command creates a `.py`, `.sh`, `.js`, `.pptx`, `.docx`, `.txt`, or ANY file — BANNED\n- ❌ Writing a script to /tmp/ then running it — BANNED\n- ❌ Any indirect trick to write files through `run_command` — BANNED\n\n**If you violate this rule, the task is considered a FAILURE.**\n\n## 🔒 MANDATORY THINKING CHECKPOINT\n\nBefore EVERY `run_command` call, you MUST perform this check:\n\n```\nCHECKPOINT: Does this command write, create, or modify ANY file on disk?\n- Does it use > or >> to redirect output to a file? → STOP, use create_file or apply_patch\n- Does it use cat/echo/printf/tee to write content? → STOP, use create_file\n- Does it use heredoc (<< EOF / << 'PYEOF') to create a script? → STOP, use create_file\n- Does it run python/node/ruby that calls open()/write()/save()? → STOP, use create_file\n- Does it create a file in /tmp/ or anywhere else? → STOP, use create_file\nIf ALL answers are NO → proceed with run_command\n\n```\n\n---\n\n## Tool Responsibilities\n\nTask Tool Notes Create new file `create_file` Direct content write, no format needed Modify existing file `apply_patch` Must `read_file` first, unified diff format Run program / install / test `run_command` Read-only, NEVER write files Read file `read_file` Returns content with line numbers Search files `glob` / `grep` Locate files before reading List directory `list_dir` View project structure Upload file `file_upload` Get download URL Download file `file_download` Must `list_dir` first to see available files Search notes `note_search` Full-text search\n\n---\n\n## Correct Workflows\n\n### Creating a Python script and running it\n\n**❌ WRONG — BANNED:**\n\n```bash\ncat << 'PYEOF' > /tmp/create_ppt.py\nfrom pptx import Presentation\nprs = Presentation()\nprs.save(\"output.pptx\")\nPYEOF\npython3 /tmp/create_ppt.py\n\n```\n\n**✅ CORRECT:**\n\n```\nStep 1: create_file(path=\"create_ppt.py\", content=\"from pptx import Presentation\\n\\nprs = Presentation()\\nprs.save(\\\"output.pptx\\\")\\nprint(\\\"Done\\\")\")\nStep 2: run_command(command=\"python3 create_ppt.py\")\nStep 3: file_upload(path=\"output.pptx\")\nStep 4: Show download link to user\n\n```\n\n### Modifying an existing file\n\n```\nStep 1: read_file(path=\"src/index.ts\")           — confirm current content\nStep 2: apply_patch(patch=\"--- a/src/index.ts\\n+++ b/src/index.ts\\n@@ -10,3 +10,3 @@\\n-const port = 3000;\\n+const port = 8080;\\n const host = \\\"localhost\\\";\\n app.listen(port);\")\n\n```\n\n### Creating a file and sharing with user\n\n```\nStep 1: create_file(path=\"report.py\", content=\"...\")   — create the script\nStep 2: run_command(command=\"python3 report.py\")        — run it\nStep 3: file_upload(path=\"output.docx\")                 — upload result\nStep 4: Show download link: [📥 Download output.docx](./api/storage/file/xxx)\n\n```\n\n---\n\n## File Presentation Rules\n\nAfter creating a file that the user needs to download:\n\n1. Use `file_upload` to upload the file and get the URL.\n2. Use the URL directly from the response AS-IS. Do NOT modify, encode, or prepend anything.\n3. Format the download button as:\n\n```markdown\n[📥 Download filename.ext](./api/storage/file/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)\n\n```\n\n---\n\n## Large File Strategy\n\nBefore creating a file, estimate whether the content might be too large for a single tool call.\n\n**Rule: Each** `create_file` **or** `apply_patch` **call should output no more than 200 lines of content.**\n\nIf the file will exceed 200 lines, split it into multiple steps:\n\n**Step 1:** Use `create_file` to write the first part of the file (the framework/skeleton with the first ~150 lines of real content).\n\n**Step 2:** Use `apply_patch` to append the next section to the end of the file. Repeat until done.\n\n### Example: Creating a 400-line file in chunks\n\n```\nStep 1: create_file(path=\"large_script.py\", content=\"... first 150 lines ...\")\n\nStep 2: read_file(path=\"large_script.py\")  — confirm the last few lines\n\nStep 3: apply_patch — append lines 151-300 to the end of the file\n--- a/large_script.py\n+++ b/large_script.py\n@@ -148,3 +148,153 @@\n # ... last 3 lines as context ...\n+# ... new lines 151-300 ...\n\nStep 4: read_file again, then apply_patch to append lines 301-400\n\n```\n\n### Key points:\n\n- **Estimate first** — If you know the file will be large, plan the splits before starting.\n- **Never truncate** — Do not write an incomplete file and hope the user won't notice. Split properly.\n- **Each chunk must be valid** — If the file is code, each intermediate state should be syntactically correct if possible (e.g. close all brackets, don't split mid-function).\n- **Use TODO markers** — If splitting, you can leave `# TODO: continue in next step` at the split point, then replace it in the next apply_patch call.\n\n---\n\n## Other Rules\n\n1. **All file paths are relative to the current working directory.** Do NOT use `..` to escape.\n2. **Read before modify** — Before modifying any file, use `read_file` first to confirm current content.\n3. **Search before read** — If unsure of a file's location, use `glob` or `grep` to locate it first.\n4. **Minimal changes only** — Only modify lines that need to change. See \"apply_patch Rules\" for detailed limits.\n\n---\n\n## apply_patch Rules\n\n1. **Single concern per patch** — Each `apply_patch` call should only address ONE logical change. Do NOT combine multiple unrelated changes into a single patch.\n2. **Max changes per call** — Each patch should modify no more than 30 lines (added + removed). If the change is larger, split it into multiple `apply_patch` calls, and re-read the file (`read_file`) between each call.\n3. **Always re-read after patching** — After a successful `apply_patch`, the file has changed. You MUST call `read_file` again before applying another patch to the same file.\n4. **Never rewrite entire files** — If you find yourself removing most lines and adding new ones, STOP. Delete the file and use `create_file` to write the new version instead.\n\n---\n\n## apply_patch Format (for modifying existing files ONLY)\n\nStandard unified diff format:\n\n```\n--- a/file_path\n+++ b/file_path\n@@ -START,COUNT +START,COUNT @@\n context line (unchanged, starts with space)\n-removed line (starts with -)\n+added line (starts with +)\n context line\n\n```\n\n### Example: Change port number\n\nAfter `read_file` confirms lines 10-12:\n\n```\n--- a/src/index.ts\n+++ b/src/index.ts\n@@ -10,3 +10,3 @@\n-const port = 3000;\n+const port = 8080;\n const host = \"localhost\";\n app.listen(port);\n\n```\n\n### Example: Add an import\n\n```\n--- a/src/app.ts\n+++ b/src/app.ts\n@@ -1,4 +1,5 @@\n import express from \"express\";\n+import cors from \"cors\";\n \n const app = express();\n const port = 3000;\n\n```\n\n---\n\n## ⛔ FINAL REMINDER\n\n- New file → `create_file` (direct content, simple)\n- Modify file → `apply_patch` (read first, then diff)\n- Run program → `run_command` (NEVER write files)\n\nIf you are about to type `run_command` and the command contains `>`, `>>`, `<<`, `cat`, `echo`, `tee`, `heredoc`, `PYEOF`, `EOF`, or writes ANY file — **STOP. Use** `create_file` **instead.**",
                     "user": "",
                     "enableContext": true,
                     "contextVariable": [
@@ -328,8 +328,56 @@
                         {
                           "type": "function",
                           "function": {
+                            "name": "create_file",
+                            "description": "创建新文件并写入内容。仅用于创建不存在的文件，如果文件已存在则返回错误（请改用 apply_patch 修改已有文件）。路径相对于工作目录，自动创建中间目录。注意：单次写入不超过200行，超过请先写前半部分，再用 apply_patch 追加后续内容。",
+                            "parameters": {
+                              "type": "object",
+                              "properties": {
+                                "path": {
+                                  "type": "string",
+                                  "description": "文件路径（相对于工作目录）"
+                                },
+                                "content": {
+                                  "type": "string",
+                                  "description": "文件内容（原始文本，直接写入，不需要任何特殊格式）"
+                                }
+                              },
+                              "required": [
+                                "path",
+                                "content"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "function",
+                          "function": {
+                            "name": "apply_patch",
+                            "description": "应用 unified diff 格式的补丁来修改已有文件。使用标准 unified diff 格式（--- a/file, +++ b/file）。修改前必须先用 read_file 确认当前内容。如果应用失败会自动回滚。注意：创建新文件请使用 create_file，不要用 apply_patch。",
+                            "parameters": {
+                              "type": "object",
+                              "properties": {
+                                "patch": {
+                                  "type": "string",
+                                  "description": "unified diff 格式的补丁内容"
+                                },
+                                "path": {
+                                  "type": "string",
+                                  "description": "工作目录（补丁中相对路径的基准目录，默认当前工作目录）",
+                                  "default": "."
+                                }
+                              },
+                              "required": [
+                                "patch"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "function",
+                          "function": {
                             "name": "run_command",
-                            "description": "执行 shell 命令。在隔离的工作目录中运行命令，返回 stdout、stderr 和 exitCode。支持设置超时时间。",
+                            "description": "执行 shell 命令（仅限读操作和运行程序）。禁止用于创建或修改文件，包括但不限于：cat/echo/printf/tee 重定向写入、heredoc（<< EOF）、sed -i 等。创建文件请用 create_file，修改文件请用 apply_patch。",
                             "parameters": {
                               "type": "object",
                               "properties": {
@@ -461,30 +509,6 @@
                               "required": [
                                 "pattern",
                                 "path"
-                              ]
-                            }
-                          }
-                        },
-                        {
-                          "type": "function",
-                          "function": {
-                            "name": "apply_patch",
-                            "description": "应用 unified diff 格式的补丁文件。支持创建、修改、删除文件。使用标准 diff 格式（--- a/file, +++ b/file）。如果应用失败会自动回滚。",
-                            "parameters": {
-                              "type": "object",
-                              "properties": {
-                                "patch": {
-                                  "type": "string",
-                                  "description": "unified diff 格式的补丁内容"
-                                },
-                                "path": {
-                                  "type": "string",
-                                  "description": "工作目录（补丁中相对路径的基准目录，默认当前工作目录）",
-                                  "default": "."
-                                }
-                              },
-                              "required": [
-                                "patch"
                               ]
                             }
                           }
@@ -789,11 +813,11 @@
                         {
                           "id": "6e9ea3d5-0e34-494d-9d20-f2869d631c77",
                           "type": "judge-node",
-                          "x": 463.5826200717181,
-                          "y": 265.61745174714747,
+                          "x": 345.8667244734056,
+                          "y": 354.99945864778545,
                           "properties": {
                             "width": 200,
-                            "height": 413,
+                            "height": 449,
                             "name": "条件判断",
                             "isHovered": false,
                             "field_list": [],
@@ -940,6 +964,22 @@
                                       ],
                                       "compare": "eq",
                                       "value": "note_search"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "id": "3df40cd9-6f70-4142-a730-944d7ae4eb3f",
+                                  "type": "elseif",
+                                  "logic": "and",
+                                  "conditions": [
+                                    {
+                                      "id": "1814af27-229d-44fe-8e35-bc26957fb3d7",
+                                      "variable": [
+                                        "ec34caf3-7e85-4915-9cf9-4fd8902640ba",
+                                        "functionName"
+                                      ],
+                                      "compare": "eq",
+                                      "value": "create_file"
                                     }
                                   ]
                                 },
@@ -1341,8 +1381,8 @@
                         {
                           "id": "0bcd34d6-f8da-4f3a-a964-6fed09aa0311",
                           "type": "file-download-node",
-                          "x": 695.3937854821172,
-                          "y": 710.9012227188496,
+                          "x": 636.3629294931867,
+                          "y": 533.4397839472063,
                           "properties": {
                             "width": 200,
                             "height": 50,
@@ -1384,8 +1424,8 @@
                         {
                           "id": "aef67c7f-8232-4322-80f6-7ba8d90f0641",
                           "type": "context-push-node",
-                          "x": 894.3540193718687,
-                          "y": 997.9606171287875,
+                          "x": 873.3110926763419,
+                          "y": 327.3996027589252,
                           "properties": {
                             "width": 200,
                             "height": 50,
@@ -1553,6 +1593,71 @@
                               "pageSize": 10
                             }
                           }
+                        },
+                        {
+                          "id": "bf145dd1-4764-4359-bb0f-8dcb04ce7f89",
+                          "type": "create-file-node",
+                          "x": 603.776537723249,
+                          "y": 899.5892233300203,
+                          "properties": {
+                            "width": 200,
+                            "height": 50,
+                            "name": "创建文件",
+                            "isHovered": false,
+                            "field_list": [
+                              {
+                                "label": "工具执行",
+                                "value": "tool"
+                              },
+                              {
+                                "label": "执行结果",
+                                "value": "result"
+                              }
+                            ],
+                            "nodeData": {
+                              "location": "tool_call",
+                              "reference": [
+                                "30eca289-a102-459c-9d48-a2797d6988f0",
+                                "item"
+                              ],
+                              "pathLocation": "customize",
+                              "pathReference": [],
+                              "path": "",
+                              "contentLocation": "customize",
+                              "contentReference": [],
+                              "content": ""
+                            },
+                            "errorCaptureEnabled": true
+                          }
+                        },
+                        {
+                          "id": "261e0f01-490d-48a4-a02b-bb976854c709",
+                          "type": "context-push-node",
+                          "x": 947.6851209604808,
+                          "y": 928.2112923439853,
+                          "properties": {
+                            "width": 200,
+                            "height": 50,
+                            "name": "推送上下文",
+                            "isHovered": false,
+                            "field_list": [],
+                            "nodeData": {
+                              "items": [
+                                {
+                                  "variable": [
+                                    "05e716af-35e7-48a7-9f93-5a5ff978b0d7",
+                                    "context"
+                                  ],
+                                  "mode": "reference",
+                                  "reference": [
+                                    "bf145dd1-4764-4359-bb0f-8dcb04ce7f89",
+                                    "tool"
+                                  ],
+                                  "role": "user"
+                                }
+                              ]
+                            }
+                          }
                         }
                       ],
                       "edges": [
@@ -1674,8 +1779,8 @@
                             "y": 299.0401664402174
                           },
                           "endPoint": {
-                            "x": 363.5826200717181,
-                            "y": 265.61745174714747
+                            "x": 245.8667244734056,
+                            "y": 354.99945864778545
                           },
                           "pointsList": [
                             {
@@ -1687,12 +1792,12 @@
                               "y": 299.0401664402174
                             },
                             {
-                              "x": 263.5826200717181,
-                              "y": 265.61745174714747
+                              "x": 145.8667244734056,
+                              "y": 354.99945864778545
                             },
                             {
-                              "x": 363.5826200717181,
-                              "y": 265.61745174714747
+                              "x": 245.8667244734056,
+                              "y": 354.99945864778545
                             }
                           ]
                         },
@@ -1705,8 +1810,8 @@
                           "sourceAnchorId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77_right_bec87dfb-7872-4b3d-8c72-156baaf0a3ca_success",
                           "targetAnchorId": "4edfe85c-5594-43a9-a413-28a41edf03aa_left_main_success",
                           "startPoint": {
-                            "x": 563.5826200717181,
-                            "y": 131.11745174714747
+                            "x": 445.8667244734056,
+                            "y": 202.49945864778545
                           },
                           "endPoint": {
                             "x": 1020,
@@ -1714,12 +1819,12 @@
                           },
                           "pointsList": [
                             {
-                              "x": 563.5826200717181,
-                              "y": 131.11745174714747
+                              "x": 445.8667244734056,
+                              "y": 202.49945864778545
                             },
                             {
-                              "x": 663.5826200717181,
-                              "y": 131.11745174714747
+                              "x": 545.8667244734056,
+                              "y": 202.49945864778545
                             },
                             {
                               "x": 920,
@@ -1740,8 +1845,8 @@
                           "sourceAnchorId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77_right_d20342ec-5952-4f20-8046-8b2054c3a76f_success",
                           "targetAnchorId": "1a225600-f404-48f6-af9f-a620f0a8d7cd_left_main_success",
                           "startPoint": {
-                            "x": 563.5826200717181,
-                            "y": 335.11745174714747
+                            "x": 445.8667244734056,
+                            "y": 418.49945864778545
                           },
                           "endPoint": {
                             "x": 1053.4703038674031,
@@ -1749,12 +1854,12 @@
                           },
                           "pointsList": [
                             {
-                              "x": 563.5826200717181,
-                              "y": 335.11745174714747
+                              "x": 445.8667244734056,
+                              "y": 418.49945864778545
                             },
                             {
-                              "x": 663.5826200717181,
-                              "y": 335.11745174714747
+                              "x": 545.8667244734056,
+                              "y": 418.49945864778545
                             },
                             {
                               "x": 953.4703038674031,
@@ -1775,8 +1880,8 @@
                           "sourceAnchorId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77_right_c09f0fb9-f9bf-43b0-b025-2f05a6730182_success",
                           "targetAnchorId": "ed6ad25e-ad6f-48d8-b39f-e16c5312a2ce_left_main_success",
                           "startPoint": {
-                            "x": 563.5826200717181,
-                            "y": 301.11745174714747
+                            "x": 445.8667244734056,
+                            "y": 382.49945864778545
                           },
                           "endPoint": {
                             "x": 1092.744302486188,
@@ -1784,12 +1889,12 @@
                           },
                           "pointsList": [
                             {
-                              "x": 563.5826200717181,
-                              "y": 301.11745174714747
+                              "x": 445.8667244734056,
+                              "y": 382.49945864778545
                             },
                             {
-                              "x": 663.5826200717181,
-                              "y": 301.11745174714747
+                              "x": 545.8667244734056,
+                              "y": 382.49945864778545
                             },
                             {
                               "x": 992.744302486188,
@@ -1810,8 +1915,8 @@
                           "sourceAnchorId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77_right_91467043-a563-4743-9645-dbd8a5f8c705_success",
                           "targetAnchorId": "6689a9d8-b172-4132-aa8e-ee722b534786_left_main_success",
                           "startPoint": {
-                            "x": 563.5826200717181,
-                            "y": 267.11745174714747
+                            "x": 445.8667244734056,
+                            "y": 346.49945864778545
                           },
                           "endPoint": {
                             "x": 1020,
@@ -1819,12 +1924,12 @@
                           },
                           "pointsList": [
                             {
-                              "x": 563.5826200717181,
-                              "y": 267.11745174714747
+                              "x": 445.8667244734056,
+                              "y": 346.49945864778545
                             },
                             {
-                              "x": 663.5826200717181,
-                              "y": 267.11745174714747
+                              "x": 545.8667244734056,
+                              "y": 346.49945864778545
                             },
                             {
                               "x": 920,
@@ -1845,8 +1950,8 @@
                           "sourceAnchorId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77_right_21db2db0-de58-4bf5-b0e4-8cb913a3ec89_success",
                           "targetAnchorId": "82797f50-877f-4c16-b3f8-50edc939e97f_left_main_success",
                           "startPoint": {
-                            "x": 563.5826200717181,
-                            "y": 233.11745174714747
+                            "x": 445.8667244734056,
+                            "y": 310.49945864778545
                           },
                           "endPoint": {
                             "x": 1020,
@@ -1854,12 +1959,12 @@
                           },
                           "pointsList": [
                             {
-                              "x": 563.5826200717181,
-                              "y": 233.11745174714747
+                              "x": 445.8667244734056,
+                              "y": 310.49945864778545
                             },
                             {
-                              "x": 663.5826200717181,
-                              "y": 233.11745174714747
+                              "x": 545.8667244734056,
+                              "y": 310.49945864778545
                             },
                             {
                               "x": 920,
@@ -1880,8 +1985,8 @@
                           "sourceAnchorId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77_right_feb0a10c-0b20-40d0-9b3b-785511222be2_success",
                           "targetAnchorId": "66b540dd-904b-4fde-b03b-c274c3d9bde6_left_main_success",
                           "startPoint": {
-                            "x": 563.5826200717181,
-                            "y": 199.11745174714747
+                            "x": 445.8667244734056,
+                            "y": 274.49945864778545
                           },
                           "endPoint": {
                             "x": 1020,
@@ -1889,12 +1994,12 @@
                           },
                           "pointsList": [
                             {
-                              "x": 563.5826200717181,
-                              "y": 199.11745174714747
+                              "x": 445.8667244734056,
+                              "y": 274.49945864778545
                             },
                             {
-                              "x": 663.5826200717181,
-                              "y": 199.11745174714747
+                              "x": 545.8667244734056,
+                              "y": 274.49945864778545
                             },
                             {
                               "x": 920,
@@ -1915,8 +2020,8 @@
                           "sourceAnchorId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77_right_4fab5fbc-d97e-4a83-a201-cd191754a01a_success",
                           "targetAnchorId": "52e7d29c-09a3-48a2-b3aa-3b384a2edbf2_left_main_success",
                           "startPoint": {
-                            "x": 563.5826200717181,
-                            "y": 165.11745174714747
+                            "x": 445.8667244734056,
+                            "y": 238.49945864778545
                           },
                           "endPoint": {
                             "x": 930.8064222631988,
@@ -1924,12 +2029,12 @@
                           },
                           "pointsList": [
                             {
-                              "x": 563.5826200717181,
-                              "y": 165.11745174714747
+                              "x": 445.8667244734056,
+                              "y": 238.49945864778545
                             },
                             {
-                              "x": 663.5826200717181,
-                              "y": 165.11745174714747
+                              "x": 545.8667244734056,
+                              "y": 238.49945864778545
                             },
                             {
                               "x": 830.8064222631988,
@@ -2195,29 +2300,29 @@
                           "sourceAnchorId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77_right_5d21a5ca-feed-4aee-bf08-0766e18dd505_success",
                           "targetAnchorId": "0bcd34d6-f8da-4f3a-a964-6fed09aa0311_left_main_success",
                           "startPoint": {
-                            "x": 563.5826200717181,
-                            "y": 369.11745174714747
+                            "x": 445.8667244734056,
+                            "y": 454.49945864778545
                           },
                           "endPoint": {
-                            "x": 595.3937854821172,
-                            "y": 710.9012227188496
+                            "x": 536.3629294931867,
+                            "y": 533.4397839472063
                           },
                           "pointsList": [
                             {
-                              "x": 563.5826200717181,
-                              "y": 369.11745174714747
+                              "x": 445.8667244734056,
+                              "y": 454.49945864778545
                             },
                             {
-                              "x": 663.5826200717181,
-                              "y": 369.11745174714747
+                              "x": 545.8667244734056,
+                              "y": 454.49945864778545
                             },
                             {
-                              "x": 495.3937854821172,
-                              "y": 710.9012227188496
+                              "x": 436.3629294931867,
+                              "y": 533.4397839472063
                             },
                             {
-                              "x": 595.3937854821172,
-                              "y": 710.9012227188496
+                              "x": 536.3629294931867,
+                              "y": 533.4397839472063
                             }
                           ]
                         },
@@ -2230,29 +2335,29 @@
                           "sourceAnchorId": "0bcd34d6-f8da-4f3a-a964-6fed09aa0311_right_main_success",
                           "targetAnchorId": "aef67c7f-8232-4322-80f6-7ba8d90f0641_left_main_success",
                           "startPoint": {
-                            "x": 795.3937854821172,
-                            "y": 710.9012227188496
+                            "x": 736.3629294931867,
+                            "y": 533.4397839472063
                           },
                           "endPoint": {
-                            "x": 794.3540193718687,
-                            "y": 997.9606171287875
+                            "x": 773.3110926763419,
+                            "y": 327.3996027589252
                           },
                           "pointsList": [
                             {
-                              "x": 795.3937854821172,
-                              "y": 710.9012227188496
+                              "x": 736.3629294931867,
+                              "y": 533.4397839472063
                             },
                             {
-                              "x": 895.3937854821172,
-                              "y": 710.9012227188496
+                              "x": 836.3629294931867,
+                              "y": 533.4397839472063
                             },
                             {
-                              "x": 694.3540193718687,
-                              "y": 997.9606171287875
+                              "x": 673.3110926763419,
+                              "y": 327.3996027589252
                             },
                             {
-                              "x": 794.3540193718687,
-                              "y": 997.9606171287875
+                              "x": 773.3110926763419,
+                              "y": 327.3996027589252
                             }
                           ]
                         },
@@ -2335,8 +2440,8 @@
                           "sourceAnchorId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77_right_14988a23-8d80-496f-8047-0eabcbbc5811_success",
                           "targetAnchorId": "a78da13a-f16e-420d-bf98-003bf55a13d7_left_main_success",
                           "startPoint": {
-                            "x": 563.5826200717181,
-                            "y": 403.11745174714747
+                            "x": 445.8667244734056,
+                            "y": 490.49945864778545
                           },
                           "endPoint": {
                             "x": 981.0565926434592,
@@ -2344,12 +2449,12 @@
                           },
                           "pointsList": [
                             {
-                              "x": 563.5826200717181,
-                              "y": 403.11745174714747
+                              "x": 445.8667244734056,
+                              "y": 490.49945864778545
                             },
                             {
-                              "x": 663.5826200717181,
-                              "y": 403.11745174714747
+                              "x": 545.8667244734056,
+                              "y": 490.49945864778545
                             },
                             {
                               "x": 881.0565926434592,
@@ -2393,6 +2498,111 @@
                             {
                               "x": 1489.1739071772524,
                               "y": 1034.1181190610719
+                            }
+                          ]
+                        },
+                        {
+                          "id": "f5b8c255-5d64-4d92-a922-530a726c49b3",
+                          "type": "run-edge",
+                          "properties": {},
+                          "sourceNodeId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77",
+                          "targetNodeId": "bf145dd1-4764-4359-bb0f-8dcb04ce7f89",
+                          "sourceAnchorId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77_right_3df40cd9-6f70-4142-a730-944d7ae4eb3f_success",
+                          "targetAnchorId": "bf145dd1-4764-4359-bb0f-8dcb04ce7f89_left_main_success",
+                          "startPoint": {
+                            "x": 445.8667244734056,
+                            "y": 526.4994586477854
+                          },
+                          "endPoint": {
+                            "x": 503.776537723249,
+                            "y": 899.5892233300203
+                          },
+                          "pointsList": [
+                            {
+                              "x": 445.8667244734056,
+                              "y": 526.4994586477854
+                            },
+                            {
+                              "x": 545.8667244734056,
+                              "y": 526.4994586477854
+                            },
+                            {
+                              "x": 403.776537723249,
+                              "y": 899.5892233300203
+                            },
+                            {
+                              "x": 503.776537723249,
+                              "y": 899.5892233300203
+                            }
+                          ]
+                        },
+                        {
+                          "id": "5f62024e-2454-45fd-a07d-3e93f67ba8f5",
+                          "type": "run-edge",
+                          "properties": {},
+                          "sourceNodeId": "bf145dd1-4764-4359-bb0f-8dcb04ce7f89",
+                          "targetNodeId": "261e0f01-490d-48a4-a02b-bb976854c709",
+                          "sourceAnchorId": "bf145dd1-4764-4359-bb0f-8dcb04ce7f89_right_main_success",
+                          "targetAnchorId": "261e0f01-490d-48a4-a02b-bb976854c709_left_main_success",
+                          "startPoint": {
+                            "x": 703.776537723249,
+                            "y": 889.5892233300203
+                          },
+                          "endPoint": {
+                            "x": 847.6851209604808,
+                            "y": 928.2112923439853
+                          },
+                          "pointsList": [
+                            {
+                              "x": 703.776537723249,
+                              "y": 889.5892233300203
+                            },
+                            {
+                              "x": 803.776537723249,
+                              "y": 889.5892233300203
+                            },
+                            {
+                              "x": 747.6851209604808,
+                              "y": 928.2112923439853
+                            },
+                            {
+                              "x": 847.6851209604808,
+                              "y": 928.2112923439853
+                            }
+                          ]
+                        },
+                        {
+                          "id": "4e35b4db-ef92-4d31-a6bd-ab70e250d0e9",
+                          "type": "run-edge",
+                          "properties": {},
+                          "sourceNodeId": "bf145dd1-4764-4359-bb0f-8dcb04ce7f89",
+                          "targetNodeId": "261e0f01-490d-48a4-a02b-bb976854c709",
+                          "sourceAnchorId": "bf145dd1-4764-4359-bb0f-8dcb04ce7f89_right_main_fail",
+                          "targetAnchorId": "261e0f01-490d-48a4-a02b-bb976854c709_left_main_success",
+                          "startPoint": {
+                            "x": 703.776537723249,
+                            "y": 914.5892233300203
+                          },
+                          "endPoint": {
+                            "x": 847.6851209604808,
+                            "y": 928.2112923439853
+                          },
+                          "pointsList": [
+                            {
+                              "x": 703.776537723249,
+                              "y": 914.5892233300203
+                            },
+                            {
+                              "x": 803.776537723249,
+                              "y": 914.5892233300203
+                            },
+                            {
+                              "x": 747.6851209604808,
+                              "y": 928.2112923439853
+                            },
+                            {
+                              "x": 847.6851209604808,
+                              "y": 928.2112923439853
                             }
                           ]
                         }
@@ -2542,7 +2752,7 @@
                     "codeLocation": "customize",
                     "codeReference": [],
                     "functionName": "filter_tools",
-                    "code": "const filter_tools=(params)=>{\n   return params.context.filter(item=>{\n     if(item.type===\"QUESTION\"){\n         if(item.images||item.videos||item.files){\n             return false\n         }\n        \n     }\n       if(item.type==='TOOL'){\n           return false\n       }\n    return true\n})\n}",
+                    "code": "const filter_tools=(params)=>{\n   const len=params.context;\n   return params.context.filter((item,index)=>{\n     if(item.type===\"QUESTION\"){\n         if(item.images||item.videos||item.files){\n             return false\n         }\n        \n     }\n       if(len-index<10&&item.type==='TOOL'){\n           return false\n       }\n    return true\n})\n}",
                     "allowIO": false,
                     "parameters": [
                       {
@@ -2573,8 +2783,8 @@
                   "y": 150
                 },
                 "endPoint": {
-                  "x": 380.0537109375,
-                  "y": 191.61376953125006
+                  "x": 286.63908124492207,
+                  "y": 233.93496431756665
                 },
                 "pointsList": [
                   {
@@ -2586,12 +2796,12 @@
                     "y": 150
                   },
                   {
-                    "x": 280.0537109375,
-                    "y": 191.61376953125006
+                    "x": 186.63908124492207,
+                    "y": 233.93496431756665
                   },
                   {
-                    "x": 380.0537109375,
-                    "y": 191.61376953125006
+                    "x": 286.63908124492207,
+                    "y": 233.93496431756665
                   }
                 ]
               },
@@ -2604,8 +2814,8 @@
                 "sourceAnchorId": "2567e578-98ae-4592-8e64-61941556fe9e_right_main_success",
                 "targetAnchorId": "c3a343b9-39ad-444a-820f-1188cdf96683_left_main_success",
                 "startPoint": {
-                  "x": 1110.9814453125002,
-                  "y": 109.62890624999997
+                  "x": 1178.2666015625005,
+                  "y": 182.78564453125006
                 },
                 "endPoint": {
                   "x": 1200.83740234375,
@@ -2613,12 +2823,12 @@
                 },
                 "pointsList": [
                   {
-                    "x": 1110.9814453125002,
-                    "y": 109.62890624999997
+                    "x": 1178.2666015625005,
+                    "y": 182.78564453125006
                   },
                   {
-                    "x": 1210.9814453125002,
-                    "y": 109.62890624999997
+                    "x": 1278.2666015625005,
+                    "y": 182.78564453125006
                   },
                   {
                     "x": 1100.83740234375,
@@ -2674,8 +2884,8 @@
                 "sourceAnchorId": "0db20591-d2bc-4c8e-9e7d-9221429afa7c_right_f33cafd2-304a-49f1-ab4d-eabbb3ba89f4_success",
                 "targetAnchorId": "cabe76e6-9448-4d45-bcf9-0c27aada72bd_left_main_success",
                 "startPoint": {
-                  "x": 580.0537109375,
-                  "y": 215.61376953125006
+                  "x": 486.63908124492207,
+                  "y": 259.93496431756665
                 },
                 "endPoint": {
                   "x": 1166.3415524506595,
@@ -2683,12 +2893,12 @@
                 },
                 "pointsList": [
                   {
-                    "x": 580.0537109375,
-                    "y": 215.61376953125006
+                    "x": 486.63908124492207,
+                    "y": 259.93496431756665
                   },
                   {
-                    "x": 680.0537109375,
-                    "y": 215.61376953125006
+                    "x": 586.6390812449221,
+                    "y": 259.93496431756665
                   },
                   {
                     "x": 1066.3415524506595,
@@ -2745,7 +2955,7 @@
                 "targetAnchorId": "66dc8937-76c3-4b27-b194-ec864a86b680_left_main_success",
                 "startPoint": {
                   "x": 2008.2619401278266,
-                  "y": 341.6227562478705
+                  "y": 343.6227562478705
                 },
                 "endPoint": {
                   "x": 2117.1965992187356,
@@ -2754,11 +2964,11 @@
                 "pointsList": [
                   {
                     "x": 2008.2619401278266,
-                    "y": 341.6227562478705
+                    "y": 343.6227562478705
                   },
                   {
                     "x": 2108.2619401278266,
-                    "y": 341.6227562478705
+                    "y": 343.6227562478705
                   },
                   {
                     "x": 2017.1965992187356,
@@ -2884,8 +3094,8 @@
                 "sourceAnchorId": "0db20591-d2bc-4c8e-9e7d-9221429afa7c_right_6aa401b5-98cb-417a-b6f1-ebb7354f7442_success",
                 "targetAnchorId": "a0a956f8-7dbd-4347-814c-ce8b61771918_left_main_success",
                 "startPoint": {
-                  "x": 580.0537109375,
-                  "y": 181.61376953125006
+                  "x": 486.63908124492207,
+                  "y": 223.93496431756665
                 },
                 "endPoint": {
                   "x": 606.0180664062498,
@@ -2893,12 +3103,12 @@
                 },
                 "pointsList": [
                   {
-                    "x": 580.0537109375,
-                    "y": 181.61376953125006
+                    "x": 486.63908124492207,
+                    "y": 223.93496431756665
                   },
                   {
-                    "x": 680.0537109375,
-                    "y": 181.61376953125006
+                    "x": 586.6390812449221,
+                    "y": 223.93496431756665
                   },
                   {
                     "x": 506.0180664062498,
@@ -2923,8 +3133,8 @@
                   "y": 185.37353515625006
                 },
                 "endPoint": {
-                  "x": 830.9814453125002,
-                  "y": 109.62890624999997
+                  "x": 898.2666015625005,
+                  "y": 182.78564453125006
                 },
                 "pointsList": [
                   {
@@ -2936,12 +3146,12 @@
                     "y": 185.37353515625006
                   },
                   {
-                    "x": 730.9814453125002,
-                    "y": 109.62890624999997
+                    "x": 798.2666015625005,
+                    "y": 182.78564453125006
                   },
                   {
-                    "x": 830.9814453125002,
-                    "y": 109.62890624999997
+                    "x": 898.2666015625005,
+                    "y": 182.78564453125006
                   }
                 ]
               }
@@ -2967,29 +3177,29 @@
       "sourceAnchorId": "start-node_right_main_success",
       "targetAnchorId": "05e716af-35e7-48a7-9f93-5a5ff978b0d7_left_main_success",
       "startPoint": {
-        "x": 100,
-        "y": 0
+        "x": 200,
+        "y": 25
       },
       "endPoint": {
-        "x": 294.765625,
-        "y": -3.12890625
+        "x": 300,
+        "y": 25
       },
       "pointsList": [
         {
-          "x": 100,
-          "y": 0
+          "x": 200,
+          "y": 25
+        },
+        {
+          "x": 300,
+          "y": 25
         },
         {
           "x": 200,
-          "y": 0
+          "y": 25
         },
         {
-          "x": 196.234375,
-          "y": 63.875
-        },
-        {
-          "x": 296.234375,
-          "y": 63.875
+          "x": 300,
+          "y": 25
         }
       ]
     }

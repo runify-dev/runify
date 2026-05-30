@@ -75,8 +75,7 @@ public class ReadFileNode extends INode<ReadFileNode, ReadFileNodeData> {
             }
 
             try {
-                UUID conversationId = (UUID) workFlowManage.getParams().getOrDefault("conversationId", CommonUtils.uuid7());
-                Path basePath = Path.of(System.getProperty("user.home") + "/.runify/" + conversationId);
+                Path basePath = workFlowManage.getWorkingDirectory();
                 Path targetPath = basePath.resolve(config.filePath()).normalize();
 
                 if (!Files.exists(targetPath)) {

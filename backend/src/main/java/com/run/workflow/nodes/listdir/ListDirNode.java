@@ -77,10 +77,7 @@ public class ListDirNode extends INode<ListDirNode, ListDirNodeData> {
             }
 
             try {
-                Path basePath = Path.of(System.getProperty("user.home") + "/.runify/" + conversationId);
-                if (!Files.exists(basePath)) {
-                    Files.createDirectories(basePath);
-                }
+                Path basePath = workFlowManage.getWorkingDirectory();
                 Path targetDir = basePath.resolve(config.dirPath()).normalize();
 
                 if (!Files.exists(targetDir)) {
@@ -125,7 +122,7 @@ public class ListDirNode extends INode<ListDirNode, ListDirNodeData> {
                             int remoteCount = 0;
 
                             if (remoteFiles != null && !remoteFiles.isEmpty()) {
-                                Map<String, String> downloadedPaths = loadDownloadedPaths(conversationId);
+                                Map<String, String> downloadedPaths = loadDownloadedPaths(basePath);
                                 boolean hasUndownloaded = remoteFiles.stream().anyMatch(f -> {
                                     String fid = f.getId().toString();
                                     return !downloadedPaths.containsKey(fid) && !downloadedPaths.containsKey("./api/storage/file/" + fid);
@@ -311,10 +308,9 @@ public class ListDirNode extends INode<ListDirNode, ListDirNodeData> {
             };
         }
 
-        private Map<String, String> loadDownloadedPaths(UUID conversationId) {
+        private Map<String, String> loadDownloadedPaths(Path basePath) {
             try {
-                Path stateFile = Path.of(System.getProperty("user.home"), ".runify",
-                        conversationId.toString(), "_tool_state", "downloads.json");
+                Path stateFile = basePath.resolve("_tool_state/downloads.json");
                 if (!Files.exists(stateFile)) return Map.of();
                 String json = Files.readString(stateFile, StandardCharsets.UTF_8);
                 List<Map<String, Object>> list = JacksonUtils.fromJson(json,

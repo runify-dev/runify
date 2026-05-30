@@ -37,6 +37,13 @@
           severity="secondary"
           @click="showImportDialog = true"
         />
+        <Button
+          label="导出"
+          icon="pi pi-download"
+          size="small"
+          severity="secondary"
+          @click="exportTools"
+        />
       </div>
 
       <DataTable v-if="data?.tools?.length" :value="data.tools" class="mt-2" size="small">
@@ -217,5 +224,18 @@ function parseAndImport() {
   } catch (e) {
     importError.value = 'JSON 解析失败，请检查格式'
   }
+}
+
+function exportTools() {
+  const tools = data.value?.tools || []
+  if (tools.length === 0) return
+  const json = JSON.stringify(tools, null, 2)
+  const blob = new Blob([json], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'tools.json'
+  a.click()
+  URL.revokeObjectURL(url)
 }
 </script>

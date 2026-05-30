@@ -94,8 +94,7 @@ public class FileDownloadNode extends INode<FileDownloadNode, FileDownloadNodeDa
                         }
 
                         // 确定输出路径
-                        UUID conversationId = (UUID) workFlowManage.getParams().getOrDefault("conversationId", CommonUtils.uuid7());
-                        Path basePath = Path.of(System.getProperty("user.home"), ".runify", conversationId.toString());
+                        Path basePath = workFlowManage.getWorkingDirectory();
                         String outputPath = StringUtils.isEmpty(config.path()) ? entity.getFileName() : config.path();
                         String decodedPath = java.net.URLDecoder.decode(outputPath, StandardCharsets.UTF_8);
                         Path targetPath = basePath.resolve(decodedPath);
@@ -180,8 +179,7 @@ public class FileDownloadNode extends INode<FileDownloadNode, FileDownloadNodeDa
 
         private void writeDownloadsState(WorkFlowManage wfm, String fileId, String filePath, String error) {
             try {
-                UUID conversationId = (UUID) wfm.getParams().getOrDefault("conversationId", CommonUtils.uuid7());
-                Path basePath = Path.of(System.getProperty("user.home"), ".runify", conversationId.toString());
+                Path basePath = wfm.getWorkingDirectory();
                 Path stateDir = basePath.resolve("_tool_state");
                 Files.createDirectories(stateDir);
                 Path stateFile = stateDir.resolve("downloads.json");
