@@ -17,6 +17,8 @@ import io.vertx.ext.web.RoutingContext;
 
 import javax.inject.Inject;
 import java.io.File;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -104,13 +106,14 @@ public class FileHandlerImpl implements IFileHandler {
 
             long contentLength = end - start + 1;
             boolean isRange = rangeHeader != null;
+            String filename = URLEncoder.encode(file.getFileName(), StandardCharsets.UTF_8).replace("+", "%20");
 
             context.response()
                     .setStatusCode(isRange ? 206 : 200)
                     .putHeader(HttpHeaders.ACCEPT_RANGES, "bytes")
                     .putHeader(HttpHeaders.CONTENT_LENGTH, Long.toString(contentLength))
                     .putHeader(HttpHeaders.CONTENT_RANGE, "bytes " + start + "-" + end + "/" + fileSize)
-                    .putHeader(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + file.getFileName());
+                    .putHeader(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + filename);
 
             BaseReadStream baseReadStream = fileMapper.downloadFile(vertx, file, start, end + 1);
 
