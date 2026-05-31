@@ -122,10 +122,7 @@ public class WorkFlowManage {
     }
 
     public void asyncInvoke(Node node, INode<?, ?> upINode) {
-        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
-            executor.execute(() -> invoke(node, upINode));
-        }
-
+        Thread.ofVirtual().start(() -> invoke(node, upINode));
     }
 
     /**
@@ -139,14 +136,10 @@ public class WorkFlowManage {
         try {
             List<Node> nodes = getNextNode.get();
             if (nodes.size() == 1) {
-                try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
-                    executor.execute(() -> invoke(nodes.getFirst(), upINode));
-                }
+                Thread.ofVirtual().start(() -> invoke(nodes.getFirst(), upINode));
             } else if (nodes.size() > 1) {
                 for (Node node : nodes) {
-                    try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
-                        executor.execute(() -> invoke(node, upINode));
-                    }
+                    Thread.ofVirtual().start(() -> invoke(node, upINode));
                 }
             } else {
                 // 如果没有下一个运行节点,那么就判断是否所有正在运行的节点都执行结束,如果都执行结束那么工作流就结束
