@@ -236,7 +236,7 @@ runify/
 ---
 ## 技术交流
 
-<img width="300" height="300" alt="c177135ae214abf9370e57496da28f76" src="https://github.com/user-attachments/assets/f6f2f99f-9dce-42f9-b63b-3d9c81d0dd6e" />
+<img width="300" height="300" alt="c177135ae214abf9370e57496da28f76" src="https://github.com/user-attachments/assets/de289df0-e177-475e-80c8-611202c7910c" />
 
 ## 🤝 参与贡献
 
