@@ -55,12 +55,13 @@
 ---
 
 ## 🎬 项目演示
-
+<a href="http://115.159.2.32:8080/conversation/a/513ab165-edbc-40b8-af26-7ae4e09819e8">在线演示</a>
 <!-- 建议替换为你的截图或 GIF -->
 
 | <img width="400" src="https://github.com/user-attachments/assets/2ea7088b-a1a1-45c4-a235-bc19bcde2b8a" /> |  <img width="400" src="https://github.com/user-attachments/assets/565a2868-5c7d-439f-9993-d4a01cb95d9b" /> |
 |:---:|:---:|
 | <img width="400" src="https://github.com/user-attachments/assets/e0f92360-8ff5-483e-99ee-a846b8905714" />|  <img width="400" src="https://github.com/user-attachments/assets/28a3fe5e-dcf3-4e2d-96b2-217420cfb81d" />  |
+
 
 ---
 
