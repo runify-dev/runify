@@ -136,7 +136,6 @@ public class NoteHandlerImpl extends ResourceHandlerImpl<Note, NoteFolder, NoteP
     public void edit(RoutingContext context) {
         String resourceId = context.pathParam("resourceId");
         EditNote editNote = context.body().asPojo(EditNote.class);
-        List<MarkdownChunker.MarkdownChunk> markdownChunks = MarkdownChunker.splitToChunks(editNote.getContent(), 300, 50);
         resourceMapper.getById(resourceId).compose(n -> {
                     n.setContent(editNote.getContent());
                     if (StringUtils.isNotEmpty(editNote.getContent())) {
@@ -148,19 +147,17 @@ public class NoteHandlerImpl extends ResourceHandlerImpl<Note, NoteFolder, NoteP
                     context.end(Result.success(n).toBuffer());
                     searchClient.deleteByQuery(SearchQuery.builder("note").exactFilter("noteId", resourceId).build())
                             .thenAccept(_ -> {
-                                List<SearchDocument> list = markdownChunks.stream().map(item -> {
-                                    return new SearchDocument(
-                                            "note",
-                                            CommonUtils.uuid7().toString(),
-                                            Map.of(
-                                                    "title", item.titlePath(),
-                                                    "content", item.content(),
-                                                    "folderId", n.getParentId() == null ? "root" : n.getParentId().toString(),
-                                                    "noteId", resourceId
-                                            )
-                                    );
-                                }).toList();
-                                searchClient.bulkIndex(list);
+                                SearchDocument searchDocument = new SearchDocument(
+                                        "note",
+                                        CommonUtils.uuid7().toString(),
+                                        Map.of(
+                                                "title", n.getName(),
+                                                "content", n.getContent(),
+                                                "folderId", n.getParentId() == null ? "root" : n.getParentId().toString(),
+                                                "noteId", resourceId
+                                        )
+                                );
+                                searchClient.index(searchDocument);
                             });
 
 

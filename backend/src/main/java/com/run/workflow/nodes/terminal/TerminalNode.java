@@ -7,6 +7,14 @@ import com.run.workflow.INode;
 import com.run.workflow.NodeStatus;
 import com.run.workflow.ToolCallMeta;
 import com.run.workflow.WorkFlowManage;
+import com.github.dockerjava.api.DockerClient;
+import com.github.dockerjava.api.command.CreateContainerResponse;
+import com.github.dockerjava.api.command.PullImageResultCallback;
+import com.github.dockerjava.api.model.Bind;
+import com.github.dockerjava.api.model.Frame;
+import com.github.dockerjava.api.model.HostConfig;
+import com.github.dockerjava.core.DockerClientBuilder;
+import com.github.dockerjava.core.command.LogContainerResultCallback;
 import com.run.workflow.WorkflowType;
 import com.run.workflow.entity.Node;
 import com.run.workflow.entity.NodeResult;
@@ -29,6 +37,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -47,6 +56,7 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
     private static final int DEFAULT_TIMEOUT = 1800;
 
     private volatile Process process;
+    private volatile String containerId;
 
     public TerminalNode(Node node, JsonObject params, List<String> upNodeIdList, String salt, INode<?, ?> upNode) {
         super(node, params, upNodeIdList, salt, upNode);
@@ -62,6 +72,15 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
         Process p = this.process;
         if (p != null && p.isAlive()) {
             killProcessTree(p);
+        }
+        String cid = this.containerId;
+        if (cid != null) {
+            try {
+                DockerClient client = DockerClientBuilder.getInstance().build();
+                client.stopContainerCmd(cid).withTimeout(5).exec();
+                client.close();
+            } catch (Exception ignored) {
+            }
         }
     }
 
@@ -81,6 +100,24 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
     }
 
     public static class Handle implements BiFunction<WorkFlowManage, TerminalNode, Supplier<List<Node>>> {
+
+        private void writeResult(WorkFlowManage wfm, TerminalNode node, TerminalConfig config,
+                                 String runId, String stdout, String stderr, int exitCode) {
+            String result = exitCode == 0 ? stdout : (stderr.isEmpty() ? stdout : stderr);
+            NodeStatus status = exitCode == 0 ? NodeStatus.SUCCESS : NodeStatus.FAIL;
+            String statusOutput = exitCode == 0 ? stdout : stderr;
+
+            node.status = status;
+            wfm.writeContext(node, "result", result);
+            wfm.writeContext(node, "stdout", stdout);
+            wfm.writeContext(node, "stderr", stderr);
+            wfm.writeContext(node, "exitCode", exitCode);
+            wfm.write(node, new ToolCallContent("run_command", "", "",
+                    status, node, runId, config.id()));
+            wfm.writeContext(node, "tool", JsonObject.mapFrom(
+                    new ToolCallContent("run_command", statusOutput, config.toArguments(),
+                            status, node, runId, config.id()).withMeta(config.meta())));
+        }
 
         private Supplier<List<Node>> invokeFail(WorkFlowManage wfm, TerminalNode node, TerminalConfig config, String runId, String result, String stderr, int exitCode, Throwable e) {
             String id = config != null ? config.id() : CommonUtils.uuid7().toString();
@@ -146,6 +183,7 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
             String runId = (String) workFlowManage.getParams().get("workflowRunId");
             TerminalConfig config = resolveConfig(node.params, workFlowManage);
             int timeout = resolveTimeout(node.params, workFlowManage);
+            String runtime = node.params != null ? node.params.getRuntime() : null;
 
             // 启动前检查取消
             if (node.getStatus() == NodeStatus.CANCELLED) {
@@ -154,6 +192,10 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
 
             if (config == null || StringUtils.isEmpty(config.command())) {
                 return invokeFail(workFlowManage, node, config, runId, "代码为空", "代码为空", 1, new RuntimeException("代码为空"));
+            }
+
+            if ("docker".equals(runtime)) {
+                return executeInDocker(workFlowManage, node, config, runId, timeout);
             }
 
             CompletableFuture<String> stdoutFuture = null;
@@ -221,27 +263,8 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
 
                 String stdout = stdoutFuture.get(timeout, TimeUnit.SECONDS);
                 String stderr = stderrFuture.get(timeout, TimeUnit.SECONDS);
-
                 int exitCode = process.exitValue();
-                String result = exitCode == 0 ? stdout : (stderr.isEmpty() ? stdout : stderr);
-                workFlowManage.writeContext(node, "result", result);
-                workFlowManage.writeContext(node, "stdout", stdout);
-                workFlowManage.writeContext(node, "stderr", stderr);
-                workFlowManage.writeContext(node, "exitCode", exitCode);
-
-                if (exitCode == 0) {
-                    node.status = NodeStatus.SUCCESS;
-                    workFlowManage.write(node, new ToolCallContent("run_command", "", "",
-                            NodeStatus.SUCCESS, node, runId, config.id()));
-                    workFlowManage.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("run_command", stdout, config.toArguments(),
-                            NodeStatus.SUCCESS, node, runId, config.id()).withMeta(config.meta())));
-                } else {
-                    node.status = NodeStatus.FAIL;
-                    workFlowManage.write(node, new ToolCallContent("run_command", "", "",
-                            NodeStatus.FAIL, node, runId, config.id()));
-                    workFlowManage.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("run_command", stderr, config.toArguments(),
-                            NodeStatus.FAIL, node, runId, config.id()).withMeta(config.meta())));
-                }
+                writeResult(workFlowManage, node, config, runId, stdout, stderr, exitCode);
 
             } catch (Exception e) {
                 Process p = node.process;
@@ -322,6 +345,163 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
             }
             return customValue;
         }
+
+        private static final String DOCKER_IMAGE = "ghcr.io/runify-dev/hush-toolbox:v0.1.0";
+
+        private Supplier<List<Node>> executeInDocker(WorkFlowManage wfm, TerminalNode node, TerminalConfig config, String runId, int timeout) {
+            if (config.withWriteArguments()) {
+                wfm.write(node, new ToolCallContent("run_command", "",
+                        config.toArguments(), NodeStatus.RUNNING, node, runId, config.id()));
+            }
+
+            CompletableFuture<String> stdoutFuture = null;
+            CompletableFuture<String> stderrFuture = null;
+
+            try (DockerClient dc = DockerClientBuilder.getInstance().build()) {
+                final DockerClient dockerClient = dc;
+
+                String userHome = System.getProperty("user.home");
+                UUID conversationId = (UUID) wfm.getParams().getOrDefault("conversationId", CommonUtils.uuid7());
+                String workDir = userHome + "/.runify/" + conversationId;
+                String caCertPath = userHome + "/.hush/hush-ca-public/ca.crt";
+
+                dockerClient.pullImageCmd(DOCKER_IMAGE)
+                        .exec(new PullImageResultCallback())
+                        .awaitCompletion(timeout, TimeUnit.SECONDS);
+
+                CreateContainerResponse container = dockerClient.createContainerCmd(DOCKER_IMAGE)
+                        .withHostConfig(HostConfig.newHostConfig()
+                                .withBinds(
+                                        Bind.parse(caCertPath + ":/etc/hush/ca.crt:ro"),
+                                        Bind.parse(workDir + ":/workspace")
+                                )
+                                .withAutoRemove(true))
+                        .withEnv(
+                                "HTTP_PROXY=http://host.docker.internal:25220",
+                                "HTTPS_PROXY=http://host.docker.internal:25220",
+                                "NO_PROXY=localhost,127.0.0.1"
+                        )
+                        .withWorkingDir("/workspace")
+                        .withCmd("sh", "-c", config.command())
+                        .exec();
+
+                final String cid = container.getId();
+                node.containerId = cid;
+
+                if (checkCancelled(wfm, node, config, runId, dockerClient, cid)) {
+                    return invokeCancel(wfm, node, config, runId);
+                }
+
+                StringBuilder stdoutSb = new StringBuilder();
+                StringBuilder stderrSb = new StringBuilder();
+
+                stdoutFuture = CompletableFuture.supplyAsync(() -> {
+                    try {
+                        dockerClient.logContainerCmd(cid)
+                                .withStdOut(true).withStdErr(false).withFollowStream(true)
+                                .exec(new LogContainerResultCallback() {
+                                    @Override
+                                    public void onNext(Frame frame) {
+                                        String chunk = new String(frame.getPayload(), StandardCharsets.UTF_8);
+                                        stdoutSb.append(chunk);
+                                        wfm.write(node, new ToolCallContent("run_command", chunk, "",
+                                                NodeStatus.RUNNING, node, runId, config.id()));
+                                    }
+                                }).awaitCompletion(timeout, TimeUnit.SECONDS);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                    return stdoutSb.toString();
+                }, Executors.newVirtualThreadPerTaskExecutor());
+
+                stderrFuture = CompletableFuture.supplyAsync(() -> {
+                    try {
+                        dockerClient.logContainerCmd(cid)
+                                .withStdOut(false).withStdErr(true).withFollowStream(true)
+                                .exec(new LogContainerResultCallback() {
+                                    @Override
+                                    public void onNext(Frame frame) {
+                                        stderrSb.append(new String(frame.getPayload(), StandardCharsets.UTF_8));
+                                    }
+                                }).awaitCompletion(timeout, TimeUnit.SECONDS);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                    return stderrSb.toString();
+                }, Executors.newVirtualThreadPerTaskExecutor());
+
+                dockerClient.startContainerCmd(cid).exec();
+
+                boolean finished = waitForContainer(dockerClient, cid, timeout, () -> {
+                    if (node.getStatus() == NodeStatus.CANCELLED) {
+                        stopDockerContainer(dockerClient, cid);
+                    }
+                    return node.getStatus() == NodeStatus.CANCELLED;
+                });
+
+                if (!finished) {
+                    stopDockerContainer(dockerClient, cid);
+                    if (node.getStatus() == NodeStatus.CANCELLED) {
+                        return invokeCancel(wfm, node, config, runId);
+                    }
+                    String timeoutMsg = "命令执行超时（" + timeout + "秒）";
+                    return invokeFail(wfm, node, config, runId, timeoutMsg, timeoutMsg, -1, new RuntimeException(timeoutMsg));
+                }
+
+                if (node.getStatus() == NodeStatus.CANCELLED) {
+                    return invokeCancel(wfm, node, config, runId);
+                }
+
+                String stdout = stdoutFuture.get(5, TimeUnit.SECONDS);
+                String stderr = stderrFuture.get(5, TimeUnit.SECONDS);
+
+                var inspect = dockerClient.inspectContainerCmd(cid).exec();
+                int exitCode = inspect.getState().getExitCode() != null ? inspect.getState().getExitCode() : -1;
+                writeResult(wfm, node, config, runId, stdout, stderr, exitCode);
+
+            } catch (Exception e) {
+                if (node.getStatus() == NodeStatus.CANCELLED) {
+                    return invokeCancel(wfm, node, config, runId);
+                }
+                return invokeFail(wfm, node, config, runId, e.getMessage(), e.getMessage(), 1, e);
+            } finally {
+                node.containerId = null;
+                cleanupFuture(stdoutFuture);
+                cleanupFuture(stderrFuture);
+            }
+
+            return wfm.nextNodeSupplier(node.node.getId());
+        }
+
+        private boolean checkCancelled(WorkFlowManage wfm, TerminalNode node, TerminalConfig config,
+                                        String runId, DockerClient dockerClient, String containerId) {
+            if (node.getStatus() == NodeStatus.CANCELLED) {
+                stopDockerContainer(dockerClient, containerId);
+                return true;
+            }
+            return false;
+        }
+
+        private boolean waitForContainer(DockerClient dockerClient, String containerId, int timeout,
+                                          BooleanSupplier shouldStop) {
+            for (int elapsed = 0; elapsed < timeout; elapsed++) {
+                if (shouldStop.getAsBoolean()) return false;
+                var inspect = dockerClient.inspectContainerCmd(containerId).exec();
+                if (!inspect.getState().getRunning()) return true;
+                try { Thread.sleep(1000); } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    return false;
+                }
+            }
+            return false;
+        }
+
+        private static void stopDockerContainer(DockerClient dockerClient, String containerId) {
+            try {
+                dockerClient.stopContainerCmd(containerId).withTimeout(5).exec();
+            } catch (Exception ignored) {
+            }
+        }
     }
 
     @Override
@@ -329,6 +509,7 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
         JsonObject jsonObject = node.getProperties().getJsonObject("nodeData");
         TerminalNodeData data = new TerminalNodeData();
 
+        data.setRuntime(jsonObject.getString("runtime"));
         data.setLocation(jsonObject.getString("location"));
         if (jsonObject.getJsonArray("reference") != null) {
             data.setReference(jsonObject.getJsonArray("reference").stream()

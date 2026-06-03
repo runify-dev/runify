@@ -1,6 +1,18 @@
 <template>
   <Form ref="formRef" v-slot="$form" :resolver="zodResolver(schema)">
     <Fieldset legend="基本信息">
+      <FormField name="runtime" initial-value="local">
+        <div class="flex items-center justify-between mb-2">
+          <label>运行环境</label>
+          <SelectButton
+            :options="runtimeOptions"
+            option-label="label"
+            option-value="value"
+            size="small"
+          />
+        </div>
+      </FormField>
+
       <FormField name="location" initial-value="customize">
         <div class="flex items-center justify-between mb-2">
           <label>模式</label>
@@ -160,7 +172,7 @@ import { zodResolver } from '@primevue/forms/resolvers/zod'
 import { schema, validate as validateNodeData } from './validator'
 import Cascader from '@/components/cascader/index.vue'
 import TemplateEditor from '@/components/template-editor/index.vue'
-import { locationOptions, fieldLocationOptions } from './type'
+import { runtimeOptions, locationOptions, fieldLocationOptions } from './type'
 import { cloneDeep } from 'lodash'
 
 const getModel = inject('getModel') as () => BaseNodeModel
@@ -197,6 +209,7 @@ defineExpose({ validate, submit })
 onMounted(() => {
   if (model.properties.nodeData) {
     const data = cloneDeep(model.properties.nodeData)
+    formRef.value?.setFieldValue('runtime', data.runtime || 'local')
     formRef.value?.setFieldValue('location', data.location)
     formRef.value?.setFieldValue('codeLocation', data.codeLocation || 'customize')
     formRef.value?.setFieldValue('timeoutLocation', data.timeoutLocation || 'customize')
@@ -205,6 +218,7 @@ onMounted(() => {
     })
   } else {
     model.properties.nodeData = {
+      runtime: 'local',
       location: 'customize',
       reference: [],
       codeLocation: 'customize',

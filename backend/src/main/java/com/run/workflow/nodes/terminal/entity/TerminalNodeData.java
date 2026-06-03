@@ -12,6 +12,10 @@ import java.util.List;
 @Setter
 public class TerminalNodeData {
     /**
+     * 运行环境: local 或 docker
+     */
+    private String runtime;
+    /**
      * 顶层模式: tool_call 或 customize
      */
     private String location;
