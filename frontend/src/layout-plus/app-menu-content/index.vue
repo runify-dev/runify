@@ -29,7 +29,8 @@ import AppSidebar from '@/layout-plus/app-sidebar/index.vue'
   border: 1px solid var(--surface-border);
   border-radius: var(--content-border-radius);
   padding: 1.5rem;
-  height: calc(100dvh - 4rem);
+  --layout-main-height: calc(100dvh - 8rem);
+  height: --layout-main-height;
   overflow: auto;
 }
 
@@ -39,7 +40,9 @@ import AppSidebar from '@/layout-plus/app-sidebar/index.vue'
     padding-bottom: 2rem;
   }
   .layout-main {
-    height: calc(100dvh - 8rem);
+   --layout-main-height: calc(100dvh - 8rem);
+    height: var(--layout-main-height);
+
   }
 }
 </style>

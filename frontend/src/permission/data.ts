@@ -103,4 +103,12 @@ export const PermissionConstants = {
   DATASOURCE_FOLDER_EDIT: new Permission(Group.DATASOURCE, Group.DATASOURCE, Operate.EDIT, 4),
   DATASOURCE_FOLDER_DELETE: new Permission(Group.DATASOURCE, Group.DATASOURCE, Operate.DELETE, 5),
 
+  SKILL_READ: new Permission(Group.SKILL, Group.SKILL, Operate.READ, 0),
+  SKILL_EDIT: new Permission(Group.SKILL, Group.SKILL, Operate.EDIT, 1),
+  SKILL_DELETE: new Permission(Group.SKILL, Group.SKILL, Operate.DELETE, 2),
+  SKILL_CREATE: new Permission(Group.SKILL, Group.SKILL, Operate.CREATE, 3),
+  SKILL_FOLDER_EDIT: new Permission(Group.SKILL, Group.FOLDER, Operate.EDIT, 4),
+  SKILL_FOLDER_DELETE: new Permission(Group.SKILL, Group.FOLDER, Operate.DELETE, 5),
+  SKILL_FOLDER_CREATE: new Permission(Group.SKILL, Group.FOLDER, Operate.CREATE, 6),
+
 }

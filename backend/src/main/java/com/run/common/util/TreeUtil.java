@@ -31,9 +31,6 @@ public class TreeUtil {
     }
 
     public static UUID getParentUuId(String parentId) {
-        if (StringUtils.equals(parentId, "root") || parentId == null) {
-            return null;
-        }
         return UUID.fromString(parentId);
     }
 

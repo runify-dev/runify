@@ -3,6 +3,7 @@ import type { ValidationResult } from '@/workflow/common/type'
 import { parseZodResult } from '@/workflow/common/validator-utils'
 
 export const schema = z.object({
+  runtime: z.string(),
   location: z.string(),
   reference: z.array(z.string()).optional(),
   codeLocation: z.string().optional(),

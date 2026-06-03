@@ -184,6 +184,12 @@ const items = ref([
     permissions: [PermissionConstants.MODEL_READ, Role.ADMIN, Role.USER]
   },
   {
+    label: '技能',
+    icon: 'pi pi-bolt',
+    name: 'skill',
+    permissions: [PermissionConstants.SKILL_READ, Role.ADMIN, Role.USER]
+  },
+  {
     label: '项目',
     icon: 'pi pi-search',
     name: 'project',
