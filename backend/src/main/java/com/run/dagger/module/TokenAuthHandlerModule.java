@@ -28,36 +28,23 @@ public class TokenAuthHandlerModule {
     @Singleton
     @Provides
     @Named("tokenBasicAuthHandler")
-    public TokenBasicAuthHandler getTokenBasicAuthHandler(UserMapper userMapper, RoleUserRelationMapper roleUserRelationMapper,
+    public TokenBasicAuthHandler getTokenBasicAuthHandler(UserMapper userMapper,
+                                                          RoleUserRelationMapper roleUserRelationMapper,
                                                           RolePermissionRelationMapper rolePermissionRelationMapper,
                                                           RoleMapper roleBaseMapper,
                                                           ApplicationPermissionMapper applicationPermissionBaseMapper,
-                                                          NotePermissionMapper notePermissionBaseMapper,
+                                                          KnowledgePermissionMapper knowledgePermissionBaseMapper,
                                                           ModelPermissionMapper modelPermissionBaseMapper,
                                                           ProjectPermissionMapper projectPermissionBaseMapper,
-                                                          ApplicationRelationMapper applicationRelationMapper,
-                                                          NoteRelationMapper noteRelationMapper,
-                                                          ModelRelationMapper modelRelationMapper,
-                                                          ProjectRelationMapper projectRelationMapper,
-                                                          ApplicationMapper applicationMapper,
-                                                          NoteMapper noteMapper,
-                                                          ModelMapper modelMapper,
-                                                          ProjectMapper projectMapper,
+                                                          SkillPermissionMapper skillPermissionMapper,
                                                           CacheStore cacheStore
     ) {
         TokenProvider tokenProvider = new TokenProvider(userMapper,
                 roleUserRelationMapper,
                 rolePermissionRelationMapper, roleBaseMapper, applicationPermissionBaseMapper,
-                notePermissionBaseMapper,
+                knowledgePermissionBaseMapper,
                 modelPermissionBaseMapper, projectPermissionBaseMapper,
-                applicationRelationMapper,
-                noteRelationMapper,
-                modelRelationMapper,
-                projectRelationMapper,
-                applicationMapper,
-                noteMapper,
-                modelMapper,
-                projectMapper,
+                skillPermissionMapper,
                 cacheStore);
         return new TokenBasicAuthHandler(tokenProvider);
     }

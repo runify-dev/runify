@@ -135,13 +135,73 @@ public class SkillHandlerImpl extends ResourceHandlerImpl<Skill, SkillFolder, Sk
             if (StringUtils.isNotEmpty(pojo.getName())) skill.setName(pojo.getName());
             if (StringUtils.isNotEmpty(pojo.getIcon())) skill.setIcon(pojo.getIcon());
             if (pojo.getDesc() != null) skill.setDesc(pojo.getDesc());
-            if (pojo.getParameterValue() != null) skill.setParameterValue(pojo.getParameterValue());
+            if (pojo.getParameterValue() != null) {
+                JsonObject submitted = pojo.getParameterValue();
+                JsonObject merged = mergeParameterValue(skill.decrypt(), submitted, skill.getSkillParameterForm());
+                skill.setParameterValue(skill.encrypt(merged));
+            }
             if (pojo.getSkillParameterForm() != null) skill.setSkillParameterForm(pojo.getSkillParameterForm());
             skill.setUpdateTime(LocalDateTime.now());
             return skillMapper.update(skill);
         }).compose(_ -> skillMapper.getById(resourceId))
-                .onSuccess(rs -> context.end(Result.success(rs).toBuffer()))
+                .onSuccess(skill -> {
+                    JsonObject result = JsonObject.mapFrom(skill);
+                    result.put("parameterValue", maskPassword(skill.decrypt(), skill.getSkillParameterForm()));
+                    context.end(Result.success(result).toBuffer());
+                })
                 .onFailure(context::fail);
+    }
+
+    /**
+     * 合并参数值：PasswordInput 字段如果和脱敏值一样则保留原值，否则用新值
+     */
+    private JsonObject mergeParameterValue(JsonObject original, JsonObject submitted, JsonArray skillParameterForm) {
+        if (skillParameterForm == null) return submitted;
+        JsonObject merged = submitted.copy();
+        for (int i = 0; i < skillParameterForm.size(); i++) {
+            JsonObject field = skillParameterForm.getJsonObject(i);
+            if ("PasswordInput".equals(field.getString("type"))) {
+                String key = field.getString("field");
+                if (key == null || !submitted.containsKey(key)) continue;
+                String submittedVal = submitted.getString(key);
+                String originalVal = original.getString(key);
+                // 脱敏后和提交值一样 → 用户没改，保留原值
+                if (originalVal != null && CommonUtils.encryption(originalVal).equals(submittedVal)) {
+                    merged.put(key, originalVal);
+                }
+            }
+        }
+        return merged;
+    }
+
+    /**
+     * 对 PasswordInput 类型的字段脱敏
+     */
+    private JsonObject maskPassword(JsonObject parameterValue, JsonArray skillParameterForm) {
+        if (parameterValue == null || parameterValue.isEmpty() || skillParameterForm == null) {
+            return parameterValue;
+        }
+        JsonObject masked = parameterValue.copy();
+        for (int i = 0; i < skillParameterForm.size(); i++) {
+            JsonObject field = skillParameterForm.getJsonObject(i);
+            if ("PasswordInput".equals(field.getString("type"))) {
+                String key = field.getString("field");
+                if (key != null && masked.containsKey(key)) {
+                    masked.put(key, CommonUtils.encryption(masked.getString(key)));
+                }
+            }
+        }
+        return masked;
+    }
+
+    @Override
+    public void get(RoutingContext context) {
+        String id = context.pathParam("resourceId");
+        this.get(id).onSuccess(skill -> {
+            JsonObject result = JsonObject.mapFrom(skill);
+            result.put("parameterValue", maskPassword(skill.decrypt(), skill.getSkillParameterForm()));
+            context.end(Result.success(result).toBuffer());
+        }).onFailure(context::fail);
     }
 
     @Override

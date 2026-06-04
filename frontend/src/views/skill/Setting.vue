@@ -134,10 +134,8 @@ const get = () => {
       desc: data.desc || '',
       skillParameterForm: data.skillParameterForm || []
     }
-    // parameterValue 存的是 JSON 对象
-    parameterValues.value = typeof data.parameterValue === 'string'
-      ? (data.parameterValue ? JSON.parse(data.parameterValue) : {})
-      : (data.parameterValue || {})
+    // parameterValue 后端已解密为 JsonObject
+    parameterValues.value = data.parameterValue || {}
     nextTick(() => renderParamForm())
   })
 }
@@ -148,7 +146,7 @@ const save = () => {
   skillApi.edit(resourceId.value, {
     name: formData.value.name,
     desc: formData.value.desc,
-    parameterValue: JSON.stringify(parameterValues.value),
+    parameterValue: parameterValues.value,
     skillParameterForm: formData.value.skillParameterForm
   }).then(() => {
     saving.value = false

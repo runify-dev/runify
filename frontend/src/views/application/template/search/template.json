@@ -544,13 +544,13 @@
                         },
                         {
                           "id": "9b063d6a-095f-4066-939c-81550d226314",
-                          "type": "note-search-node",
+                          "type": "knowledge-search-node",
                           "x": 1300,
                           "y": 140,
                           "properties": {
                             "width": 200,
                             "height": 50,
-                            "name": "笔记检索",
+                            "name": "知识检索",
                             "isHovered": false,
                             "field_list": [
                               {

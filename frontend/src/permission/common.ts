@@ -1,6 +1,5 @@
 export enum Group {
   APPLICATION = 'APPLICATION',
-  NOTE = 'NOTE',
   PROJECT = 'PROJECT',
   MODEL = 'MODEL',
   USER_MANAGEMENT = 'USER_MANAGEMENT',
@@ -11,7 +10,8 @@ export enum Group {
   FOLDER = 'FOLDER',
   SYSTEM_SETTING = 'SYSTEM_SETTING',
   DATASOURCE = "DATASOURCE",
-  SKILL = "SKILL"
+  SKILL = "SKILL",
+  KNOWLEDGE = "KNOWLEDGE"
 }
 
 export enum Operate {

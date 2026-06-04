@@ -24,7 +24,7 @@ const skillId = ref('')
 
 const open = (options: { skillId: string; parentId?: string }) => {
   skillId.value = options.skillId
-  parentId.value = options.parentId
+  parentId.value = options.parentId ?? ''
   name.value = '新建文本.md'
   visible.value = true
 }

@@ -21,9 +21,6 @@ import io.vertx.sqlclient.Pool;
  */
 public class TokenBasicAuthHandler extends HTTPAuthorizationHandler<AuthenticationProvider> {
 
-    public TokenBasicAuthHandler(Pool pool, SQLDialect databaseType) {
-        super(new TokenProvider(pool, databaseType), Type.BEARER, null);
-    }
 
     public TokenBasicAuthHandler(AuthenticationProvider authProvider) {
         super(authProvider, Type.BEARER, null);

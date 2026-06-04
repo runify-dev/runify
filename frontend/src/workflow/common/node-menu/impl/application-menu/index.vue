@@ -32,7 +32,7 @@ import {
   databaseInsertNode,
   cacheQueryNode,
   cacheWriteNode,
-  noteSearchNode,
+  knowledgeSearchNode,
   jsonResponseNode,
   judgeNode,
   loopNode,
@@ -68,7 +68,7 @@ const groups = [
     value: '2',
     label: '数据',
     icon: 'pi pi-database',
-    nodes: [databaseSearchNode, databaseInsertNode, cacheQueryNode, cacheWriteNode, noteSearchNode]
+    nodes: [databaseSearchNode, databaseInsertNode, cacheQueryNode, cacheWriteNode, knowledgeSearchNode]
   },
   {
     value: '3',

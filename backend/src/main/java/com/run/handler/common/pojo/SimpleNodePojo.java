@@ -25,5 +25,7 @@ public class SimpleNodePojo {
 
     private String name;
 
+    private String icon;
+
     private String desc;
 }

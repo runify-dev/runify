@@ -47,25 +47,15 @@ import static com.run.sql.DSL.field;
  * {@code @注释: }
  */
 public class TokenProvider implements AuthenticationProvider {
-    private Pool pool;
-
-    private SQLDialect dbType;
     private UserMapper userMapper;
     private RoleUserRelationMapper roleUserRelationMapper;
     private RolePermissionRelationMapper rolePermissionRelationMapper;
     private RoleMapper roleBaseMapper;
     private ApplicationPermissionMapper applicationPermissionBaseMapper;
-    private ApplicationRelationMapper applicationRelationMapper;
-    private NotePermissionMapper notePermissionBaseMapper;
     private ModelPermissionMapper modelPermissionBaseMapper;
     private ProjectPermissionMapper projectPermissionBaseMapper;
-    private NoteRelationMapper noteRelationMapper;
-    private ModelRelationMapper modelRelationMapper;
-    private ProjectRelationMapper projectRelationMapper;
-    private ApplicationMapper applicationMapper;
-    private NoteMapper noteMapper;
-    private ModelMapper modelMapper;
-    private ProjectMapper projectMapper;
+    private KnowledgePermissionMapper knowledgePermissionMapper;
+    private SkillPermissionMapper skillPermissionMapper;
     private CacheStore cacheStore;
 
     final static Map<PermissionConstants.ResourcePermissionGroup, String> view =
@@ -74,44 +64,24 @@ public class TokenProvider implements AuthenticationProvider {
                     PermissionConstants.ResourcePermissionGroup.MANAGE, "permissionManage",
                     PermissionConstants.ResourcePermissionGroup.ROLE, "permissionRole");
 
-
-    public TokenProvider(Pool pool, SQLDialect dbType) {
-        this.pool = pool;
-        this.dbType = dbType;
-    }
-
     public TokenProvider(UserMapper userMapper, RoleUserRelationMapper roleUserRelationMapper,
                          RolePermissionRelationMapper rolePermissionRelationMapper,
                          RoleMapper roleBaseMapper,
                          ApplicationPermissionMapper applicationPermissionBaseMapper,
-                         NotePermissionMapper notePermissionBaseMapper,
+                         KnowledgePermissionMapper knowledgePermissionBaseMapper,
                          ModelPermissionMapper modelPermissionBaseMapper,
                          ProjectPermissionMapper projectPermissionBaseMapper,
-                         ApplicationRelationMapper applicationRelationMapper,
-                         NoteRelationMapper noteRelationMapper,
-                         ModelRelationMapper modelRelationMapper,
-                         ProjectRelationMapper projectRelationMapper,
-                         ApplicationMapper applicationMapper,
-                         NoteMapper noteMapper,
-                         ModelMapper modelMapper,
-                         ProjectMapper projectMapper,
+                         SkillPermissionMapper skillPermissionMapper,
                          CacheStore cacheStore) {
         this.userMapper = userMapper;
         this.roleBaseMapper = roleBaseMapper;
         this.rolePermissionRelationMapper = rolePermissionRelationMapper;
         this.roleUserRelationMapper = roleUserRelationMapper;
         this.applicationPermissionBaseMapper = applicationPermissionBaseMapper;
-        this.notePermissionBaseMapper = notePermissionBaseMapper;
+        this.knowledgePermissionMapper = knowledgePermissionBaseMapper;
         this.modelPermissionBaseMapper = modelPermissionBaseMapper;
         this.projectPermissionBaseMapper = projectPermissionBaseMapper;
-        this.applicationRelationMapper = applicationRelationMapper;
-        this.noteRelationMapper = noteRelationMapper;
-        this.modelRelationMapper = modelRelationMapper;
-        this.projectRelationMapper = projectRelationMapper;
-        this.applicationMapper = applicationMapper;
-        this.noteMapper = noteMapper;
-        this.modelMapper = modelMapper;
-        this.projectMapper = projectMapper;
+        this.skillPermissionMapper = skillPermissionMapper;
         this.cacheStore = cacheStore;
     }
 
@@ -283,14 +253,22 @@ public class TokenProvider implements AuthenticationProvider {
                             ApplicationPermission::getPermission,
                             rolePermissionRelationResult,
                             PermissionConstants.Group.APPLICATION);
-            Future<Map<String, Long>> notePermissions =
+            Future<Map<String, Long>> knowledgePermissions =
                     getResourcePermission(
-                            notePermissionBaseMapper,
+                            knowledgePermissionMapper,
                             userId,
-                            NotePermission::getTarget,
-                            NotePermission::getPermission,
+                            KnowledgePermission::getTarget,
+                            KnowledgePermission::getPermission,
                             rolePermissionRelationResult,
-                            PermissionConstants.Group.NOTE);
+                            PermissionConstants.Group.KNOWLEDGE);
+            Future<Map<String, Long>> skillPermissions =
+                    getResourcePermission(
+                            skillPermissionMapper,
+                            userId,
+                            SkillPermission::getTarget,
+                            SkillPermission::getPermission,
+                            rolePermissionRelationResult,
+                            PermissionConstants.Group.SKILL);
             Future<Map<String, Long>> moelPermissions =
                     getResourcePermission(
                             modelPermissionBaseMapper,
@@ -308,13 +286,14 @@ public class TokenProvider implements AuthenticationProvider {
                             ProjectPermission::getPermission,
                             rolePermissionRelationResult,
                             PermissionConstants.Group.PROJECT);
-            return Future.all(applicationPermissions, notePermissions, moelPermissions, projectPermissions, rolePermissionRelations);
+            return Future.all(applicationPermissions, knowledgePermissions, moelPermissions, projectPermissions, skillPermissions, rolePermissionRelations);
         }).compose(result -> {
             Map<String, Long> applicationPermissions = result.resultAt(0);
-            Map<String, Long> notePermissions = result.resultAt(1);
+            Map<String, Long> knowledgePermissions = result.resultAt(1);
             Map<String, Long> modelPermissions = result.resultAt(2);
             Map<String, Long> projectPermissions = result.resultAt(3);
-            List<RolePermissionRelation> permissionRelations = result.resultAt(4);
+            Map<String, Long> skillPermissions = result.resultAt(4);
+            List<RolePermissionRelation> permissionRelations = result.resultAt(5);
             Map<String, Long> menuPermissionMap = permissionRelations.stream()
                     .map(RolePermissionRelation::getPermissionId)
                     .map(PermissionDataConstants.permissionMap::get)
@@ -322,7 +301,7 @@ public class TokenProvider implements AuthenticationProvider {
                             Collectors.mapping(PermissionConstants.Permission::bit, Collectors.reducing(0L, (x, y) -> x | y))));
 
 
-            Map<String, Long> r = Stream.of(applicationPermissions, notePermissions, modelPermissions, projectPermissions, menuPermissionMap)
+            Map<String, Long> r = Stream.of(applicationPermissions, knowledgePermissions, modelPermissions, projectPermissions, skillPermissions, menuPermissionMap)
                     .flatMap(map -> map.entrySet().stream())
                     .collect(Collectors.toMap(
                             Map.Entry::getKey,

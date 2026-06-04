@@ -25,7 +25,6 @@ public class AppInitialization {
                              FileRoute fileRoute,
                              ChatRoute chatRoute,
                              ApplicationRoute applicationRoute,
-                             NoteRoute noteRoute,
                              DocRoute docRoute,
                              ModelRoute modelRoute,
                              ProjectRoute projectRoute,
@@ -33,6 +32,7 @@ public class AppInitialization {
                              RoleRoute roleRoute,
                              DatasourceRoute datasourceRoute,
                              SkillRoute skillRoute,
+                             KnowledgeRoute knowledgeRoute,
                              ConversationRoute conversationRoute,
                              UIInitialization uiInitialization,
                              MigrationInitialization migrationInitialization,
@@ -45,8 +45,8 @@ public class AppInitialization {
         docRoute.init();
         migrationInitialization.init();
         uiInitialization.init();
-        noteRoute.init();
         skillRoute.init();
+        knowledgeRoute.init();
         modelRoute.init();
         projectRoute.init();
         datasourceRoute.init();

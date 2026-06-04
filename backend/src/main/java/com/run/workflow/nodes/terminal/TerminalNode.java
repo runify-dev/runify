@@ -10,11 +10,13 @@ import com.run.workflow.WorkFlowManage;
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.CreateContainerResponse;
 import com.github.dockerjava.api.command.PullImageResultCallback;
+import com.github.dockerjava.api.exception.NotFoundException;
 import com.github.dockerjava.api.model.Bind;
 import com.github.dockerjava.api.model.Frame;
 import com.github.dockerjava.api.model.HostConfig;
 import com.github.dockerjava.core.DockerClientBuilder;
 import com.github.dockerjava.core.command.LogContainerResultCallback;
+import com.github.dockerjava.core.command.WaitContainerResultCallback;
 import com.run.workflow.WorkflowType;
 import com.run.workflow.entity.Node;
 import com.run.workflow.entity.NodeResult;
@@ -34,10 +36,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
-import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -54,6 +56,13 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
     );
 
     private static final int DEFAULT_TIMEOUT = 1800;
+
+    /**
+     * 共享的虚拟线程 executor。
+     * 之前每次读流都 new 一个 newVirtualThreadPerTaskExecutor() 且从不 close，
+     * 属于 executor 生命周期失控（反模式）。改为整个类共享一个，随 JVM 退出。
+     */
+    private static final ExecutorService STREAM_EXECUTOR = Executors.newVirtualThreadPerTaskExecutor();
 
     private volatile Process process;
     private volatile String containerId;
@@ -75,10 +84,8 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
         }
         String cid = this.containerId;
         if (cid != null) {
-            try {
-                DockerClient client = DockerClientBuilder.getInstance().build();
+            try (DockerClient client = DockerClientBuilder.getInstance().build()) {
                 client.stopContainerCmd(cid).withTimeout(5).exec();
-                client.close();
             } catch (Exception ignored) {
             }
         }
@@ -100,6 +107,11 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
     }
 
     public static class Handle implements BiFunction<WorkFlowManage, TerminalNode, Supplier<List<Node>>> {
+
+        private static final String DOCKER_IMAGE = "ghcr.io/runify-dev/hush-toolbox:v0.1.0";
+
+        /** 拉镜像用独立超时，不占用命令执行的时间预算 */
+        private static final int IMAGE_PULL_TIMEOUT = 600;
 
         private void writeResult(WorkFlowManage wfm, TerminalNode node, TerminalConfig config,
                                  String runId, String stdout, String stderr, int exitCode) {
@@ -162,12 +174,12 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
                     throw new UncheckedIOException(e);
                 }
                 return sb.toString();
-            }, Executors.newVirtualThreadPerTaskExecutor());
+            }, STREAM_EXECUTOR);
         }
 
         /**
-         * 收割读取流的 Future，防止 commonPool 线程泄漏。
-         * destroyForcibly() 后管道关闭，read() 会很快返回，给 5 秒兜底。
+         * 收割读取流的 Future，防止线程/回调泄漏。
+         * destroyForcibly()/容器删除 后管道关闭，read() 会很快返回，给 5 秒兜底。
          */
         private void cleanupFuture(CompletableFuture<?> future) {
             if (future == null) return;
@@ -278,7 +290,7 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
                 return invokeFail(workFlowManage, node, config, runId, e.getMessage(), e.getMessage(), 1, e);
             } finally {
                 node.process = null;
-                // 所有路径（正常、取消、超时、异常）都收割 future，防止 commonPool 线程泄漏
+                // 所有路径（正常、取消、超时、异常）都收割 future，防止线程泄漏
                 cleanupFuture(stdoutFuture);
                 cleanupFuture(stderrFuture);
             }
@@ -346,8 +358,6 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
             return customValue;
         }
 
-        private static final String DOCKER_IMAGE = "ghcr.io/runify-dev/hush-toolbox:v0.1.0";
-
         private Supplier<List<Node>> executeInDocker(WorkFlowManage wfm, TerminalNode node, TerminalConfig config, String runId, int timeout) {
             if (config.withWriteArguments()) {
                 wfm.write(node, new ToolCallContent("run_command", "",
@@ -356,26 +366,32 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
 
             CompletableFuture<String> stdoutFuture = null;
             CompletableFuture<String> stderrFuture = null;
+            DockerClient dockerClient = null;
+            String cid = null;
 
-            try (DockerClient dc = DockerClientBuilder.getInstance().build()) {
-                final DockerClient dockerClient = dc;
+            try {
+                dockerClient = DockerClientBuilder.getInstance().build();
+                final DockerClient dc = dockerClient;
 
                 String userHome = System.getProperty("user.home");
                 UUID conversationId = (UUID) wfm.getParams().getOrDefault("conversationId", CommonUtils.uuid7());
                 String workDir = userHome + "/.runify/" + conversationId;
                 String caCertPath = userHome + "/.hush/hush-ca-public/ca.crt";
 
+                // 拉镜像用独立超时，不占用命令执行的时间预算
                 dockerClient.pullImageCmd(DOCKER_IMAGE)
                         .exec(new PullImageResultCallback())
-                        .awaitCompletion(timeout, TimeUnit.SECONDS);
+                        .awaitCompletion(IMAGE_PULL_TIMEOUT, TimeUnit.SECONDS);
 
+                // 注意：去掉了 withAutoRemove(true)。
+                // autoRemove 会在容器退出瞬间删除容器，与随后读取退出码 inspect 形成竞态，
+                // 经常导致命令成功却抛 NotFoundException。改为 finally 手动删除。
                 CreateContainerResponse container = dockerClient.createContainerCmd(DOCKER_IMAGE)
                         .withHostConfig(HostConfig.newHostConfig()
                                 .withBinds(
                                         Bind.parse(caCertPath + ":/etc/hush/ca.crt:ro"),
                                         Bind.parse(workDir + ":/workspace")
-                                )
-                                .withAutoRemove(true))
+                                ))
                         .withEnv(
                                 "HTTP_PROXY=http://host.docker.internal:25220",
                                 "HTTPS_PROXY=http://host.docker.internal:25220",
@@ -385,19 +401,27 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
                         .withCmd("sh", "-c", config.command())
                         .exec();
 
-                final String cid = container.getId();
+                cid = container.getId();
                 node.containerId = cid;
+                final String containerId = cid;
 
-                if (checkCancelled(wfm, node, config, runId, dockerClient, cid)) {
+                if (node.getStatus() == NodeStatus.CANCELLED) {
+                    stopDockerContainer(dockerClient, cid);
                     return invokeCancel(wfm, node, config, runId);
                 }
 
                 StringBuilder stdoutSb = new StringBuilder();
                 StringBuilder stderrSb = new StringBuilder();
 
+                // 先注册等待退出的回调，再 start。
+                // wait 端点会一直阻塞到容器进入 stopped 状态，因此可以可靠捕获
+                // 秒级完成的容器退出码，无需轮询 inspect（之前 inspect 首次可能误判已完成）。
+                WaitContainerResultCallback waitCallback =
+                        dockerClient.waitContainerCmd(cid).exec(new WaitContainerResultCallback());
+
                 stdoutFuture = CompletableFuture.supplyAsync(() -> {
                     try {
-                        dockerClient.logContainerCmd(cid)
+                        dc.logContainerCmd(containerId)
                                 .withStdOut(true).withStdErr(false).withFollowStream(true)
                                 .exec(new LogContainerResultCallback() {
                                     @Override
@@ -412,11 +436,11 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
                         Thread.currentThread().interrupt();
                     }
                     return stdoutSb.toString();
-                }, Executors.newVirtualThreadPerTaskExecutor());
+                }, STREAM_EXECUTOR);
 
                 stderrFuture = CompletableFuture.supplyAsync(() -> {
                     try {
-                        dockerClient.logContainerCmd(cid)
+                        dc.logContainerCmd(containerId)
                                 .withStdOut(false).withStdErr(true).withFollowStream(true)
                                 .exec(new LogContainerResultCallback() {
                                     @Override
@@ -428,16 +452,22 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
                         Thread.currentThread().interrupt();
                     }
                     return stderrSb.toString();
-                }, Executors.newVirtualThreadPerTaskExecutor());
+                }, STREAM_EXECUTOR);
 
                 dockerClient.startContainerCmd(cid).exec();
 
-                boolean finished = waitForContainer(dockerClient, cid, timeout, () -> {
+                // 分段等待容器退出，每秒检查取消标志
+                boolean finished = false;
+                for (int elapsed = 0; elapsed < timeout; elapsed++) {
                     if (node.getStatus() == NodeStatus.CANCELLED) {
                         stopDockerContainer(dockerClient, cid);
+                        return invokeCancel(wfm, node, config, runId);
                     }
-                    return node.getStatus() == NodeStatus.CANCELLED;
-                });
+                    if (waitCallback.awaitCompletion(1, TimeUnit.SECONDS)) {
+                        finished = true;
+                        break;
+                    }
+                }
 
                 if (!finished) {
                     stopDockerContainer(dockerClient, cid);
@@ -452,11 +482,10 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
                     return invokeCancel(wfm, node, config, runId);
                 }
 
+                // 容器已退出，awaitStatusCode() 立即返回；此时容器尚未删除，能稳定拿到退出码
+                int exitCode = waitCallback.awaitStatusCode();
                 String stdout = stdoutFuture.get(5, TimeUnit.SECONDS);
                 String stderr = stderrFuture.get(5, TimeUnit.SECONDS);
-
-                var inspect = dockerClient.inspectContainerCmd(cid).exec();
-                int exitCode = inspect.getState().getExitCode() != null ? inspect.getState().getExitCode() : -1;
                 writeResult(wfm, node, config, runId, stdout, stderr, exitCode);
 
             } catch (Exception e) {
@@ -468,37 +497,31 @@ public class TerminalNode extends INode<TerminalNode, TerminalNodeData> {
                 node.containerId = null;
                 cleanupFuture(stdoutFuture);
                 cleanupFuture(stderrFuture);
+                // 手动删除容器（替代 autoRemove），覆盖正常/取消/超时/异常所有路径
+                if (cid != null && dockerClient != null) {
+                    removeDockerContainer(dockerClient, cid);
+                }
+                if (dockerClient != null) {
+                    try {
+                        dockerClient.close();
+                    } catch (Exception ignored) {
+                    }
+                }
             }
 
             return wfm.nextNodeSupplier(node.node.getId());
         }
 
-        private boolean checkCancelled(WorkFlowManage wfm, TerminalNode node, TerminalConfig config,
-                                        String runId, DockerClient dockerClient, String containerId) {
-            if (node.getStatus() == NodeStatus.CANCELLED) {
-                stopDockerContainer(dockerClient, containerId);
-                return true;
-            }
-            return false;
-        }
-
-        private boolean waitForContainer(DockerClient dockerClient, String containerId, int timeout,
-                                          BooleanSupplier shouldStop) {
-            for (int elapsed = 0; elapsed < timeout; elapsed++) {
-                if (shouldStop.getAsBoolean()) return false;
-                var inspect = dockerClient.inspectContainerCmd(containerId).exec();
-                if (!inspect.getState().getRunning()) return true;
-                try { Thread.sleep(1000); } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    return false;
-                }
-            }
-            return false;
-        }
-
         private static void stopDockerContainer(DockerClient dockerClient, String containerId) {
             try {
                 dockerClient.stopContainerCmd(containerId).withTimeout(5).exec();
+            } catch (Exception ignored) {
+            }
+        }
+
+        private static void removeDockerContainer(DockerClient dockerClient, String containerId) {
+            try {
+                dockerClient.removeContainerCmd(containerId).withForce(true).exec();
             } catch (Exception ignored) {
             }
         }

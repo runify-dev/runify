@@ -172,11 +172,11 @@ const items = ref([
     permissions: [PermissionConstants.APPLICATION_READ, Role.ADMIN, Role.USER]
   },
   {
-    label: '笔记',
-    icon: 'pi pi-home',
-    name: 'note',
-    permissions: [PermissionConstants.NOTE_READ, Role.ADMIN, Role.USER]
-  },
+      label: '知识库',
+      icon: 'pi pi-book',
+      name: 'knowledge',
+      permissions: [PermissionConstants.KNOWLEDGE_READ, Role.ADMIN, Role.USER]
+    },
   {
     label: '模型',
     icon: 'pi pi-home',
@@ -190,15 +190,15 @@ const items = ref([
     permissions: [PermissionConstants.SKILL_READ, Role.ADMIN, Role.USER]
   },
   {
-    label: '项目',
-    icon: 'pi pi-search',
-    name: 'project',
-    permissions: [PermissionConstants.PROJECT_READ, Role.ADMIN, Role.USER]
-  },
-  {
     label: '数据源',
     icon: 'pi pi-database',
     name: 'datasource',
+    permissions: [PermissionConstants.PROJECT_READ, Role.ADMIN, Role.USER]
+  },
+  {
+    label: '项目',
+    icon: 'pi pi-search',
+    name: 'project',
     permissions: [PermissionConstants.PROJECT_READ, Role.ADMIN, Role.USER]
   }
 ])

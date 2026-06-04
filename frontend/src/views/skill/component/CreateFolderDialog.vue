@@ -24,7 +24,7 @@ const skillId = ref('')
 
 const open = (options: { skillId: string; parentId?: string }) => {
   skillId.value = options.skillId
-  parentId.value = options.parentId
+  parentId.value = options.parentId ?? ''
   name.value = '新建文件夹'
   visible.value = true
 }

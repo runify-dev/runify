@@ -23,6 +23,7 @@ import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
@@ -105,7 +106,7 @@ public class WorkFlowManage {
         this.write = write;
         this.params = params;
         this.context = context;
-        this.nodes = new ArrayList<>();
+        this.nodes = new CopyOnWriteArrayList<>();
         this.startTime = LocalDateTime.now();
     }
 

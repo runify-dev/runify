@@ -17,14 +17,6 @@ export const PermissionConstants = {
     9
   ),
 
-  NOTE_READ: new Permission(Group.NOTE, Group.NOTE, Operate.READ, 0),
-  NOTE_EDIT: new Permission(Group.NOTE, Group.NOTE, Operate.EDIT, 1),
-  NOTE_DELETE: new Permission(Group.NOTE, Group.NOTE, Operate.DELETE, 2),
-  NOTE_CREATE: new Permission(Group.NOTE, Group.NOTE, Operate.CREATE, 3),
-  NOTE_FOLDER_EDIT: new Permission(Group.NOTE, Group.FOLDER, Operate.EDIT, 4),
-  NOTE_FOLDER_DELETE: new Permission(Group.NOTE, Group.FOLDER, Operate.DELETE, 5),
-  NOTE_FOLDER_CREATE: new Permission(Group.NOTE, Group.FOLDER, Operate.CREATE, 6),
-
   MODEL_READ: new Permission(Group.MODEL, Group.MODEL, Operate.READ, 0),
   MODEL_EDIT: new Permission(Group.MODEL, Group.MODEL, Operate.EDIT, 1),
   MODEL_DELETE: new Permission(Group.MODEL, Group.MODEL, Operate.DELETE, 2),
@@ -110,5 +102,13 @@ export const PermissionConstants = {
   SKILL_FOLDER_EDIT: new Permission(Group.SKILL, Group.FOLDER, Operate.EDIT, 4),
   SKILL_FOLDER_DELETE: new Permission(Group.SKILL, Group.FOLDER, Operate.DELETE, 5),
   SKILL_FOLDER_CREATE: new Permission(Group.SKILL, Group.FOLDER, Operate.CREATE, 6),
+
+  KNOWLEDGE_READ: new Permission(Group.KNOWLEDGE, Group.KNOWLEDGE, Operate.READ, 0),
+  KNOWLEDGE_EDIT: new Permission(Group.KNOWLEDGE, Group.KNOWLEDGE, Operate.EDIT, 1),
+  KNOWLEDGE_DELETE: new Permission(Group.KNOWLEDGE, Group.KNOWLEDGE, Operate.DELETE, 2),
+  KNOWLEDGE_CREATE: new Permission(Group.KNOWLEDGE, Group.KNOWLEDGE, Operate.CREATE, 3),
+  KNOWLEDGE_FOLDER_EDIT: new Permission(Group.KNOWLEDGE, Group.FOLDER, Operate.EDIT, 4),
+  KNOWLEDGE_FOLDER_DELETE: new Permission(Group.KNOWLEDGE, Group.FOLDER, Operate.DELETE, 5),
+  KNOWLEDGE_FOLDER_CREATE: new Permission(Group.KNOWLEDGE, Group.FOLDER, Operate.CREATE, 6),
 
 }

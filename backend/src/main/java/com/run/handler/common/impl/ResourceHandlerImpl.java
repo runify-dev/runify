@@ -234,8 +234,8 @@ public abstract class ResourceHandlerImpl<R extends BaseEntity<R>,
                     .compose(n -> resourceMapper.save(n).compose(ok -> Future.succeededFuture(n)));
         } else {
             R resource = newResource(nodeId, parentUuId, name, context);
-            future = Tool.getAvailableNodeName(resourceMapper, parentUuId, this::getName, this::getNamePrefix)
-                    .compose(ok -> Tool.getNodeRelation(relationMapper, parentUuId, nodeId, this::newRelation, this::getAncestorId, this::getDepth))
+            future = Tool.validName(resourceMapper, parentUuId, name)
+                    .compose(_ -> Tool.getNodeRelation(relationMapper, parentUuId, nodeId, this::newRelation, this::getAncestorId, this::getDepth))
                     .compose(relationMapper::batch_save)
                     .compose(ok -> resourceMapper.save(resource))
                     .compose(ok -> Future.succeededFuture(resource));

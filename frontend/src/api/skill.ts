@@ -59,7 +59,7 @@ const remove = (resourceId: string, fileId: string): Promise<Result<boolean>> =>
   return del(`/skill/resources/${resourceId}/files/${fileId}`)
 }
 
-const edit = (resourceId: string, data: { name?: string; icon?: string; desc?: string; parameterValue?: string; skillParameterForm?: any[] }): Promise<Result<any>> => {
+const edit = (resourceId: string, data: { name?: string; icon?: string; desc?: string; parameterValue?: Record<string, any>; skillParameterForm?: any[] }): Promise<Result<any>> => {
   return put(`/skill/resources/${resourceId}`, data)
 }
 

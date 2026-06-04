@@ -227,16 +227,16 @@ export const fileUploadNode = {
   }
 }
 
-export const noteSearchNode = {
-  type: 'note-search-node',
+export const knowledgeSearchNode = {
+  type: 'knowledge-search-node',
   text: '',
   x: 0,
   y: 0,
-  label: '笔记检索',
+  label: '知识检索',
   properties: {
     width: 200,
     height: 50,
-    name: '笔记检索',
+    name: '知识检索',
     isHovered: false,
     field_list: [
       { label: '结果列表', value: 'hits' },

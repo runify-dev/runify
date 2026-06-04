@@ -64,6 +64,14 @@ public enum PermissionConstants {
     SKILL_FOLDER_DELETE(new Permission(Group.SKILL, Group.FOLDER, Operate.DELETE, 5), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
     SKILL_FOLDER_CREATE(new Permission(Group.SKILL, Group.FOLDER, Operate.CREATE, 6), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
 
+    KNOWLEDGE_READ(new Permission(Group.KNOWLEDGE, Group.KNOWLEDGE, Operate.READ, 0), List.of(ResourcePermissionGroup.VIEW, ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    KNOWLEDGE_EDIT(new Permission(Group.KNOWLEDGE, Group.KNOWLEDGE, Operate.EDIT, 1), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    KNOWLEDGE_DELETE(new Permission(Group.KNOWLEDGE, Group.KNOWLEDGE, Operate.DELETE, 2), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    KNOWLEDGE_CREATE(new Permission(Group.KNOWLEDGE, Group.KNOWLEDGE, Operate.CREATE, 3), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    KNOWLEDGE_FOLDER_EDIT(new Permission(Group.KNOWLEDGE, Group.FOLDER, Operate.EDIT, 4), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    KNOWLEDGE_FOLDER_DELETE(new Permission(Group.KNOWLEDGE, Group.FOLDER, Operate.DELETE, 5), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    KNOWLEDGE_FOLDER_CREATE(new Permission(Group.KNOWLEDGE, Group.FOLDER, Operate.CREATE, 6), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+
     /**
      * ---------------------------系统权限---------------------------------------------------------------------------
      */
@@ -93,6 +101,7 @@ public enum PermissionConstants {
         MODEL,
         DATASOURCE,
         SKILL,
+        KNOWLEDGE,
         USER_MANAGEMENT,
         ROLE_MANAGEMENT,
         /*--------下面是子菜单 -------------------- */
