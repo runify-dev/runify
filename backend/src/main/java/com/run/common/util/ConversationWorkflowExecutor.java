@@ -106,7 +106,7 @@ public class ConversationWorkflowExecutor {
             List<ConversationMessage> sorted = sortByTime(conversationMessages);
             initSseResponse(context);
             messageQueue.create(conversationId.toString());
-            ensureToolStateDir(conversationId);
+            ensureToolStateDir(applicationId, conversationId);
 
             Map<String, Object> params = new HashMap<>(Map.of(
                     "messages", sorted,
@@ -174,8 +174,8 @@ public class ConversationWorkflowExecutor {
      * @param conversationId 对话id
      * @throws Exception 错误
      */
-    private void ensureToolStateDir(UUID conversationId) throws Exception {
-        Path basePath = Path.of(System.getProperty("user.home") + "/.runify/" + conversationId, "_tool_state");
+    private void ensureToolStateDir(UUID applicationId, UUID conversationId) throws Exception {
+        Path basePath = Path.of(System.getProperty("user.home") + "/.runify/" + applicationId + "/" + conversationId, "_tool_state");
         Files.createDirectories(basePath);
     }
 

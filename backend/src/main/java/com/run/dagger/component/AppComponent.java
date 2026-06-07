@@ -3,9 +3,7 @@ package com.run.dagger.component;
 import com.run.common.initialization.AppInitialization;
 import com.run.common.search.SearchClient;
 import com.run.dagger.module.*;
-import com.run.dao.mapper.DatasourceMapper;
-import com.run.dao.mapper.FileMapper;
-import com.run.dao.mapper.ModelMapper;
+import com.run.dao.mapper.*;
 import dagger.Component;
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.Router;
@@ -28,6 +26,10 @@ public interface AppComponent {
     AppInitialization getRouterInitialization();
 
     ModelMapper modelMapper();
+
+    SkillMapper skillMapper();
+
+    SkillFileMapper skillFileMapper();
 
     DatasourceMapper dataSourceMapper();
 

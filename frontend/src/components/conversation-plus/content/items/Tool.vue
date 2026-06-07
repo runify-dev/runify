@@ -11,6 +11,8 @@ import ListDir from './tool/ListDir.vue'
 import Grep from './tool/Grep.vue'
 import Glob from './tool/Glob.vue'
 import CreateFile from './tool/CreateFile.vue'
+import ListSkills from './tool/ListSkills.vue'
+import DownloadSkills from './tool/DownloadSkills.vue'
 import DefaultTool from './tool/index.vue'
 const props = defineProps<{ content: any }>()
 
@@ -31,6 +33,8 @@ const kw: Record<string, any> = {
   grep: Grep,
   glob: Glob,
   create_file: CreateFile,
+  list_skills: ListSkills,
+  download_skills: DownloadSkills,
   default: DefaultTool
 }
 </script>

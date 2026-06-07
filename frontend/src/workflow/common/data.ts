@@ -507,6 +507,57 @@ export const grepNode = {
   }
 }
 
+export const downloadSkillsNode = {
+  type: 'download-skills-node',
+  text: '',
+  x: 0,
+  y: 0,
+  label: '技能下载',
+  properties: {
+    width: 200,
+    height: 50,
+    name: '技能下载',
+    isHovered: false,
+    field_list: [
+      { label: '技能ID', value: 'skillId' },
+      { label: '技能名称', value: 'skillName' },
+      { label: '文件数', value: 'files' },
+      { label: '安装状态', value: 'status' },
+      { label: '本地路径', value: 'localPath' }
+    ],
+    nodeData: {
+      location: 'customize',
+      reference: [],
+      skillIdLocation: 'customize',
+      skillIdReference: [],
+      skillId: ''
+    }
+  }
+}
+
+export const listSkillsNode = {
+  type: 'list-skills-node',
+  text: '',
+  x: 0,
+  y: 0,
+  label: '技能列表',
+  properties: {
+    width: 200,
+    height: 50,
+    name: '技能列表',
+    isHovered: false,
+    field_list: [
+      { label: '技能列表', value: 'skills' },
+      { label: '摘要', value: 'summary' },
+      { label: '技能数', value: 'skills_count' }
+    ],
+    nodeData: {
+      location: 'customize',
+      reference: []
+    }
+  }
+}
+
 export const extractNode = {
   type: 'extract-node',
   text: '',

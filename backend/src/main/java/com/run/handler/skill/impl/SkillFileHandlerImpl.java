@@ -2,9 +2,11 @@ package com.run.handler.skill.impl;
 
 import com.run.common.result.Result;
 import com.run.common.util.CommonUtils;
+import com.run.dao.entity.Skill;
 import com.run.dao.entity.SkillFile;
 import com.run.dao.mapper.FileMapper;
 import com.run.dao.mapper.SkillFileMapper;
+import com.run.dao.mapper.SkillMapper;
 import com.run.handler.skill.ISkillFileHandler;
 import com.run.sql.DSL;
 import com.run.common.exception.ApiException;
@@ -23,11 +25,24 @@ import java.util.UUID;
 public class SkillFileHandlerImpl implements ISkillFileHandler {
     private final SkillFileMapper skillFileMapper;
     private final FileMapper fileMapper;
+    private final SkillMapper skillMapper;
 
     @Inject
-    public SkillFileHandlerImpl(SkillFileMapper skillFileMapper, FileMapper fileMapper) {
+    public SkillFileHandlerImpl(SkillFileMapper skillFileMapper, FileMapper fileMapper, SkillMapper skillMapper) {
         this.skillFileMapper = skillFileMapper;
         this.fileMapper = fileMapper;
+        this.skillMapper = skillMapper;
+    }
+
+    /**
+     * 同步更新父 Skill 的 update_time
+     */
+    private Future<Void> touchSkill(String skillId) {
+        return skillMapper.update(
+                Map.of(DSL.field("update_time"), DSL.param("update_time")),
+                DSL.field("id").eq(DSL.param("id")),
+                Map.of("update_time", LocalDateTime.now(), "id", skillId)
+        ).mapEmpty();
     }
 
     @Override
@@ -93,7 +108,7 @@ public class SkillFileHandlerImpl implements ISkillFileHandler {
                             UUID.fromString(skillId),
                             name, "folder", null, null, null, null, null, now, now
                     );
-                    return skillFileMapper.save(folder).map(folder);
+                    return skillFileMapper.save(folder).compose(_ -> touchSkill(skillId)).map(folder);
                 })
                 .onSuccess(folder -> context.end(Result.success(folder).toBuffer()))
                 .onFailure(context::fail);
@@ -113,7 +128,7 @@ public class SkillFileHandlerImpl implements ISkillFileHandler {
                             UUID.fromString(skillId),
                             name, "text", "", null, null, null, null, now, now
                     );
-                    return skillFileMapper.save(textFile).map(textFile);
+                    return skillFileMapper.save(textFile).compose(_ -> touchSkill(skillId)).map(textFile);
                 })
                 .onSuccess(textFile -> context.end(Result.success(textFile).toBuffer()))
                 .onFailure(context::fail);
@@ -147,6 +162,7 @@ public class SkillFileHandlerImpl implements ISkillFileHandler {
                             null, now, now
                     );
                     skillFileMapper.save(skillFile)
+                            .compose(_ -> touchSkill(skillId))
                             .onSuccess(_ -> context.end(Result.success(skillFile).toBuffer()))
                             .onFailure(context::fail);
                 })
@@ -163,6 +179,7 @@ public class SkillFileHandlerImpl implements ISkillFileHandler {
                 DSL.field("id").eq(DSL.param("id")),
                 Map.of("content", content, "update_time", LocalDateTime.now(), "id", fileId)
         ).compose(_ -> skillFileMapper.getById(fileId))
+                .compose(file -> touchSkill(file.getSkillId().toString()).map(file))
                 .onSuccess(rs -> context.end(Result.success(rs).toBuffer()))
                 .onFailure(context::fail);
     }
@@ -182,6 +199,7 @@ public class SkillFileHandlerImpl implements ISkillFileHandler {
                         DSL.field("id").eq(DSL.param("id")),
                         Map.of("name", name, "update_time", LocalDateTime.now(), "id", fileId)))
                 .compose(_ -> skillFileMapper.getById(fileId))
+                .compose(file -> touchSkill(file.getSkillId().toString()).map(file))
                 .onSuccess(rs -> context.end(Result.success(rs).toBuffer()))
                 .onFailure(context::fail);
     }
@@ -191,10 +209,11 @@ public class SkillFileHandlerImpl implements ISkillFileHandler {
         String fileId = context.pathParam("fileId");
         skillFileMapper.getById(fileId)
                 .compose(skillFile -> {
+                    String skillId = skillFile.getSkillId().toString();
                     if ("folder".equals(skillFile.getType())) {
-                        return deleteRecursively(fileId);
+                        return deleteRecursively(fileId).compose(_ -> touchSkill(skillId)).map(true);
                     }
-                    return skillFileMapper.deleteById(fileId).map(true);
+                    return skillFileMapper.deleteById(fileId).compose(_ -> touchSkill(skillId)).map(true);
                 })
                 .onSuccess(_ -> context.end(Result.success(true).toBuffer()))
                 .onFailure(context::fail);

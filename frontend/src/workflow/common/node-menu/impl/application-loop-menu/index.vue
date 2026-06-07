@@ -48,6 +48,8 @@ import {
   readFileNode,
   globNode,
   grepNode,
+  listSkillsNode,
+  downloadSkillsNode,
   extractNode,
   listDirNode,
   createFileNode
@@ -64,7 +66,7 @@ const groups = [
     value: '1',
     label: 'AI 工具',
     icon: 'pi pi-bolt',
-    nodes: [terminalNode, readFileNode, listDirNode, globNode, grepNode, applyPatchNode, fileDownloadNode, fileUploadNode, createFileNode]
+    nodes: [terminalNode, readFileNode, listDirNode, globNode, grepNode, applyPatchNode, fileDownloadNode, fileUploadNode, createFileNode, listSkillsNode, downloadSkillsNode]
   },
   {
     value: '2',

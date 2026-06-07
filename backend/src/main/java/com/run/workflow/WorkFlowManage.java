@@ -392,7 +392,13 @@ public class WorkFlowManage {
 
     public Path getWorkingDirectory() {
         UUID conversationId = (UUID) this.getParams().getOrDefault("conversationId", CommonUtils.uuid7());
-        return Path.of(System.getProperty("user.home") + "/.runify/" + conversationId);
+        UUID applicationId = (UUID) this.getParams().getOrDefault("applicationId", CommonUtils.uuid7());
+        return Path.of(System.getProperty("user.home") + "/.runify/" + applicationId + "/" + conversationId);
+    }
+
+    public Path getApplicationDirectory() {
+        UUID applicationId = (UUID) this.getParams().getOrDefault("applicationId", CommonUtils.uuid7());
+        return Path.of(System.getProperty("user.home") + "/.runify/" + applicationId);
     }
 
     public void clear() {
