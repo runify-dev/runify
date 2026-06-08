@@ -335,7 +335,7 @@ public class SkillHandlerImpl extends ResourceHandlerImpl<Skill, SkillFolder, Sk
                 Path contentPath = contentRoot.resolve(buildFilePathFromStructure(structure, item));
 
                 if ("text".equals(type)) {
-                    sf.setContent(Files.exists(contentPath) ? Files.readString(contentPath) : "");
+                    sf.setContent(Files.exists(contentPath) ? readTextFile(contentPath) : "");
                     textsToSave.add(sf);
                 } else if ("file".equals(type)) {
                     sf.setFileName(item.getString("fileName", item.getString("name")));
@@ -573,6 +573,15 @@ public class SkillHandlerImpl extends ResourceHandlerImpl<Skill, SkillFolder, Sk
             parentId = parent.getString("parentId", "");
         }
         return String.join("/", parts);
+    }
+
+    private String readTextFile(Path path) throws IOException {
+        byte[] bytes = Files.readAllBytes(path);
+        try {
+            return new String(bytes, StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            return new String(bytes, StandardCharsets.ISO_8859_1);
+        }
     }
 
     private void deleteTempDir(Path dir) {
