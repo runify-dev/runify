@@ -42,7 +42,15 @@ const newInstance = (content?: string, onUpdate?: (editor: any) => void, editabl
       TaskList,
       TaskItem.configure({ nested: true }),
       Highlight.configure({ multicolor: true }),
-      Image,
+      Image.configure({
+        upload: async (file, onProgress) => {
+          const fd = new FormData()
+          fd.append('file', file)
+          return FileAPI.uploadFile(fd, onProgress).then((ok) => {
+            return `./api/storage/file/${ok.data.id}`
+          })
+        }
+      }),
       Typography,
       Superscript,
       Subscript,

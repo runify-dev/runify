@@ -1,7 +1,7 @@
 import { CodeBlockLowlight } from './code-block-lowlight-node/index'
 import { StarterKit } from '@tiptap/starter-kit'
 import { HorizontalRule } from './horizontal-rule-node/index'
-import { Image } from '@tiptap/extension-image'
+import { ImageUpload as Image } from './image-upload-node/index'
 import { TaskItem, TaskList } from '@tiptap/extension-list'
 import { TextAlign } from '@tiptap/extension-text-align'
 import { Typography } from '@tiptap/extension-typography'
