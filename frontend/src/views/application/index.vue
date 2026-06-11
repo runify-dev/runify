@@ -106,11 +106,11 @@
         :api="treeCommonAPI"
         @create:success="createResourceSuccess"
       ></AgentFormDialog>
-      <NoteSearchFormDialog
-        ref="noteSearchFormDialogRef"
+      <KnowledgeSearchDialog
+        ref="knowledgeSearchDialogRef"
         :api="treeCommonAPI"
         @create:success="createResourceSuccess"
-      ></NoteSearchFormDialog>
+      ></KnowledgeSearchDialog>
       <CreateFolderDialog
         @create:folder:success="createFolderSuccess"
         ref="createFolderDialogRef"
@@ -130,7 +130,7 @@
 import AppMenuContent from '@/layout-plus/app-menu-content/index.vue'
 import ApplicationFormDialog from './component/ApplicationFormDialog.vue'
 import AgentFormDialog from './component/AgentFormDialog.vue'
-import NoteSearchFormDialog from './component/NoteSearchFormDialog.vue'
+import KnowledgeSearchDialog from './component/KnowledgeSearchDialog.vue'
 import CreateFolderDialog from '@/components/create-folder-dialog/index.vue'
 import RenameDialog from '@/components/rename-dialog/index.vue'
 import DropdownMenu from '@/components/dropdown-menu/index.vue'
@@ -307,7 +307,7 @@ const createFolderSuccess = (key: string, node: any) => {
 }
 const applicationFormDialogRef = ref<InstanceType<typeof ApplicationFormDialog>>()
 const agentFormDialogRef = ref<InstanceType<typeof AgentFormDialog>>()
-const noteSearchFormDialogRef = ref<InstanceType<typeof NoteSearchFormDialog>>()
+const knowledgeSearchDialogRef = ref<InstanceType<typeof KnowledgeSearchDialog>>()
 const createFolderDialogRef = ref<InstanceType<typeof CreateFolderDialog>>()
 const renameDialogRef = ref<InstanceType<typeof RenameDialog>>()
 const openCreateApplicationDialog = (node?: TreeNode) => {
@@ -316,8 +316,8 @@ const openCreateApplicationDialog = (node?: TreeNode) => {
 const openAgentFormDialog = (node?: TreeNode) => {
   agentFormDialogRef.value?.open(node)
 }
-const openNoteSearchFormDialog = (node?: TreeNode) => {
-  noteSearchFormDialogRef.value?.open(node)
+const openKnowledgeSearchDialog = (node?: TreeNode) => {
+  knowledgeSearchDialogRef.value?.open(node)
 }
 const openEditApplicationDialog = (data: any) => {
   applicationFormDialogRef.value?.openEdit(data)
@@ -348,7 +348,7 @@ onMounted(() => {
     if (type === 'agent') {
       openAgentFormDialog(treeNode ? treeNode : undefined)
     } else if (type === 'search') {
-      openNoteSearchFormDialog(treeNode ? treeNode : undefined)
+      openKnowledgeSearchDialog(treeNode ? treeNode : undefined)
     } else {
       openCreateApplicationDialog(treeNode ? treeNode : undefined)
     }

@@ -6,6 +6,21 @@
     :style="{ width: '28rem' }"
   >
     <div class="flex flex-col gap-4">
+      <!-- 知识库选择 -->
+      <div class="flex flex-col gap-1.5">
+        <label class="text-sm font-medium text-surface-700">选择知识库</label>
+        <MultiSelect
+          v-model="form.knowledgeIds"
+          :options="knowledgeList"
+          optionLabel="name"
+          optionValue="id"
+          filter
+          placeholder="请选择知识库"
+          :maxSelectedLabels="3"
+          class="w-full"
+        />
+      </div>
+
       <!-- 模型选择 -->
       <div class="flex flex-col gap-1.5">
         <label class="text-sm font-medium text-surface-700">选择模型</label>
@@ -100,6 +115,7 @@ import {TreeCommonAPI} from '@/api/tree'
 import type {TreeNode} from 'primevue/treenode'
 import {getWorkflowCall} from "@/views/application/template";
 import {ROOT_FOLDER_ID} from "@/constants/common.ts";
+import MultiSelect from 'primevue/multiselect'
 
 const props = defineProps<{ api: TreeCommonAPI }>()
 const emit = defineEmits(['create:success'])
@@ -109,14 +125,17 @@ const visible = ref(false)
 const current = ref<TreeNode>()
 
 const modelCommonAPI = new TreeCommonAPI('model')
+const knowledgeCommonAPI = new TreeCommonAPI('knowledge')
 const modelList = ref<Array<any>>([])
+const knowledgeList = ref<Array<any>>([])
 
 const form = reactive({
   name: '',
   icon: '',
   desc: '',
   allowAnonymousAccess: false,
-  modelId: ''
+  modelId: '',
+  knowledgeIds: [] as string[]
 })
 
 const resetForm = () => {
@@ -125,6 +144,7 @@ const resetForm = () => {
   form.desc = ''
   form.allowAnonymousAccess = false
   form.modelId = ''
+  form.knowledgeIds = []
 }
 
 const triggerFileInput = () => {
@@ -152,7 +172,7 @@ const submit = () => {
     desc: form.desc,
     icon: form.icon,
     allowAnonymousAccess: form.allowAnonymousAccess,
-    workflow: getWorkflowCall('search')(form.modelId)
+    workflow: getWorkflowCall('search')(form.modelId, form.knowledgeIds)
   }
 
   props.api
@@ -169,6 +189,9 @@ const open = (node?: TreeNode) => {
   visible.value = true
   modelCommonAPI.listResource(ROOT_FOLDER_ID).then((ok) => {
     modelList.value = ok.data
+  })
+  knowledgeCommonAPI.listResource(ROOT_FOLDER_ID).then((ok) => {
+    knowledgeList.value = ok.data
   })
 }
 
