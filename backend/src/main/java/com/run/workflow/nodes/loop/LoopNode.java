@@ -135,7 +135,10 @@ public class LoopNode extends INode<LoopNode, LoopNodeData> {
                              List<Node> children, List<com.run.workflow.entity.Edge> edges,
                              WorkflowType loopWfType, Node startNode,
                              List<Object> items, int index) {
-            if (node.status == NodeStatus.CANCELLED) parentWm.nextInvoke(node, () -> getNextNodes(parentWm, node));
+            if (node.status == NodeStatus.CANCELLED) {
+                parentWm.nextInvoke(node, () -> getNextNodes(parentWm, node));
+                return;
+            }
             if (items != null && index >= items.size()) {
                 node.end(NodeStatus.SUCCESS);
                 parentWm.nextInvoke(node, () -> getNextNodes(parentWm, node));
@@ -168,6 +171,7 @@ public class LoopNode extends INode<LoopNode, LoopNodeData> {
                             return;
                         }
                         if (done) {
+                            System.out.println(done + node.getNode().getId());
                             List<Map<String, Object>> list = wm.getNodes().stream().map(INode::serialize).map(NodeSerialize::toMap).toList();
                             parentWm.writeContext(node, LOOP_CONTEXT_KEY, list);
 
@@ -176,6 +180,7 @@ public class LoopNode extends INode<LoopNode, LoopNodeData> {
                             if (!isBreak.get()) {
                                 iterate(parentWm, node, children, edges, loopWfType, startNode, items, index + 1);
                             } else {
+
                                 parentWm.nextInvoke(node, () -> getNextNodes(parentWm, node));
                             }
                         }

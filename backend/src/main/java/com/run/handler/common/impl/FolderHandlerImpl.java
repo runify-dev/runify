@@ -1,5 +1,6 @@
 package com.run.handler.common.impl;
 
+import com.run.common.exception.ApiException;
 import com.run.common.result.Result;
 import com.run.dao.common.entity.BaseEntity;
 import com.run.dao.common.mapper.BaseMapper;
@@ -12,10 +13,13 @@ import com.run.sql.condition.Condition;
 import io.vertx.core.Future;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 
 
 import java.util.Map;
 import java.util.UUID;
+
+import static com.run.common.constants.CommonConstants.ROOT_FOLDER_ID_STR;
 
 /**
  * {@code @Author:张少虎}
@@ -125,6 +129,9 @@ public abstract class FolderHandlerImpl<F extends BaseEntity<F>,
 
     public void delete(RoutingContext context) {
         String id = context.pathParam("folderId");
+        if (Strings.CS.equals(id, ROOT_FOLDER_ID_STR)) {
+            throw new ApiException(500, "跟目录不能删除");
+        }
         delete(id).onSuccess(rs -> context.end(Result.success(rs).toBuffer()))
                 .onFailure(Future::failedFuture);
     }

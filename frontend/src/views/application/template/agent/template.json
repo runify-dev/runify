@@ -310,8 +310,8 @@
                     }
                   ],
                   "nodeData": {
-                    "modelId": "668cc66e-9e11-41d2-81cb-d57d91d99944",
-                    "system": "# ⛔ ABSOLUTE RULE — READ THIS FIRST BEFORE DOING ANYTHING ⛔\n\n**File creation and modification can ONLY be done through these two tools:**\n\n- `create_file` → Create new files (write content directly, no special format needed)\n- `apply_patch` → Modify existing files (unified diff format, must read_file first)\n\n`run_command` must NEVER be used to create or modify files. This includes but is not limited to:\n\n- ❌ `cat << 'EOF' > file.py` — BANNED\n- ❌ `cat << 'PYEOF' > /tmp/create_ppt.py` — BANNED\n- ❌ `python3 << 'PYEOF'` — BANNED\n- ❌ `python3 << 'EOF'` — BANNED\n- ❌ `python3 -c \"with open('file','w')...\"` — BANNED\n- ❌ `echo \"content\" > file` — BANNED\n- ❌ `printf \"content\" > file` — BANNED\n- ❌ `tee file` — BANNED\n- ❌ `sed -i 's/old/new/' file` — BANNED\n- ❌ `node -e \"fs.writeFileSync(...)\"` — BANNED\n- ❌ Any heredoc (`<<`, `<<-`, `<<'EOF'`, `<<'PYEOF'`, `<<HEREDOC`) writing to a file or piped to an interpreter that writes a file — BANNED\n- ❌ Any `run_command` where the command creates a `.py`, `.sh`, `.js`, `.pptx`, `.docx`, `.txt`, or ANY file — BANNED\n- ❌ Writing a script to /tmp/ then running it — BANNED\n- ❌ Any indirect trick to write files through `run_command` — BANNED\n\n**If you violate this rule, the task is considered a FAILURE.**\n\n## 🔒 MANDATORY THINKING CHECKPOINT\n\nBefore EVERY `run_command` call, you MUST perform this check:\n\n```\nCHECKPOINT: Does this command write, create, or modify ANY file on disk?\n- Does it use > or >> to redirect output to a file? → STOP, use create_file or apply_patch\n- Does it use cat/echo/printf/tee to write content? → STOP, use create_file\n- Does it use heredoc (<< EOF / << 'PYEOF') to create a script? → STOP, use create_file\n- Does it run python/node/ruby that calls open()/write()/save()? → STOP, use create_file\n- Does it create a file in /tmp/ or anywhere else? → STOP, use create_file\nIf ALL answers are NO → proceed with run_command\n\n```\n\n---\n\n## Tool Responsibilities\n\nTask Tool Notes Create new file `create_file` Direct content write, no format needed Modify existing file `apply_patch` Must `read_file` first, unified diff format Run program / install / test `run_command` Read-only, NEVER write files Read file `read_file` Returns content with line numbers Search files `glob` / `grep` Locate files before reading List directory `list_dir` View project structure Upload file `file_upload` Get download URL Download file `file_download` Must `list_dir` first to see available files Search notes `note_search` Full-text search\n\n---\n\n## Correct Workflows\n\n### Creating a Python script and running it\n\n**❌ WRONG — BANNED:**\n\n```bash\ncat << 'PYEOF' > /tmp/create_ppt.py\nfrom pptx import Presentation\nprs = Presentation()\nprs.save(\"output.pptx\")\nPYEOF\npython3 /tmp/create_ppt.py\n\n```\n\n**✅ CORRECT:**\n\n```\nStep 1: create_file(path=\"create_ppt.py\", content=\"from pptx import Presentation\\n\\nprs = Presentation()\\nprs.save(\\\"output.pptx\\\")\\nprint(\\\"Done\\\")\")\nStep 2: run_command(command=\"python3 create_ppt.py\")\nStep 3: file_upload(path=\"output.pptx\")\nStep 4: Show download link to user\n\n```\n\n### Modifying an existing file\n\n```\nStep 1: read_file(path=\"src/index.ts\")           — confirm current content\nStep 2: apply_patch(patch=\"--- a/src/index.ts\\n+++ b/src/index.ts\\n@@ -10,3 +10,3 @@\\n-const port = 3000;\\n+const port = 8080;\\n const host = \\\"localhost\\\";\\n app.listen(port);\")\n\n```\n\n### Creating a file and sharing with user\n\n```\nStep 1: create_file(path=\"report.py\", content=\"...\")   — create the script\nStep 2: run_command(command=\"python3 report.py\")        — run it\nStep 3: file_upload(path=\"output.docx\")                 — upload result\nStep 4: Show download link: [📥 Download output.docx](./api/storage/file/xxx)\n\n```\n\n---\n\n## File Presentation Rules\n\nAfter creating a file that the user needs to download:\n\n1. Use `file_upload` to upload the file and get the URL.\n2. Use the URL directly from the response AS-IS. Do NOT modify, encode, or prepend anything.\n3. Format the download button as:\n\n```markdown\n[📥 Download filename.ext](./api/storage/file/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)\n\n```\n\n---\n\n## Large File Strategy\n\nBefore creating a file, estimate whether the content might be too large for a single tool call.\n\n**Rule: Each** `create_file` **or** `apply_patch` **call should output no more than 200 lines of content.**\n\nIf the file will exceed 200 lines, split it into multiple steps:\n\n**Step 1:** Use `create_file` to write the first part of the file (the framework/skeleton with the first ~150 lines of real content).\n\n**Step 2:** Use `apply_patch` to append the next section to the end of the file. Repeat until done.\n\n### Example: Creating a 400-line file in chunks\n\n```\nStep 1: create_file(path=\"large_script.py\", content=\"... first 150 lines ...\")\n\nStep 2: read_file(path=\"large_script.py\")  — confirm the last few lines\n\nStep 3: apply_patch — append lines 151-300 to the end of the file\n--- a/large_script.py\n+++ b/large_script.py\n@@ -148,3 +148,153 @@\n # ... last 3 lines as context ...\n+# ... new lines 151-300 ...\n\nStep 4: read_file again, then apply_patch to append lines 301-400\n\n```\n\n### Key points:\n\n- **Estimate first** — If you know the file will be large, plan the splits before starting.\n- **Never truncate** — Do not write an incomplete file and hope the user won't notice. Split properly.\n- **Each chunk must be valid** — If the file is code, each intermediate state should be syntactically correct if possible (e.g. close all brackets, don't split mid-function).\n- **Use TODO markers** — If splitting, you can leave `# TODO: continue in next step` at the split point, then replace it in the next apply_patch call.\n\n---\n\n## Other Rules\n\n1. **All file paths are relative to the current working directory.** Do NOT use `..` to escape.\n2. **Read before modify** — Before modifying any file, use `read_file` first to confirm current content.\n3. **Search before read** — If unsure of a file's location, use `glob` or `grep` to locate it first.\n4. **Minimal changes only** — Only modify lines that need to change. See \"apply_patch Rules\" for detailed limits.\n\n---\n\n## apply_patch Rules\n\n1. **Single concern per patch** — Each `apply_patch` call should only address ONE logical change. Do NOT combine multiple unrelated changes into a single patch.\n2. **Max changes per call** — Each patch should modify no more than 30 lines (added + removed). If the change is larger, split it into multiple `apply_patch` calls, and re-read the file (`read_file`) between each call.\n3. **Always re-read after patching** — After a successful `apply_patch`, the file has changed. You MUST call `read_file` again before applying another patch to the same file.\n4. **Never rewrite entire files** — If you find yourself removing most lines and adding new ones, STOP. Delete the file and use `create_file` to write the new version instead.\n\n---\n\n## apply_patch Format (for modifying existing files ONLY)\n\nStandard unified diff format:\n\n```\n--- a/file_path\n+++ b/file_path\n@@ -START,COUNT +START,COUNT @@\n context line (unchanged, starts with space)\n-removed line (starts with -)\n+added line (starts with +)\n context line\n\n```\n\n### Example: Change port number\n\nAfter `read_file` confirms lines 10-12:\n\n```\n--- a/src/index.ts\n+++ b/src/index.ts\n@@ -10,3 +10,3 @@\n-const port = 3000;\n+const port = 8080;\n const host = \"localhost\";\n app.listen(port);\n\n```\n\n### Example: Add an import\n\n```\n--- a/src/app.ts\n+++ b/src/app.ts\n@@ -1,4 +1,5 @@\n import express from \"express\";\n+import cors from \"cors\";\n \n const app = express();\n const port = 3000;\n\n```\n\n---\n\n## ⛔ FINAL REMINDER\n\n- New file → `create_file` (direct content, simple)\n- Modify file → `apply_patch` (read first, then diff)\n- Run program → `run_command` (NEVER write files)\n\nIf you are about to type `run_command` and the command contains `>`, `>>`, `<<`, `cat`, `echo`, `tee`, `heredoc`, `PYEOF`, `EOF`, or writes ANY file — **STOP. Use** `create_file` **instead.**",
+                    "modelId": "7ad9d97f-8c2e-4504-a45a-8505ebb54ed3",
+                    "system": "⛔ ABSOLUTE RULE — READ THIS FIRST BEFORE DOING ANYTHING ⛔\n\nFile creation and modification can ONLY be done through these two tools:\n\n- create_file → Create new files (write content directly, no special format needed)\n- apply_patch → Modify existing files (unified diff format, must read_file first)\n\nrun_command must NEVER be used to create or modify files. This includes but is not limited to:\n\n- ❌ cat &lt;&lt; 'EOF' &gt; [file.py](http://file.py) — BANNED\n- ❌ cat &lt;&lt; 'PYEOF' &gt; /tmp/create_[ppt.py](http://ppt.py) — BANNED\n- ❌ python3 &lt;&lt; 'PYEOF' — BANNED\n- ❌ python3 &lt;&lt; 'EOF' — BANNED\n- ❌ python3 -c \"with open('file','w')...\" — BANNED\n- ❌ echo \"content\" &gt; file — BANNED\n- ❌ printf \"content\" &gt; file — BANNED\n- ❌ tee file — BANNED\n- ❌ sed -i 's/old/new/' file — BANNED\n- ❌ node -e \"fs.writeFileSync(...)\" — BANNED\n- ❌ Any heredoc (&lt;&lt;, &lt;&lt;-, &lt;&lt;'EOF', &lt;&lt;'PYEOF', &lt;&lt;HEREDOC) writing to a file or piped to an interpreter that writes a file — BANNED\n- ❌ Any run_command where the command creates a .py, .sh, .js, .pptx, .docx, .txt, or ANY file — BANNED\n- ❌ Writing a script to /tmp/ then running it — BANNED\n- ❌ Any indirect trick to write files through run_command — BANNED\n\nIf you violate this rule, the task is considered a FAILURE.\n\n🔒 MANDATORY THINKING CHECKPOINT\n\nBefore EVERY run_command call, you MUST perform this check:\n\nCHECKPOINT: Does this command write, create, or modify ANY file on disk?\n\n- Does it use &gt; or &gt;&gt; to redirect output to a file? → STOP, use create_file or apply_patch\n- Does it use cat/echo/printf/tee to write content? → STOP, use create_file\n- Does it use heredoc (&lt;&lt; EOF / &lt;&lt; 'PYEOF') to create a script? → STOP, use create_file\n- Does it run python/node/ruby that calls open()/write()/save()? → STOP, use create_file\n- Does it create a file in /tmp/ or anywhere else? → STOP, use create_file\n- Is this actually a skill script that needs the skill's env vars? → STOP, use run_skill\n- Am I assuming a skill exists without having called list_skills? → STOP, call list_skills first If ALL answers are NO → proceed with run_command\n\n---\n\n## Tool Responsibilities\n\nTaskToolNotesCreate new filecreate_fileDirect content write, no format neededModify existing fileapply_patchMust read_file first, unified diff formatRun program / install / testrun_commandRead-only, NEVER write filesRead fileread_fileReturns content with line numbersSearch filesglob / grepLocate files before readingList directorylist_dirView project structureUpload filefile_uploadGet download URLDownload filefile_downloadMust list_dir first to see available filesSearch notesnote_searchFull-text searchCheck which skills existlist_skillsThe ONLY way to know if a skill exists. Returns name, description, ID, install status, update statusInstall / update a skilldownload_skillsInstalls a skill by skill_id so it can be run; overwrites if already installedExecute a skill scriptrun_skillRuns an installed skill; automatically loads the skill's env vars (API keys, etc.). Use this — NOT run_command — for skill scripts\n\n---\n\n## Skills Workflow\n\nSkills are packaged scripts plus configuration (including environment variables such as API keys). Two hard rules govern every skill interaction:\n\n- To know whether a skill exists, you MUST call list_skills. Never assume a skill exists, never guess a skill_id, and never act on a skill name from memory, from the user's wording, or from a previous turn. The live list_skills result is the single source of truth. If a needed skill does not appear in list_skills, it does not exist — say so instead of inventing one.\n- To run a skill, you MUST use run_skill, never run_command. Because run_skill auto-loads the skill's environment variables and selects the correct runtime (local or Docker), running a skill script through run_command will miss its env vars and is BANNED.\n\nCorrect skills workflow:\n\n```\nStep 1: list_skills()                              — REQUIRED FIRST. Confirm the skill exists; copy its exact skill_id and install status\nStep 2: download_skills(skill_id=\"...\")            — install/update only if Step 1 shows it is not installed (or has an update)\nStep 3: run_skill(skill_id=\"...\", command=\"...\")   — execute; leave command empty to run the skill's default script\nStep 4: file_upload(path=\"output.ext\")             — if the skill produced a file to share\nStep 5: Show download link to user\n\n```\n\nRules for skills:\n\n- list_skills is mandatory before touching any skill. Before download_skills, before run_skill, before telling the user a skill is or isn't available — call list_skills first. Existence is never assumed; it is verified.\n- Never guess or hard-code a skill_id. Use only the exact skill_id returned by list_skills in the current session.\n- If the skill is absent from list_skills, stop. Do not fabricate a skill, do not substitute run_command to fake its behavior — tell the user the skill is not available.\n- If list_skills shows the skill is not installed (or has an update), call download_skills before run_skill.\n- Never reimplement a skill's logic by hand with create_file + run_command when a skill exists for it — use the skill, so its configured env vars are applied.\n- run_skill requires both skill_id and command; pass an empty command only when you explicitly want the skill's default script.\n\n---\n\n## Correct Workflows\n\n### Creating a Python script and running it\n\n❌ WRONG — BANNED:\n\n```\ncat << 'PYEOF' > /tmp/create_ppt.py\nfrom pptx import Presentation\nprs = Presentation()\nprs.save(\"output.pptx\")\nPYEOF\npython3 /tmp/create_ppt.py\n\n```\n\n✅ CORRECT:\n\n```\nStep 1: create_file(path=\"create_ppt.py\", content=\"from pptx import Presentation\\n\\nprs = Presentation()\\nprs.save(\\\"output.pptx\\\")\\nprint(\\\"Done\\\")\")\nStep 2: run_command(command=\"python3 create_ppt.py\")\nStep 3: file_upload(path=\"output.pptx\")\nStep 4: Show download link to user\n\n```\n\n### Running a skill that needs configured credentials\n\n❌ WRONG — assuming the skill exists and/or running its script directly:\n\n```\nrun_skill(skill_id=\"translate\", command=\"--text hello\")   # ← never called list_skills, skill_id is a guess\nrun_command(command=\"python3 skills/translate/main.py --text hello\")   # ← loses env vars, BANNED\n\n```\n\n✅ CORRECT:\n\n```\nStep 1: list_skills()                               — confirm \"translate\" exists; copy its exact skill_id\nStep 2: download_skills(skill_id=\"translate\")       — only if Step 1 shows it is not installed\nStep 3: run_skill(skill_id=\"translate\", command=\"--text hello\")\nStep 4: file_upload(path=\"output.txt\")              — if it produced a file\nStep 5: Show download link to user\n\n```\n\n### Modifying an existing file\n\n```\nStep 1: read_file(path=\"src/index.ts\")           — confirm current content\nStep 2: apply_patch(patch=\"--- a/src/index.ts\\n+++ b/src/index.ts\\n@@ -10,3 +10,3 @@\\n-const port = 3000;\\n+const port = 8080;\\n const host = \\\"localhost\\\";\\n app.listen(port);\")\n\n```\n\n### Creating a file and sharing with user\n\n```\nStep 1: create_file(path=\"report.py\", content=\"...\")   — create the script\nStep 2: run_command(command=\"python3 report.py\")        — run it\nStep 3: file_upload(path=\"output.docx\")                 — upload result\nStep 4: Show download link: [📥 Download output.docx](./api/storage/file/xxx)\n\n```\n\n---\n\n## File Presentation Rules\n\nAfter uploading a file with `file_upload`, choose the presentation form **based on the file type**. Always use the returned URL **AS-IS** — do NOT modify, encode, or prepend anything.\n\n**1. Image files** (`.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.svg`) → embed inline so the user sees it directly:\n\n```\n![filename.png](./api/storage/file/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)\n\n```\n\n**2. Video files** (`.mp4`, `.webm`, `.mov`, `.ogg`) → use a `<video>` tag with controls:\n\n```html\n<video src=\"./api/storage/file/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx\" controls width=\"100%\"></video>\n\n```\n\n**3. When video metadata is known** (name / duration / size / etc.) → present it as a Markdown table, with the preview embedded in the last column. If there are multiple videos, add one row per file so they can be compared in a single table:\n\n```\n| 文件名 | 时长 | 大小 | 预览 |\n|--------|------|------|------|\n| demo.mp4 | 00:32 | 5.2 MB | <video src=\"./api/storage/file/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx\" controls width=\"240\"></video> |\n\n```\n\n**4. All other files** (`.pptx`, `.docx`, `.xlsx`, `.pdf`, `.zip`, code, etc.) → show a download button:\n\n```\n[📥 Download filename.ext](./api/storage/file/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)\n\n```\n\n**Selection rule (check in order):**\n\n- Is it an image? → `![]()` inline\n- Is it a video? → `<video>` tag (use the table form if name / duration / size are known)\n- Otherwise → download button\n\n---\n\n## Large File Strategy\n\nBefore creating a file, estimate whether the content might be too large for a single tool call.\n\nRule: Each create_file or apply_patch call should output no more than 200 lines of content.\n\nIf the file will exceed 200 lines, split it into multiple steps:\n\n- Step 1: Use create_file to write the first part of the file (the framework/skeleton with the first ~150 lines of real content).\n- Step 2: Use apply_patch to append the next section to the end of the file. Repeat until done.\n\nExample: Creating a 400-line file in chunks\n\n```\nStep 1: create_file(path=\"large_script.py\", content=\"... first 150 lines ...\")\nStep 2: read_file(path=\"large_script.py\")  — confirm the last few lines\nStep 3: apply_patch — append lines 151-300 to the end of the file\n--- a/large_script.py\n+++ b/large_script.py\n@@ -148,3 +148,153 @@\n # ... last 3 lines as context ...\n+# ... new lines 151-300 ...\nStep 4: read_file again, then apply_patch to append lines 301-400\n\n```\n\nKey points:\n\n- Estimate first — If you know the file will be large, plan the splits before starting.\n- Never truncate — Do not write an incomplete file and hope the user won't notice. Split properly.\n- Each chunk must be valid — If the file is code, each intermediate state should be syntactically correct if possible (e.g. close all brackets, don't split mid-function).\n- Use TODO markers — If splitting, you can leave `# TODO: continue in next step` at the split point, then replace it in the next apply_patch call.\n\n---\n\n## Other Rules\n\n- All file paths are relative to the current working directory. Do NOT use `..` to escape.\n- Read before modify — Before modifying any file, use read_file first to confirm current content.\n- Search before read — If unsure of a file's location, use glob or grep to locate it first.\n- Check before skill — Before using any skill, use list_skills first to confirm it exists.\n- Minimal changes only — Only modify lines that need to change. See \"apply_patch Rules\" for detailed limits.\n\n### apply_patch Rules\n\n- Single concern per patch — Each apply_patch call should only address ONE logical change. Do NOT combine multiple unrelated changes into a single patch.\n- Max changes per call — Each patch should modify no more than 30 lines (added + removed). If the change is larger, split it into multiple apply_patch calls, and re-read the file (read_file) between each call.\n- Always re-read after patching — After a successful apply_patch, the file has changed. You MUST call read_file again before applying another patch to the same file.\n- Never rewrite entire files — If you find yourself removing most lines and adding new ones, STOP. Delete the file and use create_file to write the new version instead.\n\n### apply_patch Format (for modifying existing files ONLY)\n\nStandard unified diff format:\n\n```\n--- a/file_path\n+++ b/file_path\n@@ -START,COUNT +START,COUNT @@\n context line (unchanged, starts with space)\n-removed line (starts with -)\n+added line (starts with +)\n context line\n\n```\n\nExample: Change port number\n\nAfter read_file confirms lines 10-12:\n\n```\n--- a/src/index.ts\n+++ b/src/index.ts\n@@ -10,3 +10,3 @@\n-const port = 3000;\n+const port = 8080;\n const host = \"localhost\";\n app.listen(port);\n\n```\n\nExample: Add an import\n\n```\n--- a/src/app.ts\n+++ b/src/app.ts\n@@ -1,4 +1,5 @@\n import express from \"express\";\n+import cors from \"cors\";\n \n const app = express();\n const port = 3000;\n\n```\n\n---\n\n⛔ FINAL REMINDER\n\n- New file → create_file (direct content, simple)\n- Modify file → apply_patch (read first, then diff)\n- Run program → run_command (NEVER write files)\n- Check if a skill exists → list_skills (the ONLY way; never assume or guess)\n- Find / install a skill → list_skills then download_skills\n- Run a skill script → run_skill (auto-loads the skill's env vars; never run skill scripts via run_command)\n\nIf you are about to type run_command and the command contains &gt;, &gt;&gt;, &lt;&lt;, cat, echo, tee, heredoc, PYEOF, EOF, or writes ANY file — STOP. Use create_file instead.\n\nIf you are about to run a skill's own script through run_command — STOP. Use run_skill instead, so the skill's environment variables are loaded.\n\nIf you are about to use, install, or claim the existence of a skill without having just called list_skills — STOP. Call list_skills first; its result is the only proof a skill exists.",
                     "user": "",
                     "enableContext": true,
                     "contextVariable": [
@@ -583,6 +583,60 @@
                               ]
                             }
                           }
+                        },
+                        {
+                          "type": "function",
+                          "function": {
+                            "name": "list_skills",
+                            "description": "列出所有可用的技能。返回每个技能的名称、描述、ID，以及是否已安装和是否有更新。",
+                            "parameters": {
+                              "type": "object",
+                              "properties": {}
+                            }
+                          }
+                        },
+                        {
+                          "type": "function",
+                          "function": {
+                            "name": "download_skills",
+                            "description": "下载并安装指定技能到本地。技能包含脚本文件和配置参数，安装后可通过 run_skill 执行。如果技能已安装则会覆盖更新。",
+                            "parameters": {
+                              "type": "object",
+                              "properties": {
+                                "skill_id": {
+                                  "type": "string",
+                                  "description": "技能ID，从 list_skills 返回的列表中获取"
+                                }
+                              },
+                              "required": [
+                                "skill_id"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "function",
+                          "function": {
+                            "name": "run_skill",
+                            "description": "执行已安装的技能脚本。自动加载技能的环境变量配置（如 API Key 等）。支持本地和 Docker 两种运行环境。可通过 list_skills 查看可用技能，download_skills 安装技能。",
+                            "parameters": {
+                              "type": "object",
+                              "properties": {
+                                "skill_id": {
+                                  "type": "string",
+                                  "description": "技能ID，从 list_skills 返回的列表中获取"
+                                },
+                                "command": {
+                                  "type": "string",
+                                  "description": "要执行的命令（可选，留空则使用技能的默认脚本）"
+                                }
+                              },
+                              "required": [
+                                "skill_id",
+                                "command"
+                              ]
+                            }
+                          }
                         }
                       ]
                     }
@@ -622,8 +676,8 @@
                         {
                           "id": "loop-start-node",
                           "type": "loop-start-node",
-                          "x": 220,
-                          "y": 202,
+                          "x": 100,
+                          "y": 520,
                           "properties": {
                             "width": 200,
                             "height": 50,
@@ -635,8 +689,8 @@
                         {
                           "id": "4edfe85c-5594-43a9-a413-28a41edf03aa",
                           "type": "terminal-node",
-                          "x": 1120,
-                          "y": 202,
+                          "x": 1000,
+                          "y": 25,
                           "properties": {
                             "width": 200,
                             "height": 50,
@@ -680,8 +734,8 @@
                         {
                           "id": "16b2926f-d0f9-4158-9570-70d0ea17328b",
                           "type": "context-push-node",
-                          "x": 1420,
-                          "y": 202,
+                          "x": 1300,
+                          "y": 25,
                           "properties": {
                             "width": 200,
                             "height": 50,
@@ -709,8 +763,8 @@
                         {
                           "id": "1a225600-f404-48f6-af9f-a620f0a8d7cd",
                           "type": "file-upload-node",
-                          "x": 1153.4703038674031,
-                          "y": 323.33546270718233,
+                          "x": 1000,
+                          "y": 135,
                           "properties": {
                             "width": 200,
                             "height": 50,
@@ -753,8 +807,8 @@
                         {
                           "id": "4caf5e3e-096f-415f-b24e-8ab031f0800f",
                           "type": "context-push-node",
-                          "x": 1420,
-                          "y": 312,
+                          "x": 1300,
+                          "y": 135,
                           "properties": {
                             "width": 200,
                             "height": 50,
@@ -782,8 +836,8 @@
                         {
                           "id": "ec34caf3-7e85-4915-9cf9-4fd8902640ba",
                           "type": "extract-node",
-                          "x": 440.0009704968944,
-                          "y": 299.0401664402174,
+                          "x": 400,
+                          "y": 520,
                           "properties": {
                             "width": 200,
                             "height": 50,
@@ -813,11 +867,11 @@
                         {
                           "id": "6e9ea3d5-0e34-494d-9d20-f2869d631c77",
                           "type": "judge-node",
-                          "x": 345.8667244734056,
-                          "y": 354.99945864778545,
+                          "x": 592.1500895293315,
+                          "y": 519.2498721009549,
                           "properties": {
                             "width": 200,
-                            "height": 449,
+                            "height": 556,
                             "name": "条件判断",
                             "isHovered": false,
                             "field_list": [],
@@ -963,7 +1017,7 @@
                                         "functionName"
                                       ],
                                       "compare": "eq",
-                                      "value": "note_search"
+                                      "value": "list_skills"
                                     }
                                   ]
                                 },
@@ -984,6 +1038,38 @@
                                   ]
                                 },
                                 {
+                                  "id": "bd2fccb0-b3be-4fad-ba7a-54ad45a026f3",
+                                  "type": "elseif",
+                                  "logic": "and",
+                                  "conditions": [
+                                    {
+                                      "id": "87e68ebd-5a41-41be-bf14-1c414ff6a4f7",
+                                      "variable": [
+                                        "ec34caf3-7e85-4915-9cf9-4fd8902640ba",
+                                        "functionName"
+                                      ],
+                                      "compare": "eq",
+                                      "value": "download_skills"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "id": "1a6677c7-d7f4-4543-93ff-c99af7ca78f7",
+                                  "type": "elseif",
+                                  "logic": "and",
+                                  "conditions": [
+                                    {
+                                      "id": "c0e76b7a-6e9e-4267-a8e9-bf40059cc373",
+                                      "variable": [
+                                        "ec34caf3-7e85-4915-9cf9-4fd8902640ba",
+                                        "functionName"
+                                      ],
+                                      "compare": "eq",
+                                      "value": "run_skill"
+                                    }
+                                  ]
+                                },
+                                {
                                   "id": "6b991dd2-3e52-4935-853f-c082b50540f9",
                                   "type": "else"
                                 }
@@ -994,8 +1080,8 @@
                         {
                           "id": "ed6ad25e-ad6f-48d8-b39f-e16c5312a2ce",
                           "type": "list-dir-node",
-                          "x": 1192.744302486188,
-                          "y": 412.75448895027625,
+                          "x": 1000,
+                          "y": 245,
                           "properties": {
                             "width": 200,
                             "height": 50,
@@ -1040,8 +1126,8 @@
                         {
                           "id": "6689a9d8-b172-4132-aa8e-ee722b534786",
                           "type": "grep-node",
-                          "x": 1120,
-                          "y": 532,
+                          "x": 1000,
+                          "y": 685,
                           "properties": {
                             "width": 200,
                             "height": 50,
@@ -1094,8 +1180,8 @@
                         {
                           "id": "82797f50-877f-4c16-b3f8-50edc939e97f",
                           "type": "glob-node",
-                          "x": 1120,
-                          "y": 642,
+                          "x": 1000,
+                          "y": 575,
                           "properties": {
                             "width": 200,
                             "height": 50,
@@ -1139,8 +1225,8 @@
                         {
                           "id": "66b540dd-904b-4fde-b03b-c274c3d9bde6",
                           "type": "apply-patch-node",
-                          "x": 1120,
-                          "y": 752,
+                          "x": 1000,
+                          "y": 465,
                           "properties": {
                             "width": 200,
                             "height": 50,
@@ -1183,8 +1269,8 @@
                         {
                           "id": "52e7d29c-09a3-48a2-b3aa-3b384a2edbf2",
                           "type": "read-file-node",
-                          "x": 1030.8064222631988,
-                          "y": 876.793102193323,
+                          "x": 1000,
+                          "y": 355,
                           "properties": {
                             "width": 200,
                             "height": 50,
@@ -1236,8 +1322,8 @@
                         {
                           "id": "1b747dfe-3274-4117-8f20-dbe823533128",
                           "type": "context-push-node",
-                          "x": 1420,
-                          "y": 422,
+                          "x": 1300,
+                          "y": 245,
                           "properties": {
                             "width": 200,
                             "height": 50,
@@ -1265,8 +1351,8 @@
                         {
                           "id": "18211019-cb99-4531-ad2b-0dc93ed088d2",
                           "type": "context-push-node",
-                          "x": 1363.0583996506211,
-                          "y": 892.5250388198758,
+                          "x": 1300,
+                          "y": 355,
                           "properties": {
                             "width": 200,
                             "height": 50,
@@ -1294,8 +1380,8 @@
                         {
                           "id": "e02990ab-8168-49ed-8a3e-8b99c8dbe7e7",
                           "type": "context-push-node",
-                          "x": 1420,
-                          "y": 752,
+                          "x": 1300,
+                          "y": 465,
                           "properties": {
                             "width": 200,
                             "height": 50,
@@ -1323,8 +1409,8 @@
                         {
                           "id": "793c389c-8682-4518-9c78-829c5c9ba926",
                           "type": "context-push-node",
-                          "x": 1420,
-                          "y": 642,
+                          "x": 1300,
+                          "y": 575,
                           "properties": {
                             "width": 200,
                             "height": 50,
@@ -1352,8 +1438,8 @@
                         {
                           "id": "1e8b968d-897f-485a-baeb-ed46f81b24bd",
                           "type": "context-push-node",
-                          "x": 1420,
-                          "y": 532,
+                          "x": 1300,
+                          "y": 685,
                           "properties": {
                             "width": 200,
                             "height": 50,
@@ -1381,8 +1467,8 @@
                         {
                           "id": "0bcd34d6-f8da-4f3a-a964-6fed09aa0311",
                           "type": "file-download-node",
-                          "x": 636.3629294931867,
-                          "y": 533.4397839472063,
+                          "x": 1000,
+                          "y": 795,
                           "properties": {
                             "width": 200,
                             "height": 50,
@@ -1424,8 +1510,8 @@
                         {
                           "id": "aef67c7f-8232-4322-80f6-7ba8d90f0641",
                           "type": "context-push-node",
-                          "x": 873.3110926763419,
-                          "y": 327.3996027589252,
+                          "x": 1300,
+                          "y": 795,
                           "properties": {
                             "width": 200,
                             "height": 50,
@@ -1453,8 +1539,8 @@
                         {
                           "id": "b6e69b66-5c03-402f-86e8-3ee010164c43",
                           "type": "judge-node",
-                          "x": 1763.0583996506211,
-                          "y": 892.5250388198758,
+                          "x": 1600,
+                          "y": 355,
                           "properties": {
                             "width": 200,
                             "height": 164,
@@ -1490,8 +1576,8 @@
                         {
                           "id": "22515607-f13c-4f2a-b786-284503f29655",
                           "type": "context-push-node",
-                          "x": 2163.058399650621,
-                          "y": 882.5250388198758,
+                          "x": 1900,
+                          "y": 355,
                           "properties": {
                             "width": 200,
                             "height": 50,
@@ -1517,88 +1603,10 @@
                           }
                         },
                         {
-                          "id": "313f6ad0-b223-4e5a-bedc-e77a72a0b59f",
-                          "type": "context-push-node",
-                          "x": 1589.1739071772524,
-                          "y": 1034.1181190610719,
-                          "properties": {
-                            "width": 200,
-                            "height": 50,
-                            "name": "推送上下文",
-                            "isHovered": false,
-                            "field_list": [],
-                            "nodeData": {
-                              "items": [
-                                {
-                                  "variable": [
-                                    "05e716af-35e7-48a7-9f93-5a5ff978b0d7",
-                                    "context"
-                                  ],
-                                  "mode": "reference",
-                                  "reference": [
-                                    "a78da13a-f16e-420d-bf98-003bf55a13d7",
-                                    "tool"
-                                  ],
-                                  "role": "user"
-                                }
-                              ]
-                            }
-                          }
-                        },
-                        {
-                          "id": "a78da13a-f16e-420d-bf98-003bf55a13d7",
-                          "type": "note-search-node",
-                          "x": 1081.0565926434592,
-                          "y": 1004.1442736491574,
-                          "properties": {
-                            "width": 200,
-                            "height": 50,
-                            "name": "笔记检索",
-                            "isHovered": false,
-                            "field_list": [
-                              {
-                                "label": "工具执行",
-                                "value": "tool"
-                              },
-                              {
-                                "label": "文件路径",
-                                "value": "filePath"
-                              },
-                              {
-                                "label": "文件名",
-                                "value": "fileName"
-                              },
-                              {
-                                "label": "文件大小",
-                                "value": "fileSize"
-                              }
-                            ],
-                            "nodeData": {
-                              "folderIds": [
-                                "root"
-                              ],
-                              "location": "tool_call",
-                              "reference": [
-                                "30eca289-a102-459c-9d48-a2797d6988f0",
-                                "item"
-                              ],
-                              "keywordLocation": "reference",
-                              "keywordReference": [],
-                              "keyword": "",
-                              "pageNoLocation": "customize",
-                              "pageNoReference": [],
-                              "pageNo": 1,
-                              "pageSizeLocation": "customize",
-                              "pageSizeReference": [],
-                              "pageSize": 10
-                            }
-                          }
-                        },
-                        {
                           "id": "bf145dd1-4764-4359-bb0f-8dcb04ce7f89",
                           "type": "create-file-node",
-                          "x": 603.776537723249,
-                          "y": 899.5892233300203,
+                          "x": 1000,
+                          "y": 1071.2139751023192,
                           "properties": {
                             "width": 200,
                             "height": 50,
@@ -1633,8 +1641,8 @@
                         {
                           "id": "261e0f01-490d-48a4-a02b-bb976854c709",
                           "type": "context-push-node",
-                          "x": 947.6851209604808,
-                          "y": 928.2112923439853,
+                          "x": 1300,
+                          "y": 1015,
                           "properties": {
                             "width": 200,
                             "height": 50,
@@ -1658,6 +1666,226 @@
                               ]
                             }
                           }
+                        },
+                        {
+                          "id": "aa6c216d-d398-4d65-aee2-3546a709e3d7",
+                          "type": "list-skills-node",
+                          "x": 1022.3506245736697,
+                          "y": 704.1095242155526,
+                          "properties": {
+                            "width": 200,
+                            "height": 50,
+                            "name": "技能列表",
+                            "isHovered": false,
+                            "field_list": [
+                              {
+                                "label": "工具执行",
+                                "value": "tool"
+                              },
+                              {
+                                "label": "技能列表",
+                                "value": "skills"
+                              },
+                              {
+                                "label": "摘要",
+                                "value": "summary"
+                              },
+                              {
+                                "label": "技能数",
+                                "value": "skills_count"
+                              }
+                            ],
+                            "nodeData": {
+                              "location": "tool_call",
+                              "reference": [
+                                "30eca289-a102-459c-9d48-a2797d6988f0",
+                                "item"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "id": "917ba105-87cb-4522-8283-df66db290561",
+                          "type": "context-push-node",
+                          "x": 1381.2128026944065,
+                          "y": 773.6234545532061,
+                          "properties": {
+                            "width": 200,
+                            "height": 50,
+                            "name": "推送上下文",
+                            "isHovered": false,
+                            "field_list": [],
+                            "nodeData": {
+                              "items": [
+                                {
+                                  "variable": [
+                                    "05e716af-35e7-48a7-9f93-5a5ff978b0d7",
+                                    "context"
+                                  ],
+                                  "mode": "reference",
+                                  "reference": [
+                                    "aa6c216d-d398-4d65-aee2-3546a709e3d7",
+                                    "tool"
+                                  ],
+                                  "role": "user"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "id": "c805cd0b-e6ed-4dee-8110-4719ffc05542",
+                          "type": "download-skills-node",
+                          "x": 982.5747676500681,
+                          "y": 914.9551287517053,
+                          "properties": {
+                            "width": 200,
+                            "height": 50,
+                            "name": "技能下载",
+                            "isHovered": false,
+                            "field_list": [
+                              {
+                                "label": "工具执行",
+                                "value": "tool"
+                              },
+                              {
+                                "label": "技能ID",
+                                "value": "skillId"
+                              },
+                              {
+                                "label": "技能名称",
+                                "value": "skillName"
+                              },
+                              {
+                                "label": "文件数",
+                                "value": "files"
+                              },
+                              {
+                                "label": "安装状态",
+                                "value": "status"
+                              },
+                              {
+                                "label": "本地路径",
+                                "value": "localPath"
+                              }
+                            ],
+                            "nodeData": {
+                              "location": "tool_call",
+                              "reference": [
+                                "30eca289-a102-459c-9d48-a2797d6988f0",
+                                "item"
+                              ],
+                              "skillIdLocation": "customize",
+                              "skillIdReference": [],
+                              "skillId": ""
+                            }
+                          }
+                        },
+                        {
+                          "id": "0caceafd-b629-47d7-b68a-838133a80ab2",
+                          "type": "context-push-node",
+                          "x": 1391.3534916439291,
+                          "y": 896.5580235334243,
+                          "properties": {
+                            "width": 200,
+                            "height": 50,
+                            "name": "推送上下文",
+                            "isHovered": false,
+                            "field_list": [],
+                            "nodeData": {
+                              "items": [
+                                {
+                                  "variable": [
+                                    "05e716af-35e7-48a7-9f93-5a5ff978b0d7",
+                                    "context"
+                                  ],
+                                  "mode": "reference",
+                                  "reference": [
+                                    "c805cd0b-e6ed-4dee-8110-4719ffc05542",
+                                    "tool"
+                                  ],
+                                  "role": "user"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "id": "735e92f5-cdef-4dae-b053-d3e499e316c6",
+                          "type": "run-skill-node",
+                          "x": 938.2074948840382,
+                          "y": 990.5051372783082,
+                          "properties": {
+                            "width": 200,
+                            "height": 50,
+                            "name": "技能执行",
+                            "isHovered": false,
+                            "field_list": [
+                              {
+                                "label": "工具执行",
+                                "value": "tool"
+                              },
+                              {
+                                "label": "执行结果",
+                                "value": "result"
+                              },
+                              {
+                                "label": "标准输出",
+                                "value": "stdout"
+                              },
+                              {
+                                "label": "错误输出",
+                                "value": "stderr"
+                              },
+                              {
+                                "label": "退出码",
+                                "value": "exitCode"
+                              }
+                            ],
+                            "nodeData": {
+                              "runtime": "local",
+                              "location": "tool_call",
+                              "reference": [
+                                "30eca289-a102-459c-9d48-a2797d6988f0",
+                                "item"
+                              ],
+                              "skillIdLocation": "customize",
+                              "skillIdReference": [],
+                              "skillId": "",
+                              "commandLocation": "customize",
+                              "commandReference": [],
+                              "command": ""
+                            }
+                          }
+                        },
+                        {
+                          "id": "29fdce62-27b2-4684-86ef-b63a85bf6ce4",
+                          "type": "context-push-node",
+                          "x": 1337.1094815825375,
+                          "y": 1101.9427225443383,
+                          "properties": {
+                            "width": 200,
+                            "height": 50,
+                            "name": "推送上下文",
+                            "isHovered": false,
+                            "field_list": [],
+                            "nodeData": {
+                              "items": [
+                                {
+                                  "variable": [
+                                    "05e716af-35e7-48a7-9f93-5a5ff978b0d7",
+                                    "context"
+                                  ],
+                                  "mode": "reference",
+                                  "reference": [
+                                    "735e92f5-cdef-4dae-b053-d3e499e316c6",
+                                    "tool"
+                                  ],
+                                  "role": "tool"
+                                }
+                              ]
+                            }
+                          }
                         }
                       ],
                       "edges": [
@@ -1670,29 +1898,29 @@
                           "sourceAnchorId": "4edfe85c-5594-43a9-a413-28a41edf03aa_right_main_success",
                           "targetAnchorId": "16b2926f-d0f9-4158-9570-70d0ea17328b_left_main_success",
                           "startPoint": {
-                            "x": 1220,
-                            "y": 202
+                            "x": 1100,
+                            "y": 25
                           },
                           "endPoint": {
-                            "x": 1320,
-                            "y": 202
+                            "x": 1200,
+                            "y": 25
                           },
                           "pointsList": [
                             {
-                              "x": 1220,
-                              "y": 202
+                              "x": 1100,
+                              "y": 25
                             },
                             {
-                              "x": 1320,
-                              "y": 202
+                              "x": 1200,
+                              "y": 25
                             },
                             {
-                              "x": 1220,
-                              "y": 202
+                              "x": 1100,
+                              "y": 25
                             },
                             {
-                              "x": 1320,
-                              "y": 202
+                              "x": 1200,
+                              "y": 25
                             }
                           ]
                         },
@@ -1705,29 +1933,29 @@
                           "sourceAnchorId": "1a225600-f404-48f6-af9f-a620f0a8d7cd_right_main_success",
                           "targetAnchorId": "4caf5e3e-096f-415f-b24e-8ab031f0800f_left_main_success",
                           "startPoint": {
-                            "x": 1253.4703038674031,
-                            "y": 323.33546270718233
+                            "x": 1100,
+                            "y": 135
                           },
                           "endPoint": {
-                            "x": 1320,
-                            "y": 312
+                            "x": 1200,
+                            "y": 135
                           },
                           "pointsList": [
                             {
-                              "x": 1253.4703038674031,
-                              "y": 323.33546270718233
+                              "x": 1100,
+                              "y": 135
                             },
                             {
-                              "x": 1353.4703038674031,
-                              "y": 323.33546270718233
+                              "x": 1200,
+                              "y": 135
                             },
                             {
-                              "x": 1220,
-                              "y": 312
+                              "x": 1100,
+                              "y": 135
                             },
                             {
-                              "x": 1320,
-                              "y": 312
+                              "x": 1200,
+                              "y": 135
                             }
                           ]
                         },
@@ -1740,29 +1968,29 @@
                           "sourceAnchorId": "loop-start-node_right_main_success",
                           "targetAnchorId": "ec34caf3-7e85-4915-9cf9-4fd8902640ba_left_main_success",
                           "startPoint": {
-                            "x": 320,
-                            "y": 202
+                            "x": 200,
+                            "y": 520
                           },
                           "endPoint": {
-                            "x": 340.0009704968944,
-                            "y": 299.0401664402174
+                            "x": 300,
+                            "y": 520
                           },
                           "pointsList": [
                             {
-                              "x": 320,
-                              "y": 202
+                              "x": 200,
+                              "y": 520
                             },
                             {
-                              "x": 420,
-                              "y": 202
+                              "x": 300,
+                              "y": 520
                             },
                             {
-                              "x": 240.0009704968944,
-                              "y": 299.0401664402174
+                              "x": 200,
+                              "y": 520
                             },
                             {
-                              "x": 340.0009704968944,
-                              "y": 299.0401664402174
+                              "x": 300,
+                              "y": 520
                             }
                           ]
                         },
@@ -1775,29 +2003,29 @@
                           "sourceAnchorId": "ec34caf3-7e85-4915-9cf9-4fd8902640ba_right_main_success",
                           "targetAnchorId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77_left_main_success",
                           "startPoint": {
-                            "x": 540.0009704968944,
-                            "y": 299.0401664402174
+                            "x": 500,
+                            "y": 520
                           },
                           "endPoint": {
-                            "x": 245.8667244734056,
-                            "y": 354.99945864778545
+                            "x": 492.15008952933147,
+                            "y": 519.2498721009549
                           },
                           "pointsList": [
                             {
-                              "x": 540.0009704968944,
-                              "y": 299.0401664402174
+                              "x": 500,
+                              "y": 520
                             },
                             {
-                              "x": 640.0009704968944,
-                              "y": 299.0401664402174
+                              "x": 600,
+                              "y": 520
                             },
                             {
-                              "x": 145.8667244734056,
-                              "y": 354.99945864778545
+                              "x": 392.15008952933147,
+                              "y": 519.2498721009549
                             },
                             {
-                              "x": 245.8667244734056,
-                              "y": 354.99945864778545
+                              "x": 492.15008952933147,
+                              "y": 519.2498721009549
                             }
                           ]
                         },
@@ -1810,29 +2038,29 @@
                           "sourceAnchorId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77_right_bec87dfb-7872-4b3d-8c72-156baaf0a3ca_success",
                           "targetAnchorId": "4edfe85c-5594-43a9-a413-28a41edf03aa_left_main_success",
                           "startPoint": {
-                            "x": 445.8667244734056,
-                            "y": 202.49945864778545
+                            "x": 692.1500895293315,
+                            "y": 313.2498721009549
                           },
                           "endPoint": {
-                            "x": 1020,
-                            "y": 202
+                            "x": 900,
+                            "y": 25
                           },
                           "pointsList": [
                             {
-                              "x": 445.8667244734056,
-                              "y": 202.49945864778545
+                              "x": 692.1500895293315,
+                              "y": 313.2498721009549
                             },
                             {
-                              "x": 545.8667244734056,
-                              "y": 202.49945864778545
+                              "x": 792.1500895293315,
+                              "y": 313.2498721009549
                             },
                             {
-                              "x": 920,
-                              "y": 202
+                              "x": 800,
+                              "y": 25
                             },
                             {
-                              "x": 1020,
-                              "y": 202
+                              "x": 900,
+                              "y": 25
                             }
                           ]
                         },
@@ -1845,29 +2073,29 @@
                           "sourceAnchorId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77_right_d20342ec-5952-4f20-8046-8b2054c3a76f_success",
                           "targetAnchorId": "1a225600-f404-48f6-af9f-a620f0a8d7cd_left_main_success",
                           "startPoint": {
-                            "x": 445.8667244734056,
-                            "y": 418.49945864778545
+                            "x": 692.1500895293315,
+                            "y": 529.2498721009549
                           },
                           "endPoint": {
-                            "x": 1053.4703038674031,
-                            "y": 323.33546270718233
+                            "x": 900,
+                            "y": 135
                           },
                           "pointsList": [
                             {
-                              "x": 445.8667244734056,
-                              "y": 418.49945864778545
+                              "x": 692.1500895293315,
+                              "y": 529.2498721009549
                             },
                             {
-                              "x": 545.8667244734056,
-                              "y": 418.49945864778545
+                              "x": 792.1500895293315,
+                              "y": 529.2498721009549
                             },
                             {
-                              "x": 953.4703038674031,
-                              "y": 323.33546270718233
+                              "x": 800,
+                              "y": 135
                             },
                             {
-                              "x": 1053.4703038674031,
-                              "y": 323.33546270718233
+                              "x": 900,
+                              "y": 135
                             }
                           ]
                         },
@@ -1880,29 +2108,29 @@
                           "sourceAnchorId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77_right_c09f0fb9-f9bf-43b0-b025-2f05a6730182_success",
                           "targetAnchorId": "ed6ad25e-ad6f-48d8-b39f-e16c5312a2ce_left_main_success",
                           "startPoint": {
-                            "x": 445.8667244734056,
-                            "y": 382.49945864778545
+                            "x": 692.1500895293315,
+                            "y": 493.2498721009549
                           },
                           "endPoint": {
-                            "x": 1092.744302486188,
-                            "y": 412.75448895027625
+                            "x": 900,
+                            "y": 245
                           },
                           "pointsList": [
                             {
-                              "x": 445.8667244734056,
-                              "y": 382.49945864778545
+                              "x": 692.1500895293315,
+                              "y": 493.2498721009549
                             },
                             {
-                              "x": 545.8667244734056,
-                              "y": 382.49945864778545
+                              "x": 792.1500895293315,
+                              "y": 493.2498721009549
                             },
                             {
-                              "x": 992.744302486188,
-                              "y": 412.75448895027625
+                              "x": 800,
+                              "y": 245
                             },
                             {
-                              "x": 1092.744302486188,
-                              "y": 412.75448895027625
+                              "x": 900,
+                              "y": 245
                             }
                           ]
                         },
@@ -1915,29 +2143,29 @@
                           "sourceAnchorId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77_right_91467043-a563-4743-9645-dbd8a5f8c705_success",
                           "targetAnchorId": "6689a9d8-b172-4132-aa8e-ee722b534786_left_main_success",
                           "startPoint": {
-                            "x": 445.8667244734056,
-                            "y": 346.49945864778545
+                            "x": 692.1500895293315,
+                            "y": 457.2498721009549
                           },
                           "endPoint": {
-                            "x": 1020,
-                            "y": 532
+                            "x": 900,
+                            "y": 685
                           },
                           "pointsList": [
                             {
-                              "x": 445.8667244734056,
-                              "y": 346.49945864778545
+                              "x": 692.1500895293315,
+                              "y": 457.2498721009549
                             },
                             {
-                              "x": 545.8667244734056,
-                              "y": 346.49945864778545
+                              "x": 792.1500895293315,
+                              "y": 457.2498721009549
                             },
                             {
-                              "x": 920,
-                              "y": 532
+                              "x": 800,
+                              "y": 685
                             },
                             {
-                              "x": 1020,
-                              "y": 532
+                              "x": 900,
+                              "y": 685
                             }
                           ]
                         },
@@ -1950,29 +2178,29 @@
                           "sourceAnchorId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77_right_21db2db0-de58-4bf5-b0e4-8cb913a3ec89_success",
                           "targetAnchorId": "82797f50-877f-4c16-b3f8-50edc939e97f_left_main_success",
                           "startPoint": {
-                            "x": 445.8667244734056,
-                            "y": 310.49945864778545
+                            "x": 692.1500895293315,
+                            "y": 421.2498721009549
                           },
                           "endPoint": {
-                            "x": 1020,
-                            "y": 642
+                            "x": 900,
+                            "y": 575
                           },
                           "pointsList": [
                             {
-                              "x": 445.8667244734056,
-                              "y": 310.49945864778545
+                              "x": 692.1500895293315,
+                              "y": 421.2498721009549
                             },
                             {
-                              "x": 545.8667244734056,
-                              "y": 310.49945864778545
+                              "x": 792.1500895293315,
+                              "y": 421.2498721009549
                             },
                             {
-                              "x": 920,
-                              "y": 642
+                              "x": 800,
+                              "y": 575
                             },
                             {
-                              "x": 1020,
-                              "y": 642
+                              "x": 900,
+                              "y": 575
                             }
                           ]
                         },
@@ -1985,29 +2213,29 @@
                           "sourceAnchorId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77_right_feb0a10c-0b20-40d0-9b3b-785511222be2_success",
                           "targetAnchorId": "66b540dd-904b-4fde-b03b-c274c3d9bde6_left_main_success",
                           "startPoint": {
-                            "x": 445.8667244734056,
-                            "y": 274.49945864778545
+                            "x": 692.1500895293315,
+                            "y": 385.2498721009549
                           },
                           "endPoint": {
-                            "x": 1020,
-                            "y": 752
+                            "x": 900,
+                            "y": 465
                           },
                           "pointsList": [
                             {
-                              "x": 445.8667244734056,
-                              "y": 274.49945864778545
+                              "x": 692.1500895293315,
+                              "y": 385.2498721009549
                             },
                             {
-                              "x": 545.8667244734056,
-                              "y": 274.49945864778545
+                              "x": 792.1500895293315,
+                              "y": 385.2498721009549
                             },
                             {
-                              "x": 920,
-                              "y": 752
+                              "x": 800,
+                              "y": 465
                             },
                             {
-                              "x": 1020,
-                              "y": 752
+                              "x": 900,
+                              "y": 465
                             }
                           ]
                         },
@@ -2020,29 +2248,29 @@
                           "sourceAnchorId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77_right_4fab5fbc-d97e-4a83-a201-cd191754a01a_success",
                           "targetAnchorId": "52e7d29c-09a3-48a2-b3aa-3b384a2edbf2_left_main_success",
                           "startPoint": {
-                            "x": 445.8667244734056,
-                            "y": 238.49945864778545
+                            "x": 692.1500895293315,
+                            "y": 349.2498721009549
                           },
                           "endPoint": {
-                            "x": 930.8064222631988,
-                            "y": 876.793102193323
+                            "x": 900,
+                            "y": 355
                           },
                           "pointsList": [
                             {
-                              "x": 445.8667244734056,
-                              "y": 238.49945864778545
+                              "x": 692.1500895293315,
+                              "y": 349.2498721009549
                             },
                             {
-                              "x": 545.8667244734056,
-                              "y": 238.49945864778545
+                              "x": 792.1500895293315,
+                              "y": 349.2498721009549
                             },
                             {
-                              "x": 830.8064222631988,
-                              "y": 876.793102193323
+                              "x": 800,
+                              "y": 355
                             },
                             {
-                              "x": 930.8064222631988,
-                              "y": 876.793102193323
+                              "x": 900,
+                              "y": 355
                             }
                           ]
                         },
@@ -2055,29 +2283,29 @@
                           "sourceAnchorId": "ed6ad25e-ad6f-48d8-b39f-e16c5312a2ce_right_main_success",
                           "targetAnchorId": "1b747dfe-3274-4117-8f20-dbe823533128_left_main_success",
                           "startPoint": {
-                            "x": 1292.744302486188,
-                            "y": 412.75448895027625
+                            "x": 1100,
+                            "y": 245
                           },
                           "endPoint": {
-                            "x": 1320,
-                            "y": 422
+                            "x": 1200,
+                            "y": 245
                           },
                           "pointsList": [
                             {
-                              "x": 1292.744302486188,
-                              "y": 412.75448895027625
+                              "x": 1100,
+                              "y": 245
                             },
                             {
-                              "x": 1392.744302486188,
-                              "y": 412.75448895027625
+                              "x": 1200,
+                              "y": 245
                             },
                             {
-                              "x": 1220,
-                              "y": 422
+                              "x": 1100,
+                              "y": 245
                             },
                             {
-                              "x": 1320,
-                              "y": 422
+                              "x": 1200,
+                              "y": 245
                             }
                           ]
                         },
@@ -2090,29 +2318,29 @@
                           "sourceAnchorId": "52e7d29c-09a3-48a2-b3aa-3b384a2edbf2_right_main_success",
                           "targetAnchorId": "18211019-cb99-4531-ad2b-0dc93ed088d2_left_main_success",
                           "startPoint": {
-                            "x": 1130.8064222631988,
-                            "y": 866.793102193323
+                            "x": 1100,
+                            "y": 345
                           },
                           "endPoint": {
-                            "x": 1263.0583996506211,
-                            "y": 892.5250388198758
+                            "x": 1200,
+                            "y": 355
                           },
                           "pointsList": [
                             {
-                              "x": 1130.8064222631988,
-                              "y": 866.793102193323
+                              "x": 1100,
+                              "y": 345
                             },
                             {
-                              "x": 1230.8064222631988,
-                              "y": 866.793102193323
+                              "x": 1200,
+                              "y": 345
                             },
                             {
-                              "x": 1163.0583996506211,
-                              "y": 892.5250388198758
+                              "x": 1100,
+                              "y": 355
                             },
                             {
-                              "x": 1263.0583996506211,
-                              "y": 892.5250388198758
+                              "x": 1200,
+                              "y": 355
                             }
                           ]
                         },
@@ -2125,29 +2353,29 @@
                           "sourceAnchorId": "66b540dd-904b-4fde-b03b-c274c3d9bde6_right_main_success",
                           "targetAnchorId": "e02990ab-8168-49ed-8a3e-8b99c8dbe7e7_left_main_success",
                           "startPoint": {
-                            "x": 1220,
-                            "y": 742
+                            "x": 1100,
+                            "y": 455
                           },
                           "endPoint": {
-                            "x": 1320,
-                            "y": 752
+                            "x": 1200,
+                            "y": 465
                           },
                           "pointsList": [
                             {
-                              "x": 1220,
-                              "y": 742
+                              "x": 1100,
+                              "y": 455
                             },
                             {
-                              "x": 1320,
-                              "y": 742
+                              "x": 1200,
+                              "y": 455
                             },
                             {
-                              "x": 1220,
-                              "y": 752
+                              "x": 1100,
+                              "y": 465
                             },
                             {
-                              "x": 1320,
-                              "y": 752
+                              "x": 1200,
+                              "y": 465
                             }
                           ]
                         },
@@ -2160,29 +2388,29 @@
                           "sourceAnchorId": "82797f50-877f-4c16-b3f8-50edc939e97f_right_main_success",
                           "targetAnchorId": "793c389c-8682-4518-9c78-829c5c9ba926_left_main_success",
                           "startPoint": {
-                            "x": 1220,
-                            "y": 642
+                            "x": 1100,
+                            "y": 575
                           },
                           "endPoint": {
-                            "x": 1320,
-                            "y": 642
+                            "x": 1200,
+                            "y": 575
                           },
                           "pointsList": [
                             {
-                              "x": 1220,
-                              "y": 642
+                              "x": 1100,
+                              "y": 575
                             },
                             {
-                              "x": 1320,
-                              "y": 642
+                              "x": 1200,
+                              "y": 575
                             },
                             {
-                              "x": 1220,
-                              "y": 642
+                              "x": 1100,
+                              "y": 575
                             },
                             {
-                              "x": 1320,
-                              "y": 642
+                              "x": 1200,
+                              "y": 575
                             }
                           ]
                         },
@@ -2195,29 +2423,29 @@
                           "sourceAnchorId": "6689a9d8-b172-4132-aa8e-ee722b534786_right_main_success",
                           "targetAnchorId": "1e8b968d-897f-485a-baeb-ed46f81b24bd_left_main_success",
                           "startPoint": {
-                            "x": 1220,
-                            "y": 532
+                            "x": 1100,
+                            "y": 685
                           },
                           "endPoint": {
-                            "x": 1320,
-                            "y": 532
+                            "x": 1200,
+                            "y": 685
                           },
                           "pointsList": [
                             {
-                              "x": 1220,
-                              "y": 532
+                              "x": 1100,
+                              "y": 685
                             },
                             {
-                              "x": 1320,
-                              "y": 532
+                              "x": 1200,
+                              "y": 685
                             },
                             {
-                              "x": 1220,
-                              "y": 532
+                              "x": 1100,
+                              "y": 685
                             },
                             {
-                              "x": 1320,
-                              "y": 532
+                              "x": 1200,
+                              "y": 685
                             }
                           ]
                         },
@@ -2230,29 +2458,29 @@
                           "sourceAnchorId": "66b540dd-904b-4fde-b03b-c274c3d9bde6_right_main_fail",
                           "targetAnchorId": "e02990ab-8168-49ed-8a3e-8b99c8dbe7e7_left_main_success",
                           "startPoint": {
-                            "x": 1220,
-                            "y": 767
+                            "x": 1100,
+                            "y": 480
                           },
                           "endPoint": {
-                            "x": 1320,
-                            "y": 752
+                            "x": 1200,
+                            "y": 465
                           },
                           "pointsList": [
                             {
-                              "x": 1220,
-                              "y": 767
+                              "x": 1100,
+                              "y": 480
                             },
                             {
-                              "x": 1320,
-                              "y": 767
+                              "x": 1200,
+                              "y": 480
                             },
                             {
-                              "x": 1220,
-                              "y": 752
+                              "x": 1100,
+                              "y": 465
                             },
                             {
-                              "x": 1320,
-                              "y": 752
+                              "x": 1200,
+                              "y": 465
                             }
                           ]
                         },
@@ -2265,29 +2493,29 @@
                           "sourceAnchorId": "52e7d29c-09a3-48a2-b3aa-3b384a2edbf2_right_main_fail",
                           "targetAnchorId": "18211019-cb99-4531-ad2b-0dc93ed088d2_left_main_success",
                           "startPoint": {
-                            "x": 1130.8064222631988,
-                            "y": 891.793102193323
+                            "x": 1100,
+                            "y": 370
                           },
                           "endPoint": {
-                            "x": 1263.0583996506211,
-                            "y": 892.5250388198758
+                            "x": 1200,
+                            "y": 355
                           },
                           "pointsList": [
                             {
-                              "x": 1130.8064222631988,
-                              "y": 891.793102193323
+                              "x": 1100,
+                              "y": 370
                             },
                             {
-                              "x": 1230.8064222631988,
-                              "y": 891.793102193323
+                              "x": 1200,
+                              "y": 370
                             },
                             {
-                              "x": 1163.0583996506211,
-                              "y": 892.5250388198758
+                              "x": 1100,
+                              "y": 355
                             },
                             {
-                              "x": 1263.0583996506211,
-                              "y": 892.5250388198758
+                              "x": 1200,
+                              "y": 355
                             }
                           ]
                         },
@@ -2300,29 +2528,29 @@
                           "sourceAnchorId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77_right_5d21a5ca-feed-4aee-bf08-0766e18dd505_success",
                           "targetAnchorId": "0bcd34d6-f8da-4f3a-a964-6fed09aa0311_left_main_success",
                           "startPoint": {
-                            "x": 445.8667244734056,
-                            "y": 454.49945864778545
+                            "x": 692.1500895293315,
+                            "y": 565.2498721009549
                           },
                           "endPoint": {
-                            "x": 536.3629294931867,
-                            "y": 533.4397839472063
+                            "x": 900,
+                            "y": 795
                           },
                           "pointsList": [
                             {
-                              "x": 445.8667244734056,
-                              "y": 454.49945864778545
+                              "x": 692.1500895293315,
+                              "y": 565.2498721009549
                             },
                             {
-                              "x": 545.8667244734056,
-                              "y": 454.49945864778545
+                              "x": 792.1500895293315,
+                              "y": 565.2498721009549
                             },
                             {
-                              "x": 436.3629294931867,
-                              "y": 533.4397839472063
+                              "x": 800,
+                              "y": 795
                             },
                             {
-                              "x": 536.3629294931867,
-                              "y": 533.4397839472063
+                              "x": 900,
+                              "y": 795
                             }
                           ]
                         },
@@ -2335,29 +2563,29 @@
                           "sourceAnchorId": "0bcd34d6-f8da-4f3a-a964-6fed09aa0311_right_main_success",
                           "targetAnchorId": "aef67c7f-8232-4322-80f6-7ba8d90f0641_left_main_success",
                           "startPoint": {
-                            "x": 736.3629294931867,
-                            "y": 533.4397839472063
+                            "x": 1100,
+                            "y": 795
                           },
                           "endPoint": {
-                            "x": 773.3110926763419,
-                            "y": 327.3996027589252
+                            "x": 1200,
+                            "y": 795
                           },
                           "pointsList": [
                             {
-                              "x": 736.3629294931867,
-                              "y": 533.4397839472063
+                              "x": 1100,
+                              "y": 795
                             },
                             {
-                              "x": 836.3629294931867,
-                              "y": 533.4397839472063
+                              "x": 1200,
+                              "y": 795
                             },
                             {
-                              "x": 673.3110926763419,
-                              "y": 327.3996027589252
+                              "x": 1100,
+                              "y": 795
                             },
                             {
-                              "x": 773.3110926763419,
-                              "y": 327.3996027589252
+                              "x": 1200,
+                              "y": 795
                             }
                           ]
                         },
@@ -2370,29 +2598,29 @@
                           "sourceAnchorId": "18211019-cb99-4531-ad2b-0dc93ed088d2_right_main_success",
                           "targetAnchorId": "b6e69b66-5c03-402f-86e8-3ee010164c43_left_main_success",
                           "startPoint": {
-                            "x": 1463.0583996506211,
-                            "y": 892.5250388198758
+                            "x": 1400,
+                            "y": 355
                           },
                           "endPoint": {
-                            "x": 1663.0583996506211,
-                            "y": 892.5250388198758
+                            "x": 1500,
+                            "y": 355
                           },
                           "pointsList": [
                             {
-                              "x": 1463.0583996506211,
-                              "y": 892.5250388198758
+                              "x": 1400,
+                              "y": 355
                             },
                             {
-                              "x": 1563.0583996506211,
-                              "y": 892.5250388198758
+                              "x": 1500,
+                              "y": 355
                             },
                             {
-                              "x": 1563.0583996506211,
-                              "y": 892.5250388198758
+                              "x": 1400,
+                              "y": 355
                             },
                             {
-                              "x": 1663.0583996506211,
-                              "y": 892.5250388198758
+                              "x": 1500,
+                              "y": 355
                             }
                           ]
                         },
@@ -2405,99 +2633,29 @@
                           "sourceAnchorId": "b6e69b66-5c03-402f-86e8-3ee010164c43_right_c9774143-bdf1-44c5-993d-9204d277ac51_success",
                           "targetAnchorId": "22515607-f13c-4f2a-b786-284503f29655_left_main_success",
                           "startPoint": {
-                            "x": 1863.0583996506211,
-                            "y": 882.5250388198758
+                            "x": 1700,
+                            "y": 345
                           },
                           "endPoint": {
-                            "x": 2063.058399650621,
-                            "y": 882.5250388198758
+                            "x": 1800,
+                            "y": 355
                           },
                           "pointsList": [
                             {
-                              "x": 1863.0583996506211,
-                              "y": 882.5250388198758
+                              "x": 1700,
+                              "y": 345
                             },
                             {
-                              "x": 1963.0583996506211,
-                              "y": 882.5250388198758
+                              "x": 1800,
+                              "y": 345
                             },
                             {
-                              "x": 1963.0583996506211,
-                              "y": 882.5250388198758
+                              "x": 1700,
+                              "y": 355
                             },
                             {
-                              "x": 2063.058399650621,
-                              "y": 882.5250388198758
-                            }
-                          ]
-                        },
-                        {
-                          "id": "d2993948-98f8-4f72-b00d-09dde17115e2",
-                          "type": "run-edge",
-                          "properties": {},
-                          "sourceNodeId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77",
-                          "targetNodeId": "a78da13a-f16e-420d-bf98-003bf55a13d7",
-                          "sourceAnchorId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77_right_14988a23-8d80-496f-8047-0eabcbbc5811_success",
-                          "targetAnchorId": "a78da13a-f16e-420d-bf98-003bf55a13d7_left_main_success",
-                          "startPoint": {
-                            "x": 445.8667244734056,
-                            "y": 490.49945864778545
-                          },
-                          "endPoint": {
-                            "x": 981.0565926434592,
-                            "y": 1004.1442736491574
-                          },
-                          "pointsList": [
-                            {
-                              "x": 445.8667244734056,
-                              "y": 490.49945864778545
-                            },
-                            {
-                              "x": 545.8667244734056,
-                              "y": 490.49945864778545
-                            },
-                            {
-                              "x": 881.0565926434592,
-                              "y": 1004.1442736491574
-                            },
-                            {
-                              "x": 981.0565926434592,
-                              "y": 1004.1442736491574
-                            }
-                          ]
-                        },
-                        {
-                          "id": "056f7ed7-28a1-4806-9274-15cf96b6edf3",
-                          "type": "run-edge",
-                          "properties": {},
-                          "sourceNodeId": "a78da13a-f16e-420d-bf98-003bf55a13d7",
-                          "targetNodeId": "313f6ad0-b223-4e5a-bedc-e77a72a0b59f",
-                          "sourceAnchorId": "a78da13a-f16e-420d-bf98-003bf55a13d7_right_main_success",
-                          "targetAnchorId": "313f6ad0-b223-4e5a-bedc-e77a72a0b59f_left_main_success",
-                          "startPoint": {
-                            "x": 1181.0565926434592,
-                            "y": 1004.1442736491574
-                          },
-                          "endPoint": {
-                            "x": 1489.1739071772524,
-                            "y": 1034.1181190610719
-                          },
-                          "pointsList": [
-                            {
-                              "x": 1181.0565926434592,
-                              "y": 1004.1442736491574
-                            },
-                            {
-                              "x": 1281.0565926434592,
-                              "y": 1004.1442736491574
-                            },
-                            {
-                              "x": 1389.1739071772524,
-                              "y": 1034.1181190610719
-                            },
-                            {
-                              "x": 1489.1739071772524,
-                              "y": 1034.1181190610719
+                              "x": 1800,
+                              "y": 355
                             }
                           ]
                         },
@@ -2510,29 +2668,29 @@
                           "sourceAnchorId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77_right_3df40cd9-6f70-4142-a730-944d7ae4eb3f_success",
                           "targetAnchorId": "bf145dd1-4764-4359-bb0f-8dcb04ce7f89_left_main_success",
                           "startPoint": {
-                            "x": 445.8667244734056,
-                            "y": 526.4994586477854
+                            "x": 692.1500895293315,
+                            "y": 637.2498721009549
                           },
                           "endPoint": {
-                            "x": 503.776537723249,
-                            "y": 899.5892233300203
+                            "x": 900,
+                            "y": 1071.2139751023192
                           },
                           "pointsList": [
                             {
-                              "x": 445.8667244734056,
-                              "y": 526.4994586477854
+                              "x": 692.1500895293315,
+                              "y": 637.2498721009549
                             },
                             {
-                              "x": 545.8667244734056,
-                              "y": 526.4994586477854
+                              "x": 792.1500895293315,
+                              "y": 637.2498721009549
                             },
                             {
-                              "x": 403.776537723249,
-                              "y": 899.5892233300203
+                              "x": 800,
+                              "y": 1071.2139751023192
                             },
                             {
-                              "x": 503.776537723249,
-                              "y": 899.5892233300203
+                              "x": 900,
+                              "y": 1071.2139751023192
                             }
                           ]
                         },
@@ -2545,29 +2703,29 @@
                           "sourceAnchorId": "bf145dd1-4764-4359-bb0f-8dcb04ce7f89_right_main_success",
                           "targetAnchorId": "261e0f01-490d-48a4-a02b-bb976854c709_left_main_success",
                           "startPoint": {
-                            "x": 703.776537723249,
-                            "y": 889.5892233300203
+                            "x": 1100,
+                            "y": 1061.2139751023192
                           },
                           "endPoint": {
-                            "x": 847.6851209604808,
-                            "y": 928.2112923439853
+                            "x": 1200,
+                            "y": 1015
                           },
                           "pointsList": [
                             {
-                              "x": 703.776537723249,
-                              "y": 889.5892233300203
+                              "x": 1100,
+                              "y": 1061.2139751023192
                             },
                             {
-                              "x": 803.776537723249,
-                              "y": 889.5892233300203
+                              "x": 1200,
+                              "y": 1061.2139751023192
                             },
                             {
-                              "x": 747.6851209604808,
-                              "y": 928.2112923439853
+                              "x": 1100,
+                              "y": 1015
                             },
                             {
-                              "x": 847.6851209604808,
-                              "y": 928.2112923439853
+                              "x": 1200,
+                              "y": 1015
                             }
                           ]
                         },
@@ -2580,29 +2738,239 @@
                           "sourceAnchorId": "bf145dd1-4764-4359-bb0f-8dcb04ce7f89_right_main_fail",
                           "targetAnchorId": "261e0f01-490d-48a4-a02b-bb976854c709_left_main_success",
                           "startPoint": {
-                            "x": 703.776537723249,
-                            "y": 914.5892233300203
+                            "x": 1100,
+                            "y": 1086.2139751023192
                           },
                           "endPoint": {
-                            "x": 847.6851209604808,
-                            "y": 928.2112923439853
+                            "x": 1200,
+                            "y": 1015
                           },
                           "pointsList": [
                             {
-                              "x": 703.776537723249,
-                              "y": 914.5892233300203
+                              "x": 1100,
+                              "y": 1086.2139751023192
                             },
                             {
-                              "x": 803.776537723249,
-                              "y": 914.5892233300203
+                              "x": 1200,
+                              "y": 1086.2139751023192
                             },
                             {
-                              "x": 747.6851209604808,
-                              "y": 928.2112923439853
+                              "x": 1100,
+                              "y": 1015
                             },
                             {
-                              "x": 847.6851209604808,
-                              "y": 928.2112923439853
+                              "x": 1200,
+                              "y": 1015
+                            }
+                          ]
+                        },
+                        {
+                          "id": "2550bb22-ea16-45aa-834d-ae8d378c5622",
+                          "type": "run-edge",
+                          "properties": {},
+                          "sourceNodeId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77",
+                          "targetNodeId": "aa6c216d-d398-4d65-aee2-3546a709e3d7",
+                          "sourceAnchorId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77_right_14988a23-8d80-496f-8047-0eabcbbc5811_success",
+                          "targetAnchorId": "aa6c216d-d398-4d65-aee2-3546a709e3d7_left_main_success",
+                          "startPoint": {
+                            "x": 692.1500895293315,
+                            "y": 601.2498721009549
+                          },
+                          "endPoint": {
+                            "x": 922.3506245736697,
+                            "y": 704.1095242155526
+                          },
+                          "pointsList": [
+                            {
+                              "x": 692.1500895293315,
+                              "y": 601.2498721009549
+                            },
+                            {
+                              "x": 792.1500895293315,
+                              "y": 601.2498721009549
+                            },
+                            {
+                              "x": 822.3506245736697,
+                              "y": 704.1095242155526
+                            },
+                            {
+                              "x": 922.3506245736697,
+                              "y": 704.1095242155526
+                            }
+                          ]
+                        },
+                        {
+                          "id": "88f9358b-887b-48dd-9768-58eb14c94af0",
+                          "type": "run-edge",
+                          "properties": {},
+                          "sourceNodeId": "aa6c216d-d398-4d65-aee2-3546a709e3d7",
+                          "targetNodeId": "917ba105-87cb-4522-8283-df66db290561",
+                          "sourceAnchorId": "aa6c216d-d398-4d65-aee2-3546a709e3d7_right_main_success",
+                          "targetAnchorId": "917ba105-87cb-4522-8283-df66db290561_left_main_success",
+                          "startPoint": {
+                            "x": 1122.3506245736703,
+                            "y": 704.1095242155526
+                          },
+                          "endPoint": {
+                            "x": 1281.2128026944065,
+                            "y": 773.6234545532061
+                          },
+                          "pointsList": [
+                            {
+                              "x": 1122.3506245736703,
+                              "y": 704.1095242155526
+                            },
+                            {
+                              "x": 1222.3506245736703,
+                              "y": 704.1095242155526
+                            },
+                            {
+                              "x": 1181.2128026944065,
+                              "y": 773.6234545532061
+                            },
+                            {
+                              "x": 1281.2128026944065,
+                              "y": 773.6234545532061
+                            }
+                          ]
+                        },
+                        {
+                          "id": "49eb2ef8-1fed-4b50-a7af-472cc115518f",
+                          "type": "run-edge",
+                          "properties": {},
+                          "sourceNodeId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77",
+                          "targetNodeId": "c805cd0b-e6ed-4dee-8110-4719ffc05542",
+                          "sourceAnchorId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77_right_bd2fccb0-b3be-4fad-ba7a-54ad45a026f3_success",
+                          "targetAnchorId": "c805cd0b-e6ed-4dee-8110-4719ffc05542_left_main_success",
+                          "startPoint": {
+                            "x": 692.1500895293315,
+                            "y": 673.2498721009549
+                          },
+                          "endPoint": {
+                            "x": 882.5747676500681,
+                            "y": 914.9551287517053
+                          },
+                          "pointsList": [
+                            {
+                              "x": 692.1500895293315,
+                              "y": 673.2498721009549
+                            },
+                            {
+                              "x": 792.1500895293315,
+                              "y": 673.2498721009549
+                            },
+                            {
+                              "x": 782.5747676500681,
+                              "y": 914.9551287517053
+                            },
+                            {
+                              "x": 882.5747676500681,
+                              "y": 914.9551287517053
+                            }
+                          ]
+                        },
+                        {
+                          "id": "ef8e88e0-99b8-4a69-9862-b850d7148473",
+                          "type": "run-edge",
+                          "properties": {},
+                          "sourceNodeId": "c805cd0b-e6ed-4dee-8110-4719ffc05542",
+                          "targetNodeId": "0caceafd-b629-47d7-b68a-838133a80ab2",
+                          "sourceAnchorId": "c805cd0b-e6ed-4dee-8110-4719ffc05542_right_main_success",
+                          "targetAnchorId": "0caceafd-b629-47d7-b68a-838133a80ab2_left_main_success",
+                          "startPoint": {
+                            "x": 1082.5747676500687,
+                            "y": 914.9551287517053
+                          },
+                          "endPoint": {
+                            "x": 1291.3534916439291,
+                            "y": 896.5580235334243
+                          },
+                          "pointsList": [
+                            {
+                              "x": 1082.5747676500687,
+                              "y": 914.9551287517053
+                            },
+                            {
+                              "x": 1182.5747676500687,
+                              "y": 914.9551287517053
+                            },
+                            {
+                              "x": 1191.3534916439291,
+                              "y": 896.5580235334243
+                            },
+                            {
+                              "x": 1291.3534916439291,
+                              "y": 896.5580235334243
+                            }
+                          ]
+                        },
+                        {
+                          "id": "55a674c3-6a91-4198-85cc-b612c029a1ce",
+                          "type": "run-edge",
+                          "properties": {},
+                          "sourceNodeId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77",
+                          "targetNodeId": "735e92f5-cdef-4dae-b053-d3e499e316c6",
+                          "sourceAnchorId": "6e9ea3d5-0e34-494d-9d20-f2869d631c77_right_1a6677c7-d7f4-4543-93ff-c99af7ca78f7_success",
+                          "targetAnchorId": "735e92f5-cdef-4dae-b053-d3e499e316c6_left_main_success",
+                          "startPoint": {
+                            "x": 692.1500895293315,
+                            "y": 709.2498721009549
+                          },
+                          "endPoint": {
+                            "x": 838.2074948840382,
+                            "y": 990.5051372783082
+                          },
+                          "pointsList": [
+                            {
+                              "x": 692.1500895293315,
+                              "y": 709.2498721009549
+                            },
+                            {
+                              "x": 792.1500895293315,
+                              "y": 709.2498721009549
+                            },
+                            {
+                              "x": 738.2074948840382,
+                              "y": 990.5051372783082
+                            },
+                            {
+                              "x": 838.2074948840382,
+                              "y": 990.5051372783082
+                            }
+                          ]
+                        },
+                        {
+                          "id": "e2690de6-82d1-4ce2-80a9-18746440adac",
+                          "type": "run-edge",
+                          "properties": {},
+                          "sourceNodeId": "735e92f5-cdef-4dae-b053-d3e499e316c6",
+                          "targetNodeId": "29fdce62-27b2-4684-86ef-b63a85bf6ce4",
+                          "sourceAnchorId": "735e92f5-cdef-4dae-b053-d3e499e316c6_right_main_success",
+                          "targetAnchorId": "29fdce62-27b2-4684-86ef-b63a85bf6ce4_left_main_success",
+                          "startPoint": {
+                            "x": 1038.2074948840382,
+                            "y": 990.5051372783082
+                          },
+                          "endPoint": {
+                            "x": 1237.1094815825375,
+                            "y": 1101.9427225443383
+                          },
+                          "pointsList": [
+                            {
+                              "x": 1038.2074948840382,
+                              "y": 990.5051372783082
+                            },
+                            {
+                              "x": 1138.2074948840382,
+                              "y": 990.5051372783082
+                            },
+                            {
+                              "x": 1137.1094815825375,
+                              "y": 1101.9427225443383
+                            },
+                            {
+                              "x": 1237.1094815825375,
+                              "y": 1101.9427225443383
                             }
                           ]
                         }

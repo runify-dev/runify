@@ -306,34 +306,6 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
         }
     }
 
-    private static List<ChatCompletionMessageParam> getChatCompletionMessageParams(
-            AIChatNodeData.ContextConfig contextConfig,
-            List<ChatCompletionMessageParam> messages) {
-
-        if (contextConfig == null
-                || contextConfig.getContextNumber() == null
-                || contextConfig.getContextNumber() <= 0) {
-            return messages;
-        }
-
-        int limit = contextConfig.getContextNumber() * 2;
-        if (messages.size() <= limit) {
-            return messages;
-        }
-
-        int startIndex = messages.size() - limit;
-
-        // 跳过截断点开头的孤立 tool 消息
-        while (startIndex < messages.size() && "tool".equals(messages.get(startIndex).role())) {
-            startIndex++;
-        }
-
-        if (startIndex >= messages.size()) {
-            return new ArrayList<>();
-        }
-
-        return messages.subList(startIndex, messages.size());
-    }
 
     @Override
     public AIChatNodeData getNodeData(JsonObject params) {

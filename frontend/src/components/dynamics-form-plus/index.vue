@@ -34,22 +34,41 @@ const formValue = ref<Record<string, any>>({ ...props.modelValue })
 const formFieldList = ref<FormField[]>([])
 const formFieldItemRefs = ref<InstanceType<typeof FormFieldItem>[]>([])
 
-const show = (field: FormField) => {
-  if (field.relationShowFieldDict) {
-    const keys = Object.keys(field.relationShowFieldDict)
-    for (const key of keys) {
-      const v = _.get(formValue.value, key)
-      if (v !== undefined && v !== null) {
-        const values = field.relationShowFieldDict[key]
-        if (values && values.length > 0) {
-          return values.includes(v)
-        }
-        return true
-      }
-      return false
-    }
+const evalCondition = (cond: { field: string; compare: string; value?: any }): boolean => {
+  const v = _.get(formValue.value, cond.field)
+  switch (cond.compare) {
+    case 'eq':
+      return v === cond.value
+    case 'neq':
+      return v !== cond.value
+    case 'gt':
+      return v > cond.value
+    case 'lt':
+      return v < cond.value
+    case 'gte':
+      return v >= cond.value
+    case 'lte':
+      return v <= cond.value
+    case 'in':
+      return Array.isArray(cond.value) && cond.value.includes(v)
+    case 'nin':
+      return Array.isArray(cond.value) && !cond.value.includes(v)
+    case 'empty':
+      return v === undefined || v === null || v === ''
+    case 'notempty':
+      return v !== undefined && v !== null && v !== ''
+    default:
+      return true
   }
-  return true
+}
+
+const show = (field: FormField) => {
+  if (!field.showRules) return true
+  const { condition, conditions } = field.showRules
+  if (!conditions || conditions.length === 0) return true
+  return condition === 'and'
+    ? conditions.every(evalCondition)
+    : conditions.some(evalCondition)
 }
 
 const setFieldValue = (field: string, value: any) => {

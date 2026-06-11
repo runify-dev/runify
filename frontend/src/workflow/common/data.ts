@@ -507,6 +507,37 @@ export const grepNode = {
   }
 }
 
+export const runSkillNode = {
+  type: 'run-skill-node',
+  text: '',
+  x: 0,
+  y: 0,
+  label: '技能执行',
+  properties: {
+    width: 200,
+    height: 50,
+    name: '技能执行',
+    isHovered: false,
+    field_list: [
+      { label: '执行结果', value: 'result' },
+      { label: '标准输出', value: 'stdout' },
+      { label: '错误输出', value: 'stderr' },
+      { label: '退出码', value: 'exitCode' }
+    ],
+    nodeData: {
+      runtime: 'local',
+      location: 'customize',
+      reference: [],
+      skillIdLocation: 'customize',
+      skillIdReference: [],
+      skillId: '',
+      commandLocation: 'customize',
+      commandReference: [],
+      command: ''
+    }
+  }
+}
+
 export const downloadSkillsNode = {
   type: 'download-skills-node',
   text: '',

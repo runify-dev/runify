@@ -173,7 +173,7 @@ public class ListDirNode extends INode<ListDirNode, ListDirNodeData> {
                                     NodeStatus.SUCCESS, node, finalRunId, config.chunkId()));
                             workFlowManage.nextInvoke(node, workFlowManage.nextNodeSupplier(node.node.getId()));
                         })
-                        .onFailure(e -> invokeFail(workFlowManage, node, config, finalRunId, e));
+                        .onFailure(e -> workFlowManage.nextInvoke(node, invokeFail(workFlowManage, node, config, finalRunId, e)));
 
             } catch (Exception e) {
                 return invokeFail(workFlowManage, node, config, runId, e);

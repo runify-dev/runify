@@ -223,6 +223,8 @@ const handleDelete = (item: Node) => {
         nodeList.value = nodeList.value.filter((n) => n.id !== item.id)
         bus.emit('tree:remove', item.id)
         toast.add({severity: 'success', summary: '删除成功', life: 2000})
+      }).finally(() => {
+        confirm.close()
       })
     }
   })

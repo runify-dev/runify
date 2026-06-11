@@ -68,8 +68,8 @@ public class ListSkillsNode extends INode<ListSkillsNode, ListSkillsNodeData> {
                     String desc = skill.getDesc() != null ? skill.getDesc() : "";
                     String id = skill.getId().toString();
 
-                    // 检查是否已安装以及是否有更新
-                    Path skillDir = skillsDir.resolve(name);
+                    // 检查是否已安装以及是否有更新（目录用技能ID）
+                    Path skillDir = skillsDir.resolve(id);
                     Path metaFile = skillDir.resolve(".skill-meta.json");
                     boolean installed = Files.exists(metaFile);
                     boolean hasUpdate = false;

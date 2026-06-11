@@ -38,16 +38,12 @@ import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
 
     public final static String type = "apply-patch-node";
-    public final static List<WorkflowType> supportWorkflow = List.of(
-            WorkflowType.CHAT_WORKFLOW,
-            WorkflowType.CHAT_WORKFLOW_LOOP,
-            WorkflowType.PROCESSOR_HTTP,
-            WorkflowType.PROCESSOR_HTTP_LOOP
-    );
+    public final static List<WorkflowType> supportWorkflow = List.of(WorkflowType.CHAT_WORKFLOW, WorkflowType.CHAT_WORKFLOW_LOOP, WorkflowType.PROCESSOR_HTTP, WorkflowType.PROCESSOR_HTTP_LOOP);
 
     public ApplyPatchNode(Node node, JsonObject params, List<String> upNodeIdList, String salt, INode<?, ?> upNode) {
         super(node, params, upNodeIdList, salt, upNode);
@@ -74,24 +70,19 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
      * 避免在 Windows 上把 LF 改成 CRLF，或给无尾换行的文件强加换行。
      * [FIX-7] renameFrom 非 null 表示这是一次重命名，target 为新路径，renameFrom 为旧路径。
      */
-    private record StagedChange(
-            String operation,
-            Path target,
-            Path renameFrom,
-            List<String> newLines,
-            String lineSep,
-            boolean trailingNewline,
-            byte[] originalBytes,
-            int added,
-            int removed
-    ) {
+    private record StagedChange(String operation, Path target, Path renameFrom, List<String> newLines, String lineSep,
+                                boolean trailingNewline, byte[] originalBytes, int added, int removed) {
     }
 
-    /** 解码后的文件内容，保留行尾风格与结尾换行信息。 */
+    /**
+     * 解码后的文件内容，保留行尾风格与结尾换行信息。
+     */
     private record FileContent(List<String> lines, String lineSep, boolean trailingNewline) {
     }
 
-    /** 新建文件提取出的内容，含是否以换行结尾。 */
+    /**
+     * 新建文件提取出的内容，含是否以换行结尾。
+     */
     private record NewFileContent(List<String> lines, boolean trailingNewline) {
     }
 
@@ -104,14 +95,20 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
 
     public static class Handle implements BiFunction<WorkFlowManage, ApplyPatchNode, Supplier<List<Node>>> {
 
-        private static final Pattern HUNK_HEADER_PATTERN = Pattern.compile(
-                "@@ -(\\d+)(?:,\\d+)? \\+(\\d+)(?:,\\d+)? @@.*");
+        private static final Pattern HUNK_HEADER_PATTERN = Pattern.compile("@@ -(\\d+)(?:,\\d+)? \\+(\\d+)(?:,\\d+)? @@.*");
 
         /**
          * [FIX-5] 搜索兜底时，若同一旧内容块在文件中出现多处且块太短，
          * 视为歧义、拒绝应用，避免把改动悄悄贴到错误位置。
          */
         private static final int MIN_UNIQUE_BLOCK_LINES = 3;
+
+        /**
+         * [FIX-9] 零宽 / 不可见格式字符：零宽空格、零宽连接符、字间连接符、
+         * 零宽不换行空格(BOM)、软连字符。这些字符肉眼不可见，Java 不当作空白，
+         * NFC/NFKC 也不会删除，是导致"期望与实际打印一样却匹配失败"的常见元凶。
+         */
+        private static final Pattern ZERO_WIDTH = Pattern.compile("[\\u200B\\u200C\\u200D\\u2060\\uFEFF\\u00AD]");
 
         private Supplier<List<Node>> invokeFail(WorkFlowManage wfm, ApplyPatchNode node, PatchConfig config, String runId, Throwable e) {
             String id = config != null ? config.id() : CommonUtils.uuid7().toString();
@@ -123,8 +120,7 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
             wfm.writeContext(node, "result", false);
             wfm.writeContext(node, "stdout", "");
             wfm.writeContext(node, "stderr", msg);
-            wfm.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("apply_patch", msg, arguments,
-                    NodeStatus.FAIL, node, runId, id).withMeta(meta)));
+            wfm.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("apply_patch", msg, arguments, NodeStatus.FAIL, node, runId, id).withMeta(meta)));
             return node.handleFail(wfm, e);
         }
 
@@ -139,8 +135,7 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
 
             try {
                 String patchStr = fixHunkHeaders(normalizePatch(config.patch()));
-                UnifiedDiff diff = UnifiedDiffReader.parseUnifiedDiff(
-                        new ByteArrayInputStream(patchStr.getBytes(StandardCharsets.UTF_8)));
+                UnifiedDiff diff = UnifiedDiffReader.parseUnifiedDiff(new ByteArrayInputStream(patchStr.getBytes(StandardCharsets.UTF_8)));
 
                 if (diff.getFiles().isEmpty()) {
                     return invokeFail(workFlowManage, node, config, runId, new RuntimeException("Patch 中没有可识别的文件改动"));
@@ -164,15 +159,12 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
                 }
 
                 if (!failures.isEmpty()) {
-                    String errMsg = failures.stream()
-                            .map(f -> f.path() + ": " + f.reason())
-                            .reduce("", (a, b) -> a.isEmpty() ? b : a + "\n" + b);
+                    String errMsg = failures.stream().map(f -> f.path() + ": " + f.reason()).reduce("", (a, b) -> a.isEmpty() ? b : a + "\n" + b);
                     return invokeFail(workFlowManage, node, config, runId, new RuntimeException("应用失败（未写入任何文件）:\n" + errMsg));
                 }
 
                 if (config.withWriteArguments()) {
-                    workFlowManage.write(node, new ToolCallContent("apply_patch", "",
-                            config.toArguments(), NodeStatus.RUNNING, node, runId, config.id()));
+                    workFlowManage.write(node, new ToolCallContent("apply_patch", "", config.toArguments(), NodeStatus.RUNNING, node, runId, config.id()));
                 }
 
                 // [FIX-2] 写盘阶段做真正的回滚：记录已成功写入的项，任一项失败时按原始字节逆序恢复。
@@ -190,13 +182,11 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
                             case "renamed" -> "Renamed";
                             default -> "Modified";
                         };
-                        workFlowManage.write(node, new ToolCallContent("apply_patch", verb + " " + relPath + "\n",
-                                "", NodeStatus.RUNNING, node, runId, config.id()));
+                        workFlowManage.write(node, new ToolCallContent("apply_patch", verb + " " + relPath + "\n", "", NodeStatus.RUNNING, node, runId, config.id()));
                     }
                 } catch (IOException io) {
                     rollback(done);
-                    workFlowManage.write(node, new ToolCallContent("apply_patch", "写入失败，已回滚已应用的改动\n",
-                            "", NodeStatus.RUNNING, node, runId, config.id()));
+                    workFlowManage.write(node, new ToolCallContent("apply_patch", "写入失败，已回滚已应用的改动\n", "", NodeStatus.RUNNING, node, runId, config.id()));
                     throw new RuntimeException("应用失败（已回滚）: " + io.getMessage(), io);
                 }
 
@@ -231,12 +221,10 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
             if (isNew) {
                 Path target = resolve(workDir, toPath);
                 if (Files.exists(target)) {
-                    throw new IllegalStateException("文件已存在，不能用 new file 模式覆盖: " + toPath
-                            + "。请使用修改模式（带上下文行的 diff）来编辑已有文件。");
+                    throw new IllegalStateException("文件已存在，不能用 new file 模式覆盖: " + toPath + "。请使用修改模式（带上下文行的 diff）来编辑已有文件。");
                 }
                 NewFileContent nf = extractNewFileContent(file, patchStr);
-                return new StagedChange("created", target, null, nf.lines(),
-                        "\n", nf.trailingNewline(), null, nf.lines().size(), 0);
+                return new StagedChange("created", target, null, nf.lines(), "\n", nf.trailingNewline(), null, nf.lines().size(), 0);
             }
 
             // ── 删除文件 ──
@@ -247,8 +235,7 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
                 }
                 byte[] raw = Files.readAllBytes(target);
                 int lines = decodeContent(raw).lines().size();
-                return new StagedChange("deleted", target, null, null,
-                        "\n", false, raw, 0, lines);
+                return new StagedChange("deleted", target, null, null, "\n", false, raw, 0, lines);
             }
 
             // [FIX-7] 重命名：from / to 都存在且不同。
@@ -292,12 +279,10 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
                 if (Files.exists(newTarget)) {
                     throw new IllegalStateException("重命名目标已存在: " + toPath);
                 }
-                return new StagedChange("renamed", newTarget, readTarget, patched,
-                        fc.lineSep(), fc.trailingNewline(), raw, added, removed);
+                return new StagedChange("renamed", newTarget, readTarget, patched, fc.lineSep(), fc.trailingNewline(), raw, added, removed);
             }
 
-            return new StagedChange("modified", readTarget, null, patched,
-                    fc.lineSep(), fc.trailingNewline(), raw, added, removed);
+            return new StagedChange("modified", readTarget, null, patched, fc.lineSep(), fc.trailingNewline(), raw, added, removed);
         }
 
         /**
@@ -307,12 +292,13 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
          * 当 applyTo 失败时，这里按 source block 内容在文件中重新搜索最接近的位置，
          * 只要旧内容仍然存在，就可以降低"行号不准导致 patch 不生效"的概率。
          * [FIX-5] 命中多处且块太短时判为歧义并拒绝，避免静默贴错位置。
+         * <p>
+         * [FIX-9] 注意：UnifiedDiffReader 会把整段 hunk 解析成一个 CHANGE delta，
+         * source = 全部上下文行(含未改动行)。因此即便是纯新增 hunk，applyTo 也会逐字校验
+         * 周围上下文；只要某行有一个不可见字符差异(全半角标点 / 破折号 / NBSP / 零宽 / BOM)，
+         * applyTo 与本兜底都会失败。matchesAt 的 Level 5 用来吸收这类差异。
          */
-        private List<String> applyPatchBySearchFallback(
-                Patch<String> patch,
-                List<String> original,
-                PatchFailedException cause
-        ) {
+        private List<String> applyPatchBySearchFallback(Patch<String> patch, List<String> original, PatchFailedException cause) {
             List<String> result = new ArrayList<>(original);
 
             List<AbstractDelta<String>> deltas = new ArrayList<>(patch.getDeltas());
@@ -334,10 +320,7 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
                 } else {
                     pos = findNearestBlock(result, sourceLines, preferred);
                     if (pos == -2) {
-                        throw new IllegalStateException(
-                                "上下文不唯一，无法安全定位改动位置（旧内容在文件中出现多处且上下文过短）。"
-                                        + "请在 diff 中提供更多上下文行后重试。\n"
-                                        + buildPatchMismatchMessage(original, patch, cause));
+                        throw new IllegalStateException("上下文不唯一，无法安全定位改动位置（旧内容在文件中出现多处且上下文过短）。" + "请在 diff 中提供更多上下文行后重试。\n" + buildPatchMismatchMessage(original, patch, cause));
                     }
                     if (pos < 0) {
                         throw new IllegalStateException(buildPatchMismatchMessage(original, patch, cause));
@@ -410,9 +393,12 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
 
         /**
          * [FIX-5] 先精确匹配，再尝试 stripTrailing 容错匹配。
-         * [FIX-6] 最后尝试 NFC 归一化匹配，处理 Unicode 字符表示不一致。
+         * [FIX-6] 然后尝试 NFC 归一化匹配，处理 Unicode 字符表示不一致。
          * AI 生成的上下文行经常丢失尾部空格、使用不同的 Unicode 表示形式，
          * 或者 Tab/空格缩进不一致。
+         * [FIX-9] 最后一级用 fuzzyMatchKey：NFKC（折叠全半角、NBSP/U+3000 等兼容差异）
+         * + 删零宽/BOM + 折叠破折号变体，吸收"打印相同但字节不同"的最后一类差异。
+         * 注意各级匹配只用于"定位"，不改写文件本身的字符表示。
          */
         private boolean matchesAt(List<String> content, List<String> block, int start) {
             if (start < 0 || start + block.size() > content.size()) {
@@ -437,19 +423,49 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
                     continue;
                 }
                 // Level 4: [FIX-7] Tab/空格归一化（Tab→4空格，去尾部空白）
-                if (!normalizeWhitespace(normContent).equals(normalizeWhitespace(normBlock))) {
-                    return false;
+                if (normalizeWhitespace(normContent).equals(normalizeWhitespace(normBlock))) {
+                    continue;
                 }
+                // Level 5: [FIX-9] NFKC + 删零宽/BOM + 折叠破折号，
+                // 救全半角标点、破折号变体、NBSP、零宽字符、BOM 等不可见差异。
+                if (fuzzyMatchKey(contentLine).equals(fuzzyMatchKey(blockLine))) {
+                    continue;
+                }
+                return false;
             }
 
             return true;
         }
 
         /**
-         * 将 Tab 替换为 4 空格，去除尾部空白。仅用于 matchesAt 的最后一级容错匹配，不改变实际文件内容。
+         * 将 Tab 替换为 4 空格，去除尾部空白。仅用于 matchesAt 的容错匹配，不改变实际文件内容。
          */
         private String normalizeWhitespace(String line) {
             return line.replace("\t", "    ").stripTrailing();
+        }
+
+        /**
+         * [FIX-9] matchesAt 最宽松一级的比较 key（保留前导缩进，对代码安全）：
+         * 1. 删除零宽 / BOM / 软连字符；
+         * 2. NFKC 归一化（折叠全角↔半角标点、把 NBSP/U+3000 归一为普通空格、上下标/合字等）；
+         * 3. 折叠常见破折号变体（U+2010–U+2015、U+2212）为半角连字符 '-'；
+         * 4. 仅去尾部空白（不折叠行内空白，避免误伤代码缩进差异）。
+         * 仅用于"定位"匹配，不会改写文件内容。
+         */
+        private static String fuzzyMatchKey(String line) {
+            String t = ZERO_WIDTH.matcher(line).replaceAll("");
+            t = Normalizer.normalize(t, Normalizer.Form.NFKC);
+            t = t.replaceAll("[\\u2010-\\u2015\\u2212]", "-");
+            return t.stripTrailing();
+        }
+
+        /**
+         * [FIX-9] 把一行展开成码点序列，用于在错误信息中暴露不可见字符差异。
+         */
+        private static String toCodePoints(String s) {
+            return s.codePoints()
+                    .mapToObj(c -> String.format("U+%04X", c))
+                    .collect(Collectors.joining(" "));
         }
 
         private String buildPatchMismatchMessage(List<String> original, Patch<String> patch, PatchFailedException cause) {
@@ -471,6 +487,19 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
                     }
                 } else {
                     detail.append("\n  实际: （超出文件范围，文件共 ").append(original.size()).append(" 行）");
+                }
+
+                // [FIX-9] 当期望行与实际行"看起来一样却逐字节不等"时，dump 第一处差异行的码点，
+                // 直接暴露全半角标点 / 破折号 / NBSP / 零宽 / BOM 这类不可见字符。
+                for (int k = 0; k < expected.size() && pos + k < original.size(); k++) {
+                    String exp = expected.get(k);
+                    String act = original.get(pos + k);
+                    if (!exp.equals(act)) {
+                        detail.append("\n  ⚠ 第 ").append(pos + k + 1).append(" 行逐字节不一致（码点）:");
+                        detail.append("\n      期望: ").append(toCodePoints(exp));
+                        detail.append("\n      实际: ").append(toCodePoints(act));
+                        break; // 只报第一处，足够定位
+                    }
                 }
             }
 
@@ -601,9 +630,7 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
         }
 
         private static String decodeStrict(byte[] raw, Charset charset) throws CharacterCodingException {
-            CharsetDecoder decoder = charset.newDecoder()
-                    .onMalformedInput(CodingErrorAction.REPORT)
-                    .onUnmappableCharacter(CodingErrorAction.REPORT);
+            CharsetDecoder decoder = charset.newDecoder().onMalformedInput(CodingErrorAction.REPORT).onUnmappableCharacter(CodingErrorAction.REPORT);
             return decoder.decode(ByteBuffer.wrap(raw)).toString();
         }
 
@@ -809,9 +836,7 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
         private void writeResult(WorkFlowManage wfm, ApplyPatchNode node, String runId, PatchConfig config, Result result) {
             wfm.writeContext(node, "result", result.success());
             wfm.writeContext(node, "stdout", result.summary());
-            wfm.writeContext(node, "stderr", result.failures().stream()
-                    .map(f -> f.path() + ": " + f.reason())
-                    .reduce("", (a, b) -> a.isEmpty() ? b : a + "\n" + b));
+            wfm.writeContext(node, "stderr", result.failures().stream().map(f -> f.path() + ": " + f.reason()).reduce("", (a, b) -> a.isEmpty() ? b : a + "\n" + b));
             NodeStatus status = result.success() ? NodeStatus.SUCCESS : NodeStatus.FAIL;
             wfm.write(node, new ToolCallContent("apply_patch", result.summary(), "", status, node, runId, config.id()));
             wfm.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("apply_patch", result.summary(), config.toArguments(), status, node, runId, config.id()).withMeta(config.meta)));
@@ -839,38 +864,29 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
 
                 Path workDir;
                 if (!StringUtils.isEmpty(toolPath)) {
-                    UUID convId = (UUID) wfm.getParams().getOrDefault("conversationId", CommonUtils.uuid7());
-                    Path base = Path.of(System.getProperty("user.home") + "/.runify/" + convId);
+                    Path base = wfm.getWorkingDirectory();
                     createDirectoriesIfNeeded(base);
-                    workDir = Path.of(toolPath).isAbsolute() ? Path.of(toolPath) : base.resolve(toolPath).normalize();
+                    Path path = Path.of(toolPath);
+                    workDir = path.isAbsolute() ? path : base.resolve(toolPath).normalize();
                 } else {
                     workDir = resolveWorkDir(node.params.getPathLocation(), node.params.getPathReference(), node.params.getPath(), wfm);
                 }
 
-                return new PatchConfig(
-                        StringUtils.isEmpty(id) ? CommonUtils.uuid7().toString() : id,
-                        patchContent, workDir, false, meta);
+                return new PatchConfig(StringUtils.isEmpty(id) ? CommonUtils.uuid7().toString() : id, patchContent, workDir, false, meta);
             }
 
-            String patchContent = resolveValue(
-                    node.params.getPatchLocation(),
-                    node.params.getPatchReference(),
-                    node.params.getPatch(),
-                    "patch",
-                    wfm
-            );
+            String patchContent = resolveValue(node.params.getPatchLocation(), node.params.getPatchReference(), node.params.getPatch(), "patch", wfm);
             Path workDir = resolveWorkDir(node.params.getPathLocation(), node.params.getPathReference(), node.params.getPath(), wfm);
             return new PatchConfig(CommonUtils.uuid7().toString(), patchContent, workDir, true, ToolCallMeta.EMPTY);
         }
 
         private Path resolveWorkDir(String location, List<String> reference, String customValue, WorkFlowManage wfm) {
-            UUID conversationId = (UUID) wfm.getParams().getOrDefault("conversationId", CommonUtils.uuid7());
-            Path base = Path.of(System.getProperty("user.home") + "/.runify/" + conversationId);
+            Path base = wfm.getWorkingDirectory();
             createDirectoriesIfNeeded(base);
-
             String workDirStr = resolveValue(location, reference, customValue, "path", wfm);
             if (StringUtils.isEmpty(workDirStr)) return base;
-            return Path.of(workDirStr).isAbsolute() ? Path.of(workDirStr) : base.resolve(workDirStr).normalize();
+            Path path = Path.of(workDirStr);
+            return path.isAbsolute() ? path : base.resolve(workDirStr).normalize();
         }
 
         private void createDirectoriesIfNeeded(Path dir) {
@@ -885,13 +901,7 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
             }
         }
 
-        private String resolveValue(
-                String location,
-                List<String> reference,
-                String customValue,
-                String fieldName,
-                WorkFlowManage wfm
-        ) {
+        private String resolveValue(String location, List<String> reference, String customValue, String fieldName, WorkFlowManage wfm) {
             if ("tool_call".equals(location)) {
                 if (reference == null || reference.isEmpty()) return null;
                 Object val = wfm.getContextVariable(reference);

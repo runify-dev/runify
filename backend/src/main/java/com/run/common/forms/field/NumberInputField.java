@@ -2,8 +2,8 @@ package com.run.common.forms.field;
 
 import com.run.common.forms.BaseField;
 import com.run.common.forms.BaseLabel;
+import com.run.common.forms.ShowRule;
 
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -13,10 +13,10 @@ public class NumberInputField extends BaseField {
     public NumberInputField(BaseLabel label,
                             Boolean required,
                             Object defaultValue,
-                            Map<String, List<Object>> displayConstraint,
+                            ShowRule showRules,
                             Map<String, Object> attrs,
                             Map<String, Object> props) {
-        super("NumberInput", label, required, defaultValue, displayConstraint, attrs, props);
+        super("NumberInput", label, required, defaultValue, showRules, attrs, props);
     }
 
     public NumberInputField(BaseLabel label,

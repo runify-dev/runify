@@ -108,9 +108,7 @@ public class FileUploadNode extends INode<FileUploadNode, FileUploadNodeData> {
                     })
                     .onFailure(e -> {
                         if (node.cancelled.get()) return;
-                        invokeFail(workFlowManage, node, config, runId, e);
-                        workFlowManage.nextFailInvoke(node, e);
-
+                        workFlowManage.nextInvoke(node, invokeFail(workFlowManage, node, config, runId, e));
                     });
             return null;
         }

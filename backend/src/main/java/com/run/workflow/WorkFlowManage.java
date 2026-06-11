@@ -48,7 +48,7 @@ public class WorkFlowManage {
      */
     @Getter
     private final Map<String, Object> params;
-    private boolean done = false;
+    private volatile boolean done = false;
     /**
      * 运行开始时间
      */
@@ -199,8 +199,6 @@ public class WorkFlowManage {
             Supplier<List<Node>> handle = invoke.handle(this);
             if (handle != null) {
                 nextInvoke(iNode, handle);
-            } else {
-                this.assertionEnd();
             }
         } catch (Throwable e) {
             log.error("执行工作流中发生异常:", e);
@@ -260,7 +258,9 @@ public class WorkFlowManage {
     }
 
     public void end() {
-        this.write.write(this, null, null, true);
+        if (!this.done) {
+            this.write.write(this, null, null, true);
+        }
     }
 
     /**
@@ -282,7 +282,7 @@ public class WorkFlowManage {
         return this.cancelled.get();
     }
 
-    public void assertionEnd() {
+    public synchronized void assertionEnd() {
         List<NodeStatus> running = List.of(NodeStatus.RUNNING, NodeStatus.BEFORE_RUNNING);
         boolean b = this.nodes.stream().anyMatch(iNode -> running.contains(iNode.status));
         if (!b && !done) {

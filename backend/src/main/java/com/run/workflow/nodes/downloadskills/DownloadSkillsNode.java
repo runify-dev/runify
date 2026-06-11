@@ -22,13 +22,11 @@ import jakarta.validation.Validator;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
@@ -98,17 +96,28 @@ public class DownloadSkillsNode extends INode<DownloadSkillsNode, DownloadSkills
                                 .onSuccess(skillFiles -> {
                                     if (node.getStatus() == NodeStatus.CANCELLED) return;
 
-                                    // 确定本地目录
+                                    // 确定本地目录，已存在则先删除再创建
                                     Path localDir = workFlowManage.getApplicationDirectory()
-                                            .resolve("skills").resolve(skill.getName());
+                                            .resolve("skills").resolve(skill.getId().toString());
+                                    try {
+                                        if (Files.exists(localDir)) {
+                                            Files.walk(localDir)
+                                                    .sorted(Comparator.reverseOrder())
+                                                    .map(Path::toFile)
+                                                    .forEach(File::delete);
+                                        }
+                                        Files.createDirectories(localDir);
+                                    } catch (IOException e) {
+                                        invokeFail(workFlowManage, node, config, runId, "创建目录失败: " + e.getMessage());
+                                        return;
+                                    }
 
                                     // 下载所有文件
                                     downloadAll(vertx, fileMapper, localDir, skillFiles)
                                             .onSuccess(downloadedFiles -> {
                                                 if (node.getStatus() == NodeStatus.CANCELLED) return;
 
-                                                // 生成 .env 和 .skill-meta.json
-                                                writeEnvFile(localDir, skill);
+                                                // 生成 .skill-meta.json
                                                 writeMetaFile(localDir, skill);
 
                                                 String summary = "已安装 " + skill.getName() + " (" + downloadedFiles.size() + " 个文件)";
@@ -142,43 +151,63 @@ public class DownloadSkillsNode extends INode<DownloadSkillsNode, DownloadSkills
         }
 
         /**
-         * 下载所有技能文件到本地目录
+         * 下载所有技能文件到本地目录（保留目录层级）
          */
         private Future<List<String>> downloadAll(Vertx vertx, FileMapper fileMapper,
-                                                   Path localDir, List<SkillFile> skillFiles) {
+                                                 Path localDir, List<SkillFile> skillFiles) {
             List<Future<Void>> futures = new ArrayList<>();
             List<String> downloaded = new ArrayList<>();
 
+            // 构建目录 ID → 相对路径 映射
+            Map<String, String> folderPaths = new HashMap<>();
+            folderPaths.put("00000000-0000-0000-0000-000000000000", ""); // root
             for (SkillFile sf : skillFiles) {
                 if ("folder".equals(sf.getType())) {
+                    String parentPath = folderPaths.getOrDefault(
+                            sf.getParentId() != null ? sf.getParentId().toString() : "", "");
+                    String folderPath = parentPath.isEmpty() ? sf.getName() : parentPath + "/" + sf.getName();
+                    folderPaths.put(sf.getId().toString(), folderPath);
                     // 创建目录
                     try {
-                        Files.createDirectories(localDir.resolve(sf.getName()));
-                        downloaded.add(sf.getName() + "/");
+                        Files.createDirectories(localDir.resolve(folderPath));
+                        downloaded.add(folderPath + "/");
                     } catch (Exception e) {
                         return Future.failedFuture(e);
                     }
-                } else if ("text".equals(sf.getType())) {
-                    // 写入文本文件
+                }
+            }
+
+            for (SkillFile sf : skillFiles) {
+                if ("folder".equals(sf.getType())) continue; // 已处理
+
+                String parentPath = folderPaths.getOrDefault(
+                        sf.getParentId() != null ? sf.getParentId().toString() : "", "");
+                String relativePath = parentPath.isEmpty() ? sf.getName() : parentPath + "/" + sf.getName();
+
+                if ("text".equals(sf.getType())) {
                     try {
-                        Path filePath = localDir.resolve(sf.getName());
+                        Path filePath = localDir.resolve(relativePath);
                         if (filePath.getParent() != null) Files.createDirectories(filePath.getParent());
                         Files.writeString(filePath, sf.getContent() != null ? sf.getContent() : "", StandardCharsets.UTF_8);
-                        downloaded.add(sf.getName());
+                        downloaded.add(relativePath);
                     } catch (Exception e) {
                         return Future.failedFuture(e);
                     }
                 } else if ("file".equals(sf.getType()) && sf.getFileId() != null) {
-                    // 下载二进制文件
+                    final String relPath = relativePath;
                     futures.add(fileMapper.getById(sf.getFileId().toString())
                             .compose(entity -> {
                                 if (entity == null) return Future.succeededFuture();
-                                Path filePath = localDir.resolve(sf.getName());
+                                Path filePath = localDir.resolve(relPath);
                                 if (filePath.getParent() != null) {
-                                    try { Files.createDirectories(filePath.getParent()); } catch (Exception e) { return Future.failedFuture(e); }
+                                    try {
+                                        Files.createDirectories(filePath.getParent());
+                                    } catch (Exception e) {
+                                        return Future.failedFuture(e);
+                                    }
                                 }
                                 return downloadFile(vertx, fileMapper, entity, filePath.toFile())
-                                        .onSuccess(v -> downloaded.add(sf.getName()));
+                                        .onSuccess(v -> downloaded.add(relPath));
                             }));
                 }
             }
@@ -191,15 +220,21 @@ public class DownloadSkillsNode extends INode<DownloadSkillsNode, DownloadSkills
         }
 
         private Future<Void> downloadFile(Vertx vertx, FileMapper fileMapper,
-                                           com.run.dao.entity.FileEntity entity, File targetFile) {
+                                          com.run.dao.entity.FileEntity entity, File targetFile) {
             io.vertx.core.Promise<Void> promise = io.vertx.core.Promise.promise();
             var readStream = fileMapper.downloadFile(vertx, entity);
             vertx.fileSystem().open(targetFile.getAbsolutePath(),
-                    new io.vertx.core.file.OpenOptions().setWrite(true).setCreate(true))
+                            new io.vertx.core.file.OpenOptions().setWrite(true).setCreate(true))
                     .onSuccess(asyncFile -> {
                         readStream.handler(asyncFile::write);
-                        readStream.endHandler(v -> { asyncFile.close(); promise.complete(); });
-                        readStream.exceptionHandler(e -> { asyncFile.close(); promise.fail(e); });
+                        readStream.endHandler(v -> {
+                            asyncFile.close();
+                            promise.complete();
+                        });
+                        readStream.exceptionHandler(e -> {
+                            asyncFile.close();
+                            promise.fail(e);
+                        });
                         readStream.read();
                     })
                     .onFailure(promise::fail);
@@ -225,40 +260,8 @@ public class DownloadSkillsNode extends INode<DownloadSkillsNode, DownloadSkills
             }
         }
 
-        /**
-         * 从 skillParameterForm + parameterValue 生成 .env 文件
-         */
-        private void writeEnvFile(Path localDir, Skill skill) {
-            try {
-                JsonObject params = skill.decrypt();
-                if (params == null || params.isEmpty()) return;
-
-                JsonArray form = skill.getSkillParameterForm();
-                if (form == null || form.isEmpty()) return;
-
-                StringBuilder env = new StringBuilder();
-                for (int i = 0; i < form.size(); i++) {
-                    JsonObject field = form.getJsonObject(i);
-                    String key = field.getString("field");
-                    if (key == null || key.isEmpty()) continue;
-                    Object value = params.getValue(key);
-                    if (value != null) {
-                        env.append(key).append("=").append(value.toString()).append("\n");
-                    }
-                }
-
-                if (env.length() > 0) {
-                    Path envFile = localDir.resolve(".env");
-                    Files.createDirectories(localDir);
-                    Files.writeString(envFile, env.toString(), java.nio.charset.StandardCharsets.UTF_8);
-                }
-            } catch (Exception e) {
-                // .env 生成失败不影响整体安装
-            }
-        }
-
         private Supplier<List<Node>> invokeFail(WorkFlowManage wfm, DownloadSkillsNode node,
-                                                  DownloadSkillsConfig config, String runId, String error) {
+                                                DownloadSkillsConfig config, String runId, String error) {
             node.status = NodeStatus.FAIL;
             String id = config != null ? config.id() : CommonUtils.uuid7().toString();
             String args = config != null ? config.toArguments() : "";

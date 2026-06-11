@@ -105,6 +105,17 @@ interface PropsInfo {
   [propName: string]: any
 }
 
+interface ShowCondition {
+  field: string
+  compare: 'eq' | 'neq' | 'gt' | 'lt' | 'gte' | 'lte' | 'in' | 'nin' | 'empty' | 'notempty'
+  value?: any
+}
+
+interface ShowRule {
+  condition: 'and' | 'or'
+  conditions: ShowCondition[]
+}
+
 interface FormField {
   field: string
   /**
@@ -128,9 +139,9 @@ interface FormField {
    */
   showDefaultValue?: boolean
   /**
-   *  {field:field_value_list} 表示在 field有值 ,并且值在field_value_list中才显示
+   * 显示规则，条件满足时才显示该字段
    */
-  relationShowFieldDict?: Dict<Array<any>>
+  showRules?: ShowRule
   /**
    * 前端attr数据
    */
@@ -154,4 +165,4 @@ interface FormField {
 
   children?: Array<FormField>
 }
-export type { FormField }
+export type { FormField, ShowRule, ShowCondition }

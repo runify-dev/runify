@@ -40,7 +40,8 @@ public class ReadFileNode extends INode<ReadFileNode, ReadFileNodeData> {
         super(node, params, upNodeIdList, salt, context, validator, upNode);
     }
 
-    record ReadFileConfig(String chunkId, String filePath, int offset, int limit, boolean withWriteArguments, ToolCallMeta meta) {
+    record ReadFileConfig(String chunkId, String filePath, int offset, int limit, boolean withWriteArguments,
+                          ToolCallMeta meta) {
         String toArguments() {
             return JacksonUtils.toJson(Map.of("path", filePath, "offset", offset, "limit", limit));
         }
@@ -84,7 +85,7 @@ public class ReadFileNode extends INode<ReadFileNode, ReadFileNodeData> {
                     node.status = NodeStatus.SUCCESS;
                     workFlowManage.write(node, new ToolCallContent("read_file", "", "",
                             NodeStatus.SUCCESS, node, runId, config.chunkId()));
-                    return null;
+                    return invokeFail(workFlowManage, node, config, runId, new RuntimeException("目标文件不存在"));
                 }
 
                 // 检测是否为二进制文件

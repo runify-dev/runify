@@ -13,6 +13,7 @@ import Glob from './tool/Glob.vue'
 import CreateFile from './tool/CreateFile.vue'
 import ListSkills from './tool/ListSkills.vue'
 import DownloadSkills from './tool/DownloadSkills.vue'
+import RunSkill from './tool/RunSkill.vue'
 import DefaultTool from './tool/index.vue'
 const props = defineProps<{ content: any }>()
 
@@ -35,6 +36,7 @@ const kw: Record<string, any> = {
   create_file: CreateFile,
   list_skills: ListSkills,
   download_skills: DownloadSkills,
+  run_skill: RunSkill,
   default: DefaultTool
 }
 </script>

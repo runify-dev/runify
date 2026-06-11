@@ -54,8 +54,8 @@ public class SkillHandlerImpl extends ResourceHandlerImpl<Skill, SkillFolder, Sk
 
     private static final UUID ROOT_FOLDER_ID = UUID.fromString("00000000-0000-0000-0000-000000000000");
 
-    // 厂商命名空间优先级：先认自家，再退回 OpenClaw 及其别名
-    private static final List<String> VENDOR_NS = List.of("estellexn", "openclaw", "clawdbot", "clawdis");
+    // 厂商命名空间：只识别 runify
+    private static final List<String> VENDOR_NS = List.of("runify");
 
     private static final Pattern FRONTMATTER =
             Pattern.compile("\\A---\\r?\\n(.*?)\\r?\\n---\\r?\\n?(.*)\\z", Pattern.DOTALL);
@@ -162,6 +162,7 @@ public class SkillHandlerImpl extends ResourceHandlerImpl<Skill, SkillFolder, Sk
             JsonObject field = skillParameterForm.getJsonObject(i);
             if ("PasswordInput".equals(field.getString("type"))) {
                 String key = field.getString("field");
+                if (key == null) key = field.getString("key");
                 if (key == null || !submitted.containsKey(key)) continue;
                 String submittedVal = submitted.getString(key);
                 String originalVal = original.getString(key);
@@ -186,6 +187,7 @@ public class SkillHandlerImpl extends ResourceHandlerImpl<Skill, SkillFolder, Sk
             JsonObject field = skillParameterForm.getJsonObject(i);
             if ("PasswordInput".equals(field.getString("type"))) {
                 String key = field.getString("field");
+                if (key == null) key = field.getString("key");
                 if (key != null && masked.containsKey(key)) {
                     masked.put(key, CommonUtils.encryption(masked.getString(key)));
                 }
@@ -223,8 +225,9 @@ public class SkillHandlerImpl extends ResourceHandlerImpl<Skill, SkillFolder, Sk
                         ByteArrayOutputStream baos = new ByteArrayOutputStream();
                         ZipOutputStream zos = new ZipOutputStream(baos);
 
-                        // 纯目录结构打包，不含 manifest / structure。
+                        // 纯目录结构打包。
                         // 注意：parameterValue / env 是用户私有值，绝不导出——这里只打包文件树。
+                        String frontmatter = buildFrontmatter(skill);
                         for (SkillFile file : files) {
                             String path = buildFilePath(fileMap, file);
                             if ("folder".equals(file.getType())) {
@@ -233,7 +236,12 @@ public class SkillHandlerImpl extends ResourceHandlerImpl<Skill, SkillFolder, Sk
                             } else if ("text".equals(file.getType())) {
                                 zos.putNextEntry(new ZipEntry(path));
                                 if (file.getContent() != null) {
-                                    zos.write(file.getContent().getBytes(StandardCharsets.UTF_8));
+                                    String content = file.getContent();
+                                    // SKILL.md 导出时拼回 frontmatter
+                                    if ("SKILL.md".equalsIgnoreCase(file.getName()) && !frontmatter.isEmpty()) {
+                                        content = frontmatter + content;
+                                    }
+                                    zos.write(content.getBytes(StandardCharsets.UTF_8));
                                 }
                                 zos.closeEntry();
                             } else if ("file".equals(file.getType())) {
@@ -352,6 +360,7 @@ public class SkillHandlerImpl extends ResourceHandlerImpl<Skill, SkillFolder, Sk
 
             // 4. 解析 SKILL.md，生成 skillParameterForm（推断语料 = 所有文本文件内容）
             String skillMd = null;
+            SkillFile skillMdFile = null;
             StringBuilder corpus = new StringBuilder();
             for (SkillFile sf : textsToSave) {
                 if (sf.getContent() != null) corpus.append(sf.getContent()).append('\n');
@@ -359,16 +368,28 @@ public class SkillHandlerImpl extends ResourceHandlerImpl<Skill, SkillFolder, Sk
                     // 优先取根目录的 SKILL.md
                     if (ROOT_FOLDER_ID.equals(sf.getParentId()) || skillMd == null) {
                         skillMd = sf.getContent();
+                        skillMdFile = sf;
                     }
                 }
             }
             JsonArray paramForm = buildSkillParameterForm(skillMd, corpus.toString());
 
-            // 技能名：内容根目录名（包了一层时）> ZIP 文件名
-            String skillName = contentRoot.equals(tempDir)
-                    ? upload.fileName().replaceFirst("(?i)\\.zip$", "")
-                    : contentRoot.getFileName().toString();
-            Skill skill = new Skill(skillId, parentUuId, skillName, "", "", "", new JsonArray(), now, now);
+            // 导入时去掉 SKILL.md 的 YAML frontmatter，元数据已解析到 Skill 实体
+            if (skillMdFile != null && skillMdFile.getContent() != null) {
+                Matcher fmMatcher = FRONTMATTER.matcher(skillMdFile.getContent());
+                if (fmMatcher.find()) {
+                    skillMdFile.setContent(fmMatcher.group(2));
+                }
+            }
+
+            // 技能名：frontmatter name > 内容根目录名 > ZIP 文件名
+            Map<String, String> fmMeta = parseFrontmatterMeta(skillMd);
+            String skillName = fmMeta.getOrDefault("name",
+                    contentRoot.equals(tempDir)
+                            ? upload.fileName().replaceFirst("(?i)\\.zip$", "")
+                            : contentRoot.getFileName().toString());
+            String skillDesc = fmMeta.getOrDefault("description", "");
+            Skill skill = new Skill(skillId, parentUuId, skillName, "", skillDesc, "", new JsonArray(), now, now);
             skill.setSkillParameterForm(paramForm);   // 导入即带表单结构；parameterValue 留空，用户后续设置
 
             // 5. 创建 skill 资源 + 保存所有 skill_file
@@ -404,7 +425,89 @@ public class SkillHandlerImpl extends ResourceHandlerImpl<Skill, SkillFolder, Sk
         }
     }
 
+    // ============ frontmatter 构建 ============
+
+    /**
+     * 从 Skill 实体构建 YAML frontmatter（导出时写入 SKILL.md）
+     * parameterValue 是用户私有值，绝不导出。
+     */
+    @SuppressWarnings("unchecked")
+    private String buildFrontmatter(Skill skill) {
+        Map<String, Object> root = new LinkedHashMap<>();
+        if (skill.getName() != null && !skill.getName().isBlank()) {
+            root.put("name", skill.getName());
+        }
+        if (skill.getDesc() != null && !skill.getDesc().isBlank()) {
+            root.put("description", skill.getDesc());
+        }
+        JsonArray paramForm = skill.getSkillParameterForm();
+        if (paramForm != null && !paramForm.isEmpty()) {
+            List<Map<String, Object>> fields = new ArrayList<>();
+            for (int i = 0; i < paramForm.size(); i++) {
+                JsonObject f = paramForm.getJsonObject(i);
+                Map<String, Object> entry = new LinkedHashMap<>();
+                // field 名
+                entry.put("field", f.getString("field", ""));
+                // label 保持对象结构
+                if (f.getValue("label") instanceof JsonObject labelObj) {
+                    Map<String, Object> labelMap = new LinkedHashMap<>();
+                    labelMap.put("value", labelObj.getString("value", ""));
+                    labelMap.put("tooltip", labelObj.getString("tooltip", ""));
+                    labelMap.put("type", labelObj.getString("type", "TooltipLabel"));
+                    entry.put("label", labelMap);
+                }
+                // required
+                entry.put("required", f.getBoolean("required", false));
+                // type
+                entry.put("type", f.getString("type", "TextInput"));
+                // defaultValue（非 PasswordInput 才导出）
+                if (!"PasswordInput".equals(f.getString("type")) && f.getValue("defaultValue") != null) {
+                    entry.put("defaultValue", f.getValue("defaultValue"));
+                }
+                // optionList
+                if (f.getValue("optionList") instanceof JsonArray opts && !opts.isEmpty()) {
+                    entry.put("optionList", opts.getList());
+                }
+                // labelField / valueField
+                if (f.getString("labelField") != null) entry.put("labelField", f.getString("labelField"));
+                if (f.getString("valueField") != null) entry.put("valueField", f.getString("valueField"));
+                // showRules
+                if (f.getValue("showRules") instanceof JsonObject sr) {
+                    entry.put("showRules", sr.getMap());
+                }
+                fields.add(entry);
+            }
+            Map<String, Object> runify = new LinkedHashMap<>();
+            runify.put("skillParameterForm", fields);
+            Map<String, Object> metadata = new LinkedHashMap<>();
+            metadata.put("runify", runify);
+            root.put("metadata", metadata);
+        }
+        // 用 SnakeYAML 输出，手动拼 --- 围栏
+        String yamlBody = new Yaml().dump(root);
+        return "---\n" + yamlBody + "---\n";
+    }
+
     // ============ skillParameterForm 解析 ============
+
+    /**
+     * 从 SKILL.md frontmatter 提取 name 和 description
+     */
+    @SuppressWarnings("unchecked")
+    private Map<String, String> parseFrontmatterMeta(String skillMd) {
+        Map<String, String> result = new LinkedHashMap<>();
+        if (skillMd == null) return result;
+        Matcher m = FRONTMATTER.matcher(skillMd);
+        if (!m.find()) return result;
+        try {
+            Object loaded = new Yaml().load(m.group(1));
+            if (loaded instanceof Map<?, ?> fm) {
+                if (fm.get("name") instanceof String name && !name.isBlank()) result.put("name", name);
+                if (fm.get("description") instanceof String desc && !desc.isBlank()) result.put("description", desc);
+            }
+        } catch (Exception ignored) {}
+        return result;
+    }
 
     /**
      * 解析 SKILL.md frontmatter + 脚本文本，生成 skillParameterForm。
@@ -437,7 +540,14 @@ public class SkillHandlerImpl extends ResourceHandlerImpl<Skill, SkillFolder, Sk
         }
 
         // ① 显式 form 声明：直接吃进来（支持 Slider/Select 等富类型），不再叠加推断
-        if (ns.get("form") instanceof List<?> fields && !fields.isEmpty()) {
+        // 兼容 form 和 skillParameterForm 两种写法
+        List<?> fields = null;
+        if (ns.get("skillParameterForm") instanceof List<?> spf && !spf.isEmpty()) {
+            fields = spf;
+        } else if (ns.get("form") instanceof List<?> f && !f.isEmpty()) {
+            fields = f;
+        }
+        if (fields != null) {
             JsonArray form = new JsonArray();
             for (Object o : fields) {
                 if (o instanceof Map<?, ?> fld) form.add(normalizeFormField((Map<String, Object>) fld));
@@ -504,16 +614,18 @@ public class SkillHandlerImpl extends ResourceHandlerImpl<Skill, SkillFolder, Sk
             return;
         }
         boolean secret = isSecretEnv(name, desc, name.equals(primaryEnv));
+        String type = secret ? "PasswordInput" : "TextInput";
+        JsonObject attrs = new JsonObject().put("minlength", 0).put("maxlength", 64);
+        if (desc != null && !desc.isEmpty()) attrs.put("description", desc);
         JsonObject f = new JsonObject()
-                .put("field", name)                                       // 真实 env 变量名
-                .put("type", secret ? "PasswordInput" : "TextInput")      // type 承载敏感性
-                .put("label", name)
-                .put("required", required);
-        if (desc != null && !desc.isEmpty())
-            f.put("attrs", new JsonObject().put("description", desc));
+                .put("field", name)
+                .put("type", type)
+                .put("input_type", type)
+                .put("label", buildLabelObject(null, name))
+                .put("required", required)
+                .put("attrs", attrs);
         if (inferred)
-            f.put("propsInfo", new JsonObject().put("inferred", true));   // UI 给 Text/Password 切换
-        // 注意：PasswordInput 字段不写 defaultValue，避免随 skillParameterForm 导出泄露
+            f.put("propsInfo", new JsonObject().put("inferred", true));
         form.put(name, f);
     }
 
@@ -539,11 +651,58 @@ public class SkillHandlerImpl extends ResourceHandlerImpl<Skill, SkillFolder, Sk
 
     @SuppressWarnings("unchecked")
     private JsonObject normalizeFormField(Map<String, Object> raw) {
-        JsonObject f = new JsonObject((Map<String, Object>) new LinkedHashMap<>(raw));
-        if (f.getString("type") == null) f.put("type", "TextInput");   // 没 type 默认 TextInput
+        // 深度转换：嵌套 Map → JsonObject，List → JsonArray
+        JsonObject f = deepConvertJsonObject(raw);
+        // 兼容 key → field 别名
+        if (f.getString("field") == null && f.getString("key") != null) {
+            f.put("field", f.getString("key"));
+        }
+        if (f.getString("type") == null) f.put("type", "TextInput");
         if (!f.containsKey("required")) f.put("required", false);
-        if (f.getString("label") == null) f.put("label", f.getString("field", ""));
+        // label 统一转为对象格式
+        f.put("label", buildLabelObject(f.getValue("label"), f.getString("field", "")));
+        // input_type 与 type 保持一致
+        if (f.getString("input_type") == null) f.put("input_type", f.getString("type"));
+        // 默认 attrs
+        if (!f.containsKey("attrs")) f.put("attrs", new JsonObject().put("minlength", 0).put("maxlength", 64));
         return f;
+    }
+
+    /**
+     * 深度转换：递归将 Map → JsonObject，List → JsonArray
+     */
+    @SuppressWarnings("unchecked")
+    private JsonObject deepConvertJsonObject(Map<String, Object> map) {
+        JsonObject result = new JsonObject();
+        for (var entry : map.entrySet()) {
+            result.put(entry.getKey(), deepConvertValue(entry.getValue()));
+        }
+        return result;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Object deepConvertValue(Object value) {
+        if (value instanceof Map<?, ?> m) {
+            return deepConvertJsonObject((Map<String, Object>) m);
+        } else if (value instanceof List<?> list) {
+            JsonArray arr = new JsonArray();
+            for (Object item : list) {
+                arr.add(deepConvertValue(item));
+            }
+            return arr;
+        }
+        return value;
+    }
+
+    private JsonObject buildLabelObject(Object existing, String fallback) {
+        String text;
+        if (existing instanceof JsonObject jo) return jo;  // 已经是对象，不动
+        if (existing instanceof String s && !s.isEmpty()) text = s;
+        else text = fallback;
+        return new JsonObject()
+                .put("value", text)
+                .put("tooltip", text)
+                .put("type", "TooltipLabel");
     }
 
     // ============ 导入辅助 ============

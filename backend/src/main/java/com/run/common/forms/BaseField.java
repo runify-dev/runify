@@ -4,7 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -34,18 +34,9 @@ public class BaseField {
      */
     private Object defaultValue;
     /**
-     * 显示限制 当前field什么时候显示
-     * 下面是一个name字段有值的时候渲染实例
-     * {
-     * "name":null
-     * }
-     * 下面是一个name字段有值 并且是"张三"的时候才显示
-     * {
-     * "name":["张三"]
-     * }
+     * 显示规则，条件满足时才显示该字段
      */
-    private Map<String, List<Object>> displayConstraint;
-
+    private ShowRule showRules;
     /**
      * vue 属性
      */
@@ -59,10 +50,10 @@ public class BaseField {
                         BaseLabel label,
                         Boolean required,
                         Object defaultValue,
-                        Map<String, List<Object>> displayConstraint,
+                        ShowRule showRules,
                         Map<String, Object> attrs,
                         Map<String, Object> props) {
-        return new BaseField(inputType, label, required, defaultValue, displayConstraint, attrs, props);
+        return new BaseField(inputType, label, required, defaultValue, showRules, attrs, props);
     }
 
     public void validate(Object value) {
@@ -72,16 +63,18 @@ public class BaseField {
     }
 
     public Map<String, Object> toMap(Map<String, Object> keywords) {
-        return Map.of(
-                "type", this.type,
-                "label", this.label.toMap(Map.of()),
-                "required", this.required,
-                "defaultValue", this.defaultValue,
-                "displayConstraint", this.displayConstraint == null ? Map.of() : this.displayConstraint,
-                "attrs", this.attrs == null ? Map.of() : this.attrs,
-                "propsInfo", this.props == null ? Map.of() : this.props,
-                "showDefaultValue", true);
-
+        Map<String, Object> result = new HashMap<>();
+        result.put("type", this.type);
+        result.put("label", this.label.toMap(Map.of()));
+        result.put("required", this.required);
+        result.put("defaultValue", this.defaultValue);
+        if (this.showRules != null) {
+            result.put("showRules", this.showRules.toMap());
+        }
+        result.put("attrs", this.attrs == null ? Map.of() : this.attrs);
+        result.put("propsInfo", this.props == null ? Map.of() : this.props);
+        result.put("showDefaultValue", true);
+        return result;
     }
 
 
