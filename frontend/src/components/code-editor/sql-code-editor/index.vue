@@ -30,7 +30,7 @@
         />
       </form>
       <template #footer>
-        <Button @click="submit">确定</Button>
+        <Button @click="submit">{{ t('common.confirm') }}</Button>
       </template>
     </Dialog>
   </div>
@@ -39,6 +39,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { Codemirror } from 'vue-codemirror'
+import { t } from '@/locales'
 import { sql } from '@codemirror/lang-sql'
 import { oneDark } from '@codemirror/theme-one-dark'
 const props = defineProps<{

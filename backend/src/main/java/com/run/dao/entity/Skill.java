@@ -45,6 +45,9 @@ public class Skill implements BaseEntity<Skill> {
     @Column(name = "skill_parameter_form")
     private JsonArray skillParameterForm;
 
+    @Column(name = "meta")
+    private JsonObject meta;
+
     @Column(name = "create_time")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createTime;
@@ -60,7 +63,8 @@ public class Skill implements BaseEntity<Skill> {
     public JsonObject decrypt() {
         try {
             String decrypted = RSAUtil.decrypt(this.parameterValue);
-            HashMap<String, Object> map = JacksonUtils.fromJson(decrypted, new TypeReference<HashMap<String, Object>>() {});
+            HashMap<String, Object> map = JacksonUtils.fromJson(decrypted, new TypeReference<HashMap<String, Object>>() {
+            });
             return new JsonObject(map);
         } catch (Exception e) {
             return new JsonObject();

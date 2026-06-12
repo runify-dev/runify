@@ -1,7 +1,7 @@
 <template>
   <div class="p-4">
     <div class="flex items-center justify-between mb-4">
-      <h4 class="font-bold" style="color: var(--p-text-color)">应用概览</h4>
+      <h4 class="font-bold" style="color: var(--p-text-color)">{{ t('application.overviewData.title') }}</h4>
     </div>
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
       <div class="lg:col-span-2 space-y-4">
@@ -9,39 +9,39 @@
           <template #content>
             <div class="flex items-center mb-4">
               <div class="w-8 h-8 rounded-lg flex items-center justify-center mr-3 overflow-hidden">
-                <img :src="resetUrl('./application.png')" alt="应用图标" class="w-full h-full object-contain"/>
+                <img :src="resetUrl('./application.png')" :alt="t('application.form.appIcon')" class="w-full h-full object-contain"/>
               </div>
               <div class="flex-1">
                 <div class="flex items-center">
                   <span class="text-[14px] font-semibold mr-2" style="color: var(--p-text-color)">{{ appInfo.name }}</span>
                   <span class="inline-flex items-center px-2 py-0.5 bg-green-50 text-green-700 rounded text-[12px]">{{ appInfo.status }}</span>
                 </div>
-                <div class="text-[12px] mt-1" style="color: var(--p-text-muted-color)">ID: {{ appInfo.id }} | {{ appInfo.updateTime }} 更新</div>
+                <div class="text-[12px] mt-1" style="color: var(--p-text-muted-color)">ID: {{ appInfo.id }} | {{ t('application.overviewData.updateTime', { time: appInfo.updateTime }) }}</div>
               </div>
             </div>
             <div class="flex flex-wrap gap-2">
-              <Button label="公开链接" icon="pi pi-link" text class="text-xs" @click="copyPublicLink"/>
-              <Button label="嵌入第三方" icon="pi pi-external-link" text class="text-xs" @click="embedDialogRef?.open(applicationId)"/>
+              <Button :label="t('application.overviewData.publicLink')" icon="pi pi-link" text class="text-xs" @click="copyPublicLink"/>
+              <Button :label="t('application.overviewData.embedThirdParty')" icon="pi pi-external-link" text class="text-xs" @click="embedDialogRef?.open(applicationId)"/>
             </div>
           </template>
         </Card>
         <Card :pt="{ root: { style: 'border: 1px solid var(--p-content-border-color) !important; box-shadow: var(--p-shadow-1); background: var(--p-content-background)' } }">
           <template #content>
             <div class="flex items-center justify-between mb-4">
-              <h4 class="text-sm font-semibold" style="color: var(--p-text-color)">监控统计</h4>
+              <h4 class="text-sm font-semibold" style="color: var(--p-text-color)">{{ t('application.overviewData.monitorStats') }}</h4>
               <div class="flex items-center gap-3">
                 <span v-if="selectedTimeRange === 'custom' && customStartTime && customEndTime" class="text-xs" style="color: var(--p-text-muted-color)">
                   {{ formatDate(customStartTime) }} - {{ formatDate(customEndTime) }}
                 </span>
-                <Dropdown v-model="selectedTimeRange" :options="timeRangeOptions" optionLabel="label" optionValue="value" class="w-auto text-xs" placeholder="选择时间范围"/>
+                <Dropdown v-model="selectedTimeRange" :options="timeRangeOptions" optionLabel="label" optionValue="value" class="w-auto text-xs" :placeholder="t('application.overviewData.selectTimeRange')"/>
               </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <div v-for="stat in [
-                { icon: 'pi-comments', bg: 'var(--p-primary-100)', fg: 'var(--p-primary-color)', label: '对话数', value: overviewData.conversationCount },
-                { icon: 'pi-comment', bg: 'var(--p-orange-100)', fg: 'var(--p-orange-500)', label: '消息总数', value: overviewData.messageCount },
-                { icon: 'pi-clock', bg: 'var(--p-green-100)', fg: 'var(--p-green-500)', label: '平均响应时间', value: formatDuration(overviewData.avgDuration) },
-                { icon: 'pi-key', bg: 'var(--p-cyan-100)', fg: 'var(--p-cyan-500)', label: 'Token 消耗', value: formatTokens(overviewData.totalTokens) }
+                { icon: 'pi-comments', bg: 'var(--p-primary-100)', fg: 'var(--p-primary-color)', label: t('application.overviewData.conversationCount'), value: overviewData.conversationCount },
+                { icon: 'pi-comment', bg: 'var(--p-orange-100)', fg: 'var(--p-orange-500)', label: t('application.overviewData.messageCount'), value: overviewData.messageCount },
+                { icon: 'pi-clock', bg: 'var(--p-green-100)', fg: 'var(--p-green-500)', label: t('application.overviewData.avgResponseTime'), value: formatDuration(overviewData.avgDuration) },
+                { icon: 'pi-key', bg: 'var(--p-cyan-100)', fg: 'var(--p-cyan-500)', label: t('application.overviewData.tokenConsumption'), value: formatTokens(overviewData.totalTokens) }
               ]" :key="stat.label"
                 class="flex items-center gap-3 rounded-xl p-3"
                 :style="{ background: 'var(--p-content-background)', border: '1px solid var(--p-content-border-color)', boxShadow: 'var(--p-shadow-1)' }">
@@ -55,11 +55,11 @@
               </div>
             </div>
             <div class="rounded-lg p-3 mt-3" style="border: 1px solid var(--p-content-border-color)">
-              <p class="text-xs mb-2" style="color: var(--p-text-muted-color)">消息量趋势</p>
+              <p class="text-xs mb-2" style="color: var(--p-text-muted-color)">{{ t('application.overviewData.messageTrend') }}</p>
               <div class="h-36"><canvas ref="userChartCanvas"></canvas></div>
             </div>
             <div class="rounded-lg p-3 mt-3" style="border: 1px solid var(--p-content-border-color)">
-              <p class="text-xs mb-2" style="color: var(--p-text-muted-color)">Token消耗趋势</p>
+              <p class="text-xs mb-2" style="color: var(--p-text-muted-color)">{{ t('application.overviewData.tokenTrend') }}</p>
               <div class="h-36"><canvas ref="tokenChartCanvas"></canvas></div>
             </div>
           </template>
@@ -69,10 +69,10 @@
         <div
           class="rounded-lg p-5 text-white shadow-md"
           style="background: linear-gradient(135deg, var(--p-primary-color), var(--p-primary-600));">
-          <div class="text-[16px] font-bold mb-3">快速开始对话</div>
-          <div class="text-sm mb-5 leading-relaxed opacity-90">通过对话 Agent 帮助您分析数据并导出 Word 报表。
+          <div class="text-[16px] font-bold mb-3">{{ t('application.overviewData.quickStart') }}</div>
+          <div class="text-sm mb-5 leading-relaxed opacity-90">{{ t('application.overviewData.quickStartDesc') }}
           </div>
-          <Button label="进入聊天界面" severity="primary" outlined class="w-full !border-white/50 !text-white hover:!bg-white/15" @click="goToChat"/>
+          <Button :label="t('application.overviewData.enterChat')" severity="primary" outlined class="w-full !border-white/50 !text-white hover:!bg-white/15" @click="goToChat"/>
         </div>
 
         <Card :pt="{ root: { style: 'border: 1px solid var(--p-content-border-color) !important; box-shadow: var(--p-shadow-1); background: var(--p-content-background)' }, body: { style: 'padding: 0.5rem 1rem 1rem' } }">
@@ -80,7 +80,7 @@
             <div class="flex items-center justify-between mb-1">
               <div class="flex items-center">
                 <i class="pi pi-flame text-orange-500 mr-2"></i>
-                <h4 class="text-sm font-semibold" style="color: var(--p-text-color)">最近提问</h4>
+                <h4 class="text-sm font-semibold" style="color: var(--p-text-color)">{{ t('application.overviewData.recentQuestions') }}</h4>
               </div>
               <Button icon="pi pi-refresh" text size="small" class="!w-7 !h-7 !p-0"/>
             </div>
@@ -96,7 +96,7 @@
                 <span class="text-xs text-surface-400 dark:text-surface-500">{{ item.createTime?.slice(5, 16) }}</span>
               </div>
             </div>
-            <div v-else class="text-center text-xs py-6" style="color: var(--p-text-muted-color)">暂无数据</div>
+            <div v-else class="text-center text-xs py-6" style="color: var(--p-text-muted-color)">{{ t('application.overviewData.noData') }}</div>
           </template>
         </Card>
       </div>
@@ -105,7 +105,7 @@
 
   <Dialog
     v-model:visible="showCustomTimeModal"
-    header="选择时间范围"
+    :header="t('application.overviewData.selectTimeRange')"
     :style="{ width: '400px' }"
     :modal="true"
     class="text-sm"
@@ -113,7 +113,7 @@
     <div class="space-y-4">
       <div class="flex items-center gap-4">
         <div class="flex-1">
-          <label class="block text-xs mb-1" style="color: var(--p-text-muted-color)">开始时间</label>
+          <label class="block text-xs mb-1" style="color: var(--p-text-muted-color)">{{ t('application.overviewData.startTime') }}</label>
           <DatePicker
             v-model="customStartTime"
             dateFormat="yyyy-mm-dd"
@@ -122,7 +122,7 @@
           />
         </div>
         <div class="flex-1">
-          <label class="block text-xs mb-1" style="color: var(--p-text-muted-color)">结束时间</label>
+          <label class="block text-xs mb-1" style="color: var(--p-text-muted-color)">{{ t('application.overviewData.endTime') }}</label>
           <DatePicker
             v-model="customEndTime"
             dateFormat="yyyy-mm-dd"
@@ -132,8 +132,8 @@
         </div>
       </div>
       <div class="flex justify-end gap-2">
-        <Button label="取消" text @click="cancelCustomTime" class="text-xs"/>
-        <Button label="确定" severity="success" @click="confirmCustomTime" class="text-xs"/>
+        <Button :label="t('common.cancel')" text @click="cancelCustomTime" class="text-xs"/>
+        <Button :label="t('common.confirm')" severity="success" @click="confirmCustomTime" class="text-xs"/>
       </div>
     </div>
   </Dialog>
@@ -142,7 +142,7 @@
 </template>
 
 <script setup lang="ts">
-import {ref, onMounted, watch, nextTick} from 'vue'
+import {ref, onMounted, watch, nextTick, computed} from 'vue'
 import Button from 'primevue/button'
 import Dropdown from 'primevue/dropdown'
 import Dialog from 'primevue/dialog'
@@ -153,6 +153,7 @@ import applicationApi from '@/api/application'
 import {Chart, registerables} from 'chart.js'
 import bus from "@/bus"
 import EmbedDialog from './component/EmbedDialog.vue'
+import { t } from '@/locales'
 
 const route = useRoute()
 const router = useRouter()
@@ -177,13 +178,13 @@ const overviewData = ref({
 
 const selectedTimeRange = ref('7')
 
-const timeRangeOptions = ref([
-  {label: '最近7天', value: '7'},
-  {label: '最近30天', value: '30'},
-  {label: '最近90天', value: '90'},
-  {label: '半年', value: '180'},
-  {label: '一年', value: '365'},
-  {label: '自定义时间', value: 'custom'}
+const timeRangeOptions = computed(() => [
+  {label: t('application.overviewData.last7days'), value: '7'},
+  {label: t('application.overviewData.last30days'), value: '30'},
+  {label: t('application.overviewData.last90days'), value: '90'},
+  {label: t('application.overviewData.halfYear'), value: '180'},
+  {label: t('application.overviewData.oneYear'), value: '365'},
+  {label: t('application.overviewData.customTime'), value: 'custom'}
 ])
 
 const showCustomTimeModal = ref(false)
@@ -213,14 +214,14 @@ const confirmCustomTime = () => {
   if (customStartTime.value && customEndTime.value) {
     showCustomTimeModal.value = false
     if (customStartTime.value.getTime() > customEndTime.value.getTime()) {
-      alert('开始时间不能大于结束时间')
+      alert(t('application.overviewData.timeCannotExceed'))
       selectedTimeRange.value = '7'
     } else {
       const daysDiff = Math.floor((customEndTime.value.getTime() - customStartTime.value.getTime()) / (1000 * 60 * 60 * 24))
       fetchOverview(daysDiff)
     }
   } else {
-    alert('请选择开始时间和结束时间')
+    alert(t('application.overviewData.selectTime'))
   }
 }
 
@@ -239,7 +240,7 @@ const formatDuration = (ms: number) => {
 
 const formatTokens = (tokens: number) => {
   if (!tokens) return '0'
-  if (tokens >= 10000) return `${(tokens / 10000).toFixed(1)}万`
+  if (tokens >= 10000) return `${(tokens / 10000).toFixed(1)}${t('application.overviewData.tenThousand')}`
   if (tokens >= 1000) return `${(tokens / 1000).toFixed(1)}k`
   return String(tokens)
 }
@@ -247,16 +248,16 @@ const formatTokens = (tokens: number) => {
 const parseQuestionContent = (content: any): string => {
   try {
     const items = typeof content === 'string' ? JSON.parse(content) : content
-    if (!Array.isArray(items) || items.length === 0) return '暂无内容'
+    if (!Array.isArray(items) || items.length === 0) return t('application.overviewData.noContent')
     const item = items[0]
     if (item.content) return truncate(item.content)
     if (item.texts?.length) return truncate(item.texts[0].text || item.texts[0].content || '')
-    if (item.images?.length) return '[图片]'
-    if (item.files?.length) return `[文件] ${item.files[0].name || ''}`
-    if (item.videos?.length) return '[视频]'
+    if (item.images?.length) return t('application.overviewData.image')
+    if (item.files?.length) return `${t('application.overviewData.file')} ${item.files[0].name || ''}`
+    if (item.videos?.length) return t('application.overviewData.video')
     return truncate(JSON.stringify(item))
   } catch {
-    return typeof content === 'string' ? truncate(content) : '暂无内容'
+    return typeof content === 'string' ? truncate(content) : t('application.overviewData.noContent')
   }
 }
 
@@ -331,7 +332,7 @@ const initUserChart = () => {
       labels,
       datasets: [
         {
-          label: '消息数',
+          label: t('application.overviewData.messageCountLabel'),
           data,
           borderColor: '#10b981',
           backgroundColor: 'rgba(16, 185, 129, 0.1)',
@@ -360,7 +361,7 @@ const initTokenChart = () => {
       labels,
       datasets: [
         {
-          label: 'Token 消耗',
+          label: t('application.overviewData.tokenConsumptionLabel'),
           data,
           borderColor: '#f59e0b',
           backgroundColor: 'rgba(245, 158, 11, 0.1)',
@@ -392,7 +393,7 @@ const fetchOverview = async (days = 7) => {
       })
     }
   } catch (error) {
-    console.error('获取概览数据失败:', error)
+    console.error('Failed to fetch overview data:', error)
   }
 }
 
@@ -401,14 +402,14 @@ const fetchApplicationInfo = async () => {
     const response = await applicationApi.getApplicationInfo(applicationId, loading)
     if (response && response.data) {
       appInfo.value = {
-        name: response.data.name || '应用名称',
+        name: response.data.name || t('application.form.appName'),
         id: response.data.id || applicationId,
-        status: response.data.status || '运行中',
+        status: response.data.status || t('application.overviewData.running'),
         updateTime: response.data.updateTime || new Date().toISOString().split('T')[0]
       }
     }
   } catch (error) {
-    console.error('获取应用信息失败:', error)
+    console.error('Failed to fetch application info:', error)
   }
 }
 
@@ -416,7 +417,7 @@ const copyPublicLink = () => {
   const host = window.location.origin === 'http://localhost:3000' ? 'http://localhost:3001' : window.location.origin
   const url = `${host}/conversation/a/${applicationId}`
   copyContent(url).then(() => {
-    bus.emit("message:success", "复制成功")
+    bus.emit("message:success", t('common.copySuccess'))
   }).catch(() => {
     bus.emit("message:success", url)
   })

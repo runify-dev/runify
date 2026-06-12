@@ -1,13 +1,13 @@
 <template>
-  <Dialog v-model:visible="visible" modal header="新建模型" :style="{ width: '36rem' }">
+  <Dialog v-model:visible="visible" modal :header="t('model.form.header')" :style="{ width: '36rem' }">
     <div v-loading="loading" class="flex flex-col gap-4">
       <!-- 名称 -->
       <div class="flex flex-col gap-1.5">
-        <label class="text-sm font-medium text-surface-700">名称</label>
+        <label class="text-sm font-medium text-surface-700">{{ t('model.form.name.label') }}</label>
         <InputText
           v-model="formData.name"
           type="text"
-          placeholder="请输入名称"
+          :placeholder="t('model.form.name.placeholder')"
           fluid
           class="!text-sm"
         />
@@ -15,7 +15,7 @@
 
       <!-- 供应商 -->
       <div class="flex flex-col gap-1.5">
-        <label class="text-sm font-medium text-surface-700">供应商</label>
+        <label class="text-sm font-medium text-surface-700">{{ t('model.form.vendor') }}</label>
         <RadioCard
           grid-class="grid-cols-2 sm:grid-cols-3 md:grid-cols-4"
           :model-value="formData.provider"
@@ -34,7 +34,7 @@
 
       <!-- 模型类型 -->
       <div v-if="formData.provider" class="flex flex-col gap-1.5">
-        <label class="text-sm font-medium text-surface-700">模型类型</label>
+        <label class="text-sm font-medium text-surface-700">{{ t('model.form.modelType.label') }}</label>
         <RadioCard
           grid-class="grid-cols-2 sm:grid-cols-3 md:grid-cols-4"
           :model-value="formData.modelType"
@@ -53,7 +53,7 @@
 
       <!-- 模型名称 -->
       <div v-if="formData.provider" class="flex flex-col gap-1.5">
-        <label class="text-sm font-medium text-surface-700">模型名称</label>
+        <label class="text-sm font-medium text-surface-700">{{ t('model.form.modelName.label') }}</label>
         <Select
           :model-value="formData.modelName"
           @update:model-value="setField('modelName', $event)"
@@ -61,7 +61,7 @@
           fluid
           optionLabel="name"
           option-value="name"
-          placeholder="输入或选择模型名称"
+          :placeholder="t('model.details.modelNamePlaceholder')"
           editable
           class="!text-sm"
         />
@@ -78,20 +78,20 @@
       <!-- 模型参数 -->
       <div v-if="formData.provider" class="flex flex-col gap-2">
         <div class="flex items-center justify-between">
-          <label class="text-sm font-medium text-surface-700">模型参数</label>
-          <Button label="添加参数" icon="pi pi-plus" size="small" variant="outlined"
+          <label class="text-sm font-medium text-surface-700">{{ t('model.form.modelParams') }}</label>
+          <Button :label="t('model.form.addParam')" icon="pi pi-plus" size="small" variant="outlined"
                   @click="openAddModelParameterForm()"/>
         </div>
         <DataTable :value="modelParameterForm" v-if="modelParameterForm.length > 0" size="small">
-          <Column field="field" header="字段"/>
-          <Column field="label" header="显示名称">
+          <Column field="field" :header="t('model.details.fieldHeader')"/>
+          <Column field="label" :header="t('model.details.labelHeader')">
             <template #body="scope">
               {{ scope.data.label.value }}
             </template>
           </Column>
-          <Column field="defaultValue" header="默认值"/>
-          <Column field="type" header="组件类型"/>
-          <Column field="operate" header="操作" style="width: 100px">
+          <Column field="defaultValue" :header="t('model.details.defaultHeader')"/>
+          <Column field="type" :header="t('model.details.typeHeader')"/>
+          <Column field="operate" :header="t('model.details.operateHeader')" style="width: 100px">
             <template #body="scope">
               <div class="flex gap-1">
                 <Button icon="pi pi-file-edit" variant="text" rounded size="small"
@@ -104,7 +104,7 @@
         </DataTable>
         <div v-else
              class="text-sm text-surface-400 py-4 text-center border border-dashed border-surface-300 rounded">
-          暂无模型参数
+          {{ t('model.form.noParams') }}
         </div>
         <ModelParameterForm :addParams="addParamsModelParameterForm" ref="modelParameterFormRef"/>
       </div>
@@ -112,9 +112,9 @@
 
     <template #footer>
       <div class="flex justify-end gap-2">
-        <Button label="取消" :loading="loading" severity="secondary" variant="outlined"
+        <Button :label="t('common.cancel')" :loading="loading" severity="secondary" variant="outlined"
                 @click="close"/>
-        <Button label="创建" :loading="loading" @click="submit"/>
+        <Button :label="t('common.create')" :loading="loading" @click="submit"/>
       </div>
     </template>
   </Dialog>
@@ -131,6 +131,7 @@ import {groupBy} from '@/utils/common'
 import type {TreeNode} from 'primevue/treenode'
 import bus from '@/bus'
 import {ROOT_FOLDER_ID} from "@/constants/common.ts";
+import { t } from '@/locales'
 
 const props = defineProps<{ api: TreeCommonAPI }>()
 const emit = defineEmits(['create:success'])
@@ -234,7 +235,7 @@ const addParamsModelParameterForm = (data: any, index?: number) => {
   const list = modelParameterForm.value
   const fin = list.find((item: any, i: number) => item.field === data.field && i !== index)
   if (fin) {
-    bus.emit('message:error', '字段:' + data.field + '已存在')
+    bus.emit('message:error', t('model.details.fieldExists', { field: data.field }))
     return false
   }
   if (index !== undefined) {

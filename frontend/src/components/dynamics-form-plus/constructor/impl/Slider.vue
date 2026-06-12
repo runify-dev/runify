@@ -1,7 +1,7 @@
 <template>
   <div class="flex-auto">
     <FormField v-slot="$field" asChild name="min" :initialValue="0">
-      <label>最小值</label>
+      <label>{{ t('dynamicsForm.impl.minValue') }}</label>
       <InputNumber inputId="min" fluid />
       <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">{{
         $field.error?.message
@@ -10,7 +10,7 @@
   </div>
   <div class="flex-auto">
     <FormField v-slot="$field" asChild name="max" :initialValue="100">
-      <label>最大值</label>
+      <label>{{ t('dynamicsForm.impl.maxValue') }}</label>
       <InputNumber inputId="max" fluid />
       <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">{{
         $field.error?.message
@@ -19,7 +19,7 @@
   </div>
   <div class="flex-auto">
     <FormField v-slot="$field" asChild name="step" :initialValue="1">
-      <label>步长</label>
+      <label>{{ t('dynamicsForm.impl.step') }}</label>
       <InputNumber inputId="step" :min="1" fluid />
       <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">{{
         $field.error?.message
@@ -27,7 +27,7 @@
     </FormField>
   </div>
   <FormField v-slot="$field" asChild name="defaultValue" :initialValue="0">
-    <label>默认值</label>
+    <label>{{ t('dynamicsForm.impl.defaultValue') }}</label>
     <InputNumber fluid />
     <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">{{
       $field.error?.message
@@ -35,6 +35,8 @@
   </FormField>
 </template>
 <script setup lang="ts">
+import { t } from '@/locales'
+
 const props = defineProps<{
   form: any
   setFieldValue: (field: string, value: any) => void

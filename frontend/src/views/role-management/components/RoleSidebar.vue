@@ -3,13 +3,13 @@
     <div class="mb-2">
       <IconField>
         <InputIcon class="pi pi-search text-xs" />
-        <InputText v-model="keywordModel" placeholder="搜索角色" class="w-full" size="small" />
+        <InputText v-model="keywordModel" :placeholder="t('role.searchRole')" class="w-full" size="small" />
       </IconField>
     </div>
 
     <div class="min-h-0 flex-1 overflow-y-auto pr-1">
       <section class="mb-3">
-        <div class="mb-1.5 text-xs font-medium tracking-wide text-surface-500">系统内置角色</div>
+        <div class="mb-1.5 text-xs font-medium tracking-wide text-surface-500">{{ t('role.systemBuiltin') }}</div>
 
         <div v-if="builtinRoles.length" class="space-y-1">
           <button
@@ -39,20 +39,20 @@
           v-else
           class="rounded-lg border border-dashed border-surface-200 px-3 py-4 text-xs text-surface-400 dark:border-surface-700"
         >
-          暂无内置角色
+          {{ t('role.noBuiltin') }}
         </div>
       </section>
 
       <section>
         <div class="mb-1.5 flex items-center justify-between">
-          <span class="text-xs font-medium tracking-wide text-surface-500">自定义角色</span>
+          <span class="text-xs font-medium tracking-wide text-surface-500">{{ t('role.customRole') }}</span>
           <Button
             icon="pi pi-plus"
             text
             rounded
             severity="secondary"
             size="small"
-            aria-label="新增角色"
+            :aria-label="t('role.addRole')"
             @click="emit('create')"
           />
         </div>
@@ -86,7 +86,7 @@
               severity="secondary"
               size="small"
               class="ml-1 opacity-0 transition-opacity group-hover:opacity-100"
-              aria-label="更多"
+              aria-label="more"
               @click.stop
             />
           </button>
@@ -96,7 +96,7 @@
           v-else
           class="rounded-lg border border-dashed border-surface-200 px-3 py-5 text-center text-xs text-surface-400 dark:border-surface-700"
         >
-          暂无自定义角色
+          {{ t('role.noCustom') }}
         </div>
       </section>
     </div>
@@ -105,6 +105,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { t } from '@/locales'
 import Button from 'primevue/button'
 import IconField from 'primevue/iconfield'
 import InputIcon from 'primevue/inputicon'

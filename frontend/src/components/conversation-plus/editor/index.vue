@@ -10,6 +10,7 @@
 
 <script setup lang="ts">
 import { onBeforeUnmount, shallowRef, watch } from 'vue'
+import { t } from '@/locales'
 import { EditorContent, Editor } from '@tiptap/vue-3'
 import { StarterKit } from '@tiptap/starter-kit'
 import { Markdown } from '@tiptap/markdown'
@@ -39,7 +40,7 @@ const editor = new Editor({
   editorProps: {
     attributes: {
       class: 'md-editor-input',
-      'data-placeholder': props.placeholder || '发送消息…'
+      'data-placeholder': props.placeholder || t('conversation.panel.placeholder')
     },
     handleKeyDown: (_, event) => {
       if (event.key === 'Enter' && !event.shiftKey) {

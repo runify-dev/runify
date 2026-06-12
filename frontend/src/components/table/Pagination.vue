@@ -9,13 +9,13 @@
       <span
         class="text-sm font-normal text-gray-500 dark:text-gray-400 mb-4 md:mb-0 block w-full md:inline md:w-auto"
       >
-        显示
+        {{ t('common.showing') }}
         <span class="font-semibold text-gray-900 dark:text-white"
           >{{ (currentPage - 1) * pageSize + 1 }}-{{
             Math.min(currentPage * pageSize, total)
           }}</span
         >
-        共
+        {{ t('common.total') }}
         <span class="font-semibold text-gray-900 dark:text-white">{{ total }}</span>
       </span>
 
@@ -26,7 +26,7 @@
             @click="emit('update:currentPage', currentPage - 1)"
             class="flex items-center justify-center px-3 h-8 ms-0 leading-tight text-gray-500 bg-white border border-gray-300 rounded-s-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
           >
-            上一页
+            {{ t('common.previousPage') }}
           </button>
         </li>
         <li v-for="p in pages" :key="p">
@@ -48,7 +48,7 @@
             @click="emit('update:currentPage', currentPage + 1)"
             class="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 rounded-e-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
           >
-            下一页
+            {{ t('common.nextPage') }}
           </button>
         </li>
       </ul>
@@ -57,6 +57,7 @@
 </template>
 <script setup lang="ts">
 import { computed } from 'vue'
+import { t } from '@/locales'
 const props = defineProps<{
   pageSize: number
   currentPage: number

@@ -7,22 +7,22 @@
             <th
               class="w-[160px] border-b border-r border-surface-200 px-2.5 py-2 text-left text-xs font-medium dark:border-surface-700"
             >
-              模块名称
+              {{ t('role.moduleHeader') }}
             </th>
             <th
               class="w-[180px] border-b border-r border-surface-200 px-2.5 py-2 text-left text-xs font-medium dark:border-surface-700"
             >
-              操作对象
+              {{ t('role.objectHeader') }}
             </th>
             <th
               class="border-b border-r border-surface-200 px-2.5 py-2 text-left text-xs font-medium dark:border-surface-700"
             >
-              权限
+              {{ t('role.permissionHeader') }}
             </th>
             <th
               class="w-[56px] border-b border-surface-200 px-2 py-2 text-center text-xs font-medium dark:border-surface-700"
             >
-              <Button icon="pi pi-minus" text rounded size="small" aria-label="折叠" :disabled="true" />
+              <Button icon="pi pi-minus" text rounded size="small" :aria-label="t('role.collapse')" :disabled="true" />
             </th>
           </tr>
         </thead>
@@ -83,7 +83,7 @@
         <tbody v-else>
           <tr>
             <td colspan="4" class="px-6 py-14 text-center text-sm text-surface-400">
-              {{ loadingPermissions ? '权限加载中...' : '暂无权限数据' }}
+              {{ loadingPermissions ? t('role.permissionLoading') : t('role.noPermissionData') }}
             </td>
           </tr>
         </tbody>
@@ -93,6 +93,7 @@
 </template>
 
 <script setup lang="ts">
+import { t } from '@/locales'
 import Button from 'primevue/button'
 import Checkbox from 'primevue/checkbox'
 import type { PermissionGroupBlock, PermissionRow } from '../types'

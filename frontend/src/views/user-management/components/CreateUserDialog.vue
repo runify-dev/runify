@@ -1,9 +1,9 @@
 <template>
-  <Drawer v-model:visible="visible" :header="isEdit ? '编辑用户' : '创建用户'" position="right"
+  <Drawer v-model:visible="visible" :header="isEdit ? t('system.editUser') : t('system.createUser')" position="right"
           class="!w-[26rem]">
     <Form ref="formRef" :initial-values="initialValues" :resolver="resolver" @submit="submit">
       <FormField v-slot="$field" name="icon" class="flex flex-col gap-2 mt-4">
-        <label>头像</label>
+        <label>{{ t('system.avatar') }}</label>
         <div class="flex items-center gap-3">
           <div
             v-if="!$field.value"
@@ -23,7 +23,7 @@
               <i class="pi pi-times text-xs"/>
             </button>
           </div>
-          <span class="text-xs text-surface-400">支持 JPG、PNG 格式，选填</span>
+          <span class="text-xs text-surface-400">{{ t('system.imageFormat') }}</span>
         </div>
         <input
           ref="fileInputRef"
@@ -35,8 +35,8 @@
       </FormField>
 
       <FormField v-slot="$field" name="username" class="flex flex-col gap-1 mt-4">
-        <label>用户名</label>
-        <InputText class="mt-1" type="text" placeholder="请输入用户名（3-20位）" :disabled="isEdit"
+        <label>{{ t('system.username') }}</label>
+        <InputText class="mt-1" type="text" :placeholder="t('system.usernamePlaceholder')" :disabled="isEdit"
                    fluid/>
         <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">
           {{ $field.error?.message }}
@@ -44,34 +44,34 @@
       </FormField>
 
       <FormField v-slot="$field" name="nickname" class="flex flex-col gap-1 mt-4">
-        <label>昵称</label>
-        <InputText class="mt-1" type="text" placeholder="请输入昵称（2-20位）" fluid/>
+        <label>{{ t('system.nickname') }}</label>
+        <InputText class="mt-1" type="text" :placeholder="t('system.nicknamePlaceholder')" fluid/>
         <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">
           {{ $field.error?.message }}
         </Message>
       </FormField>
 
       <FormField v-slot="$field" name="email" class="flex flex-col gap-1 mt-4">
-        <label>邮箱</label>
-        <InputText class="mt-1" type="email" placeholder="请输入邮箱地址" fluid/>
+        <label>{{ t('system.email') }}</label>
+        <InputText class="mt-1" type="email" :placeholder="t('system.emailPlaceholder')" fluid/>
         <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">
           {{ $field.error?.message }}
         </Message>
       </FormField>
 
       <FormField v-slot="$field" name="phone" class="flex flex-col gap-1 mt-4">
-        <label>手机号</label>
-        <InputText class="mt-1" type="text" placeholder="请输入手机号" fluid/>
+        <label>{{ t('system.phone') }}</label>
+        <InputText class="mt-1" type="text" :placeholder="t('system.phonePlaceholder')" fluid/>
         <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">
           {{ $field.error?.message }}
         </Message>
       </FormField>
 
       <FormField v-slot="$field" name="password" class="flex flex-col gap-1 mt-4" v-if="!isEdit">
-        <label>密码</label>
+        <label>{{ t('system.password') }}</label>
         <Password
           class="mt-1"
-          placeholder="请输入密码（6-20位）"
+          :placeholder="t('system.passwordPlaceholder')"
           :feedback="false"
           toggleMask
           fluid
@@ -84,8 +84,8 @@
 
     <template #footer>
       <div class="flex justify-end gap-2">
-        <Button label="取消" severity="secondary" @click="close"/>
-        <Button :label="isEdit?'修改':'创建'" @click="submit"/>
+        <Button :label="t('common.cancel')" severity="secondary" @click="close"/>
+        <Button :label="isEdit?t('common.edit'):t('common.create')" @click="submit"/>
       </div>
     </template>
   </Drawer>
@@ -100,6 +100,7 @@ import UserAPI from '@/api/user'
 import fileAPI from '@/api/file'
 import type {User} from '@/api/type/user'
 import {resetUrl} from '@/utils/common'
+import { t } from '@/locales'
 
 const emit = defineEmits(['success'])
 
@@ -151,20 +152,20 @@ const resolver = computed(() =>
       icon: z.string().optional(),
       username: z
         .string()
-        .min(3, {message: '用户名长度为 3 - 20 之间'})
-        .max(20, {message: '用户名长度为 3 - 20 之间'}),
+        .min(3, {message: t('system.validation.usernameLength')})
+        .max(20, {message: t('system.validation.usernameLength')}),
       nickname: z
         .string()
-        .min(2, {message: '昵称长度为 2 - 20 之间'})
-        .max(20, {message: '昵称长度为 2 - 20 之间'}),
+        .min(2, {message: t('system.validation.nicknameLength')})
+        .max(20, {message: t('system.validation.nicknameLength')}),
       email: z
         .string()
-        .min(1, {message: '邮箱为必填参数'})
-        .email({message: '请输入正确的邮箱地址'}),
+        .min(1, {message: t('system.validation.emailRequired')})
+        .email({message: t('system.validation.emailInvalid')}),
       phone: z.string().optional(),
       password: isEdit.value
         ? z.string().optional()
-        : z.string().min(6, {message: '密码长度为 6 - 20 之间'}).max(20, {message: '密码长度为 6 - 20 之间'})
+        : z.string().min(6, {message: t('system.validation.passwordLength')}).max(20, {message: t('system.validation.passwordLength')})
     })
   )
 )

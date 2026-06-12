@@ -3,7 +3,7 @@
     <div class="cp-toolbar">
       <span class="cp-lang">{{ langLabel }}</span>
       <button class="cp-copy" @click="copy">
-        {{ copied ? '已复制' : '复制' }}
+        {{ copied ? t('conversation.panel.copied') : t('conversation.panel.copy') }}
       </button>
     </div>
     <div class="cp-editor">
@@ -18,6 +18,7 @@
 </template>
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { t } from '@/locales'
 import { Codemirror } from 'vue-codemirror'
 import { json } from '@codemirror/lang-json'
 import { javascript } from '@codemirror/lang-javascript'

@@ -2,17 +2,17 @@
   <Dialog
     v-model:visible="visible"
     modal
-    header="新建数据源"
+    :header="t('datasource.form.header')"
     :style="{ width: '36rem' }"
   >
     <div class="flex flex-col gap-4">
       <!-- 名称 -->
       <div class="flex flex-col gap-1.5">
-        <label class="text-sm font-medium text-surface-700">名称</label>
+        <label class="text-sm font-medium text-surface-700">{{ t('datasource.form.name') }}</label>
         <InputText
           v-model="formData.name"
           type="text"
-          placeholder="请输入数据源名称"
+          :placeholder="t('datasource.form.namePlaceholder')"
           fluid
           class="!text-sm"
         />
@@ -20,10 +20,10 @@
 
       <!-- 描述 -->
       <div class="flex flex-col gap-1.5">
-        <label class="text-sm font-medium text-surface-700">描述</label>
+        <label class="text-sm font-medium text-surface-700">{{ t('datasource.form.desc') }}</label>
         <Textarea
           v-model="formData.desc"
-          placeholder="请输入描述（选填）"
+          :placeholder="t('datasource.form.descPlaceholder')"
           rows="3"
           fluid
           class="!text-sm !resize-none"
@@ -32,7 +32,7 @@
 
       <!-- 数据源类型 -->
       <div class="flex flex-col gap-1.5">
-        <label class="text-sm font-medium text-surface-700">数据源类型</label>
+        <label class="text-sm font-medium text-surface-700">{{ t('datasource.form.type') }}</label>
         <RadioCard
           grid-class="grid-cols-2 sm:grid-cols-3 md:grid-cols-4"
           :model-value="formData.dataSourceType"
@@ -51,7 +51,7 @@
 
       <!-- 供应商 -->
       <div v-if="formData.dataSourceType" class="flex flex-col gap-1.5">
-        <label class="text-sm font-medium text-surface-700">供应商</label>
+        <label class="text-sm font-medium text-surface-700">{{ t('datasource.form.vendor') }}</label>
         <RadioCard
           grid-class="grid-cols-2 sm:grid-cols-3 md:grid-cols-4"
           :model-value="formData.provider"
@@ -79,8 +79,8 @@
 
     <template #footer>
       <div class="flex justify-end gap-2">
-        <Button label="取消" severity="secondary" variant="outlined" @click="close" />
-        <Button label="创建" @click="submit" />
+        <Button :label="t('common.cancel')" severity="secondary" variant="outlined" @click="close" />
+        <Button :label="t('common.create')" @click="submit" />
       </div>
     </template>
   </Dialog>
@@ -88,6 +88,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { t } from '@/locales'
 import DynamicsForm from '@/components/dynamics-form-plus/index.vue'
 import RadioCard from '@/components/radio-card/index.vue'
 import databaseConnectionPoolAPI from '@/api/database-connection-pool'

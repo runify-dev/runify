@@ -88,15 +88,15 @@ const impl: Record<string, any> = Object.fromEntries(
 const formRef = ref<FormInstance>()
 const resolver = computed(() => {
   return {
-    field: zodResolver(z.string().min(1, `字段必须在1-64之间`).max(64, `字段必须在1-64之间`)),
+    field: zodResolver(z.string().min(1, t('dynamicsForm.constructor.field.requiredMessage')).max(64, t('dynamicsForm.constructor.field.requiredMessage'))),
     label: zodResolver(
-      z.string().min(1, `显示名称必须在1-64之间`).max(64, `显示名称必须在1-64之间`)
+      z.string().min(1, t('dynamicsForm.constructor.name.requiredMessage')).max(64, t('dynamicsForm.constructor.name.requiredMessage'))
     ),
     tooltip: zodResolver(
-      z.string().min(1, `参数提示说明必须在1-64之间`).max(64, `参数提示说明必须在1-64之间`)
+      z.string().min(1, t('dynamicsForm.constructor.tooltip.label') + t('dynamicsForm.constructor.field.requiredMessage2')).max(64, t('dynamicsForm.constructor.tooltip.label') + t('dynamicsForm.constructor.field.requiredMessage2'))
     ),
-    required: zodResolver(z.boolean({ error: '是否必填为必填参数' })),
-    type: zodResolver(z.string().min(1, `组件类型必填`))
+    required: zodResolver(z.boolean({ error: t('dynamicsForm.constructor.required.requiredMessage') })),
+    type: zodResolver(z.string().min(1, t('dynamicsForm.constructor.input_type.requiredMessage')))
   }
 })
 

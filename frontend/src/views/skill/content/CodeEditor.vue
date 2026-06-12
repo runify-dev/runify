@@ -4,8 +4,8 @@
       <i class="pi pi-code text-primary-500"/>
       <span class="text-sm font-semibold">{{ file.name }}</span>
       <span class="text-xs text-surface-400 ml-1">{{ language }}</span>
-      <span v-if="saving" class="text-xs text-surface-400 ml-auto">保存中...</span>
-      <span v-else-if="saved" class="text-xs text-green-500 ml-auto">已保存</span>
+      <span v-if="saving" class="text-xs text-surface-400 ml-auto">{{ t('skill.details.saving') }}</span>
+      <span v-else-if="saved" class="text-xs text-green-500 ml-auto">{{ t('skill.details.saved') }}</span>
     </div>
     <div class="code-editor-wrap" :class="{ 'cm-dark': isDarkTheme }">
       <Codemirror
@@ -20,6 +20,7 @@
 </template>
 <script setup lang="ts">
 import {computed, onBeforeUnmount, ref} from 'vue'
+import {t} from '@/locales'
 import {Codemirror} from 'vue-codemirror'
 import {javascript} from '@codemirror/lang-javascript'
 import {json} from '@codemirror/lang-json'

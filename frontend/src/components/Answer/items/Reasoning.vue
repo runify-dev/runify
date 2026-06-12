@@ -1,7 +1,7 @@
 <template>
   <el-collapse expand-icon-position="left" v-model="activeNames">
     <el-collapse-item
-      title="思考过程"
+      :title="t('common.thinkingProcess')"
       name="reasoning"
       style="--el-collapse-content-text-color: var(--p-text-muted-color)"
     >
@@ -17,6 +17,7 @@
 </template>
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { t } from '@/locales'
 const activeNames = ref<Array<string>>(['reasoning'])
 const props = defineProps<{ chunk: any }>()
 const content = computed(() => {

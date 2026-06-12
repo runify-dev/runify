@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { t } from '@/locales'
 
 import type { PatchFileInfo, PatchFileStatus } from './patchTypes'
 import { parsePatch } from './parsePatch'
@@ -66,16 +67,16 @@ function getFilePath(file: PatchFileInfo) {
 
 function getStatusText(status: PatchFileStatus) {
   const map: Record<PatchFileStatus, string> = {
-    add: '新增',
-    modify: '修改',
-    delete: '删除',
-    rename: '重命名',
-    copy: '复制',
-    mode: '权限',
-    binary: '二进制',
-    unknown: '未知'
+    add: t('conversation.patch.statusAdd'),
+    modify: t('conversation.patch.statusModify'),
+    delete: t('conversation.patch.statusDelete'),
+    rename: t('conversation.patch.statusRename'),
+    copy: t('conversation.patch.statusCopy'),
+    mode: t('conversation.patch.statusMode'),
+    binary: t('conversation.patch.statusBinary'),
+    unknown: t('conversation.patch.statusUnknown')
   }
-  return map[status] ?? '未知'
+  return map[status] ?? t('conversation.patch.statusUnknown')
 }
 
 async function copyText(text: string) {
@@ -88,7 +89,7 @@ async function copyText(text: string) {
     <!-- ── 汇总 ── -->
     <div v-if="showSummary" class="pv-summary">
       <div class="pv-summary-head">
-        <span class="pv-summary-title">Patch 预览</span>
+        <span class="pv-summary-title">{{ t('conversation.patch.preview') }}</span>
         <span class="pv-summary-stats">
           <span>{{ summary.files }} file{{ summary.files > 1 ? 's' : '' }}</span>
           <span class="pv-add">+{{ summary.additions }}</span>
@@ -114,8 +115,8 @@ async function copyText(text: string) {
       </div>
 
       <div v-if="showActions" class="pv-actions">
-        <button class="pv-btn pv-btn-sec" type="button" @click="emit('reject')">拒绝</button>
-        <button class="pv-btn pv-btn-pri" type="button" @click="emit('apply')">应用补丁</button>
+        <button class="pv-btn pv-btn-sec" type="button" @click="emit('reject')">{{ t('conversation.patch.reject') }}</button>
+        <button class="pv-btn pv-btn-pri" type="button" @click="emit('apply')">{{ t('conversation.patch.apply') }}</button>
       </div>
     </div>
 
@@ -128,7 +129,7 @@ async function copyText(text: string) {
       >
         <div class="pv-file-head">
           <span class="pv-file-path">{{ getFilePath(file) }}</span>
-          <button class="pv-copy" type="button" title="复制路径" @click="copyText(getFilePath(file))">
+          <button class="pv-copy" type="button" :title="t('conversation.patch.copyPath')" @click="copyText(getFilePath(file))">
             <svg viewBox="0 0 16 16" width="13" height="13" fill="none">
               <rect x="5" y="5" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.3" />
               <path
@@ -166,11 +167,11 @@ async function copyText(text: string) {
           </table>
         </div>
 
-        <div v-else class="pv-empty">仅文件状态变化，无代码内容变更。</div>
+        <div v-else class="pv-empty">{{ t('conversation.patch.noCodeChange') }}</div>
       </section>
     </div>
 
-    <div v-else class="pv-empty">暂无 patch 内容</div>
+    <div v-else class="pv-empty">{{ t('conversation.patch.noPatchContent') }}</div>
   </div>
 </template>
 

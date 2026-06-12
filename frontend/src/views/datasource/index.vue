@@ -35,7 +35,7 @@
                 >
                   <template #default>
                     <Button
-                      v-tooltip="'操作'"
+                      v-tooltip="t('common.operation')"
                       icon="pi pi-ellipsis-v"
                       variant="text"
                       aria-label="Filter"
@@ -70,6 +70,7 @@
   </AppMenuContent>
 </template>
 <script setup lang="ts">
+import {t} from '@/locales'
 import AppMenuContent from '@/layout-plus/app-menu-content/index.vue'
 import CreateFolderDialog from '@/components/create-folder-dialog/index.vue'
 import DatasourceFormDialog from './components/DatasourceFormDialog.vue'
@@ -133,20 +134,20 @@ const createFolderSuccess = (key: string, node: any) => {
 const getMenuItems = (node: any) => {
   return [
     {
-      label: '新建',
+      label: t('common.create'),
       visible: node.data.type === 'folder' && hasPermission([
         PermissionConstants.DATASOURCE_CREATE.newResourcePermission(node.key),
         Role.ADMIN], "OR"),
       items: [
         {
-          label: '数据源',
+          label: t('datasource.datasourceLabel'),
           visible: () => node.data.type === 'folder' && hasPermission([
             PermissionConstants.DATASOURCE_CREATE.newResourcePermission(node.key),
             Role.ADMIN], "OR"),
           command: () => openCreateResourceDialog(node)
         },
         {
-          label: '文件夹',
+          label: t('common.folder'),
           visible: node.data.type === 'folder' && hasPermission([
             PermissionConstants.DATASOURCE_CREATE.newResourcePermission(node.key),
             Role.ADMIN], "OR"),
@@ -155,7 +156,7 @@ const getMenuItems = (node: any) => {
       ]
     },
     {
-      label: '重命名',
+      label: t('datasource.rename'),
       visible: hasPermission([
         node.data.type === 'folder' ? PermissionConstants.DATASOURCE_FOLDER_EDIT.newResourcePermission(node.key) : PermissionConstants.DATASOURCE_EDIT.newResourcePermission(node.key),
         Role.ADMIN], "OR"),
@@ -165,7 +166,7 @@ const getMenuItems = (node: any) => {
       visible: hasPermission([
         node.data.type === 'folder' ? PermissionConstants.DATASOURCE_FOLDER_DELETE.newResourcePermission(node.key) : PermissionConstants.DATASOURCE_DELETE.newResourcePermission(node.key),
         Role.ADMIN], "OR"),
-      label: '删除',
+      label: t('datasource.delete'),
       command: () => removeTreeNode(node)
     }
   ]

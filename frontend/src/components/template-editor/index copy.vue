@@ -30,7 +30,7 @@
             ref="popInputRef"
             v-model="pop.query"
             class="flex-1 bg-transparent border-none outline-none text-[13px] text-slate-800 placeholder:text-slate-400"
-            placeholder="搜索变量..."
+            :placeholder="t('templateEditor.searchVars')"
             @keydown="onPopKeydown"
           />
         </div>
@@ -56,7 +56,7 @@
             v-if="!filteredVars.length"
             class="px-2.5 py-3 text-[13px] text-slate-400 text-center"
           >
-            无匹配变量
+            {{ t('templateEditor.noMatchVars') }}
           </li>
         </ul>
       </div>
@@ -77,8 +77,8 @@
       <div ref="cmDialogContainer" class="flex flex-col flex-1 min-h-0 overflow-hidden" />
       <template #footer>
         <div class="flex gap-2 justify-end">
-          <Button label="取消" severity="secondary" @click="cancelDialog" />
-          <Button label="提交" @click="submitDialog" />
+          <Button :label="t('common.cancel')" severity="secondary" @click="cancelDialog" />
+          <Button :label="t('common.submit')" @click="submitDialog" />
         </div>
       </template>
     </Dialog>
@@ -90,6 +90,7 @@ import { ref, reactive, computed, watch, onMounted, onUnmounted, nextTick } from
 import AppIcon from '@/components/icons/AppIcon.vue'
 import Dialog from 'primevue/dialog'
 import Button from 'primevue/button'
+import { t } from '@/locales'
 
 import { basicSetup } from 'codemirror'
 import {

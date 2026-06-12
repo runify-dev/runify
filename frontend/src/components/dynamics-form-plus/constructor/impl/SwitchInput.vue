@@ -1,6 +1,6 @@
 <template>
   <FormField v-slot="$field" asChild name="defaultValue" :initialValue="false">
-    <label>默认值</label>
+    <label>{{ t('dynamicsForm.impl.defaultValue') }}</label>
     <ToggleSwitch />
     <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">{{
       $field.error?.message
@@ -8,6 +8,7 @@
   </FormField>
 </template>
 <script setup lang="ts">
+import { t } from '@/locales'
 import ToggleSwitch from 'primevue/toggleswitch'
 
 const props = defineProps<{

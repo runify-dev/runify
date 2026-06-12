@@ -5,7 +5,7 @@
         {{ content.content }}
       </div>
       <button v-if="needClamp" class="as-toggle" @click="expanded = !expanded">
-        {{ expanded ? '收起' : '展开' }}
+        {{ expanded ? t('conversation.panel.collapse') : t('conversation.panel.expand') }}
       </button>
       <div class="as-action">
         <span class="as-icon" :class="isApprove ? 'approve' : 'reject'">
@@ -16,7 +16,7 @@
             <path d="M4 4l6 6M10 4l-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
           </svg>
         </span>
-        <span class="as-text">{{ isApprove ? '通过' : '拒绝' }}</span>
+        <span class="as-text">{{ isApprove ? t('conversation.panel.approve') : t('conversation.panel.reject') }}</span>
       </div>
     </div>
   </div>
@@ -24,6 +24,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { t } from '@/locales'
 
 const props = defineProps<{ content: any }>()
 const isApprove = computed(() => props.content.result === 'approve')

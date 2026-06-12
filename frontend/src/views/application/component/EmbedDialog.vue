@@ -1,7 +1,7 @@
 <template>
   <Dialog
     v-model:visible="visible"
-    header="嵌入第三方"
+    :header="t('application.embed.title')"
     :style="{ width: '700px' }"
     :modal="true"
     class="text-sm"
@@ -13,8 +13,8 @@
             <i class="pi pi-window-maximize text-primary-600"></i>
           </div>
           <div>
-            <h4 class="text-sm font-semibold text-surface-900 dark:text-surface-0">iframe 嵌入</h4>
-            <p class="text-xs text-surface-500">适合网页嵌入</p>
+            <h4 class="text-sm font-semibold text-surface-900 dark:text-surface-0">{{ t('application.embed.iframeEmbed') }}</h4>
+            <p class="text-xs text-surface-500">{{ t('application.embed.iframeDesc') }}</p>
           </div>
         </div>
         <div class="bg-surface-50 dark:bg-surface-800 rounded-lg p-3 text-[11px] text-surface-600 dark:text-surface-300 font-mono break-all leading-relaxed">
@@ -22,7 +22,7 @@
         </div>
         <div class="mt-3 flex justify-end">
           <span class="text-xs text-primary-500 opacity-0 group-hover:opacity-100 transition-opacity">
-            <i class="pi pi-copy mr-1"></i>点击复制
+            <i class="pi pi-copy mr-1"></i>{{ t('application.embed.clickCopy') }}
           </span>
         </div>
       </div>
@@ -33,8 +33,8 @@
             <i class="pi pi-code text-orange-500"></i>
           </div>
           <div>
-            <h4 class="text-sm font-semibold text-surface-900 dark:text-surface-0">JavaScript 嵌入</h4>
-            <p class="text-xs text-surface-500">悬浮对话气泡</p>
+            <h4 class="text-sm font-semibold text-surface-900 dark:text-surface-0">{{ t('application.embed.jsEmbed') }}</h4>
+            <p class="text-xs text-surface-500">{{ t('application.embed.jsDesc') }}</p>
           </div>
         </div>
         <div class="bg-surface-50 dark:bg-surface-800 rounded-lg p-3 text-[11px] text-surface-600 dark:text-surface-300 font-mono break-all leading-relaxed">
@@ -42,7 +42,7 @@
         </div>
         <div class="mt-3 flex justify-end">
           <span class="text-xs text-primary-500 opacity-0 group-hover:opacity-100 transition-opacity">
-            <i class="pi pi-copy mr-1"></i>点击复制
+            <i class="pi pi-copy mr-1"></i>{{ t('application.embed.clickCopy') }}
           </span>
         </div>
       </div>
@@ -55,6 +55,7 @@ import {ref, computed} from 'vue'
 import Dialog from 'primevue/dialog'
 import {copyContent} from "@/utils/common"
 import bus from "@/bus"
+import { t } from '@/locales'
 
 const visible = ref(false)
 const applicationId = ref('')
@@ -76,7 +77,7 @@ const embedJsCode = computed(() => {
 const copyEmbedCode = (type: 'iframe' | 'js') => {
   const code = type === 'iframe' ? embedCode.value : embedJsCode.value
   copyContent(code).then(() => {
-    bus.emit("message:success", "复制成功")
+    bus.emit("message:success", t('application.embed.copySuccess'))
   }).catch(() => {
     bus.emit("message:success", code)
   })

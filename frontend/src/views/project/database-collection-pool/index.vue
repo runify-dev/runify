@@ -12,14 +12,14 @@
       <template #start> </template>
       <template #center>
         <InputGroup>
-          <InputText v-model="searchText" placeholder="数据源" />
+          <InputText v-model="searchText" :placeholder="t('database.search')" />
           <InputGroupAddon>
             <Button icon="pi pi-search" severity="secondary" variant="text" />
           </InputGroupAddon>
         </InputGroup>
       </template>
       <template #end>
-        <Button @click="openCreateCollectionPool" label="新建数据源"></Button
+        <Button @click="openCreateCollectionPool" :label="t('datasource.create')"></Button
       ></template>
     </Toolbar>
     <DataTable
@@ -29,11 +29,11 @@
       tableStyle="min-width: 50rem"
     >
       <Column expander style="width: 5rem"></Column>
-      <Column field="name" header="数据源名称"></Column>
-      <Column field="desc" header="数据源描述"></Column>
-      <Column field="dataSourceType" header="数据源类型"></Column>
-      <Column field="provider" header="供应商"></Column>
-      <Column field="operate" header="操作">
+      <Column field="name" :header="t('database.datasourceName')"></Column>
+      <Column field="desc" :header="t('database.datasourceDesc')"></Column>
+      <Column field="dataSourceType" :header="t('datasource.form.type')"></Column>
+      <Column field="provider" :header="t('datasource.form.vendor')"></Column>
+      <Column field="operate" :header="t('common.operation')">
         <template #body="scope">
           <Button
             icon="pi pi-file-edit"
@@ -76,6 +76,7 @@
 import TableColumnExpand from './table-column-expand/index.vue'
 import CollectionPool from './collection-pool/index.vue'
 import { ref, computed, onMounted } from 'vue'
+import { t } from '@/locales'
 import Pagination from '@/components/table/Pagination.vue'
 import type { QueryPageDatabaseCollectionPoolVO } from '@/api/type/database-connection-pool'
 import databaseConnectionPoolAPI from '@/api/database-connection-pool'
@@ -94,7 +95,7 @@ const openEditDatabaseCollectionPollDialog = (data: any) => {
 }
 const deleteDatabaseCollectionPoll = (data: any) => {
   databaseConnectionPoolAPI.deleteById(data.projectId, data.id).then((ok) => {
-    bus.emit('message:success', ['删除数据库连接池', '删除成功'])
+    bus.emit('message:success', [t('database.deleteSuccess'), t('datasource.deleteSuccess')])
     page()
   })
 }

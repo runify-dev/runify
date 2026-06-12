@@ -43,7 +43,7 @@
                         </template>
                         <template #default>
                           <Button
-                            v-tooltip="'操作'"
+                            v-tooltip="t('common.operation')"
                             icon="pi pi-ellipsis-v"
                             variant="text"
                             aria-label="Filter"
@@ -99,7 +99,7 @@
       <CreateProjectDialog
         ref="createProjectDialogRef"
         :api="treeCommonAPI"
-        name="项目"
+        :name="t('project.projectLabel')"
         @create:resource:success="createResourceSuccess"
       ></CreateProjectDialog>
       <CreateFolderDialog
@@ -137,6 +137,7 @@ import useStore from "@/stores";
 import {hasPermission} from "@/permission";
 import {PermissionConstants} from "@/permission/data.ts";
 import {Role} from "@/permission/common.ts";
+import { t } from '@/locales'
 
 const {user} = useStore();
 const route = useRoute()
@@ -149,11 +150,11 @@ const isFlipped = ref<boolean>(
     route.name as string
   )
 )
-const items = ref([
+const items = computed(() => [
 
   {
     name: 'projectProcessor',
-    label: '处理器',
+    label: t('project.processor'),
     icon: 'pi pi-fw pi-cog p-1',
     activeNames: ['projectProcessor', 'processorWorkflow', 'processorTable']
   }
@@ -230,21 +231,21 @@ const renameSuccess = (key: string, node: any) => {
 const getMenuItems = (node: any) => {
   return [
     {
-      label: '新建',
+      label: t('common.create'),
       visible: node.data.type === 'folder' && hasPermission([
         PermissionConstants.PROJECT_CREATE.newResourcePermission(node.key),
         PermissionConstants.PROJECT_FOLDER_CREATE.newResourcePermission(node.key),
         Role.ADMIN], "OR"),
       items: [
         {
-          label: '项目',
+          label: t('project.projectLabel'),
           visible: () => node.data.type === 'folder' && hasPermission([
             PermissionConstants.PROJECT_CREATE.newResourcePermission(node.key),
             Role.ADMIN], "OR"),
           command: () => openCreateProjectDialog(node)
         },
         {
-          label: '文件夹',
+          label: t('project.folder'),
           visible: node.data.type === 'folder' && hasPermission([
             PermissionConstants.PROJECT_FOLDER_CREATE.newResourcePermission(node.key),
             Role.ADMIN], "OR"),
@@ -253,7 +254,7 @@ const getMenuItems = (node: any) => {
       ]
     },
     {
-      label: '重命名',
+      label: t('project.rename'),
       visible: hasPermission([
         node.data.type === 'folder' ? PermissionConstants.PROJECT_FOLDER_EDIT.newResourcePermission(node.key) : PermissionConstants.PROJECT_EDIT.newResourcePermission(node.key),
         Role.ADMIN], "OR"),
@@ -263,7 +264,7 @@ const getMenuItems = (node: any) => {
       visible: hasPermission([
         node.data.type === 'folder' ? PermissionConstants.PROJECT_FOLDER_DELETE.newResourcePermission(node.key) : PermissionConstants.PROJECT_DELETE.newResourcePermission(node.key),
         Role.ADMIN], "OR"),
-      label: '删除',
+      label: t('project.delete'),
       command: () => removeTreeNode(node)
     }
   ]

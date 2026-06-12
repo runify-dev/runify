@@ -4,13 +4,13 @@
       class="absolute z-10 right-6 top-4 items-center space-x-0 bg-white border border-gray-300 rounded-full p-px inline-flex"
     >
       <button @click="save" class="px-2 py-0.5 text-sm text-gray-600 hover:bg-gray-200/30 rounded-full">
-        保存
+        {{ t('application.save') }}
       </button>
       <button
         @click="debugFn"
         class="px-2 py-0.5 text-sm text-gray-600 hover:bg-gray-200/30 rounded-full"
       >
-        调试
+        {{ t('application.debug') }}
       </button>
     </div>
 
@@ -32,6 +32,7 @@ import { useRoute } from 'vue-router'
 import bus from '@/bus'
 import { baseWorkflow, WorkflowType } from '@/workflow/common/data'
 import DebugConversation from './DebugConversation.vue'
+import { t } from '@/locales'
 const debug = ref<boolean>(false)
 const route = useRoute()
 // 注入父组件提供的方法
@@ -63,7 +64,7 @@ const resourceId = computed(() => {
 })
 const save = () => {
   ApplicationAPI.edit(resourceId.value,{workflow: workflowRef.value?.getGraphData()}).then(() => {
-    bus.emit('message:success', '保存成功')
+    bus.emit('message:success', t('application.saveSuccess'))
   })
 }
 

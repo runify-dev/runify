@@ -6,15 +6,16 @@
     style="height: 100%"
     @tab-click="handleClick"
   >
-    <el-tab-pane label="应用" name="application"
+    <el-tab-pane :label="t('common.appName')" name="application"
       ><ResourceAuthorzation :resource="resource"></ResourceAuthorzation>
     </el-tab-pane>
-    <el-tab-pane label="知识库" name="knowlegde">知识库</el-tab-pane>
-    <el-tab-pane label="模型" name="model">模型</el-tab-pane>
+    <el-tab-pane :label="t('knowledge.knowledgeLabel')" name="knowlegde">{{ t('knowledge.knowledgeLabel') }}</el-tab-pane>
+    <el-tab-pane :label="t('model.modelLabel')" name="model">{{ t('model.modelLabel') }}</el-tab-pane>
   </el-tabs>
 </template>
 <script setup lang="ts">
 import { ref } from 'vue'
+import { t } from '@/locales'
 import ResourceAuthorzation from './components/ResourceAuthorzation.vue'
 import type { Resource } from '@/api/type/common'
 const resource = ref<Resource>()

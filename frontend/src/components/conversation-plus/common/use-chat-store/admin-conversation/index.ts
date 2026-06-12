@@ -131,19 +131,19 @@ export function useChatStore() {
   const flatItems = computed<FlatRow[]>(() => {
     const now = dayjs()
     const buckets: Record<string, Conversation[]> = {
-      今天: [],
-      昨天: [],
-      本周: [],
-      更早: []
+      [t('conversation.group.today')]: [],
+      [t('conversation.group.yesterday')]: [],
+      [t('conversation.group.thisWeek')]: [],
+      [t('conversation.group.earlier')]: []
     }
     ;[...chats.value]
       .sort((a, b) => dayjs(b.createTime).valueOf() - dayjs(a.createTime).valueOf())
       .forEach((c) => {
         const time = dayjs(c.createTime)
-        if (time.isSame(now, 'day')) buckets['今天'].push(c)
-        else if (time.isSame(now.subtract(1, 'day'), 'day')) buckets['昨天'].push(c)
-        else if (time.isAfter(now.subtract(7, 'day'))) buckets['本周'].push(c)
-        else buckets['更早'].push(c)
+        if (time.isSame(now, 'day')) buckets[t('conversation.group.today')].push(c)
+        else if (time.isSame(now.subtract(1, 'day'), 'day')) buckets[t('conversation.group.yesterday')].push(c)
+        else if (time.isAfter(now.subtract(7, 'day'))) buckets[t('conversation.group.thisWeek')].push(c)
+        else buckets[t('conversation.group.earlier')].push(c)
       })
     return Object.entries(buckets)
       .filter(([, v]) => v.length)

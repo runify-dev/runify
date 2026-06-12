@@ -9,7 +9,7 @@
         </InputGroupAddon>
         <InputText
           v-model="searchText"
-          placeholder="搜索应用..."
+          :placeholder="t('application.search')"
         />
       </InputGroup>
 
@@ -18,7 +18,7 @@
         <input ref="fileInputRef" type="file" accept=".json" class="hidden" @change="handleImport"/>
         <Button icon="pi pi-plus"
                 v-if="permissionCreate"
-                label="创建" @click="toggleCreateMenu"/>
+                :label="t('application.create')" @click="toggleCreateMenu"/>
         <Menu ref="createMenuRef" :model="createMenuItems" popup
               :pt="{ item: { class: '!p-0' }, itemContent: { style: 'justify-content: flex-start !important' }, itemLink: { style: 'justify-content: flex-start !important; text-align: left !important' }, list: { class: '!py-1' } }">
           <template #item="{ item, props }">
@@ -79,13 +79,13 @@
               {{ item.name }}
             </h3>
             <p class="text-xs text-surface-500 leading-relaxed line-clamp-2 min-h-[2.5rem]">
-              {{ item.desc || '暂无描述' }}
+              {{ item.desc || t('application.noDesc') }}
             </p>
           </template>
           <template #footer>
             <div class="flex items-center justify-between pt-2.5 border-t" style="border-color: var(--p-content-border-color);">
               <span class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300">
-                应用
+                {{ t('application.appLabel') }}
               </span>
               <span class="flex items-center gap-1 text-[11px] text-surface-400">
                 <i class="pi pi-clock text-[10px]"/>
@@ -102,7 +102,7 @@
         class="col-span-full flex flex-col items-center justify-center py-16 text-surface-400"
       >
         <i class="pi pi-inbox text-5xl mb-4 opacity-40"/>
-        <p class="text-sm">暂无应用，点击「新建应用」开始创建</p>
+        <p class="text-sm">{{ t('application.empty') }}</p>
       </div>
     </div>
 
@@ -125,6 +125,7 @@ import {TreeCommonAPI} from '@/api/tree'
 import {PermissionConstants} from "@/permission/data.ts";
 import {Role} from "@/permission/common.ts";
 import {hasPermission} from "@/permission";
+import { t } from '@/locales'
 
 const treeCommonAPI = new TreeCommonAPI('application')
 const router = useRouter()
@@ -155,32 +156,32 @@ const folderId = computed(() => {
   return id
 })
 
-const createMenuItems = [
+const createMenuItems = computed(() => [
   {
-    label: '智能体应用',
-    description: '基于大模型能力，快速构建自主决策的智能体',
+    label: t('application.createTypes.agent.label'),
+    description: t('application.createTypes.agent.description'),
     icon: 'pi pi-android',
     command: () => openCreateApplication('agent')
   },
   {
-    label: '知识库应用',
-    description: '连接专属知识库，打造精准问答助手',
+    label: t('application.createTypes.knowledge.label'),
+    description: t('application.createTypes.knowledge.description'),
     icon: 'pi pi-book',
     command: () => openCreateApplication('search')
   },
   {
-    label: '自定义应用',
-    description: '自由编排工作流，灵活定制专属应用',
+    label: t('application.createTypes.custom.label'),
+    description: t('application.createTypes.custom.description'),
     icon: 'pi pi-file',
     command: () => openCreateApplication('workflow')
   },
   {
-    label: '导入配置',
-    description: '通过 JSON 文件一键导入已有应用',
+    label: t('application.createTypes.import.label'),
+    description: t('application.createTypes.import.description'),
     icon: 'pi pi-upload',
     command: () => fileInputRef.value?.click()
   }
-]
+])
 
 const toggleCreateMenu = (event: Event) => {
   createMenuRef.value?.toggle(event)
@@ -188,7 +189,7 @@ const toggleCreateMenu = (event: Event) => {
 
 const menuItems = computed(() => [
   {
-    label: '打开',
+    label: t('application.open'),
     icon: 'pi pi-arrow-up-right',
     visible: hasPermission([
       PermissionConstants.APPLICATION_READ.newResourcePermission(activeItem.value?.id || ''),
@@ -196,7 +197,7 @@ const menuItems = computed(() => [
     command: () => activeItem.value && handleOpen(activeItem.value)
   },
   {
-    label: '编辑',
+    label: t('application.edit'),
     icon: 'pi pi-pencil',
     visible: hasPermission([
       PermissionConstants.APPLICATION_EDIT.newResourcePermission(activeItem.value?.id || ''),
@@ -205,7 +206,7 @@ const menuItems = computed(() => [
   },
   {separator: true},
   {
-    label: '删除',
+    label: t('application.delete'),
     visible: hasPermission([
       PermissionConstants.APPLICATION_DELETE.newResourcePermission(activeItem.value?.id || ''),
       Role.ADMIN], "OR"),
@@ -215,7 +216,7 @@ const menuItems = computed(() => [
   },
   {separator: true},
   {
-    label: '导出',
+    label: t('application.export'),
     visible: hasPermission([
       PermissionConstants.APPLICATION_READ.newResourcePermission(activeItem.value?.id || ''),
       Role.ADMIN], "OR"),
@@ -244,16 +245,16 @@ const handleEdit = (item: Node) => {
 
 const handleDelete = (item: Node) => {
   confirm.require({
-    message: `确定要删除「${item.name}」吗？此操作不可撤销。`,
-    header: '删除确认',
+    message: t('application.deleteMessage', { name: item.name }),
+    header: t('application.deleteConfirm'),
     icon: 'pi pi-exclamation-triangle',
-    rejectProps: {label: '取消', severity: 'secondary', variant: 'outlined'},
-    acceptProps: {label: '删除', severity: 'danger'},
+    rejectProps: {label: t('common.cancel'), severity: 'secondary', variant: 'outlined'},
+    acceptProps: {label: t('application.delete'), severity: 'danger'},
     accept: () => {
       treeCommonAPI.removeResource(item.id).then(() => {
         nodeList.value = nodeList.value.filter((n) => n.id !== item.id)
         bus.emit('tree:remove', item.id)
-        toast.add({severity: 'success', summary: '删除成功', life: 2000})
+        toast.add({severity: 'success', summary: t('application.deleteSuccess'), life: 2000})
       })
     }
   })
@@ -276,7 +277,7 @@ const handleImport = (event: Event) => {
   if (!file) return
   treeCommonAPI.importResource(folderId.value, file).then(() => {
     lisResource()
-    toast.add({severity: 'success', summary: '导入成功', life: 2000})
+    toast.add({severity: 'success', summary: t('application.importSuccess'), life: 2000})
     input.value = ''
   })
 }

@@ -1,7 +1,7 @@
 <template>
   <div class="mt-6">
     <div class="flex items-center justify-between mb-4">
-      <h3 class="text-base font-semibold">表信息</h3>
+      <h3 class="text-base font-semibold">{{ t('datasource.details.tableInfo') }}</h3>
       <Button
         icon="pi pi-refresh"
         severity="secondary"
@@ -12,17 +12,17 @@
       />
     </div>
     <DataTable :value="tableList" :loading="loading" stripedRows>
-      <Column field="name" header="表名" />
-      <Column field="engine" header="引擎" />
-      <Column field="comment" header="注释">
+      <Column field="name" :header="t('datasource.details.tableName')" />
+      <Column field="engine" :header="t('datasource.details.engine')" />
+      <Column field="comment" :header="t('datasource.details.comment')">
         <template #body="{ data }">
           {{ data.comment || '-' }}
         </template>
       </Column>
-      <Column header="操作" class="min-w-[100px]">
+      <Column :header="t('common.operation')" class="min-w-[100px]">
         <template #body="{ data }">
           <Button
-            label="查看列"
+            :label="t('datasource.details.viewColumns')"
             variant="text"
             size="small"
             @click="openColumnDrawer(data)"
@@ -30,7 +30,7 @@
         </template>
       </Column>
       <template #empty>
-        <div class="text-center py-8 text-surface-400">暂无表信息</div>
+        <div class="text-center py-8 text-surface-400">{{ t('datasource.details.noTableInfo') }}</div>
       </template>
     </DataTable>
 
@@ -43,6 +43,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
+import { t } from '@/locales'
 import ColumnDrawer from './ColumnDrawer.vue'
 import databaseConnectionPoolAPI from '@/api/database-connection-pool'
 

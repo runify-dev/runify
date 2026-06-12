@@ -132,18 +132,18 @@ public class SkillHandlerImpl extends ResourceHandlerImpl<Skill, SkillFolder, Sk
         String resourceId = context.pathParam("resourceId");
         EditSkillPojo pojo = context.body().asPojo(EditSkillPojo.class);
         skillMapper.getById(resourceId).compose(skill -> {
-            if (StringUtils.isNotEmpty(pojo.getName())) skill.setName(pojo.getName());
-            if (StringUtils.isNotEmpty(pojo.getIcon())) skill.setIcon(pojo.getIcon());
-            if (pojo.getDesc() != null) skill.setDesc(pojo.getDesc());
-            if (pojo.getParameterValue() != null) {
-                JsonObject submitted = pojo.getParameterValue();
-                JsonObject merged = mergeParameterValue(skill.decrypt(), submitted, skill.getSkillParameterForm());
-                skill.setParameterValue(skill.encrypt(merged));
-            }
-            if (pojo.getSkillParameterForm() != null) skill.setSkillParameterForm(pojo.getSkillParameterForm());
-            skill.setUpdateTime(LocalDateTime.now());
-            return skillMapper.update(skill);
-        }).compose(_ -> skillMapper.getById(resourceId))
+                    if (StringUtils.isNotEmpty(pojo.getName())) skill.setName(pojo.getName());
+                    if (StringUtils.isNotEmpty(pojo.getIcon())) skill.setIcon(pojo.getIcon());
+                    if (pojo.getDesc() != null) skill.setDesc(pojo.getDesc());
+                    if (pojo.getParameterValue() != null) {
+                        JsonObject submitted = pojo.getParameterValue();
+                        JsonObject merged = mergeParameterValue(skill.decrypt(), submitted, skill.getSkillParameterForm());
+                        skill.setParameterValue(skill.encrypt(merged));
+                    }
+                    if (pojo.getSkillParameterForm() != null) skill.setSkillParameterForm(pojo.getSkillParameterForm());
+                    skill.setUpdateTime(LocalDateTime.now());
+                    return skillMapper.update(skill);
+                }).compose(_ -> skillMapper.getById(resourceId))
                 .onSuccess(skill -> {
                     JsonObject result = JsonObject.mapFrom(skill);
                     result.put("parameterValue", maskPassword(skill.decrypt(), skill.getSkillParameterForm()));
@@ -389,7 +389,7 @@ public class SkillHandlerImpl extends ResourceHandlerImpl<Skill, SkillFolder, Sk
                             ? upload.fileName().replaceFirst("(?i)\\.zip$", "")
                             : contentRoot.getFileName().toString());
             String skillDesc = fmMeta.getOrDefault("description", "");
-            Skill skill = new Skill(skillId, parentUuId, skillName, "", skillDesc, "", new JsonArray(), now, now);
+            Skill skill = new Skill(skillId, parentUuId, skillName, "", skillDesc, "", new JsonArray(), new JsonObject(), now, now);
             skill.setSkillParameterForm(paramForm);   // 导入即带表单结构；parameterValue 留空，用户后续设置
 
             // 5. 创建 skill 资源 + 保存所有 skill_file
@@ -505,7 +505,8 @@ public class SkillHandlerImpl extends ResourceHandlerImpl<Skill, SkillFolder, Sk
                 if (fm.get("name") instanceof String name && !name.isBlank()) result.put("name", name);
                 if (fm.get("description") instanceof String desc && !desc.isBlank()) result.put("description", desc);
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
         return result;
     }
 
@@ -853,7 +854,7 @@ public class SkillHandlerImpl extends ResourceHandlerImpl<Skill, SkillFolder, Sk
 
     @Override
     protected Skill newResource(UUID resourceId, UUID parentUuId, String name, RoutingContext context) {
-        return new Skill(resourceId, parentUuId, name, "", "", "", new JsonArray(), LocalDateTime.now(), LocalDateTime.now());
+        return new Skill(resourceId, parentUuId, name, "", "", "", new JsonArray(), new JsonObject(), LocalDateTime.now(), LocalDateTime.now());
     }
 
     @Override

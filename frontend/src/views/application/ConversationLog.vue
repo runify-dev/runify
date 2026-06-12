@@ -16,14 +16,14 @@
     >
       <template #header>
         <div class="flex items-center justify-between gap-3">
-          <span class="text-sm font-medium text-surface-500">对话日志</span>
+          <span class="text-sm font-medium text-surface-500">{{ t('application.conversationLogData.title') }}</span>
           <InputGroup class="max-w-xs">
             <InputGroupAddon>
               <i class="pi pi-search"/>
             </InputGroupAddon>
             <InputText
               v-model="filters['name'].value"
-              placeholder="搜索名称..."
+              :placeholder="t('application.conversationLogData.searchName')"
             />
           </InputGroup>
         </div>
@@ -31,18 +31,18 @@
       <template #empty>
         <div class="flex flex-col items-center justify-center py-10 text-surface-400">
           <i class="pi pi-inbox text-4xl mb-3 opacity-40" />
-          <p class="text-sm">暂无对话记录</p>
+          <p class="text-sm">{{ t('application.conversationLogData.noConversations') }}</p>
         </div>
       </template>
       <template #loading>
         <div class="flex items-center justify-center py-6 text-surface-400">
           <i class="pi pi-spin pi-spinner mr-2" />
-          <span class="text-sm">加载中，请稍候...</span>
+          <span class="text-sm">{{ t('application.conversationLogData.loading') }}</span>
         </div>
       </template>
       <Column
         field="name"
-        header="名称"
+        :header="t('application.conversationLogData.nameHeader')"
         :showFilterMatchModes="false"
         sortable
         class="min-w-[10rem]"
@@ -51,11 +51,11 @@
           {{ data.name }}
         </template>
         <template #filter="{ filterModel }">
-          <InputText v-model="filterModel.value" type="text" placeholder="请输入名称" />
+          <InputText v-model="filterModel.value" type="text" :placeholder="t('application.conversationLogData.namePlaceholder')" />
         </template>
       </Column>
       <Column
-        header="执行类型"
+        :header="t('application.conversationLogData.executeTypeHeader')"
         field="executeType"
         :showFilterMatchModes="false"
         sortable
@@ -64,7 +64,7 @@
         <template #body="{ data }">
           <Tag
             :severity="data.executeType === 'DEBUG' ? 'info' : 'success'"
-            :value="data.executeType === 'DEBUG' ? '调试' : '对话'"
+            :value="data.executeType === 'DEBUG' ? t('application.conversationLogData.debugType') : t('application.conversationLogData.conversationType')"
           />
         </template>
         <template #filter="{ filterModel }">
@@ -73,14 +73,14 @@
             optionLabel="name"
             v-model="filterModel.value"
             :options="[
-              { name: '调试', value: 'DEBUG' },
-              { name: '对话', value: 'CONVERSATION' }
+              { name: t('application.conversationLogData.debugType'), value: 'DEBUG' },
+              { name: t('application.conversationLogData.conversationType'), value: 'CONVERSATION' }
             ]"
           />
         </template>
       </Column>
       <Column
-        header="对话用户类型"
+        :header="t('application.conversationLogData.userTypeHeader')"
         field="conversationUserType"
         :filterMenuStyle="{ width: '14rem' }"
         class="min-w-[12rem]"
@@ -88,13 +88,13 @@
         <template #body="{ data }">
           <Tag
             :severity="data.conversationUserType === 'ADMIN_USER' ? 'info' : 'success'"
-            :value="data.conversationUserType === 'ADMIN_USER' ? '系统用户' : '匿名用户'"
+            :value="data.conversationUserType === 'ADMIN_USER' ? t('application.conversationLogData.systemUser') : t('application.conversationLogData.anonymousUser')"
           />
         </template>
       </Column>
       <Column
         field="starNum"
-        header="点赞数量"
+        :header="t('application.conversationLogData.likeCountHeader')"
         :showFilterMatchModes="false"
         class="min-w-[12rem]"
       >
@@ -130,6 +130,7 @@ import { useRoute } from 'vue-router'
 import { FilterMatchMode } from '@primevue/core/api'
 import ConversationMessageDrawer from '@/views/application/conversation-message-drawer/index.vue'
 import { type DataTableFilterMeta } from 'primevue/datatable'
+import { t } from '@/locales'
 const loading = ref<boolean>(false)
 const route = useRoute()
 const conversationList = ref<Array<any>>([])

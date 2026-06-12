@@ -3,8 +3,8 @@
     <div class="flex items-center gap-2 px-4 py-2 border-b shrink-0" style="border-color: var(--p-content-border-color);">
       <i class="pi pi-file-edit text-primary-500"/>
       <span class="text-sm font-semibold">{{ file.name }}</span>
-      <span v-if="saving" class="text-xs text-surface-400">保存中...</span>
-      <span v-else-if="saved" class="text-xs text-green-500">已保存</span>
+      <span v-if="saving" class="text-xs text-surface-400">{{ t('skill.details.saving') }}</span>
+      <span v-else-if="saved" class="text-xs text-green-500">{{ t('skill.details.saved') }}</span>
     </div>
     <div class="flex-1 min-h-0 overflow-hidden">
       <Editor ref="editorRef" @change="onChange"/>
@@ -13,6 +13,7 @@
 </template>
 <script setup lang="ts">
 import {onBeforeUnmount, onMounted, ref} from 'vue'
+import {t} from '@/locales'
 import Editor from '@/editor/index.vue'
 import skillApi from '@/api/skill'
 import type {SkillFile} from '@/api/skill'

@@ -33,7 +33,7 @@
                           </div>
                         </template>
                         <template #default>
-                          <Button v-tooltip="'操作'" icon="pi pi-ellipsis-v" variant="text" severity="secondary" size="small"/>
+                          <Button v-tooltip="t('knowledge.operation')" icon="pi pi-ellipsis-v" variant="text" severity="secondary" size="small"/>
                         </template>
                       </DropdownMenu>
                     </div>
@@ -44,12 +44,12 @@
           </template>
           <template #back>
             <div class="custom-back">
-              <Button icon="pi pi-arrow-left" severity="contrast" variant="text" rounded aria-label="返回" @click="back"/>
+              <Button icon="pi pi-arrow-left" severity="contrast" variant="text" rounded :aria-label="t('knowledge.details.back')" @click="back"/>
             </div>
             <div class="px-3 py-2 border-b" style="border-color: var(--p-content-border-color);">
               <IconField>
                 <InputIcon class="pi pi-search"/>
-                <InputText v-model="docSearchText" placeholder="搜索文档..." size="small" fluid class="!text-sm"/>
+                <InputText v-model="docSearchText" :placeholder="t('knowledge.details.searchDocs')" size="small" fluid class="!text-sm"/>
               </IconField>
             </div>
             <div class="flex-1 overflow-auto p-2">
@@ -64,7 +64,7 @@
                 :pt="{ root: { style: { padding: '0', border: '0' } }, nodeLabel: { style: { width: '100%' } } }"
               >
                 <template #empty>
-                  <p class="text-xs text-surface-400 text-center py-4">暂无文档</p>
+                  <p class="text-xs text-surface-400 text-center py-4">{{ t('knowledge.details.noDocuments') }}</p>
                 </template>
                 <template #nodeicon="scope">
                   <i class="pi pi-folder text-sm" v-if="scope.node.data?.type === 'folder'"/>
@@ -90,7 +90,7 @@
               </Tree>
             </div>
             <div class="border-t p-2 shrink-0" style="border-color: var(--p-content-border-color);">
-              <Button icon="pi pi-cog" label="设置" size="small" class="w-full justify-start" @click="openSetting"
+              <Button icon="pi pi-cog" :label="t('knowledge.settings')" size="small" class="w-full justify-start" @click="openSetting"
                 :style="route.name === 'knowledgeSetting'
                   ? 'color: var(--p-primary-color); background: var(--p-primary-50); border-color: var(--p-primary-color);'
                   : ''"
@@ -145,6 +145,7 @@ import knowledgeApi from '@/api/knowledge'
 import type {Document} from '@/api/knowledge'
 import {useToast} from 'primevue/usetoast'
 import {useConfirm} from 'primevue/useconfirm'
+import {t} from '@/locales'
 
 const {user} = useStore()
 const route = useRoute()
@@ -175,21 +176,21 @@ const nodeSelect = (treeNode?: TreeNode) => {
 
 const getMenuItems = (node: any) => [
   {
-    label: '新建',
+    label: t('common.create'),
     visible: node.data.type === 'folder' && hasPermission([
       PermissionConstants.KNOWLEDGE_CREATE.newResourcePermission(node.key),
       PermissionConstants.KNOWLEDGE_FOLDER_CREATE.newResourcePermission(node.key),
       Role.ADMIN], "OR"),
     items: [
       {
-        label: '知识库',
+        label: t('knowledge.knowledgeLabel'),
         visible: () => node.data.type === 'folder' && hasPermission([
           PermissionConstants.KNOWLEDGE_CREATE.newResourcePermission(node.key),
           Role.ADMIN], "OR"),
         command: () => knowledgeFormDialogRef.value?.open(node)
       },
       {
-        label: '文件夹',
+        label: t('knowledge.details.folder'),
         visible: node.data.type === 'folder' && hasPermission([
           PermissionConstants.KNOWLEDGE_FOLDER_CREATE.newResourcePermission(node.key),
           Role.ADMIN], "OR"),
@@ -198,7 +199,7 @@ const getMenuItems = (node: any) => [
     ]
   },
   {
-    label: '重命名',
+    label: t('knowledge.rename'),
     visible: hasPermission([
       node.data.type === 'folder'
         ? PermissionConstants.KNOWLEDGE_FOLDER_EDIT.newResourcePermission(node.key)
@@ -207,7 +208,7 @@ const getMenuItems = (node: any) => [
     command: () => renameDialogRef.value?.open(node.key, node.label || '', node.data.type === 'folder' ? 'folder' : 'resource')
   },
   {
-    label: '删除',
+    label: t('knowledge.delete'),
     visible: hasPermission([
       node.data.type === 'folder'
         ? PermissionConstants.KNOWLEDGE_FOLDER_DELETE.newResourcePermission(node.key)
@@ -215,11 +216,11 @@ const getMenuItems = (node: any) => [
       Role.ADMIN], "OR"),
     command: () => {
       confirm.require({
-        message: `确定要删除「${node.label}」吗？`,
-        header: '删除确认',
+        message: t('knowledge.deleteMessage', {name: node.label}),
+        header: t('knowledge.deleteConfirm'),
         icon: 'pi pi-exclamation-triangle',
-        rejectProps: {label: '取消', severity: 'secondary', variant: 'outlined'},
-        acceptProps: {label: '删除', severity: 'danger'},
+        rejectProps: {label: t('common.cancel'), severity: 'secondary', variant: 'outlined'},
+        acceptProps: {label: t('knowledge.delete'), severity: 'danger'},
         accept: () => {
           const api = node.data.type === 'folder' ? treeCommonAPI.removeFolder : treeCommonAPI.removeResource
           api(node.key).then(() => treeManage.value?.remove(node.key))
@@ -357,7 +358,7 @@ const buildDocumentTreeWithRoot = (items: Document[], knowledgeId: string) => {
   const children = buildDocumentTree(items, ROOT_FOLDER_ID)
   return [{
     key: `root-${knowledgeId}`,
-    label: '根目录',
+    label: t('knowledge.folder.rootLabel'),
     data: { id: ROOT_FOLDER_ID, type: 'folder', parentId: null, knowledgeId } as any,
     children
   }]
@@ -384,21 +385,21 @@ const docRenameRef = ref<InstanceType<typeof KnowledgeDocumentRenameDialog>>()
 const onDocumentFolderCreated = (data: {knowledgeId: string; parentId: string; name: string}) => {
   knowledgeApi.createFolder(data.knowledgeId, data.parentId, data.name).then(() => {
     refreshDocumentTree()
-    toast.add({severity: 'success', summary: '创建成功', life: 2000})
+    toast.add({severity: 'success', summary: t('knowledge.createSuccess'), life: 2000})
   })
 }
 
 const onDocumentTextCreated = (data: {knowledgeId: string; parentId: string; name: string}) => {
   knowledgeApi.createText(data.knowledgeId, data.parentId, data.name).then(() => {
     refreshDocumentTree()
-    toast.add({severity: 'success', summary: '创建成功', life: 2000})
+    toast.add({severity: 'success', summary: t('knowledge.createSuccess'), life: 2000})
   })
 }
 
 const onDocumentRenamed = (data: {knowledgeId: string; documentId: string; name: string}) => {
   knowledgeApi.rename(data.knowledgeId, data.documentId, data.name).then(() => {
     refreshDocumentTree()
-    toast.add({severity: 'success', summary: '重命名成功', life: 2000})
+    toast.add({severity: 'success', summary: t('knowledge.renameSuccess'), life: 2000})
   })
 }
 
@@ -408,48 +409,48 @@ const getDocumentMenuItems = (node: any) => {
   const isRoot = doc.id === ROOT_FOLDER_ID
   return [
     {
-      label: '新建',
+      label: t('common.create'),
       icon: 'pi pi-plus',
       visible: doc.type === 'folder',
       items: [
         {
-          label: '文件夹',
+          label: t('knowledge.details.folder'),
           icon: 'pi pi-folder',
           command: () => docCreateFolderRef.value?.open({knowledgeId: currentKnowledgeId.value, parentId: doc.id})
         },
         {
-          label: '文档',
+          label: t('knowledge.details.document'),
           icon: 'pi pi-file-edit',
           command: () => docCreateTextRef.value?.open({knowledgeId: currentKnowledgeId.value, parentId: doc.id})
         }
       ]
     },
     {
-      label: '重命名',
+      label: t('knowledge.rename'),
       icon: 'pi pi-pencil',
       visible: !isRoot,
       command: () => docRenameRef.value?.open({knowledgeId: currentKnowledgeId.value, documentId: doc.id, currentName: doc.name})
     },
     {separator: true, visible: !isRoot},
     {
-      label: '删除',
+      label: t('knowledge.delete'),
       icon: 'pi pi-trash',
       visible: !isRoot,
       class: '!text-red-500 [&_.p-menuitem-icon]:!text-red-500',
       command: () => {
         confirm.require({
-          message: `确定要删除「${doc.name}」吗？`,
-          header: '删除确认',
+          message: t('knowledge.deleteMessage', {name: doc.name}),
+          header: t('knowledge.deleteConfirm'),
           icon: 'pi pi-exclamation-triangle',
-          rejectProps: {label: '取消', severity: 'secondary', variant: 'outlined'},
-          acceptProps: {label: '删除', severity: 'danger'},
+          rejectProps: {label: t('common.cancel'), severity: 'secondary', variant: 'outlined'},
+          acceptProps: {label: t('knowledge.delete'), severity: 'danger'},
           accept: () => {
             knowledgeApi.remove(currentKnowledgeId.value, doc.id).then(() => {
               if (route.params.documentId === doc.id) {
                 router.push({name: 'knowledgeDocFolder', params: {id: currentKnowledgeId.value, folderId: ROOT_FOLDER_ID}})
               }
               refreshDocumentTree()
-              toast.add({severity: 'success', summary: '删除成功', life: 2000})
+              toast.add({severity: 'success', summary: t('knowledge.deleteSuccess'), life: 2000})
             })
           }
         })

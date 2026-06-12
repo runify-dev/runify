@@ -35,7 +35,7 @@
             ref="popInputRef"
             v-model="pop.query"
             class="min-w-0 flex-1 border-none bg-transparent text-[12px] leading-5 text-slate-800 outline-none placeholder:text-slate-400"
-            placeholder="搜索"
+            :placeholder="t('common.search')"
             @keydown="onPopKeydown"
           />
         </div>
@@ -71,7 +71,7 @@
             </template>
           </Tree>
 
-          <div v-else class="px-2 py-3 text-center text-[12px] text-slate-400">无匹配变量</div>
+          <div v-else class="px-2 py-3 text-center text-[12px] text-slate-400">{{ t('common.noMatchVariable') }}</div>
         </div>
       </div>
     </Teleport>
@@ -93,8 +93,8 @@
       />
       <template #footer>
         <div class="flex justify-end gap-2">
-          <Button label="取消" severity="secondary" @click="cancelDialog" />
-          <Button label="提交" @click="submitDialog" />
+          <Button :label="t('common.cancel')" severity="secondary" @click="cancelDialog" />
+          <Button :label="t('common.submit')" @click="submitDialog" />
         </div>
       </template>
     </Dialog>
@@ -112,6 +112,7 @@ import Button from 'primevue/button'
 import Tree from 'primevue/tree'
 import type { TreeNode } from 'primevue/treenode'
 import { Variable } from '@/editor/editor/nodes/variable-node'
+import { t } from '@/locales'
 
 defineOptions({ name: 'TemplateEditor' })
 

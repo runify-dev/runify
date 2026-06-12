@@ -1,11 +1,11 @@
 <template>
-  <Dialog v-model:visible="visible" modal header="创建项目" :style="{ width: '28rem' }">
+  <Dialog v-model:visible="visible" modal :header="t('project.createProject')" :style="{ width: '28rem' }">
     <Form ref="formRef" :initial-values="{ name: '' }" :resolver="resolver" @submit="submit">
       <div class="flex flex-col gap-4">
         <!-- 项目图标 -->
         <FormField v-slot="$field: any" name="icon">
           <div class="flex flex-col gap-2">
-            <label class="text-sm font-medium text-surface-700">项目图标</label>
+            <label class="text-sm font-medium text-surface-700">{{ t('project.projectIcon') }}</label>
             <div class="flex items-center gap-3">
               <!-- 未上传时显示上传区域 -->
               <div
@@ -29,7 +29,7 @@
                 </button>
               </div>
 
-              <span class="text-xs text-surface-400">支持 JPG、PNG 格式</span>
+              <span class="text-xs text-surface-400">{{ t('common.imageFormat') }}</span>
             </div>
             <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">
               {{ $field.error?.message }}
@@ -47,10 +47,10 @@
         <!-- 项目名称 -->
         <FormField v-slot="$field" name="name">
           <div class="flex flex-col gap-1.5">
-            <label class="text-sm font-medium text-surface-700">项目名称</label>
+            <label class="text-sm font-medium text-surface-700">{{ t('project.projectName') }}</label>
             <InputText
               type="text"
-              placeholder="请输入项目名称"
+              :placeholder="t('project.projectNamePlaceholder')"
               fluid
               class="!text-sm"
             />
@@ -63,9 +63,9 @@
         <!-- 项目描述 -->
         <FormField v-slot="$field" name="desc">
           <div class="flex flex-col gap-1.5">
-            <label class="text-sm font-medium text-surface-700">项目描述</label>
+            <label class="text-sm font-medium text-surface-700">{{ t('project.projectDesc') }}</label>
             <Textarea
-              placeholder="请输入项目描述（选填）"
+              :placeholder="t('project.projectDescPlaceholder')"
               rows="3"
               fluid
               class="!text-sm !resize-none"
@@ -79,17 +79,17 @@
         <!-- 项目路径 -->
         <FormField v-slot="$field" name="path">
           <div class="flex flex-col gap-1.5">
-            <label class="text-sm font-medium text-surface-700">项目路径</label>
+            <label class="text-sm font-medium text-surface-700">{{ t('project.projectPath') }}</label>
             <div class="flex items-center gap-2">
               <span class="text-sm text-surface-400 shrink-0">/</span>
               <InputText
                 type="text"
-                placeholder="请输入路径前缀"
+                :placeholder="t('project.projectPathPlaceholder')"
                 fluid
                 class="!text-sm"
               />
             </div>
-            <p class="text-xs text-surface-400">路径必须以 / 开头，只能包含字母、数字、下划线和连字符</p>
+            <p class="text-xs text-surface-400">{{ t('project.projectPathHint') }}</p>
             <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">
               {{ $field.error?.message }}
             </Message>
@@ -100,8 +100,8 @@
 
     <template #footer>
       <div class="flex justify-end gap-2">
-        <Button label="取消" severity="secondary" variant="outlined" @click="close" />
-        <Button label="创建" @click="submit" />
+        <Button :label="t('common.cancel')" severity="secondary" variant="outlined" @click="close" />
+        <Button :label="t('common.create')" @click="submit" />
       </div>
     </template>
   </Dialog>
@@ -109,6 +109,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { t } from '@/locales'
 import fileAPI from '@/api/file'
 import { TreeCommonAPI } from '@/api/tree'
 import { zodResolver } from '@primevue/forms/resolvers/zod'
@@ -121,13 +122,13 @@ const emit = defineEmits(['create:resource:success'])
 const resolver = ref(
   zodResolver(
     z.object({
-      name: z.string().min(1, { message: '项目名称必填' }),
+      name: z.string().min(1, { message: t('project.projectNameRequired') }),
       path: z
         .string()
-        .min(1, { message: '路径前缀必填' })
-        .regex(/^[a-zA-Z0-9_-]+$/, { message: '只能包含字母、数字、下划线和连字符' }),
+        .min(1, { message: t('project.pathRequired') })
+        .regex(/^[a-zA-Z0-9_-]+$/, { message: t('project.pathFormat') }),
       desc: z.string().optional(),
-      icon: z.string().min(1, { message: '请选择项目图标' })
+      icon: z.string().min(1, { message: t('project.iconRequired') })
     })
   )
 )

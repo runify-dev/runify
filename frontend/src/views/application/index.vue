@@ -43,7 +43,7 @@
                         </template>
                         <template #default>
                           <Button
-                            v-tooltip="'操作'"
+                            v-tooltip="t('application.operation')"
                             icon="pi pi-ellipsis-v"
                             variant="text"
                             aria-label="Filter"
@@ -149,6 +149,7 @@ import {hasPermission} from '@/permission'
 import {Role} from '@/permission/common'
 import {ROOT_FOLDER_ID} from "@/constants/common.ts";
 import useStore from "@/stores";
+import { t } from '@/locales'
 
 const {user} = useStore();
 
@@ -165,7 +166,7 @@ const items = computed(() => {
   return [
     {
       name: 'applicationOverview',
-      label: '概览',
+      label: t('application.overview'),
       icon: 'pi pi-fw pi-objects-column p-1',
       permissions: [
         PermissionConstants.APPLICATION_OVERVIEW_READ.newResourcePermission(
@@ -177,7 +178,7 @@ const items = computed(() => {
     },
     {
       name: 'applicationSetting',
-      label: '设置',
+      label: t('application.settings'),
       icon: 'pi pi-fw pi-cog p-1',
       permissions: [
         PermissionConstants.APPLICATION_SETTING_READ.newResourcePermission(route.params.id as string),
@@ -186,7 +187,7 @@ const items = computed(() => {
     },
     {
       name: 'applicationConversationLog',
-      label: '对话日志',
+      label: t('application.conversationLog'),
       icon: 'pi pi-fw pi-file p-1',
       permissions: [
         PermissionConstants.APPLICATION_CONVERSATION_LOG_READ.newResourcePermission(
@@ -201,7 +202,7 @@ const items = computed(() => {
 const getMenuItems = (node: any) => {
   return [
     {
-      label: '新建',
+      label: t('application.create'),
       visible: () => {
         return node.data.type === 'folder' && hasPermission([
           PermissionConstants.APPLICATION_CREATE.newResourcePermission(node.key),
@@ -210,14 +211,14 @@ const getMenuItems = (node: any) => {
       },
       items: [
         {
-          label: '应用',
+          label: t('application.appLabel'),
           visible: () => node.data.type === 'folder' && hasPermission([
             PermissionConstants.APPLICATION_CREATE.newResourcePermission(node.key),
             Role.ADMIN], "OR"),
           command: () => openCreateApplicationDialog(node)
         },
         {
-          label: '文件夹',
+          label: t('application.folder'),
           visible: node.data.type === 'folder' && hasPermission([
             PermissionConstants.APPLICATION_FOLDER_CREATE.newResourcePermission(node.key as string),
             Role.ADMIN], "OR"),
@@ -226,7 +227,7 @@ const getMenuItems = (node: any) => {
       ]
     },
     {
-      label: '重命名',
+      label: t('application.rename'),
       visible: hasPermission([
         node.data.type === 'folder' ? PermissionConstants.APPLICATION_FOLDER_EDIT.newResourcePermission(node.key) : PermissionConstants.APPLICATION_EDIT.newResourcePermission(node.key),
         Role.ADMIN], "OR"),
@@ -236,7 +237,7 @@ const getMenuItems = (node: any) => {
       visible: hasPermission([
         node.data.type === 'folder' ? PermissionConstants.APPLICATION_FOLDER_DELETE.newResourcePermission(node.key) : PermissionConstants.APPLICATION_DELETE.newResourcePermission(node.key),
         Role.ADMIN], "OR"),
-      label: '删除',
+      label: t('application.delete'),
       command: () => removeTreeNode(node)
     }
   ]

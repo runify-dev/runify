@@ -1,27 +1,28 @@
 <template>
   <FormField v-slot="$field" asChild name="labelField" initialValue="label">
-    <label>选项显示字段</label>
-    <InputText fluid placeholder="默认: label" />
+    <label>{{ t('dynamicsForm.impl.labelField') }}</label>
+    <InputText fluid placeholder="label" />
     <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">{{
       $field.error?.message
     }}</Message>
   </FormField>
   <FormField v-slot="$field" asChild name="valueField" initialValue="value">
-    <label>选项值字段</label>
-    <InputText fluid placeholder="默认: value" />
+    <label>{{ t('dynamicsForm.impl.valueField') }}</label>
+    <InputText fluid placeholder="value" />
     <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">{{
       $field.error?.message
     }}</Message>
   </FormField>
   <FormField v-slot="$field" asChild name="optionList" initialValue="">
-    <label>选项数据 (JSON 数组)</label>
-    <Textarea rows="4" fluid class="font-mono" placeholder='[{"label":"选项1","value":"1"}]' />
+    <label>{{ t('dynamicsForm.impl.optionData') }}</label>
+    <Textarea rows="4" fluid class="font-mono" :placeholder="t('dynamicsForm.impl.optionExample')" />
     <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">{{
       $field.error?.message
     }}</Message>
   </FormField>
 </template>
 <script setup lang="ts">
+import { t } from '@/locales'
 import Textarea from 'primevue/textarea'
 
 const props = defineProps<{

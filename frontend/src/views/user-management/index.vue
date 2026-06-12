@@ -12,13 +12,13 @@
     >
       <template #header>
         <div class="flex items-center justify-between gap-2">
-          <Button label="创建用户" icon="pi pi-plus" size="small" @click="openCreateUser" />
+          <Button :label="t('system.createUser')" icon="pi pi-plus" size="small" @click="openCreateUser" />
           <div class="flex items-center gap-2">
             <InputGroup>
               <InputGroupAddon>
                 <Button type="button" icon="pi pi-search" text />
               </InputGroupAddon>
-              <InputText v-model="filters['username'].value" placeholder="关键字搜索" size="small" />
+              <InputText v-model="filters['username'].value" :placeholder="t('system.search')" size="small" />
             </InputGroup>
             <Button
               ref="settingsButtonRef"
@@ -39,12 +39,12 @@
         </div>
       </template>
 
-      <template #empty>暂无用户数据</template>
-      <template #loading>加载中，请稍候...</template>
+      <template #empty>{{ t('system.noData') }}</template>
+      <template #loading>{{ t('system.loading') }}</template>
 
       <Column
         field="username"
-        header="用户名"
+        :header="t('system.username')"
         :showFilterMatchModes="false"
         sortable
         class="min-w-[10rem]"
@@ -52,13 +52,13 @@
       >
         <template #body="{ data }">{{ data.username }}</template>
         <template #filter="{ filterModel }">
-          <InputText v-model="filterModel.value" type="text" placeholder="请输入用户名" />
+          <InputText v-model="filterModel.value" type="text" :placeholder="t('system.usernamePlaceholder')" />
         </template>
       </Column>
 
       <Column
         field="nickname"
-        header="昵称"
+        :header="t('system.nickname')"
         :showFilterMatchModes="false"
         sortable
         class="min-w-[10rem]"
@@ -66,11 +66,11 @@
       >
         <template #body="{ data }">{{ data.nickname }}</template>
         <template #filter="{ filterModel }">
-          <InputText v-model="filterModel.value" type="text" placeholder="请输入昵称" />
+          <InputText v-model="filterModel.value" type="text" :placeholder="t('system.nicknamePlaceholder')" />
         </template>
       </Column>
 
-      <Column field="icon" header="头像" :showFilterMatchModes="false" class="min-w-[6rem]" v-if="visibleColumns.icon">
+      <Column field="icon" :header="t('system.avatar')" :showFilterMatchModes="false" class="min-w-[6rem]" v-if="visibleColumns.icon">
         <template #body="{ data }">
           <div
             class="relative group cursor-pointer w-9 h-9"
@@ -94,7 +94,7 @@
 
       <Column
         field="phone"
-        header="手机号"
+        :header="t('system.phone')"
         :showFilterMatchModes="false"
         sortable
         class="min-w-[10rem]"
@@ -102,13 +102,13 @@
       >
         <template #body="{ data }">{{ data.phone }}</template>
         <template #filter="{ filterModel }">
-          <InputText v-model="filterModel.value" type="text" placeholder="请输入手机号" />
+          <InputText v-model="filterModel.value" type="text" :placeholder="t('system.phonePlaceholder')" />
         </template>
       </Column>
 
       <Column
         field="email"
-        header="邮箱"
+        :header="t('system.email')"
         :showFilterMatchModes="false"
         sortable
         class="min-w-[12rem]"
@@ -116,13 +116,13 @@
       >
         <template #body="{ data }">{{ data.email }}</template>
         <template #filter="{ filterModel }">
-          <InputText v-model="filterModel.value" type="text" placeholder="请输入邮箱" />
+          <InputText v-model="filterModel.value" type="text" :placeholder="t('system.emailPlaceholder')" />
         </template>
       </Column>
 
       <Column
         field="createTime"
-        header="创建时间"
+        :header="t('system.createTime')"
         :showFilterMatchModes="false"
         sortable
         class="min-w-[15rem]"
@@ -131,7 +131,7 @@
         <template #body="{ data }">{{ data.createTime }}</template>
       </Column>
 
-      <Column field="operate" header="操作" frozen alignFrozen="right" class="min-w-[8rem]">
+      <Column field="operate" :header="t('common.operation')" frozen alignFrozen="right" class="min-w-[8rem]">
         <template #body="{ data }">
           <div class="flex items-center gap-2">
             <Button
@@ -190,16 +190,16 @@
 
   <CreateUser ref="createUserRef" @success="pageUser" />
   <ResourceAuthDrawer ref="resourceAuthDrawerRef"></ResourceAuthDrawer>
-  <Dialog v-model:visible="passwordDialogVisible" header="修改密码" modal :style="{ width: '24rem' }">
+  <Dialog v-model:visible="passwordDialogVisible" :header="t('system.changePassword')" modal :style="{ width: '24rem' }">
     <div class="flex flex-col gap-4">
       <div class="flex flex-col gap-2">
-        <label for="newPassword">新密码</label>
-        <Password id="newPassword" v-model="newPassword" placeholder="请输入新密码" :feedback="false" toggleMask fluid />
+        <label for="newPassword">{{ t('system.newPassword') }}</label>
+        <Password id="newPassword" v-model="newPassword" :placeholder="t('system.newPasswordPlaceholder')" :feedback="false" toggleMask fluid />
       </div>
     </div>
     <template #footer>
-      <Button label="取消" severity="secondary" @click="passwordDialogVisible = false" />
-      <Button label="确认" @click="confirmPasswordChange" />
+      <Button :label="t('common.cancel')" severity="secondary" @click="passwordDialogVisible = false" />
+      <Button :label="t('common.confirm')" @click="confirmPasswordChange" />
     </template>
   </Dialog>
 </template>
@@ -208,6 +208,7 @@
 import { onMounted, ref, reactive, computed } from 'vue'
 import UserAPI from '@/api/user'
 import CreateUser from '@/views/user-management/components/CreateUserDialog.vue'
+import { t } from '@/locales'
 import type { User } from '@/api/type/user'
 import { FilterMatchMode } from '@primevue/core/api'
 import { getActiveFilters, resetUrl } from '@/utils/common'
@@ -246,27 +247,27 @@ const visibleColumns = reactive({
 
 const columnMenuItems = computed(() => [
   {
-    label: visibleColumns.username ? '用户名 ✓' : '用户名',
+    label: visibleColumns.username ? `${t('system.username')} ✓` : t('system.username'),
     command: () => { visibleColumns.username = !visibleColumns.username }
   },
   {
-    label: visibleColumns.nickname ? '昵称 ✓' : '昵称',
+    label: visibleColumns.nickname ? `${t('system.nickname')} ✓` : t('system.nickname'),
     command: () => { visibleColumns.nickname = !visibleColumns.nickname }
   },
   {
-    label: visibleColumns.icon ? '头像 ✓' : '头像',
+    label: visibleColumns.icon ? `${t('system.avatar')} ✓` : t('system.avatar'),
     command: () => { visibleColumns.icon = !visibleColumns.icon }
   },
   {
-    label: visibleColumns.phone ? '手机号 ✓' : '手机号',
+    label: visibleColumns.phone ? `${t('system.phone')} ✓` : t('system.phone'),
     command: () => { visibleColumns.phone = !visibleColumns.phone }
   },
   {
-    label: visibleColumns.email ? '邮箱 ✓' : '邮箱',
+    label: visibleColumns.email ? `${t('system.email')} ✓` : t('system.email'),
     command: () => { visibleColumns.email = !visibleColumns.email }
   },
   {
-    label: visibleColumns.createTime ? '创建时间 ✓' : '创建时间',
+    label: visibleColumns.createTime ? `${t('system.createTime')} ✓` : t('system.createTime'),
     command: () => { visibleColumns.createTime = !visibleColumns.createTime }
   }
 ])
@@ -303,18 +304,18 @@ const getMoreMenuItems = (user: User | null) => {
   const isAdmin = user.username === 'admin'
   return [
     {
-      label: '修改密码',
+      label: t('system.changePassword'),
       icon: 'pi pi-lock',
       command: () => openPasswordDialog(user.id)
     },
     {
-      label: '授权',
+      label: t('system.authorize'),
       icon: 'pi pi-share-alt',
       command: () => openResourceAuth(user),
       disabled: isAdmin
     },
     {
-      label: '删除',
+      label: t('common.delete'),
       icon: 'pi pi-trash',
       command: () => deleteUser(user.id),
       disabled: isAdmin
@@ -330,11 +331,11 @@ const openPasswordDialog = (userId: string) => {
 
 const confirmPasswordChange = () => {
   if (!newPassword.value || newPassword.value.length < 6) {
-    bus.emit('message:error', '密码长度至少为6位')
+    bus.emit('message:error', t('system.passwordMinLength'))
     return
   }
   UserAPI.updateUser(passwordChangeUserId.value, { password: newPassword.value }).then(() => {
-    bus.emit('message:success', '密码修改成功')
+    bus.emit('message:success', t('system.passwordChangeSuccess'))
     passwordDialogVisible.value = false
   })
 }
@@ -359,11 +360,11 @@ const pageUser = (query?: any) => {
 const deleteUser = (userId: string) => {
   const user = userList.value.find(u => u.id === userId)
   if (user?.username === 'admin') {
-    bus.emit('message:error', 'admin账号不允许删除')
+    bus.emit('message:error', t('system.adminDeleteForbidden'))
     return
   }
   UserAPI.deleteUser(userId).then(() => {
-    bus.emit('message:success', '删除成功')
+    bus.emit('message:success', t('system.deleteSuccess'))
     pageUser()
   })
 }
@@ -382,7 +383,7 @@ const handleAvatarChange = (event: Event) => {
     fileAPI.uploadFile(fd).then((ok) => {
       UserAPI.updateUser(editingUserId.value!, { icon: `./api/storage/file/${ok.data.id}` }).then(
         () => {
-          bus.emit('message:success', '头像更新成功')
+          bus.emit('message:success', t('system.avatarUpdateSuccess'))
           pageUser()
         }
       )

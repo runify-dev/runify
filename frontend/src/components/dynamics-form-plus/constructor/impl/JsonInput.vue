@@ -1,6 +1,6 @@
 <template>
   <FormField v-slot="$field" asChild name="defaultValue" initialValue="">
-    <label>默认值</label>
+    <label>{{ t('dynamicsForm.impl.defaultValue') }}</label>
     <Textarea rows="4" fluid class="font-mono" placeholder="{}" />
     <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">{{
       $field.error?.message
@@ -8,6 +8,7 @@
   </FormField>
 </template>
 <script setup lang="ts">
+import { t } from '@/locales'
 import Textarea from 'primevue/textarea'
 
 const props = defineProps<{
@@ -30,7 +31,7 @@ const getData = () => {
     defaultValue,
     showDefaultValue: props.form.showDefaultValue?.value,
     props_info: {
-      resolver: `z.any().refine((v) => { if(!v) return true; if(typeof v === 'object') return true; try { JSON.parse(v); return true } catch { return false } }, { message: '请输入合法的 JSON 格式' })`
+      resolver: `z.any().refine((v) => { if(!v) return true; if(typeof v === 'object') return true; try { JSON.parse(v); return true } catch { return false } }, { message: '${t('dynamicsForm.impl.jsonPlaceholder')}' })`
     }
   }
 }

@@ -1,20 +1,20 @@
 <template>
   <div class="p-4">
     <div class="flex items-center justify-between mb-4">
-      <h2 class="text-lg font-bold">数据源详情</h2>
-      <Button @click="submit">保存</Button>
+      <h2 class="text-lg font-bold">{{ t('datasource.details.title') }}</h2>
+      <Button @click="submit">{{ t('common.save') }}</Button>
     </div>
     <div class="flex flex-col gap-4 max-w-2xl">
       <div class="flex flex-col gap-1">
-        <label class="text-sm font-semibold text-color">名称</label>
+        <label class="text-sm font-semibold text-color">{{ t('datasource.details.name') }}</label>
         <InputText v-model="formData.name" type="text" fluid />
       </div>
       <div class="flex flex-col gap-1">
-        <label class="text-sm font-semibold text-color">描述</label>
+        <label class="text-sm font-semibold text-color">{{ t('datasource.details.desc') }}</label>
         <InputText v-model="formData.desc" type="text" fluid />
       </div>
       <div class="flex flex-col gap-1">
-        <label class="text-sm font-semibold text-color">数据源类型</label>
+        <label class="text-sm font-semibold text-color">{{ t('datasource.details.type') }}</label>
         <RadioCard
           grid-class="grid-cols-2 sm:grid-cols-3 md:grid-cols-4"
           :model-value="formData.dataSourceType"
@@ -31,7 +31,7 @@
         </RadioCard>
       </div>
       <div v-if="formData.dataSourceType" class="flex flex-col gap-1">
-        <label class="text-sm font-semibold text-color">供应商</label>
+        <label class="text-sm font-semibold text-color">{{ t('datasource.details.vendor') }}</label>
         <RadioCard
           grid-class="grid-cols-2 sm:grid-cols-3 md:grid-cols-4"
           :model-value="formData.provider"
@@ -66,6 +66,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, nextTick, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { t } from '@/locales'
 import DynamicsForm from '@/components/dynamics-form-plus/index.vue'
 import RadioCard from '@/components/radio-card/index.vue'
 import TablePreview from './components/TablePreview.vue'
@@ -171,7 +172,7 @@ const submit = () => {
   }
 
   put(`/datasource/resources/${resourceId.value}`, payload).then(() => {
-    bus.emit('message:success', ['修改数据源', '成功'])
+    bus.emit('message:success', [t('datasource.modifySuccess'), ''])
   })
 }
 

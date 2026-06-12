@@ -4,6 +4,7 @@ import type {
   PermissionRow,
   RoleItem
 } from './types'
+import { t } from '@/locales'
 
 export function isBuiltinRole(role: RoleItem): boolean {
   return role.id === 'ADMIN' || role.id === 'USER' || !!role.internal
@@ -11,8 +12,8 @@ export function isBuiltinRole(role: RoleItem): boolean {
 
 export function inheritedRoleLabel(type?: string | null): string {
   if (!type) return '-'
-  if (type === 'ADMIN') return '系统管理员'
-  if (type === 'USER') return '普通用户'
+  if (type === 'ADMIN') return t('role.adminRole')
+  if (type === 'USER') return t('role.userRole')
   return type
 }
 

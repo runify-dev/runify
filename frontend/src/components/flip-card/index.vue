@@ -5,8 +5,8 @@
       <div class="flip-card-face flip-card-front">
         <slot name="front">
           <div class="default-front">
-            <h3>正面内容</h3>
-            <p>点击卡片翻转查看背面</p>
+            <h3>{{ t('common.frontContent') }}</h3>
+            <p>{{ t('common.clickToFlip') }}</p>
           </div>
         </slot>
       </div>
@@ -15,8 +15,8 @@
       <div class="flip-card-face flip-card-back">
         <slot name="back">
           <div class="default-back">
-            <h3>背面内容</h3>
-            <p>再次点击翻转回正面</p>
+            <h3>{{ t('common.backContent') }}</h3>
+            <p>{{ t('common.clickToUnflip') }}</p>
           </div>
         </slot>
       </div>
@@ -26,6 +26,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { t } from '@/locales'
 
 interface Props {
   modelValue: boolean

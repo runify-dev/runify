@@ -19,22 +19,22 @@
             <i class="pi pi-check text-[8px] text-white" />
           </div>
         </div>
-        <h2 class="text-lg font-bold text-surface-900 mb-1">欢迎回来</h2>
-        <p class="text-xs text-surface-400">登录后开始与智能体对话</p>
+        <h2 class="text-lg font-bold text-surface-900 mb-1">{{ t('conversation.welcomeBack') }}</h2>
+        <p class="text-xs text-surface-400">{{ t('conversation.loginToChat') }}</p>
       </div>
 
       <!-- 表单 -->
       <div class="flex flex-col gap-4">
         <div>
-          <label class="text-xs font-medium text-surface-600 mb-1.5 block">用户名</label>
-          <InputText v-model="loginForm.username" placeholder="请输入用户名" class="w-full !rounded-lg" @keyup.enter="handleLogin" />
+          <label class="text-xs font-medium text-surface-600 mb-1.5 block">{{ t('login.username') }}</label>
+          <InputText v-model="loginForm.username" :placeholder="t('login.usernameRequired')" class="w-full !rounded-lg" @keyup.enter="handleLogin" />
         </div>
         <div>
-          <label class="text-xs font-medium text-surface-600 mb-1.5 block">密码</label>
-          <Password v-model="loginForm.password" placeholder="请输入密码" class="w-full" :input-class="'w-full !rounded-lg'" :feedback="false" toggle-mask @keyup.enter="handleLogin" />
+          <label class="text-xs font-medium text-surface-600 mb-1.5 block">{{ t('login.password') }}</label>
+          <Password v-model="loginForm.password" :placeholder="t('login.passwordRequired')" class="w-full" :input-class="'w-full !rounded-lg'" :feedback="false" toggle-mask @keyup.enter="handleLogin" />
         </div>
         <Button
-          label="登 录"
+          :label="t('login.login')"
           class="w-full mt-1 !rounded-lg !h-11 !font-semibold !text-sm !bg-gradient-to-r !from-primary-500 !to-primary-600 !border-none hover:!shadow-lg hover:!shadow-primary-200/50 transition-shadow"
           :loading="loginLoading"
           :disabled="!loginForm.username || !loginForm.password"
@@ -44,7 +44,7 @@
 
       <!-- 底部 -->
       <div class="mt-5 pt-4 border-t border-surface-100 text-center">
-        <p class="text-[11px] text-surface-300">登录即表示同意使用条款</p>
+        <p class="text-[11px] text-surface-300">{{ t('conversation.agreeToTerms') }}</p>
       </div>
     </Dialog>
       <Toast />
@@ -58,6 +58,7 @@ import { useChatStore } from '@/components/conversation-plus/common/use-chat-sto
 import Conversation from '@/components/conversation-plus/index.vue'
 import useConversationTokenStore from '@/stores/converstaion/modules/conversation-token'
 import bus from '@/bus/index'
+import { t } from '@/locales'
 
 const { conversationId, applicationId } = useChatStore('CONVERSATION')
 const store = useConversationTokenStore()
@@ -114,7 +115,7 @@ const onLogout = () => {
 
 // 403 时重新验证权限
 const on403 = () => {
-  bus.emit('message:info', '权限变更，正在重新验证')
+  bus.emit('message:info', t('conversation.reauth'))
   _conversationAPI.authProfile(applicationId.value).then((res) => {
     allowAnonymousAccess.value = res.data.allowAnonymousAccess
     evaluateAuth(res.data.allowAnonymousAccess)

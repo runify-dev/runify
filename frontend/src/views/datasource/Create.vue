@@ -1,17 +1,17 @@
 <template>
   <div class="p-4">
-    <h2 class="text-lg font-bold mb-4">新建数据源</h2>
+    <h2 class="text-lg font-bold mb-4">{{ t('datasource.create') }}</h2>
     <div class="flex flex-col gap-4 max-w-2xl">
       <div class="flex flex-col gap-1">
-        <label class="text-sm font-semibold text-color">名称</label>
+        <label class="text-sm font-semibold text-color">{{ t('datasource.details.name') }}</label>
         <InputText v-model="formData.name" type="text" fluid />
       </div>
       <div class="flex flex-col gap-1">
-        <label class="text-sm font-semibold text-color">描述</label>
+        <label class="text-sm font-semibold text-color">{{ t('datasource.details.desc') }}</label>
         <InputText v-model="formData.desc" type="text" fluid />
       </div>
       <div class="flex flex-col gap-1">
-        <label class="text-sm font-semibold text-color">数据源类型</label>
+        <label class="text-sm font-semibold text-color">{{ t('datasource.details.type') }}</label>
         <RadioCard
           grid-class="grid-cols-2 sm:grid-cols-3 md:grid-cols-4"
           :model-value="formData.dataSourceType"
@@ -28,7 +28,7 @@
         </RadioCard>
       </div>
       <div v-if="formData.dataSourceType" class="flex flex-col gap-1">
-        <label class="text-sm font-semibold text-color">供应商</label>
+        <label class="text-sm font-semibold text-color">{{ t('datasource.details.vendor') }}</label>
         <RadioCard
           grid-class="grid-cols-2 sm:grid-cols-3 md:grid-cols-4"
           :model-value="formData.provider"
@@ -51,8 +51,8 @@
         @update:modelValue="metaData = $event"
       />
       <div class="flex gap-2">
-        <Button @click="submit">保存</Button>
-        <Button @click="cancel" severity="secondary">取消</Button>
+        <Button @click="submit">{{ t('common.save') }}</Button>
+        <Button @click="cancel" severity="secondary">{{ t('common.cancel') }}</Button>
       </div>
     </div>
   </div>
@@ -61,6 +61,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { t } from '@/locales'
 import DynamicsForm from '@/components/dynamics-form-plus/index.vue'
 import RadioCard from '@/components/radio-card/index.vue'
 import databaseConnectionPoolAPI from '@/api/database-connection-pool'
@@ -127,7 +128,7 @@ const submit = () => {
 
   treeCommonAPI.createResource(folderId.value, payload).then((ok) => {
     bus.emit('datasource:created', { folderId: folderId.value, node: ok.data })
-    bus.emit('message:success', ['创建数据源', '成功'])
+    bus.emit('message:success', [t('datasource.createSuccess'), ''])
     router.push({ name: 'datasourceDetails', params: { id: ok.data.id } })
   })
 }

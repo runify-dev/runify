@@ -115,29 +115,36 @@ export function useChatStore() {
   })
 
   // ─── 分组 ─────────────────────────────────────────────────────
+  const GROUP_I18N_KEY = {
+    today: 'conversation.group.today',
+    yesterday: 'conversation.group.yesterday',
+    thisWeek: 'conversation.group.thisWeek',
+    earlier: 'conversation.group.earlier'
+  } as const
+
   const flatItems = computed<FlatRow[]>(() => {
     const now = dayjs()
     const buckets: Record<string, Conversation[]> = {
-      今天: [],
-      昨天: [],
-      本周: [],
-      更早: []
+      today: [],
+      yesterday: [],
+      thisWeek: [],
+      earlier: []
     }
 
     ;[...chats.value]
       .sort((a, b) => dayjs(b.createTime).valueOf() - dayjs(a.createTime).valueOf())
       .forEach((c) => {
         const time = dayjs(c.createTime)
-        if (time.isSame(now, 'day')) buckets['今天'].push(c)
-        else if (time.isSame(now.subtract(1, 'day'), 'day')) buckets['昨天'].push(c)
-        else if (time.isAfter(now.subtract(7, 'day'))) buckets['本周'].push(c)
-        else buckets['更早'].push(c)
+        if (time.isSame(now, 'day')) buckets['today'].push(c)
+        else if (time.isSame(now.subtract(1, 'day'), 'day')) buckets['yesterday'].push(c)
+        else if (time.isAfter(now.subtract(7, 'day'))) buckets['thisWeek'].push(c)
+        else buckets['earlier'].push(c)
       })
 
     return Object.entries(buckets)
       .filter(([, v]) => v.length)
-      .flatMap(([label, items]) => [
-        { type: 'label', label } as FlatLabel,
+      .flatMap(([key, items]) => [
+        { type: 'label', label: t(GROUP_I18N_KEY[key as keyof typeof GROUP_I18N_KEY]) } as FlatLabel,
         ...items.map((c) => ({ type: 'item', ...c }) as FlatItem)
       ])
   })
@@ -161,7 +168,7 @@ export function useChatStore() {
 
   const toNewConversation = () => {
     messages.value = []
-    return newChat('新建对话')
+    return newChat(t('conversation.newChat'))
   }
 
   const switchChat = (id: string) => {

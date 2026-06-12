@@ -2,8 +2,8 @@
   <div class="flex flex-col h-full">
     <!-- 顶部操作栏 -->
     <div class="flex items-center justify-between px-6 py-3 border-b border-surface-border">
-      <span class="text-lg font-bold">模型配置</span>
-      <Button label="保存" icon="pi pi-save" @click="edit" />
+      <span class="text-lg font-bold">{{ t('model.details.title') }}</span>
+      <Button :label="t('common.save')" icon="pi pi-save" @click="edit" />
     </div>
 
     <!-- 表单内容 -->
@@ -18,7 +18,7 @@
         <template #default>
           <!-- 供应商 -->
           <div class="flex flex-col gap-1">
-            <label class="text-sm font-semibold text-color">供应商</label>
+            <label class="text-sm font-semibold text-color">{{ t('model.details.vendor') }}</label>
             <RadioCard
               grid-class="grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
               :model-value="formData.provider"
@@ -37,7 +37,7 @@
 
           <!-- 模型类型 -->
           <div class="flex flex-col gap-1">
-            <label class="text-sm font-semibold text-color">模型类型</label>
+            <label class="text-sm font-semibold text-color">{{ t('model.details.modelType') }}</label>
             <RadioCard
               grid-class="grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
               :model-value="formData.modelType"
@@ -56,7 +56,7 @@
 
           <!-- 模型名称 -->
           <div class="flex flex-col gap-1">
-            <label class="text-sm font-semibold text-color">模型名称</label>
+            <label class="text-sm font-semibold text-color">{{ t('model.details.modelName') }}</label>
             <Select
               :model-value="formData.modelName"
               @update:model-value="setField('modelName', $event)"
@@ -64,7 +64,7 @@
               fluid
               optionLabel="name"
               option-value="name"
-              placeholder="输入或选择模型名称"
+              :placeholder="t('model.details.modelNamePlaceholder')"
               editable
             />
           </div>
@@ -73,8 +73,8 @@
         <template #after>
           <!-- 模型参数 -->
           <div class="flex items-center justify-between mt-2">
-            <span class="text-sm font-semibold text-color">模型参数</span>
-            <Button label="添加参数" icon="pi pi-plus" size="small" variant="outlined" @click="openAddModelParameterForm()" />
+            <span class="text-sm font-semibold text-color">{{ t('model.details.modelParams') }}</span>
+            <Button :label="t('model.details.addParam')" icon="pi pi-plus" size="small" variant="outlined" @click="openAddModelParameterForm()" />
           </div>
 
           <DataTable
@@ -82,15 +82,15 @@
             v-if="formData.modelParameterForm?.length > 0"
             size="small"
           >
-            <Column field="field" header="字段" />
-            <Column field="label" header="显示名称">
+            <Column field="field" :header="t('model.details.fieldHeader')" />
+            <Column field="label" :header="t('model.details.labelHeader')">
               <template #body="scope">
                 {{ scope.data.label.value }}
               </template>
             </Column>
-            <Column field="defaultValue" header="默认值" />
-            <Column field="type" header="组件类型" />
-            <Column field="operate" header="操作" style="width: 100px">
+            <Column field="defaultValue" :header="t('model.details.defaultHeader')" />
+            <Column field="type" :header="t('model.details.typeHeader')" />
+            <Column field="operate" :header="t('model.details.operateHeader')" style="width: 100px">
               <template #body="scope">
                 <div class="flex gap-1">
                   <Button
@@ -113,7 +113,7 @@
             </Column>
           </DataTable>
           <div v-else class="text-sm text-muted-color py-4 text-center border border-dashed border-surface-border rounded">
-            暂无模型参数
+            {{ t('model.details.noParams') }}
           </div>
 
           <ModelParameterForm
@@ -135,6 +135,7 @@ import ModelParameterForm from '@/views/model/components/ModelParameterForm.vue'
 import bus from '@/bus'
 import { useRoute } from 'vue-router'
 import { TreeCommonAPI } from '@/api/tree'
+import { t } from '@/locales'
 
 const treeCommonAPI = new TreeCommonAPI('model')
 const loading = ref<boolean>(false)
@@ -165,7 +166,7 @@ const addParamsModelParameterForm = (data: any, index?: number) => {
   const list = formData.value.modelParameterForm || []
   const fin = list.find((item: any, i: number) => item.field === data.field && i !== index)
   if (fin) {
-    bus.emit('message:error', '字段:' + data.field + '已存在')
+    bus.emit('message:error', t('model.details.fieldExists', { field: data.field }))
     return false
   }
   if (index !== undefined) {
@@ -205,7 +206,7 @@ const edit = () => {
   }
   const payload = toNestedObject(values)
   ModelAPI.edit(resourceId.value, payload, loading).then(() => {
-    bus.emit('message:success', '模型保存成功')
+    bus.emit('message:success', t('model.details.saveSuccess'))
   })
 }
 

@@ -8,11 +8,11 @@
         </InputGroupAddon>
         <InputText
           v-model="searchText"
-          placeholder="搜索处理器..."
+          :placeholder="t('project.table.search')"
         />
       </InputGroup>
 
-      <Button icon="pi pi-plus" label="新建处理器" @click="openCreateProcessor" class="shrink-0" />
+      <Button icon="pi pi-plus" :label="t('project.table.create')" @click="openCreateProcessor" class="shrink-0" />
     </div>
 
     <!-- 数据表格 -->
@@ -32,17 +32,17 @@
         }"
       >
         <Column expander style="width: 3rem" />
-        <Column field="name" header="处理器名称">
+        <Column field="name" :header="t('project.table.nameHeader')">
           <template #body="scope">
             <span class="font-medium text-surface-900">{{ scope.data.name }}</span>
           </template>
         </Column>
-        <Column field="desc" header="处理器描述">
+        <Column field="desc" :header="t('project.table.descHeader')">
           <template #body="scope">
             <span class="text-surface-500 line-clamp-1">{{ scope.data.desc || '-' }}</span>
           </template>
         </Column>
-        <Column field="protocol" header="协议类型">
+        <Column field="protocol" :header="t('project.table.protocolHeader')">
           <template #body="scope">
             <span
               class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-50 text-primary-700"
@@ -51,7 +51,7 @@
             </span>
           </template>
         </Column>
-        <Column header="操作" style="width: 8rem">
+        <Column :header="t('common.operation')" style="width: 8rem">
           <template #body="scope">
             <div class="flex items-center gap-1">
               <Button
@@ -59,7 +59,7 @@
                 variant="text"
                 severity="secondary"
                 size="small"
-                v-tooltip.top="'编辑'"
+                v-tooltip.top="t('common.edit')"
                 @click.stop="toSetting(scope.data)"
               />
               <Button
@@ -67,7 +67,7 @@
                 variant="text"
                 severity="danger"
                 size="small"
-                v-tooltip.top="'删除'"
+                v-tooltip.top="t('common.delete')"
                 @click="deleteProcessor(scope.data)"
               />
             </div>
@@ -79,7 +79,7 @@
         <template #empty>
           <div class="flex flex-col items-center justify-center py-12 text-surface-400">
             <i class="pi pi-inbox text-4xl mb-3 opacity-40" />
-            <p class="text-sm">暂无处理器数据</p>
+            <p class="text-sm">{{ t('common.noData') }}</p>
           </div>
         </template>
       </DataTable>
@@ -109,6 +109,7 @@
 
 <script setup lang="ts">
 import { ref, computed, inject, onMounted, provide } from 'vue'
+import { t } from '@/locales'
 import CreareProcessor from '../components/CreareProcessor.vue'
 import type { TreeCommonAPI } from '@/api/tree'
 import processorAPI from '@/api/processor'

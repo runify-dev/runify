@@ -62,9 +62,11 @@
         stroke-dasharray="3 2"
       />
     </svg>
-    <p class="empty-title">暂无数据</p>
-    <p class="empty-desc">当前树结构为空，请添加节点后查看</p>
+    <p class="empty-title">{{ t('common.noData') }}</p>
+    <p class="empty-desc">{{ t('common.treeEmptyDesc') }}</p>
   </div>
 </template>
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import { t } from '@/locales'
+</script>
 <style lang="scss"></style>

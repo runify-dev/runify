@@ -1,6 +1,7 @@
 import {defineStore} from 'pinia'
 import conversationAPI from '@/api/conversation'
 import FingerprintJS from '@fingerprintjs/fingerprintjs'
+import { t } from '@/locales'
 
 interface UserProfile {
   id: string
@@ -36,8 +37,8 @@ const useConversationTokenStore = defineStore("conversationToken", {
     isLogged: (state) => !!state.token,
     displayName: (state) => {
       if (!state.profile) return ''
-      if (state.profile.type === 'ANONYMOUS') return '匿名用户'
-      return state.profile.user?.nickname || state.profile.user?.username || '用户'
+      if (state.profile.type === 'ANONYMOUS') return t('conversation.anonymousUser')
+      return state.profile.user?.nickname || state.profile.user?.username || t('conversation.user')
     },
     isAnonymous: (state) => state.profile?.type === 'ANONYMOUS'
   },
@@ -65,7 +66,7 @@ const useConversationTokenStore = defineStore("conversationToken", {
     login(username: string, password: string) {
       return conversationAPI.login({ username, password }).then((res) => {
         if (res.code !== 200) {
-          return Promise.reject(res.message || '登录失败')
+          return Promise.reject(res.message || t('login.loginFailed'))
         }
         this.setToken(res.data)
         this.lastAuthWasAnonymous = false

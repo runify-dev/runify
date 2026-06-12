@@ -50,7 +50,7 @@
 
       <div v-if="activeTab === 'permission'" class="mt-2 flex justify-end">
         <Button
-          label="保存"
+          :label="t('role.save')"
           size="small"
           class="min-w-[88px]"
           :loading="saving"
@@ -89,6 +89,7 @@
 
 <script setup lang="ts">
 import Button from 'primevue/button'
+import { t } from '@/locales'
 import AddUserDialog from './components/AddUserDialog.vue'
 import CreateRoleDialog from './components/CreateRoleDialog.vue'
 import RoleHeaderBar from './components/RoleHeaderBar.vue'

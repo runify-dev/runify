@@ -43,6 +43,7 @@ import { useLayout } from '@/layout-plus/index'
 import { computed, ref } from 'vue'
 import AppTopbar from '@/layout-plus/app-system-topbar/index.vue'
 import { useRoute, useRouter } from 'vue-router'
+import { t } from '@/locales'
 const route = useRoute()
 const router = useRouter()
 const { layoutConfig, layoutState, hideMobileMenu } = useLayout()
@@ -59,14 +60,14 @@ const containerClass = computed(() => {
   }
 })
 
-const menus = ref([
+const menus = computed(() => [
   {
-    label: '用户管理',
+    label: t('system.userManagement'),
     name: 'user-management',
     icon: 'pi pi-fw pi-user p-1 text-lg'
   },
   {
-    label: '角色管理',
+    label: t('system.roleManagement'),
     name: 'role-management',
     icon: 'pi pi-fw pi-id-card p-1 text-lg'
   }

@@ -18,6 +18,7 @@
 </template>
 <script setup lang="ts">
 import { ref } from 'vue'
+import { t } from '@/locales'
 import type { FormField } from '@/components/dynamics-form-plus/type'
 import FieldLabel from '@/components/dynamics-form-plus/field-label/index.vue'
 import FieldValue from '@/components/dynamics-form-plus/field-value/index.vue'
@@ -51,7 +52,7 @@ const buildSchema = () => {
       ? z
           .any()
           .refine((val) => val !== undefined && val !== '' && val !== null, {
-            message: (props.formField.label?.value || props.formField.label || props.formField.field) + ' 此项必填'
+            message: (props.formField.label?.value || props.formField.label || props.formField.field) + ' ' + t('dynamicsForm.impl.requiredField')
           })
       : z.any()
   }
@@ -67,7 +68,7 @@ const validateField = () => {
     errorMsg.value = ''
     return true
   }
-  errorMsg.value = result.error.issues?.[0]?.message || '校验失败'
+  errorMsg.value = result.error.issues?.[0]?.message || t('dynamicsForm.impl.validationFailed')
   return false
 }
 

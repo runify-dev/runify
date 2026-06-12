@@ -8,18 +8,19 @@
   >
     <!-- 抽屉内容 -->
     <div class="p-4">
-      <h2 class="text-lg font-bold mb-4">抽屉菜单</h2>
+      <h2 class="text-lg font-bold mb-4">{{ t('conversation.drawerMode') }}</h2>
       <ul>
-        <li class="py-2 px-4 hover:bg-gray-200 rounded cursor-pointer">菜单项 1</li>
-        <li class="py-2 px-4 hover:bg-gray-200 rounded cursor-pointer">菜单项 2</li>
-        <li class="py-2 px-4 hover:bg-gray-200 rounded cursor-pointer">菜单项 3</li>
-        <li class="py-2 px-4 hover:bg-gray-200 rounded cursor-pointer">菜单项 4</li>
+        <li class="py-2 px-4 hover:bg-gray-200 rounded cursor-pointer">{{ t('conversation.drawerMode') }} 1</li>
+        <li class="py-2 px-4 hover:bg-gray-200 rounded cursor-pointer">{{ t('conversation.drawerMode') }} 2</li>
+        <li class="py-2 px-4 hover:bg-gray-200 rounded cursor-pointer">{{ t('conversation.drawerMode') }} 3</li>
+        <li class="py-2 px-4 hover:bg-gray-200 rounded cursor-pointer">{{ t('conversation.drawerMode') }} 4</li>
       </ul>
     </div>
   </div>
 </template>
 <script setup lang="ts">
 import { computed } from 'vue'
+import { t } from '@/locales'
 const props = defineProps<{
   drawerOpen: boolean
   handleTouchStart: any

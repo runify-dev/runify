@@ -2,21 +2,21 @@
   <div class="flex flex-col h-full">
     <!-- 顶部操作栏 -->
     <div class="flex items-center justify-between px-6 py-3 border-b" style="border-color: var(--p-content-border-color);">
-      <span class="text-lg font-bold">技能设置</span>
-      <Button label="保存" icon="pi pi-save" @click="save" :loading="saving"/>
+      <span class="text-lg font-bold">{{ t('skill.setting.title') }}</span>
+      <Button :label="t('common.save')" icon="pi pi-save" @click="save" :loading="saving"/>
     </div>
 
     <!-- 表单内容 -->
     <div class="flex-1 overflow-auto px-6 py-6 flex flex-col gap-8">
       <!-- 基本信息 -->
       <div class="flex flex-col gap-4">
-        <h3 class="text-sm font-semibold text-color">基本信息</h3>
+        <h3 class="text-sm font-semibold text-color">{{ t('skill.setting.basicInfo') }}</h3>
         <div class="flex flex-col gap-1.5">
-          <label class="text-sm font-medium text-surface-700">技能名称</label>
+          <label class="text-sm font-medium text-surface-700">{{ t('skill.setting.name') }}</label>
           <InputText v-model="formData.name" type="text" fluid class="!text-sm"/>
         </div>
         <div class="flex flex-col gap-1.5">
-          <label class="text-sm font-medium text-surface-700">技能描述</label>
+          <label class="text-sm font-medium text-surface-700">{{ t('skill.setting.desc') }}</label>
           <Textarea v-model="formData.desc" rows="3" fluid class="!text-sm !resize-none"/>
         </div>
       </div>
@@ -24,20 +24,20 @@
       <!-- 参数表单定义 -->
       <div class="flex flex-col gap-4">
         <div class="flex items-center justify-between">
-          <h3 class="text-sm font-semibold text-color">参数定义</h3>
-          <Button label="添加参数" icon="pi pi-plus" size="small" variant="outlined" @click="openAddParameterForm()"/>
+          <h3 class="text-sm font-semibold text-color">{{ t('skill.setting.paramDef') }}</h3>
+          <Button :label="t('skill.setting.addParam')" icon="pi pi-plus" size="small" variant="outlined" @click="openAddParameterForm()"/>
         </div>
-        <p class="text-xs text-surface-400 -mt-2">定义技能运行时需要的输入参数</p>
+        <p class="text-xs text-surface-400 -mt-2">{{ t('skill.setting.paramDefDesc') }}</p>
         <DataTable :value="formData.skillParameterForm || []" v-if="formData.skillParameterForm?.length > 0" size="small">
-          <Column field="field" header="字段"/>
-          <Column field="label" header="显示名称">
+          <Column field="field" :header="t('skill.setting.fieldHeader')"/>
+          <Column field="label" :header="t('skill.setting.labelHeader')">
             <template #body="scope">
               {{ scope.data.label?.value || scope.data.label }}
             </template>
           </Column>
-          <Column field="defaultValue" header="默认值"/>
-          <Column field="type" header="组件类型"/>
-          <Column field="operate" header="操作" style="width: 100px">
+          <Column field="defaultValue" :header="t('skill.setting.defaultHeader')"/>
+          <Column field="type" :header="t('skill.setting.typeHeader')"/>
+          <Column field="operate" :header="t('skill.setting.operateHeader')" style="width: 100px">
             <template #body="scope">
               <div class="flex gap-1">
                 <Button icon="pi pi-file-edit" variant="text" rounded size="small"
@@ -49,15 +49,15 @@
           </Column>
         </DataTable>
         <div v-else class="text-sm text-surface-400 py-4 text-center border border-dashed border-surface-300 rounded">
-          暂无参数定义
+          {{ t('skill.setting.noParams') }}
         </div>
         <ModelParameterForm :addParams="addParameterForm" ref="parameterFormRef"/>
       </div>
 
       <!-- 参数值（根据参数定义自动渲染表单） -->
       <div class="flex flex-col gap-4" v-if="formData.skillParameterForm?.length > 0">
-        <h3 class="text-sm font-semibold text-color">参数值</h3>
-        <p class="text-xs text-surface-400 -mt-2">设置参数的具体值</p>
+        <h3 class="text-sm font-semibold text-color">{{ t('skill.setting.paramValue') }}</h3>
+        <p class="text-xs text-surface-400 -mt-2">{{ t('skill.setting.paramValueDesc') }}</p>
         <DynamicsForm
           ref="dynamicsFormRef"
           :modelValue="parameterValues"
@@ -76,6 +76,7 @@ import DynamicsForm from '@/components/dynamics-form-plus/index.vue'
 import ModelParameterForm from '@/views/model/components/ModelParameterForm.vue'
 import skillApi from '@/api/skill'
 import bus from '@/bus'
+import {t} from '@/locales'
 
 const route = useRoute()
 const treeCommonAPI = new TreeCommonAPI('skill')
@@ -98,7 +99,7 @@ const addParameterForm = (data: any, index?: number) => {
   const list = formData.value.skillParameterForm || []
   const dup = list.find((item: any, i: number) => item.field === data.field && i !== index)
   if (dup) {
-    bus.emit('message:error', '字段:' + data.field + '已存在')
+    bus.emit('message:error', t('skill.setting.fieldExists', {field: data.field}))
     return false
   }
   if (index !== undefined) {
@@ -150,7 +151,7 @@ const save = () => {
     skillParameterForm: formData.value.skillParameterForm
   }).then(() => {
     saving.value = false
-    bus.emit('message:success', '保存成功')
+    bus.emit('message:success', t('skill.setting.saveSuccess'))
   }).catch(() => {
     saving.value = false
   })

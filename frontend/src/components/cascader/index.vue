@@ -15,7 +15,7 @@
       {{
         scope.value && scope.value.fullPathString
           ? scope.value.fullPathString
-          : scope.placeholder || '请选择'
+          : scope.placeholder || t('common.pleaseSelect')
       }}
     </template>
   </CascadeSelect>
@@ -23,6 +23,7 @@
 <script setup lang="ts">
 import { computed, provide } from 'vue'
 import CascadeSelect from 'primevue/cascadeselect'
+import { t } from '@/locales'
 import enhanceTreeWithPaths, { findNodeByValuePath, type Options } from './index'
 provide('$pcForm', undefined)
 provide('$pcFormField', undefined)

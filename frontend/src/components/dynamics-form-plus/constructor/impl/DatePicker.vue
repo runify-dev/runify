@@ -1,27 +1,28 @@
 <template>
   <FormField v-slot="$field" asChild name="dateFormat" initialValue="yy-mm-dd">
-    <label>日期格式</label>
+    <label>{{ t('dynamicsForm.impl.dateFormat') }}</label>
     <InputText fluid placeholder="yy-mm-dd" />
     <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">{{
       $field.error?.message
     }}</Message>
   </FormField>
   <FormField v-slot="$field" asChild name="showTime" :initialValue="false">
-    <label>显示时间</label>
+    <label>{{ t('dynamicsForm.impl.showTime') }}</label>
     <ToggleSwitch />
     <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">{{
       $field.error?.message
     }}</Message>
   </FormField>
   <FormField v-slot="$field" asChild name="placeholder" initialValue="">
-    <label>占位提示</label>
-    <InputText fluid placeholder="请选择日期" />
+    <label>{{ t('dynamicsForm.impl.placeholder') }}</label>
+    <InputText fluid :placeholder="t('dynamicsForm.impl.datePlaceholder')" />
     <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">{{
       $field.error?.message
     }}</Message>
   </FormField>
 </template>
 <script setup lang="ts">
+import { t } from '@/locales'
 import ToggleSwitch from 'primevue/toggleswitch'
 
 const props = defineProps<{
@@ -35,7 +36,7 @@ const getData = () => {
     attrs: {
       dateFormat: props.form.dateFormat?.value || 'yy-mm-dd',
       showTime: props.form.showTime?.value ?? false,
-      placeholder: props.form.placeholder?.value || '请选择日期'
+      placeholder: props.form.placeholder?.value || t('dynamicsForm.impl.datePlaceholder')
     },
     defaultValue: props.form.defaultValue?.value,
     showDefaultValue: props.form.showDefaultValue?.value

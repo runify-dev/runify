@@ -1,5 +1,7 @@
 <template>
-  <div>没权限访问</div>
+  <div>{{ t('error.noPermission') }}</div>
 </template>
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import { t } from '@/locales'
+</script>
 <style lang="scss" scoped></style>

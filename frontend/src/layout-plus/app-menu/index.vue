@@ -1,22 +1,23 @@
 <script setup>
-import { ref } from 'vue'
+import { computed } from 'vue'
 import AppMenuItem from './AppMenuItem.vue'
+import { t } from '@/locales'
 
-const model = ref([
+const model = computed(() => [
   {
-    label: '概览',
+    label: t('application.overview'),
     icon: 'pi pi-fw pi-objects-column',
     to: '/',
     shortcut: '⌘+N'
   },
   {
-    label: '设置',
+    label: t('application.settings'),
     icon: 'pi pi-fw pi-cog',
     to: '/',
     shortcut: '⌘+N'
   },
   {
-    label: '对话日志',
+    label: t('application.conversationLog'),
     icon: 'pi pi-fw pi-file',
     to: '/',
     shortcut: '⌘+N'

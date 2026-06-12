@@ -2,30 +2,30 @@
   <Dialog
     :visible="visible"
     modal
-    header="新增角色"
+    :header="t('role.createRole')"
     :style="{ width: '28rem' }"
     :draggable="false"
     @update:visible="emit('update:visible', $event)"
   >
     <div class="space-y-4">
       <div>
-        <label class="mb-1.5 block text-sm font-medium text-surface-700 dark:text-surface-300">角色名称</label>
+        <label class="mb-1.5 block text-sm font-medium text-surface-700 dark:text-surface-300">{{ t('role.roleName') }}</label>
         <InputText
           v-model.trim="nameModel"
           class="w-full"
           maxlength="50"
-          placeholder="请输入角色名称"
+          :placeholder="t('role.roleNamePlaceholder')"
         />
       </div>
 
       <div>
-        <label class="mb-1.5 block text-sm font-medium text-surface-700 dark:text-surface-300">继承角色</label>
+        <label class="mb-1.5 block text-sm font-medium text-surface-700 dark:text-surface-300">{{ t('role.inheritRole') }}</label>
         <Select
           v-model="typeModel"
           :options="inheritRoleOptions"
           option-label="label"
           option-value="value"
-          placeholder="请选择继承角色"
+          :placeholder="t('role.inheritRolePlaceholder')"
           class="w-full"
         />
       </div>
@@ -33,8 +33,8 @@
 
     <template #footer>
       <div class="flex justify-end gap-2">
-        <Button label="取消" text severity="secondary" @click="emit('update:visible', false)" />
-        <Button label="创建" :loading="loading" @click="emit('confirm')" />
+        <Button :label="t('common.cancel')" text severity="secondary" @click="emit('update:visible', false)" />
+        <Button :label="t('common.create')" :loading="loading" @click="emit('confirm')" />
       </div>
     </template>
   </Dialog>
@@ -42,6 +42,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { t } from '@/locales'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
 import InputText from 'primevue/inputtext'

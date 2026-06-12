@@ -35,6 +35,7 @@
 </template>
 <script setup lang="ts">
 import AutoToolTip from '@/components/auto-tool-tip/index.vue'
+import { t } from '@/locales'
 withDefaults(
   defineProps<{
     /**
@@ -46,7 +47,7 @@ withDefaults(
      */
     icon?: string
   }>(),
-  { title: '标题', icon: '', border: true }
+  { title: t('common.title'), icon: '', border: true }
 )
 </script>
 <style lang="scss" scoped>

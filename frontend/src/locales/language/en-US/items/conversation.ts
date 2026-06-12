@@ -7,10 +7,48 @@ export default {
   drawerMode: 'Drawer Mode',
   lightMode: 'Light Mode',
   darkMode: 'Dark Mode',
+  anonymousUser: 'Anonymous User',
+  user: 'User',
+  welcomeBack: 'Welcome Back',
+  loginToChat: 'Login to start chatting with the agent',
+  agreeToTerms: 'By logging in, you agree to the Terms of Use',
+  anonymousAccess: 'Anonymous Access',
+  reauth: 'Permission changed, re-authenticating',
   group: {
     today: 'Today',
     yesterday: 'Yesterday',
     thisWeek: 'This Week',
     earlier: 'Earlier'
+  },
+  panel: {
+    welcomeTitle: 'How can I help you today?',
+    welcomeSubtitle: 'Choose a quick prompt or type directly',
+    placeholder: 'Send a message…',
+    reject: 'Reject',
+    approve: 'Approve',
+    copied: 'Copied',
+    copy: 'Copy',
+    collapse: 'Collapse',
+    expand: 'Expand',
+    prompt1: 'Write a technical article about AI',
+    prompt2: 'Explain generics in TypeScript',
+    prompt3: 'How to learn Vue3 + Vite?',
+    prompt4: 'Suggest a healthy dinner recipe'
+  },
+  patch: {
+    preview: 'Patch Preview',
+    reject: 'Reject',
+    apply: 'Apply Patch',
+    copyPath: 'Copy Path',
+    noCodeChange: 'File status changed only, no code content changes.',
+    noPatchContent: 'No patch content',
+    statusAdd: 'Add',
+    statusModify: 'Modify',
+    statusDelete: 'Delete',
+    statusRename: 'Rename',
+    statusCopy: 'Copy',
+    statusMode: 'Mode',
+    statusBinary: 'Binary',
+    statusUnknown: 'Unknown'
   }
 }

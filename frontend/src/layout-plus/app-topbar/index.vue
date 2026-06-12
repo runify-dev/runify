@@ -1,10 +1,10 @@
 <template>
   <div class="layout-topbar">
     <button class="layout-menu-button layout-topbar-action" @click="toggleMenu">
-      <Avatar :image="AppIcon" style="width: 40px" />
+      <Avatar :image="resetUrl('./img.png')" style="width: 40px" />
     </button>
     <Menubar
-      breakpoint="480px"
+      breakpoint="768px"
       :pt="{
         root: { style: 'border: none;', class: 'w-full' }
       }"
@@ -27,7 +27,8 @@
           <span
             v-if="item.shortcut"
             class="ml-auto border border-surface rounded bg-emphasis text-muted-color text-xs p-1"
-          >{{ item.shortcut }}</span>
+            >{{ item.shortcut }}</span
+          >
           <i
             v-if="hasSubmenu"
             :class="[
@@ -40,12 +41,21 @@
       <template #end>
         <div class="flex items-center gap-1">
           <!-- 暗色模式 -->
-          <button class="topbar-btn" @click="toggleDarkMode" :title="isDarkTheme ? '切换亮色' : '切换暗色'">
+          <button
+            class="topbar-btn"
+            @click="toggleDarkMode"
+            :title="isDarkTheme ? t('topbar.switchLight') : t('topbar.switchDark')"
+          >
             <i :class="isDarkTheme ? 'pi pi-sun' : 'pi pi-moon'"></i>
           </button>
           <!-- 主题配置 -->
           <div ref="themePickerRef" class="relative">
-            <button class="topbar-btn" :style="paletteBtnStyle" @click.stop="showThemePicker = !showThemePicker" title="主题设置">
+            <button
+              class="topbar-btn"
+              :style="paletteBtnStyle"
+              @click.stop="showThemePicker = !showThemePicker"
+              :title="t('topbar.themeSettings')"
+            >
               <i class="pi pi-palette"></i>
             </button>
             <Transition name="palette">
@@ -67,8 +77,10 @@
                     <label
                       class="swatch swatch--custom"
                       :class="{ 'swatch--active': activePrimary === '__custom__' }"
-                      :style="activePrimary === '__custom__' ? { background: customPrimaryHex } : {}"
-                      title="自定义颜色"
+                      :style="
+                        activePrimary === '__custom__' ? { background: customPrimaryHex } : {}
+                      "
+                      :title="t('topbar.customColor')"
                     >
                       <input type="color" :value="customPrimaryHex" @input="onCustomPrimaryInput" />
                       <i v-if="activePrimary !== '__custom__'" class="pi pi-plus"></i>
@@ -94,13 +106,28 @@
             </Transition>
           </div>
           <!-- 用户头像 -->
-          <Avatar
-            class="cursor-pointer ml-1"
-            @click="toggle"
-            :image="user.user?.icon ? resetUrl(user.user?.icon) : ''"
-            shape="circle"
-          />
-          <Menu ref="menuRef" :model="_buttons" :popup="true"></Menu>
+          <button class="layout-topbar-action" @click="toggle">
+            <Avatar
+              v-if="user.user?.icon && user.user?.icon != './user.svg'"
+              :image="resetUrl(user.user?.icon)"
+            />
+            <svg
+              v-else
+              class="user-default-icon"
+              width="28"
+              height="28"
+              viewBox="0 0 512 512"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <g fill="currentColor" color="var(--p-primary-color)">
+                <circle cx="256" cy="170" r="104" />
+                <path
+                  d="M256 300c-103 0-187 70-203 162a30 30 0 0 0 29.6 35h346.8a30 30 0 0 0 29.6-35c-16-92-100-162-203-162z"
+                />
+              </g>
+            </svg>
+          </button>
+          <TieredMenu ref="menuRef" :model="_buttons" :popup="true" />
         </div>
       </template>
     </Menubar>
@@ -119,11 +146,14 @@ import { Role } from '@/permission/common'
 import { resetUrl } from '@/utils/common'
 import { updatePrimaryPalette, updateSurfacePalette, palette } from '@primeuix/themes'
 import type { PaletteDesignToken } from '@primeuix/themes/types'
+import { t } from '@/locales'
+import { useLocale, langList } from '@/locales'
 
 const { user } = useStore()
 const route = useRoute()
 const router = useRouter()
 const { toggleMenu, toggleDarkMode, isDarkTheme } = useLayout()
+const { changeLocale, locale: currentLocale } = useLocale()
 
 // ===================== 用户菜单 =====================
 const menuRef = ref()
@@ -131,9 +161,23 @@ const toggle = (event: any) => {
   menuRef.value.toggle(event)
 }
 
-const buttons = ref([
+const currentLangLabel = computed(() => {
+  const found = langList.value.find((l: any) => l.value === currentLocale.value)
+  return found ? found.label : currentLocale.value
+})
+
+const buttons = computed(() => [
   {
-    label: '系统设置',
+    label: `${t('topbar.language')}: ${currentLangLabel.value}`,
+    icon: 'pi pi-globe',
+    items: langList.value.map((lang: any) => ({
+      label: lang.label,
+      icon: currentLocale.value === lang.value ? 'pi pi-check' : '',
+      command: () => changeLocale(lang.value)
+    }))
+  },
+  {
+    label: t('topbar.systemSettings'),
     icon: 'pi pi-cog',
     command: () => {
       router.push({ name: 'system-management' })
@@ -144,8 +188,9 @@ const buttons = ref([
       Role.ADMIN
     ]
   },
+  { separator: true },
   {
-    label: '退出登录',
+    label: t('topbar.logout'),
     icon: 'pi pi-sign-out',
     command: () => {
       user.logout()
@@ -164,39 +209,39 @@ const _buttons = computed(() => {
 })
 
 // ===================== 导航菜单 =====================
-const items = ref([
+const items = computed(() => [
   {
     name: 'application',
-    label: '应用',
+    label: t('topbar.nav.application'),
     icon: 'pi pi-home',
     permissions: [PermissionConstants.APPLICATION_READ, Role.ADMIN, Role.USER]
   },
   {
-      label: '知识库',
-      icon: 'pi pi-book',
-      name: 'knowledge',
-      permissions: [PermissionConstants.KNOWLEDGE_READ, Role.ADMIN, Role.USER]
-    },
+    label: t('topbar.nav.knowledge'),
+    icon: 'pi pi-book',
+    name: 'knowledge',
+    permissions: [PermissionConstants.KNOWLEDGE_READ, Role.ADMIN, Role.USER]
+  },
   {
-    label: '模型',
+    label: t('topbar.nav.model'),
     icon: 'pi pi-home',
     name: 'model',
     permissions: [PermissionConstants.MODEL_READ, Role.ADMIN, Role.USER]
   },
   {
-    label: '技能',
+    label: t('topbar.nav.skill'),
     icon: 'pi pi-bolt',
     name: 'skill',
     permissions: [PermissionConstants.SKILL_READ, Role.ADMIN, Role.USER]
   },
   {
-    label: '数据源',
+    label: t('topbar.nav.datasource'),
     icon: 'pi pi-database',
     name: 'datasource',
     permissions: [PermissionConstants.PROJECT_READ, Role.ADMIN, Role.USER]
   },
   {
-    label: '项目',
+    label: t('topbar.nav.project'),
     icon: 'pi pi-search',
     name: 'project',
     permissions: [PermissionConstants.PROJECT_READ, Role.ADMIN, Role.USER]
@@ -221,31 +266,31 @@ interface ColorOption {
 
 // 17 色 — 覆盖 PrimeVue 所有内置 primitive，按色相环排列
 const primaryColors: ColorOption[] = [
-  { name: 'rose',    label: '玫瑰',   preview: '#f43f5e' },
-  { name: 'pink',    label: '蔷薇',   preview: '#ec4899' },
-  { name: 'fuchsia', label: '品红',   preview: '#d946ef' },
-  { name: 'purple',  label: '深紫',   preview: '#a855f7' },
-  { name: 'violet',  label: '紫罗兰', preview: '#8b5cf6' },
-  { name: 'indigo',  label: '靛蓝',   preview: '#6366f1' },
-  { name: 'blue',    label: '经典蓝', preview: '#3b82f6' },
-  { name: 'sky',     label: '天蓝',   preview: '#0ea5e9' },
-  { name: 'cyan',    label: '天青',   preview: '#06b6d4' },
-  { name: 'teal',    label: '水鸭青', preview: '#14b8a6' },
-  { name: 'emerald', label: '碧翠',   preview: '#10b981' },
-  { name: 'green',   label: '翠绿',   preview: '#22c55e' },
-  { name: 'lime',    label: '青柠',   preview: '#84cc16' },
-  { name: 'yellow',  label: '柠黄',   preview: '#eab308' },
-  { name: 'amber',   label: '琥珀',   preview: '#f59e0b' },
-  { name: 'orange',  label: '橘橙',   preview: '#f97316' },
-  { name: 'red',     label: '赤红',   preview: '#ef4444' }
+  { name: 'rose', label: '玫瑰', preview: '#f43f5e' },
+  { name: 'pink', label: '蔷薇', preview: '#ec4899' },
+  { name: 'fuchsia', label: '品红', preview: '#d946ef' },
+  { name: 'purple', label: '深紫', preview: '#a855f7' },
+  { name: 'violet', label: '紫罗兰', preview: '#8b5cf6' },
+  { name: 'indigo', label: '靛蓝', preview: '#6366f1' },
+  { name: 'blue', label: '经典蓝', preview: '#3b82f6' },
+  { name: 'sky', label: '天蓝', preview: '#0ea5e9' },
+  { name: 'cyan', label: '天青', preview: '#06b6d4' },
+  { name: 'teal', label: '水鸭青', preview: '#14b8a6' },
+  { name: 'emerald', label: '碧翠', preview: '#10b981' },
+  { name: 'green', label: '翠绿', preview: '#22c55e' },
+  { name: 'lime', label: '青柠', preview: '#84cc16' },
+  { name: 'yellow', label: '柠黄', preview: '#eab308' },
+  { name: 'amber', label: '琥珀', preview: '#f59e0b' },
+  { name: 'orange', label: '橘橙', preview: '#f97316' },
+  { name: 'red', label: '赤红', preview: '#ef4444' }
 ]
 
 const surfaceColors: ColorOption[] = [
-  { name: 'slate',   label: 'Slate',   preview: '#64748b' },
-  { name: 'gray',    label: 'Gray',    preview: '#6b7280' },
-  { name: 'zinc',    label: 'Zinc',    preview: '#71717a' },
+  { name: 'slate', label: 'Slate', preview: '#64748b' },
+  { name: 'gray', label: 'Gray', preview: '#6b7280' },
+  { name: 'zinc', label: 'Zinc', preview: '#71717a' },
   { name: 'neutral', label: 'Neutral', preview: '#737373' },
-  { name: 'stone',   label: 'Stone',   preview: '#78716c' }
+  { name: 'stone', label: 'Stone', preview: '#78716c' }
 ]
 
 const DEFAULT_PRIMARY = 'emerald'
@@ -257,9 +302,13 @@ const customPrimaryHex = ref(localStorage.getItem('theme-custom-primary') || '#6
 
 const paletteBtnStyle = computed(() => {
   if (activePrimary.value === '__custom__') {
-    return { background: customPrimaryHex.value, color: '#fff', borderColor: customPrimaryHex.value }
+    return {
+      background: customPrimaryHex.value,
+      color: '#fff',
+      borderColor: customPrimaryHex.value
+    }
   }
-  const found = primaryColors.find(c => c.name === activePrimary.value)
+  const found = primaryColors.find((c) => c.name === activePrimary.value)
   if (found) {
     return { background: found.preview, color: '#fff', borderColor: found.preview }
   }
@@ -268,7 +317,7 @@ const paletteBtnStyle = computed(() => {
 
 function buildPaletteTokens(colorName: string) {
   return {
-    50:  `{${colorName}.50}`,
+    50: `{${colorName}.50}`,
     100: `{${colorName}.100}`,
     200: `{${colorName}.200}`,
     300: `{${colorName}.300}`,
@@ -322,7 +371,11 @@ initSavedTheme()
 
 // 点击外部关闭
 const onClickOutside = (e: MouseEvent) => {
-  if (showThemePicker.value && themePickerRef.value && !themePickerRef.value.contains(e.target as Node)) {
+  if (
+    showThemePicker.value &&
+    themePickerRef.value &&
+    !themePickerRef.value.contains(e.target as Node)
+  ) {
     showThemePicker.value = false
   }
 }
@@ -343,7 +396,10 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside, true))
   background: var(--p-content-background);
   color: var(--p-text-muted-color);
   cursor: pointer;
-  transition: background 0.2s, color 0.2s, border-color 0.2s;
+  transition:
+    background 0.2s,
+    color 0.2s,
+    border-color 0.2s;
   font-size: 0.875rem;
 }
 .topbar-btn:hover {
@@ -363,7 +419,9 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside, true))
   border-radius: 12px;
   background: var(--p-content-background);
   border: 1px solid var(--p-content-border-color);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.08),
+    0 2px 8px rgba(0, 0, 0, 0.04);
   display: flex;
   flex-direction: column;
   gap: 0.875rem;
@@ -397,16 +455,22 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside, true))
   padding: 0;
   cursor: pointer;
   outline: none;
-  transition: transform 0.15s, box-shadow 0.15s;
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s;
 }
 .swatch:hover {
   transform: scale(1.2);
 }
 .swatch:focus-visible {
-  box-shadow: 0 0 0 2px var(--p-content-background), 0 0 0 4px var(--p-primary-color);
+  box-shadow:
+    0 0 0 2px var(--p-content-background),
+    0 0 0 4px var(--p-primary-color);
 }
 .swatch--active {
-  box-shadow: 0 0 0 2px var(--p-content-background), 0 0 0 4px var(--p-primary-color);
+  box-shadow:
+    0 0 0 2px var(--p-content-background),
+    0 0 0 4px var(--p-primary-color);
   transform: scale(1.1);
 }
 
@@ -415,9 +479,10 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside, true))
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
 }
 .swatch--surface.swatch--active {
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08),
-              0 0 0 2px var(--p-content-background),
-              0 0 0 4px var(--p-primary-color);
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.08),
+    0 0 0 2px var(--p-content-background),
+    0 0 0 4px var(--p-primary-color);
 }
 
 /* ========== 自定义颜色 ========== */
@@ -437,7 +502,7 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside, true))
   border-style: solid;
   border-color: transparent;
 }
-.swatch--custom input[type="color"] {
+.swatch--custom input[type='color'] {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -458,10 +523,14 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside, true))
 
 /* ========== 面板动画 ========== */
 .palette-enter-active {
-  transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .palette-leave-active {
-  transition: opacity 0.12s ease, transform 0.12s ease;
+  transition:
+    opacity 0.12s ease,
+    transform 0.12s ease;
 }
 .palette-enter-from {
   opacity: 0;

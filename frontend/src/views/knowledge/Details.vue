@@ -8,9 +8,9 @@
           <InputGroupAddon>
             <i class="pi pi-search"/>
           </InputGroupAddon>
-          <InputText v-model="searchText" placeholder="搜索文档..."/>
+          <InputText v-model="searchText" :placeholder="t('knowledge.details.searchDocs')"/>
         </InputGroup>
-        <Button icon="pi pi-plus" label="创建" @click="toggleCreateMenu"/>
+        <Button icon="pi pi-plus" :label="t('knowledge.create')" @click="toggleCreateMenu"/>
         <Menu ref="createMenuRef" :model="createMenuItems" popup
               :pt="{ item: { class: '!p-0' }, itemContent: { style: 'justify-content: flex-start !important' }, itemLink: { style: 'justify-content: flex-start !important; text-align: left !important' }, list: { class: '!py-1' } }">
           <template #item="{ item, props }">
@@ -55,14 +55,14 @@
             <template #content>
               <h3 class="text-sm font-semibold text-surface-900 truncate mb-1">{{ child.name }}</h3>
               <p class="text-xs text-surface-500 leading-relaxed line-clamp-2 min-h-[2.5rem]">
-                {{ child.type === 'folder' ? '文件夹' : (child.excerpt || '暂无内容') }}
+                {{ child.type === 'folder' ? t('knowledge.details.folder') : (child.excerpt || t('knowledge.details.noContent')) }}
               </p>
             </template>
             <template #footer>
               <div class="flex items-center justify-between pt-2.5 border-t" style="border-color: var(--p-content-border-color);">
                 <span class="text-[11px] font-medium px-2 py-0.5 rounded-full"
                   :class="child.type === 'folder' ? 'bg-surface-100 text-surface-600' : 'bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300'">
-                  {{ child.type === 'folder' ? '文件夹' : '文档' }}
+                  {{ child.type === 'folder' ? t('knowledge.details.folder') : t('knowledge.details.document') }}
                 </span>
                 <span class="flex items-center gap-1 text-[11px] text-surface-400"><i class="pi pi-clock text-[10px]"/> {{ child.updateTime }}</span>
               </div>
@@ -74,7 +74,7 @@
         <div v-if="filteredChildren.length === 0"
           class="col-span-full flex flex-col items-center justify-center py-16 text-surface-400">
           <i class="pi pi-inbox text-5xl mb-4 opacity-40"/>
-          <p class="text-sm">{{ searchText ? '未找到匹配的文档' : '空文件夹' }}</p>
+          <p class="text-sm">{{ searchText ? t('knowledge.details.noMatch') : t('knowledge.details.emptyFolder') }}</p>
         </div>
       </div>
 
@@ -90,7 +90,7 @@
         class="fixed bottom-10 right-10 z-10 w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 cursor-pointer border-0"
         :class="saving ? 'bg-surface-400 text-white scale-95' : hasChanged ? 'bg-primary-500 text-white hover:bg-primary-600 hover:scale-105' : 'bg-surface-200 text-surface-500'"
         @click="saveNow"
-        :title="saving ? '保存中...' : '保存'"
+        :title="saving ? t('knowledge.details.saving') : t('common.save')"
       >
         <i v-if="saving" class="pi pi-spin pi-spinner text-lg"/>
         <i v-else class="pi pi-save text-lg"/>
@@ -115,6 +115,7 @@ import knowledgeApi from '@/api/knowledge'
 import type { Document } from '@/api/knowledge'
 import { ROOT_FOLDER_ID } from "@/constants/common"
 import bus from '@/bus'
+import { t } from '@/locales'
 
 const route = useRoute()
 const router = useRouter()
@@ -214,7 +215,7 @@ const saveNow = () => {
   knowledgeApi.updateContent(knowledgeId.value, editingDocId, editorRef.value.getEditor().getMarkdown()).then(() => {
     saving.value = false
     hasChanged.value = false
-    toast.add({severity: 'success', summary: '已保存', life: 1500})
+    toast.add({severity: 'success', summary: t('knowledge.details.saved'), life: 1500})
   }).catch(() => { saving.value = false })
 }
 
@@ -245,26 +246,26 @@ const toggleCreateMenu = (event: Event) => {
   createMenuRef.value?.toggle(event)
 }
 
-const createMenuItems = [
+const createMenuItems = computed(() => [
   {
-    label: '新建文件夹',
-    description: '在当前目录下创建文件夹',
+    label: t('knowledge.details.newFolder'),
+    description: t('knowledge.details.newFolderDesc'),
     icon: 'pi pi-folder',
     command: () => createFolderRef.value?.open({knowledgeId: knowledgeId.value, parentId: currentFolderId.value})
   },
   {
-    label: '新建文档',
-    description: '在当前目录下创建文档',
+    label: t('knowledge.details.newDocument'),
+    description: t('knowledge.details.newDocumentDesc'),
     icon: 'pi pi-file-edit',
     command: () => createTextRef.value?.open({knowledgeId: knowledgeId.value, parentId: currentFolderId.value})
   }
-]
+])
 
 const onFolderCreated = (data: {knowledgeId: string; parentId: string; name: string}) => {
   knowledgeApi.createFolder(data.knowledgeId, data.parentId, data.name).then(() => {
     loadTree()
     bus.emit('knowledge:document:refresh')
-    toast.add({severity: 'success', summary: '创建成功', life: 2000})
+    toast.add({severity: 'success', summary: t('knowledge.createSuccess'), life: 2000})
   })
 }
 
@@ -272,7 +273,7 @@ const onTextCreated = (data: {knowledgeId: string; parentId: string; name: strin
   knowledgeApi.createText(data.knowledgeId, data.parentId, data.name).then(() => {
     loadTree()
     bus.emit('knowledge:document:refresh')
-    toast.add({severity: 'success', summary: '创建成功', life: 2000})
+    toast.add({severity: 'success', summary: t('knowledge.createSuccess'), life: 2000})
   })
 }
 
@@ -281,34 +282,34 @@ const childMenuRef = ref()
 const childMenuTarget = ref<Document | null>(null)
 const childMenuItems = computed(() => [
   {
-    label: '重命名',
+    label: t('knowledge.rename'),
     icon: 'pi pi-pencil',
     command: () => {
       if (!childMenuTarget.value) return
       knowledgeApi.rename(knowledgeId.value, childMenuTarget.value.id, childMenuTarget.value.name).then(() => {
         loadTree()
-        toast.add({severity: 'success', summary: '重命名成功', life: 2000})
+        toast.add({severity: 'success', summary: t('knowledge.renameSuccess'), life: 2000})
       })
     }
   },
   {separator: true},
   {
-    label: '删除',
+    label: t('knowledge.delete'),
     icon: 'pi pi-trash',
     class: '!text-red-500 [&_.p-menuitem-icon]:!text-red-500',
     command: () => {
       const item = childMenuTarget.value
       if (!item) return
       confirm.require({
-        message: `确定要删除「${item.name}」吗？`,
-        header: '删除确认',
+        message: t('knowledge.deleteMessage', {name: item.name}),
+        header: t('knowledge.deleteConfirm'),
         icon: 'pi pi-exclamation-triangle',
-        rejectProps: {label: '取消', severity: 'secondary', variant: 'outlined'},
-        acceptProps: {label: '删除', severity: 'danger'},
+        rejectProps: {label: t('common.cancel'), severity: 'secondary', variant: 'outlined'},
+        acceptProps: {label: t('knowledge.delete'), severity: 'danger'},
         accept: () => {
           knowledgeApi.remove(knowledgeId.value, item.id).then(() => {
             loadTree()
-            toast.add({severity: 'success', summary: '删除成功', life: 2000})
+            toast.add({severity: 'success', summary: t('knowledge.deleteSuccess'), life: 2000})
           })
         }
       })

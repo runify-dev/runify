@@ -4,6 +4,7 @@ export default {
   username: 'Username',
   password: 'Password',
   login: 'Login',
+  loginFailed: 'Login failed',
   usernameRequired: 'Username is required',
   passwordRequired: 'Password is required',
   footer: 'AI-Powered · Knowledge Connects Everything'

@@ -1,5 +1,5 @@
 <template>
-  <Dialog v-model:visible="visible" modal header="修改名称" :style="{ width: '25rem' }">
+  <Dialog v-model:visible="visible" modal :header="t('common.rename')" :style="{ width: '25rem' }">
     <Form
       ref="formRef"
       v-slot="$form"
@@ -9,7 +9,7 @@
     >
       <div>
         <IftaLabel>
-          <label>名称</label>
+          <label>{{ t('common.name') }}</label>
           <InputText name="name" type="text" fluid />
         </IftaLabel>
         <Message v-if="$form.name?.invalid" severity="error" size="small" variant="simple">{{
@@ -18,8 +18,8 @@
       </div>
     </Form>
     <template #footer>
-      <Button type="button" label="取消" severity="secondary" @click="close"></Button>
-      <Button type="button" label="确定" @click="formRef?.submit"></Button>
+      <Button type="button" :label="t('common.cancel')" severity="secondary" @click="close"></Button>
+      <Button type="button" :label="t('common.confirm')" @click="formRef?.submit"></Button>
     </template>
   </Dialog>
 </template>

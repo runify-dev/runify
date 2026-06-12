@@ -1,7 +1,7 @@
 <template>
   <div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-surface-200 bg-surface-0 dark:border-surface-700 dark:bg-surface-900">
     <div class="flex items-center justify-between gap-3 border-b border-surface-200 px-3 py-2 dark:border-surface-700">
-      <Button label="添加成员" size="small" :disabled="!selectedRoleId" @click="emit('add')" />
+      <Button :label="t('role.addMember')" size="small" :disabled="!selectedRoleId" @click="emit('add')" />
 
       <div class="flex items-center gap-2">
         <Select
@@ -13,7 +13,7 @@
         />
         <InputText
           v-model.trim="searchKeywordModel"
-          placeholder="请输入"
+          :placeholder="t('role.searchPlaceholder')"
           class="w-[220px]"
           @keydown.enter="emit('search')"
         />
@@ -22,7 +22,7 @@
           text
           rounded
           size="small"
-          aria-label="搜索"
+          :aria-label="t('common.search')"
           @click="emit('search')"
         />
       </div>
@@ -32,14 +32,14 @@
       <table class="min-w-full border-collapse text-sm">
         <thead class="sticky top-0 z-10 bg-surface-50 dark:bg-surface-800">
           <tr class="text-surface-500">
-            <th class="border-b border-surface-200 px-3 py-2 text-left text-xs font-medium dark:border-surface-700">姓名</th>
+            <th class="border-b border-surface-200 px-3 py-2 text-left text-xs font-medium dark:border-surface-700">{{ t('role.nameHeader') }}</th>
             <th class="border-b border-surface-200 px-3 py-2 text-left text-xs font-medium dark:border-surface-700">
-              用户名
+              {{ t('role.usernameHeader') }}
             </th>
             <th
               class="w-[96px] border-b border-surface-200 px-3 py-2 text-center text-xs font-medium dark:border-surface-700"
             >
-              操作
+              {{ t('role.operationHeader') }}
             </th>
           </tr>
         </thead>
@@ -63,7 +63,7 @@
                 rounded
                 size="small"
                 severity="secondary"
-                aria-label="移除成员"
+                :aria-label="t('role.removeMember')"
                 :loading="removingUserId === user.id"
                 @click="emit('remove', user.id)"
               />
@@ -74,7 +74,7 @@
         <tbody v-else>
           <tr>
             <td colspan="3" class="px-6 py-10 text-center text-sm text-surface-400">
-              {{ loadingMembers ? '成员加载中...' : '暂无成员数据' }}
+              {{ loadingMembers ? t('role.memberLoading') : t('role.noMemberData') }}
             </td>
           </tr>
         </tbody>
@@ -82,7 +82,7 @@
     </div>
 
     <div class="flex items-center justify-end gap-3 border-t border-surface-200 px-3 py-2 text-sm dark:border-surface-700">
-      <span class="text-surface-500">共 {{ memberPage.total }} 条</span>
+      <span class="text-surface-500">{{ t('role.totalItems', { total: memberPage.total }) }}</span>
 
       <Paginator
         :rows="memberQuery.pageSize"
@@ -98,6 +98,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { t } from '@/locales'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import Paginator, { type PageState } from 'primevue/paginator'

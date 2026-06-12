@@ -1,7 +1,7 @@
 <template>
   <Drawer
     v-model:visible="drawer"
-    header="模型参数"
+    :header="t('model.form.modelParams')"
     position="right"
     :pt="{
       root: {
@@ -16,8 +16,8 @@
   >
     <DynamicsFormConstructor ref="DynamicsFormConstructorRef"></DynamicsFormConstructor>
     <template #footer>
-      <Button @click="close">{{ $t('common.cancel') }}</Button>
-      <Button @click="submit()">{{ edit ? $t('common.save') : $t('common.add') }}</Button>
+      <Button @click="close">{{ t('common.cancel') }}</Button>
+      <Button @click="submit()">{{ edit ? t('common.save') : t('common.add') }}</Button>
     </template>
   </Drawer>
 </template>
@@ -25,6 +25,7 @@
 import { nextTick, ref } from 'vue'
 import DynamicsFormConstructor from '@/components/dynamics-form-plus/constructor/index.vue'
 import type { style } from '@logicflow/extension/lib/bpmn-elements/presets/icons'
+import { t } from '@/locales'
 const props = defineProps<{
   addParams: (data: any, index?: number) => boolean
 }>()

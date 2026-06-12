@@ -21,12 +21,13 @@
         </tbody>
       </table>
     </div>
-    <div v-if="!displayLines.length" class="fd-empty">仅文件状态变化，无代码内容变更。</div>
+    <div v-if="!displayLines.length" class="fd-empty">{{ t('conversation.patch.noCodeChange') }}</div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { t } from '@/locales'
 import type { PatchFileInfo, PatchLine } from './patchTypes'
 
 const props = withDefaults(

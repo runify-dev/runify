@@ -2,7 +2,7 @@
   <div>
     <FormField v-slot="$field" name="meta.collection.host" class="mt-4" :resolver="resolvers.host">
       <IftaLabel>
-        <label>主机</label>
+        <label>{{ t('database.host') }}</label>
         <InputText type="text" fluid />
         <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">{{
           $field.error?.message
@@ -11,7 +11,7 @@
     </FormField>
     <FormField v-slot="$field" name="meta.collection.port" class="mt-4" :resolver="resolvers.port">
       <IftaLabel>
-        <label>端口</label>
+        <label>{{ t('database.port') }}</label>
         <InputNumber type="text" :useGrouping="false" fluid />
         <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">{{
           $field.error?.message
@@ -25,7 +25,7 @@
       :resolver="resolvers.database"
     >
       <IftaLabel>
-        <label>数据库</label>
+        <label>{{ t('database.database') }}</label>
         <InputText type="text" fluid />
         <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">{{
           $field.error?.message
@@ -34,7 +34,7 @@
     </FormField>
     <FormField v-slot="$field" name="meta.collection.user" class="mt-4" :resolver="resolvers.user">
       <IftaLabel>
-        <label>用户名</label>
+        <label>{{ t('database.username') }}</label>
         <InputText type="text" fluid />
         <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">{{
           $field.error?.message
@@ -52,7 +52,7 @@
         <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">{{
           $field.error?.message
         }}</Message>
-        <label>密码</label>
+        <label>{{ t('database.password') }}</label>
       </IftaLabel>
     </FormField>
     <FormField v-slot="$field" name="meta.pool.maxSize" class="mt-4" :resolver="resolvers.maxSize">
@@ -61,7 +61,7 @@
         <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">{{
           $field.error?.message
         }}</Message>
-        <label>最大连接数</label>
+        <label>{{ t('database.maxConnections') }}</label>
       </IftaLabel>
     </FormField>
   </div>
@@ -69,19 +69,20 @@
 <script setup lang="ts">
 import { zodResolver } from '@primevue/forms/resolvers/zod'
 import { z } from 'zod'
+import { t } from '@/locales'
 
 const resolvers = {
-  host: zodResolver(z.string().min(1, { error: '请输入Host' })),
-  database: zodResolver(z.string().min(1, { error: '请输入数据库' })),
-  user: zodResolver(z.string().min(1, { error: '请输入用户' })),
-  password: zodResolver(z.string().min(1, { error: '请输入密码' })),
+  host: zodResolver(z.string().min(1, { error: t('database.validation.hostRequired') })),
+  database: zodResolver(z.string().min(1, { error: t('database.validation.databaseRequired') })),
+  user: zodResolver(z.string().min(1, { error: t('database.validation.userRequired') })),
+  password: zodResolver(z.string().min(1, { error: t('database.validation.passwordRequired') })),
   port: zodResolver(
     z
       .int()
-      .min(1, { error: '端口必须在1-65536之间' })
-      .max(65536, { error: '端口必须在1-65536之间' })
+      .min(1, { error: t('database.validation.portRange') })
+      .max(65536, { error: t('database.validation.portRange') })
   ),
-  maxSize: zodResolver(z.int().min(1, { error: '请输入最大连接数量' }))
+  maxSize: zodResolver(z.int().min(1, { error: t('database.validation.maxConnectionsRequired') }))
 }
 const props = defineProps<{
   setFieldValue: (field: string, value: any) => void

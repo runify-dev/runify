@@ -1,9 +1,9 @@
 <template>
-  <Drawer v-model:visible="visible" :header="`${tableName} - 列信息`" class="!w-[500px]">
+  <Drawer v-model:visible="visible" :header="t('datasource.details.columnInfo', {name: tableName})" class="!w-[500px]">
     <DataTable :value="columnList" :loading="loading" stripedRows>
-      <Column field="name" header="列名" />
-      <Column field="type" header="类型" />
-      <Column field="nullable" header="可空">
+      <Column field="name" :header="t('datasource.details.columnName')" />
+      <Column field="type" :header="t('datasource.details.columnType')" />
+      <Column field="nullable" :header="t('datasource.details.nullable')">
         <template #body="{ data }">
           <Tag
             :value="data.nullable ? 'YES' : 'NO'"
@@ -11,19 +11,19 @@
           />
         </template>
       </Column>
-      <Column field="primaryKey" header="主键">
+      <Column field="primaryKey" :header="t('datasource.details.primaryKey')">
         <template #body="{ data }">
           <i v-if="data.primaryKey" class="pi pi-key text-yellow-500" />
           <span v-else>-</span>
         </template>
       </Column>
-      <Column field="comment" header="注释">
+      <Column field="comment" :header="t('datasource.details.comment')">
         <template #body="{ data }">
           {{ data.comment || '-' }}
         </template>
       </Column>
       <template #empty>
-        <div class="text-center py-8 text-surface-400">暂无列信息</div>
+        <div class="text-center py-8 text-surface-400">{{ t('datasource.details.noColumnInfo') }}</div>
       </template>
     </DataTable>
   </Drawer>
@@ -31,6 +31,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { t } from '@/locales'
 import databaseConnectionPoolAPI from '@/api/database-connection-pool'
 
 const props = defineProps<{

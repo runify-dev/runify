@@ -32,7 +32,7 @@
                           </div>
                         </template>
                         <template #default>
-                          <Button v-tooltip="'操作'" icon="pi pi-ellipsis-v" variant="text" severity="secondary" size="small"/>
+                          <Button v-tooltip="t('skill.operation')" icon="pi pi-ellipsis-v" variant="text" severity="secondary" size="small"/>
                         </template>
                       </DropdownMenu>
                     </div>
@@ -43,14 +43,14 @@
           </template>
           <template #back>
             <div class="custom-back">
-              <Button icon="pi pi-arrow-left" severity="contrast" variant="text" rounded aria-label="返回" @click="back"/>
+              <Button icon="pi pi-arrow-left" severity="contrast" variant="text" rounded :aria-label="t('common.back')" @click="back"/>
             </div>
             <div class="flex items-center justify-between px-3 py-2 border-b" style="border-color: var(--p-content-border-color);">
-              <span class="text-sm font-semibold">文件</span>
+              <span class="text-sm font-semibold">{{ t('skill.details.files') }}</span>
               <div class="flex gap-1">
-                <Button icon="pi pi-folder" size="small" variant="text" severity="secondary" v-tooltip="'新建文件夹'" @click="skillCreateFolderRef?.open({skillId: currentSkillId, parentId: fileParentId})"/>
-                <Button icon="pi pi-file-edit" size="small" variant="text" severity="secondary" v-tooltip="'新建文本'" @click="skillCreateTextRef?.open({skillId: currentSkillId, parentId: fileParentId})"/>
-                <Button icon="pi pi-upload" size="small" variant="text" severity="secondary" v-tooltip="'上传文件'" @click="fileInputRef?.click()"/>
+                <Button icon="pi pi-folder" size="small" variant="text" severity="secondary" v-tooltip="t('skill.details.newFolder')" @click="skillCreateFolderRef?.open({skillId: currentSkillId, parentId: fileParentId})"/>
+                <Button icon="pi pi-file-edit" size="small" variant="text" severity="secondary" v-tooltip="t('skill.details.newText')" @click="skillCreateTextRef?.open({skillId: currentSkillId, parentId: fileParentId})"/>
+                <Button icon="pi pi-upload" size="small" variant="text" severity="secondary" v-tooltip="t('skill.details.uploadFile')" @click="fileInputRef?.click()"/>
               </div>
             </div>
             <div class="flex-1 overflow-auto p-2">
@@ -65,7 +65,7 @@
                 :pt="{ root: { style: { padding: '0', border: '0' } }, nodeLabel: { style: { width: '100%' } } }"
               >
                 <template #empty>
-                  <p class="text-xs text-surface-400 text-center py-4">暂无文件</p>
+                  <p class="text-xs text-surface-400 text-center py-4">{{ t('skill.details.noFiles') }}</p>
                 </template>
                 <template #nodeicon="scope">
                   <i class="pi pi-folder text-sm" v-if="scope.node.data?.type === 'folder'"/>
@@ -84,7 +84,7 @@
             </div>
             <input type="file" ref="fileInputRef" class="hidden" @change="handleSkillFileUpload" multiple/>
             <div class="border-t p-2 shrink-0" style="border-color: var(--p-content-border-color);">
-              <Button icon="pi pi-cog" label="设置" size="small" class="w-full justify-start" @click="openSetting"
+              <Button icon="pi pi-cog" :label="t('skill.settings')" size="small" class="w-full justify-start" @click="openSetting"
                 :style="route.name === 'skillSetting'
                   ? 'color: var(--p-primary-color); background: var(--p-primary-50); border-color: var(--p-primary-color);'
                   : ''"
@@ -141,6 +141,7 @@ import skillApi from '@/api/skill'
 import type {SkillFile} from '@/api/skill'
 import {useToast} from 'primevue/usetoast'
 import {useConfirm} from 'primevue/useconfirm'
+import {t} from '@/locales'
 
 const {user} = useStore()
 const route = useRoute()
@@ -171,20 +172,20 @@ const nodeSelect = (treeNode?: TreeNode) => {
 
 const getMenuItems = (node: any) => [
   {
-    label: '新建',
+    label: t('common.create'),
     visible: node.data.type === 'folder' && hasPermission([
       PermissionConstants.SKILL_CREATE.newResourcePermission(node.key),
       PermissionConstants.SKILL_FOLDER_CREATE.newResourcePermission(node.key),
       Role.ADMIN], "OR"),
     items: [
       {
-        label: '技能',
+        label: t('skill.skillLabel'),
         visible: () => node.data.type === 'folder' && hasPermission([
           PermissionConstants.SKILL_CREATE.newResourcePermission(node.key), Role.ADMIN], "OR"),
         command: () => skillFormDialogRef.value?.open(node)
       },
       {
-        label: '文件夹',
+        label: t('skill.details.newFolder'),
         visible: node.data.type === 'folder' && hasPermission([
           PermissionConstants.SKILL_FOLDER_CREATE.newResourcePermission(node.key), Role.ADMIN], "OR"),
         command: () => createFolderDialogRef.value?.open(node)
@@ -192,7 +193,7 @@ const getMenuItems = (node: any) => [
     ]
   },
   {
-    label: '重命名',
+    label: t('common.rename'),
     visible: hasPermission([
       node.data.type === 'folder'
         ? PermissionConstants.SKILL_FOLDER_EDIT.newResourcePermission(node.key)
@@ -201,7 +202,7 @@ const getMenuItems = (node: any) => [
     command: () => renameDialogRef.value?.open(node.key, node.label || '', node.data.type === 'folder' ? 'folder' : 'resource')
   },
   {
-    label: '删除',
+    label: t('common.delete'),
     visible: hasPermission([
       node.data.type === 'folder'
         ? PermissionConstants.SKILL_FOLDER_DELETE.newResourcePermission(node.key)
@@ -209,11 +210,11 @@ const getMenuItems = (node: any) => [
       Role.ADMIN], "OR"),
     command: () => {
       confirm.require({
-        message: `确定要删除「${node.label}」吗？`,
-        header: '删除确认',
+        message: t('skill.deleteMessage', {name: node.label}),
+        header: t('skill.deleteConfirm'),
         icon: 'pi pi-exclamation-triangle',
-        rejectProps: {label: '取消', severity: 'secondary', variant: 'outlined'},
-        acceptProps: {label: '删除', severity: 'danger'},
+        rejectProps: {label: t('common.cancel'), severity: 'secondary', variant: 'outlined'},
+        acceptProps: {label: t('common.delete'), severity: 'danger'},
         accept: () => {
           const api = node.data.type === 'folder' ? treeCommonAPI.removeFolder : treeCommonAPI.removeResource
           api(node.key).then(() => treeManage.value?.remove(node.key))
@@ -344,21 +345,21 @@ const skillRenameRef = ref<InstanceType<typeof SkillFileRenameDialog>>()
 const onSkillFolderCreated = (data: {skillId: string; parentId: string; name: string}) => {
   skillApi.createFolder(data.skillId, data.parentId, data.name).then(() => {
     refreshFileTree()
-    toast.add({severity: 'success', summary: '创建成功', life: 2000})
+    toast.add({severity: 'success', summary: t('skill.createSuccess'), life: 2000})
   })
 }
 
 const onSkillTextCreated = (data: {skillId: string; parentId: string; name: string}) => {
   skillApi.createText(data.skillId, data.parentId, data.name).then(() => {
     refreshFileTree()
-    toast.add({severity: 'success', summary: '创建成功', life: 2000})
+    toast.add({severity: 'success', summary: t('skill.createSuccess'), life: 2000})
   })
 }
 
 const onSkillFileRenamed = (data: {skillId: string; fileId: string; name: string}) => {
   skillApi.rename(data.skillId, data.fileId, data.name).then(() => {
     refreshFileTree()
-    toast.add({severity: 'success', summary: '重命名成功', life: 2000})
+    toast.add({severity: 'success', summary: t('skill.renameSuccess'), life: 2000})
   })
 }
 
@@ -370,7 +371,7 @@ const handleSkillFileUpload = (e: Event) => {
     const formData = new FormData()
     formData.append('file', file)
     skillApi.uploadFile(currentSkillId.value, fileParentId.value, formData).then(() => {
-      toast.add({severity: 'success', summary: `${file.name} 上传成功`, life: 2000})
+      toast.add({severity: 'success', summary: t('skill.uploadSuccess', {name: file.name}), life: 2000})
       refreshFileTree()
     })
   }
@@ -382,7 +383,7 @@ const fileMenuRef = ref()
 const fileMenuTarget = ref<SkillFile | null>(null)
 const fileMenuItems = computed(() => [
   {
-    label: '重命名',
+    label: t('common.rename'),
     icon: 'pi pi-pencil',
     command: () => {
       if (fileMenuTarget.value) {
@@ -396,18 +397,18 @@ const fileMenuItems = computed(() => [
   },
   {separator: true},
   {
-    label: '删除',
+    label: t('common.delete'),
     icon: 'pi pi-trash',
     class: '!text-red-500 [&_.p-menuitem-icon]:!text-red-500',
     command: () => {
       const file = fileMenuTarget.value
       if (!file) return
       confirm.require({
-        message: `确定要删除「${file.name}」吗？`,
-        header: '删除确认',
+        message: t('skill.deleteMessage', {name: file.name}),
+        header: t('skill.deleteConfirm'),
         icon: 'pi pi-exclamation-triangle',
-        rejectProps: {label: '取消', severity: 'secondary', variant: 'outlined'},
-        acceptProps: {label: '删除', severity: 'danger'},
+        rejectProps: {label: t('common.cancel'), severity: 'secondary', variant: 'outlined'},
+        acceptProps: {label: t('common.delete'), severity: 'danger'},
         accept: () => {
           skillApi.remove(currentSkillId.value, file.id).then(() => {
             if (selectedSkillFile.value?.id === file.id) {
@@ -415,7 +416,7 @@ const fileMenuItems = computed(() => [
               fileSelectedKeys.value = {}
             }
             refreshFileTree()
-            toast.add({severity: 'success', summary: '删除成功', life: 2000})
+            toast.add({severity: 'success', summary: t('skill.deleteSuccess'), life: 2000})
           })
         }
       })

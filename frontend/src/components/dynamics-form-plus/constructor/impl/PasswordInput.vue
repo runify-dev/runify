@@ -1,7 +1,7 @@
 <template>
   <div class="flex-auto">
     <FormField v-slot="$field" asChild name="minlength" :initialValue="0">
-      <label>密码长度最小</label>
+      <label>{{ t('dynamicsForm.impl.passwordMinLength') }}</label>
       <InputNumber inputId="minlength" fluid />
       <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">{{
         $field.error?.message
@@ -10,7 +10,7 @@
   </div>
   <div class="flex-auto">
     <FormField v-slot="$field" asChild name="maxlength" :initialValue="64">
-      <label>密码长度最大</label>
+      <label>{{ t('dynamicsForm.impl.passwordMaxLength') }}</label>
       <InputNumber inputId="maxlength" fluid />
       <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">{{
         $field.error?.message
@@ -18,7 +18,7 @@
     </FormField>
   </div>
   <FormField v-slot="$field" asChild name="defaultValue" initialValue="">
-    <label>默认值</label>
+    <label>{{ t('dynamicsForm.impl.defaultValue') }}</label>
     <Password :feedback="false" toggleMask fluid />
     <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">{{
       $field.error?.message
@@ -26,6 +26,7 @@
   </FormField>
 </template>
 <script setup lang="ts">
+import { t } from '@/locales'
 import Password from 'primevue/password'
 
 const props = defineProps<{

@@ -27,7 +27,7 @@
         <img v-if="appInfo?.icon" :src="appInfo.icon" class="bar-icon" />
         <div class="bar-info">
           <span v-if="appInfo?.name" class="bar-app-name">{{ appInfo.name }}</span>
-          <span class="bar-title">{{ current?.name || '新建对话' }}</span>
+          <span class="bar-title">{{ current?.name || t('conversation.newChat') }}</span>
         </div>
       </div>
       <slot name="header"></slot>
@@ -42,8 +42,8 @@
 
       <!-- 欢迎页 -->
       <div v-if="messages.length === 0 && !msgLoading" class="welcome">
-        <p class="wt">今天有什么可以帮你？</p>
-        <p class="ws">选择快捷提示或直接输入</p>
+        <p class="wt">{{ t('conversation.panel.welcomeTitle') }}</p>
+        <p class="ws">{{ t('conversation.panel.welcomeSubtitle') }}</p>
         <div class="qgrid">
           <button
             v-for="p in prompts"
@@ -106,8 +106,8 @@
           <span class="approval-msg">{{ pendingApproval.content }}</span>
         </div>
         <div class="approval-actions">
-          <button class="approval-btn reject" @click="closeApproval('reject')">拒绝</button>
-          <button class="approval-btn approve" @click="closeApproval('approve')">通过</button>
+          <button class="approval-btn reject" @click="closeApproval('reject')">{{ t('conversation.panel.reject') }}</button>
+          <button class="approval-btn approve" @click="closeApproval('approve')">{{ t('conversation.panel.approve') }}</button>
         </div>
       </div>
       <div class="iwrap" :class="{ focused }">
@@ -160,7 +160,7 @@
             ref="editorRef"
             v-model="question.content"
             :disabled="streamLoading || !!pendingApproval"
-            placeholder="发送消息…"
+            :placeholder="t('conversation.panel.placeholder')"
             @submit="conversation(question)"
             @paste-images="handlePasteImages"
             @paste-videos="handlePasteVideos"
@@ -212,6 +212,7 @@
 
 <script setup lang="ts">
 import { ref, computed, nextTick, reactive, onMounted, onUnmounted, watch } from 'vue'
+import { t } from '@/locales'
 import { useChatStore } from '../common/use-chat-store/index'
 import { aggregators, Scroll } from '@/components/conversation-plus/index'
 import ContentList from '@/components/conversation-plus/content-list/index.vue'
@@ -499,12 +500,12 @@ const previewText = ref<PastedText | null>(null)
 let scroll: any
 let newChatInProgress = false
 
-const prompts = [
-  { icon: '✦', text: '帮我写一篇关于 AI 的技术文章' },
-  { icon: '◈', text: '用 TypeScript 解释泛型' },
-  { icon: '◉', text: '如何学习 Vue3 + Vite？' },
-  { icon: '◇', text: '推荐健康的晚餐食谱' }
-]
+const prompts = computed(() => [
+  { icon: '✦', text: t('conversation.panel.prompt1') },
+  { icon: '◈', text: t('conversation.panel.prompt2') },
+  { icon: '◉', text: t('conversation.panel.prompt3') },
+  { icon: '◇', text: t('conversation.panel.prompt4') }
+])
 
 // ─── 创建 assistant 占位消息 ─────────────────────────────────────
 const createAnswerMessage = () => {

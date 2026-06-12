@@ -1,19 +1,20 @@
 <template>
-  <Dialog v-model:visible="visible" modal header="新建文本" :style="{ width: '25rem' }">
+  <Dialog v-model:visible="visible" modal :header="t('skill.file.createTextHeader')" :style="{ width: '25rem' }">
     <div class="flex flex-col gap-4">
       <div class="flex flex-col gap-1.5">
-        <label class="text-sm font-medium text-surface-700">文件名称</label>
-        <InputText v-model="name" type="text" placeholder="请输入文件名称" fluid class="!text-sm" autofocus @keyup.enter="submit"/>
+        <label class="text-sm font-medium text-surface-700">{{ t('skill.file.fileNameLabel') }}</label>
+        <InputText v-model="name" type="text" :placeholder="t('skill.file.fileNamePlaceholder')" fluid class="!text-sm" autofocus @keyup.enter="submit"/>
       </div>
     </div>
     <template #footer>
-      <Button label="取消" severity="secondary" variant="outlined" @click="close"/>
-      <Button label="创建" :disabled="!name.trim()" @click="submit"/>
+      <Button :label="t('common.cancel')" severity="secondary" variant="outlined" @click="close"/>
+      <Button :label="t('common.create')" :disabled="!name.trim()" @click="submit"/>
     </template>
   </Dialog>
 </template>
 <script setup lang="ts">
 import {ref} from 'vue'
+import {t} from '@/locales'
 
 const emit = defineEmits(['create:success'])
 
@@ -25,7 +26,7 @@ const skillId = ref('')
 const open = (options: { skillId: string; parentId?: string }) => {
   skillId.value = options.skillId
   parentId.value = options.parentId ?? ''
-  name.value = '新建文本.md'
+  name.value = t('skill.file.newFileName')
   visible.value = true
 }
 

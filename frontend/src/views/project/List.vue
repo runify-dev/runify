@@ -9,12 +9,12 @@
         </InputGroupAddon>
         <InputText
           v-model="searchText"
-          placeholder="搜索项目..."
+          :placeholder="t('project.search')"
         />
       </InputGroup>
 
       <!-- 新建按钮 -->
-      <Button icon="pi pi-plus" v-if="permissionCreate" label="新建项目" @click="openCreate" class="shrink-0" />
+      <Button icon="pi pi-plus" v-if="permissionCreate" :label="t('project.create')" @click="openCreate" class="shrink-0" />
     </div>
 
     <!-- 应用网格 -->
@@ -40,11 +40,11 @@
           </template>
           <template #content>
             <h3 class="text-sm font-semibold text-surface-900 truncate mb-1">{{ item.name }}</h3>
-            <p class="text-xs text-surface-500 leading-relaxed line-clamp-2 min-h-[2.5rem]">{{ item.desc || '暂无描述' }}</p>
+            <p class="text-xs text-surface-500 leading-relaxed line-clamp-2 min-h-[2.5rem]">{{ item.desc || t('project.noDesc') }}</p>
           </template>
           <template #footer>
             <div class="flex items-center justify-between pt-2.5 border-t" style="border-color: var(--p-content-border-color);">
-              <span class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300">项目</span>
+              <span class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300">{{ t('project.projectLabel') }}</span>
               <span class="flex items-center gap-1 text-[11px] text-surface-400"><i class="pi pi-clock text-[10px]"/> {{ item.updateTime }}</span>
             </div>
           </template>
@@ -57,7 +57,7 @@
         class="col-span-full flex flex-col items-center justify-center py-16 text-surface-400"
       >
         <i class="pi pi-inbox text-5xl mb-4 opacity-40" />
-        <p class="text-sm">暂无项目，点击「新建项目」开始创建</p>
+        <p class="text-sm">{{ t('project.empty') }}</p>
       </div>
     </div>
 
@@ -81,6 +81,7 @@ import { resetUrl } from '@/utils/common'
 import {hasPermission} from "@/permission";
 import {PermissionConstants} from "@/permission/data.ts";
 import {Role} from "@/permission/common.ts";
+import { t } from '@/locales'
 const treeCommonAPI = new TreeCommonAPI('project')
 const router = useRouter()
 const route = useRoute()
@@ -109,7 +110,7 @@ const folderId = computed(() => {
 
 const menuItems = computed(() => [
   {
-    label: '打开',
+    label: t('project.open'),
     icon: 'pi pi-arrow-up-right',
     visible: hasPermission([
       PermissionConstants.PROJECT_READ.newResourcePermission(activeItem.value?.id || ''),
@@ -118,7 +119,7 @@ const menuItems = computed(() => [
   },
   { separator: true },
   {
-    label: '删除',
+    label: t('project.delete'),
     visible: hasPermission([
       PermissionConstants.PROJECT_DELETE.newResourcePermission(activeItem.value?.id || ''),
       Role.ADMIN], "OR"),
@@ -148,16 +149,16 @@ const handleEdit = (item: Node) => {
 
 const handleDelete = (item: Node) => {
   confirm.require({
-    message: `确定要删除「${item.name}」吗？此操作不可撤销。`,
-    header: '删除确认',
+    message: t('project.deleteMessage', { name: item.name }),
+    header: t('project.deleteConfirm'),
     icon: 'pi pi-exclamation-triangle',
-    rejectProps: { label: '取消', severity: 'secondary', variant: 'outlined' },
-    acceptProps: { label: '删除', severity: 'danger' },
+    rejectProps: { label: t('common.cancel'), severity: 'secondary', variant: 'outlined' },
+    acceptProps: { label: t('common.delete'), severity: 'danger' },
     accept: () => {
       treeCommonAPI.removeResource(item.id).then(() => {
         nodeList.value = nodeList.value.filter((n) => n.id !== item.id)
         bus.emit('tree:remove', item.id)
-        toast.add({ severity: 'success', summary: '删除成功', life: 2000 })
+        toast.add({ severity: 'success', summary: t('project.deleteSuccess'), life: 2000 })
       })
     }
   })

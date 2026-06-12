@@ -9,8 +9,8 @@
 
       <div class="flex items-center gap-2">
         <div v-if="store.isLogged && store.isAnonymous" class="flex items-center gap-2">
-          <span class="text-xs text-[var(--p-text-muted-color)]">匿名访问中</span>
-          <Button label="账号登录" size="small" severity="secondary" outlined @click="showLoginDialog = true" />
+          <span class="text-xs text-[var(--p-text-muted-color)]">{{ t('conversation.anonymousAccess') }}</span>
+          <Button :label="t('login.login')" size="small" severity="secondary" outlined @click="showLoginDialog = true" />
         </div>
         <div v-else-if="store.isLogged" class="flex items-center gap-2">
           <Avatar
@@ -29,7 +29,7 @@
           <span class="text-sm text-[var(--p-text-color)]">{{ store.displayName }}</span>
           <Button icon="pi pi-sign-out" severity="secondary" variant="text" size="small" class="!w-7 !h-7 !p-0" @click="handleLogout" />
         </div>
-        <Button v-if="!store.isLogged" label="请登录" size="small" @click="showLoginDialog = true" />
+        <Button v-if="!store.isLogged" :label="t('login.login')" size="small" @click="showLoginDialog = true" />
       </div>
     </header>
 
@@ -201,6 +201,7 @@ import useConversationTokenStore from '@/stores/converstaion/modules/conversatio
 import bus from '@/bus/index'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { t } from '@/locales'
 
 interface Application {
   id: string

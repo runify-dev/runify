@@ -1,5 +1,5 @@
 <template>
-  <Dialog v-model:visible="visible" modal :header="`新建${name}`" :style="{ width: '25rem' }">
+  <Dialog v-model:visible="visible" modal :header="t('common.create') + name" :style="{ width: '25rem' }">
     <Form
       ref="formRef"
       v-slot="$form"
@@ -9,7 +9,7 @@
     >
       <div>
         <IftaLabel>
-          <label>{{ name }}名称</label>
+          <label>{{ name }}{{ t('common.name') }}</label>
           <InputText name="name" type="text" fluid />
         </IftaLabel>
         <Message v-if="$form.name?.invalid" severity="error" size="small" variant="simple">{{
@@ -18,8 +18,8 @@
       </div>
     </Form>
     <template #footer>
-      <Button type="button" label="取消" severity="secondary" @click="close"></Button>
-      <Button type="button" label="创建" @click="formRef?.submit"></Button
+      <Button type="button" :label="t('common.cancel')" severity="secondary" @click="close"></Button>
+      <Button type="button" :label="t('common.create')" @click="formRef?.submit"></Button
     ></template>
   </Dialog>
 </template>
@@ -30,6 +30,7 @@ import type { TreeNode } from 'primevue/treenode'
 import { TreeCommonAPI } from '@/api/tree'
 import { type FormInstance } from '@primevue/forms'
 import { zodResolver } from '@primevue/forms/resolvers/zod'
+import { t } from '@/locales'
 const props = defineProps<{ name: string; api: TreeCommonAPI }>()
 const emit = defineEmits(['create:resource:success'])
 
@@ -39,7 +40,7 @@ const current = ref<TreeNode>()
 const resolver = ref(
   zodResolver(
     z.object({
-      name: z.string().min(1, { message: `${props.name}名称必填` })
+      name: z.string().min(1, { message: `${props.name}${t('common.nameRequired')}` })
     })
   )
 )

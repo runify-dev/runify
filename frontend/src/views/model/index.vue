@@ -40,7 +40,7 @@
                   </template>
                   <template #default>
                     <Button
-                      v-tooltip="'操作'"
+                      v-tooltip="t('model.operation')"
                       icon="pi pi-ellipsis-v"
                       variant="text"
                       aria-label="Filter"
@@ -98,6 +98,7 @@ import {hasPermission} from "@/permission";
 import {PermissionConstants} from "@/permission/data.ts";
 import {Role} from "@/permission/common.ts";
 import RenameDialog from "@/components/rename-dialog/index.vue";
+import { t } from '@/locales'
 
 const expandedKeys = ref<TreeSelectionKeys>()
 const selectedKeys = computed(() => {
@@ -114,14 +115,14 @@ const renameSuccess = (key: string, node: any) => {
 const getMenuItems = (node: any) => {
   return [
     {
-      label: '新建',
+      label: t('model.create'),
       visible: node.data.type === 'folder' && hasPermission([
         PermissionConstants.MODEL_FOLDER_CREATE.newResourcePermission(node.key),
         PermissionConstants.MODEL_CREATE.newResourcePermission(node.key),
         Role.ADMIN], "OR"),
       items: [
         {
-          label: '模型',
+          label: t('model.modelLabel'),
           visible: () => node.data.type === 'folder' && hasPermission([
             PermissionConstants.MODEL_CREATE.newResourcePermission(node.key),
             Role.ADMIN], "OR"),
@@ -130,7 +131,7 @@ const getMenuItems = (node: any) => {
           }
         },
         {
-          label: '文件夹',
+          label: t('common.folder'),
           visible: node.data.type === 'folder' && hasPermission([
             PermissionConstants.MODEL_FOLDER_CREATE.newResourcePermission(node.key),
             Role.ADMIN], "OR"),
@@ -141,7 +142,7 @@ const getMenuItems = (node: any) => {
       ]
     },
     {
-      label: '重命名',
+      label: t('model.rename'),
       visible: hasPermission([
         node.data.type === 'folder' ? PermissionConstants.MODEL_FOLDER_EDIT.newResourcePermission(node.key) : PermissionConstants.MODEL_EDIT.newResourcePermission(node.key),
         Role.ADMIN], "OR"),
@@ -151,7 +152,7 @@ const getMenuItems = (node: any) => {
       visible: hasPermission([
         node.data.type === 'folder' ? PermissionConstants.MODEL_FOLDER_DELETE.newResourcePermission(node.key) : PermissionConstants.MODEL_DELETE.newResourcePermission(node.key),
         Role.ADMIN], "OR"),
-      label: '删除',
+      label: t('model.delete'),
       command:
         () => {
           removeTreeNode(node)

@@ -2,20 +2,20 @@
   <Dialog
     v-model:visible="visible"
     modal
-    :header="current ? '修改连接池' : '创建连接池'"
+    :header="current ? t('database.editPool') : t('database.createPool')"
     :style="{ width: '50rem' }"
   >
     <div class="flex flex-col gap-4">
       <div class="flex flex-col gap-1">
-        <label class="text-sm font-semibold text-color">名称</label>
+        <label class="text-sm font-semibold text-color">{{ t('datasource.form.name') }}</label>
         <InputText v-model="formData.name" type="text" fluid />
       </div>
       <div class="flex flex-col gap-1">
-        <label class="text-sm font-semibold text-color">描述</label>
+        <label class="text-sm font-semibold text-color">{{ t('datasource.form.desc') }}</label>
         <InputText v-model="formData.desc" type="text" fluid />
       </div>
       <div class="flex flex-col gap-1">
-        <label class="text-sm font-semibold text-color">数据源类型</label>
+        <label class="text-sm font-semibold text-color">{{ t('datasource.form.type') }}</label>
         <RadioCard
           grid-class="grid-cols-2 sm:grid-cols-3 md:grid-cols-4"
           :model-value="formData.dataSourceType"
@@ -32,7 +32,7 @@
         </RadioCard>
       </div>
       <div v-if="formData.dataSourceType" class="flex flex-col gap-1">
-        <label class="text-sm font-semibold text-color">供应商</label>
+        <label class="text-sm font-semibold text-color">{{ t('datasource.form.vendor') }}</label>
         <RadioCard
           grid-class="grid-cols-2 sm:grid-cols-3 md:grid-cols-4"
           :model-value="formData.protocol"
@@ -56,13 +56,14 @@
       />
     </div>
     <template #footer>
-      <Button @click="submit">保存</Button>
-      <Button @click="close">取消</Button>
+      <Button @click="submit">{{ t('common.save') }}</Button>
+      <Button @click="close">{{ t('common.cancel') }}</Button>
     </template>
   </Dialog>
 </template>
 <script setup lang="ts">
 import { nextTick, ref, watch, computed, onMounted } from 'vue'
+import { t } from '@/locales'
 import DynamicsForm from '@/components/dynamics-form-plus/index.vue'
 import RadioCard from '@/components/radio-card/index.vue'
 import databaseConnectionPoolAPI from '@/api/database-connection-pool'
@@ -191,7 +192,7 @@ const submit = () => {
     databaseConnectionPoolAPI
       .edit(props.projectId, current.value.id, payload)
       .then(() => {
-        bus.emit('message:success', ['修改连接池', '成功'])
+        bus.emit('message:success', [t('database.editSuccess'), t('common.confirm')])
         emit('refresh')
         close()
       })
@@ -200,7 +201,7 @@ const submit = () => {
       .create(props.projectId, payload)
       .then(() => {
         emit('refresh')
-        bus.emit('message:success', ['创建连接池', '成功'])
+        bus.emit('message:success', [t('database.createSuccess'), t('common.confirm')])
         close()
       })
   }

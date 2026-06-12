@@ -4,7 +4,7 @@
     <div v-if="!selectedFile" class="flex-1 flex items-center justify-center text-surface-400">
       <div class="text-center">
         <i class="pi pi-folder-open text-4xl mb-3 opacity-40"/>
-        <p class="text-sm">从左侧选择文件查看内容</p>
+        <p class="text-sm">{{ t('skill.details.selectFile') }}</p>
       </div>
     </div>
 
@@ -25,7 +25,7 @@
             <p class="text-xs text-surface-400">{{ child.type === 'file' ? formatSize(child.fileSize) : child.type }}</p>
           </div>
         </div>
-        <div v-if="!folderChildren.length" class="col-span-full text-center py-8 text-surface-400 text-sm">空文件夹</div>
+        <div v-if="!folderChildren.length" class="col-span-full text-center py-8 text-surface-400 text-sm">{{ t('skill.details.emptyFolder') }}</div>
       </div>
     </div>
 
@@ -41,6 +41,7 @@
 
 <script setup lang="ts">
 import {inject, ref, watch, type Ref} from 'vue'
+import {t} from '@/locales'
 import ContentViewer from './content/index.vue'
 import skillApi from '@/api/skill'
 import type {SkillFile} from '@/api/skill'
@@ -66,7 +67,7 @@ const selectFile = (file: SkillFile) => {
 }
 
 const formatSize = (bytes?: number) => {
-  if (!bytes) return '未知'
+  if (!bytes) return t('skill.details.unknown')
   if (bytes < 1024) return bytes + ' B'
   if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB'
   return (bytes / 1048576).toFixed(1) + ' MB'

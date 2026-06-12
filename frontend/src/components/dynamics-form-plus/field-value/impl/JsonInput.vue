@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col gap-1">
     <div class="flex justify-end">
-      <Button label="格式化" size="small" text severity="secondary" @click="format" />
+      <Button :label="t('dynamicsForm.impl.format')" size="small" text severity="secondary" @click="format" />
     </div>
     <Textarea
       v-model="text"
@@ -15,6 +15,7 @@
 </template>
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
+import { t } from '@/locales'
 import Textarea from 'primevue/textarea'
 import type { FormField } from '@/components/dynamics-form-plus/type'
 
@@ -26,7 +27,7 @@ const props = defineProps<{
 const emit = defineEmits(['change'])
 
 const field = computed(() => props.formField.field)
-const placeholder = computed(() => props.formField.attrs?.placeholder || '请输入 JSON')
+const placeholder = computed(() => props.formField.attrs?.placeholder || t('dynamicsForm.default.placeholder'))
 
 const text = ref('')
 

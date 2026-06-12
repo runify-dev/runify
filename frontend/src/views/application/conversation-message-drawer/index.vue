@@ -1,7 +1,7 @@
 <template>
   <Drawer
     v-model:visible="visible"
-    header="对话详情"
+    :header="t('application.conversationLog.title')"
     position="right"
     class="!w-full md:!w-[40rem] lg:!w-[60%] xl:!w-[50rem] max-w-[70rem] h-full"
     :pt="{
@@ -25,7 +25,7 @@
         <!-- 空状态 -->
         <div v-else-if="messages.length === 0" class="empty-state">
           <span class="empty-icon">◈</span>
-          <p>暂无对话记录</p>
+          <p>{{ t('application.conversationLog.noConversations') }}</p>
         </div>
 
         <!-- 消息列表 -->
@@ -59,6 +59,7 @@
 <script setup lang="ts">
 import { ref, nextTick } from 'vue'
 import applicationAPI from '@/api/application'
+import { t } from '@/locales'
 // 如果你的项目有 ContentList 组件，按需引入
 // import ContentList from '@/components/conversation-plus/content-list/index.vue'
 

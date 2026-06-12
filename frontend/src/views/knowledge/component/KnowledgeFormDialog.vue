@@ -2,13 +2,13 @@
   <Dialog
     v-model:visible="visible"
     modal
-    header="新建知识库"
+    :header="t('knowledge.form.header')"
     :style="{ width: '28rem' }"
   >
     <div class="flex flex-col gap-4">
       <!-- 图标 -->
       <div class="flex flex-col gap-2">
-        <label class="text-sm font-medium text-surface-700">知识库图标</label>
+        <label class="text-sm font-medium text-surface-700">{{ t('knowledge.form.icon') }}</label>
         <div class="flex items-center gap-3">
           <div
             v-if="!form.icon"
@@ -28,7 +28,7 @@
               <i class="pi pi-times text-xs"/>
             </button>
           </div>
-          <span class="text-xs text-surface-400">支持 JPG、PNG 格式</span>
+          <span class="text-xs text-surface-400">{{ t('knowledge.form.imageFormat') }}</span>
         </div>
         <input
           ref="fileInputRef"
@@ -41,11 +41,11 @@
 
       <!-- 名称 -->
       <div class="flex flex-col gap-1.5">
-        <label class="text-sm font-medium text-surface-700">知识库名称</label>
+        <label class="text-sm font-medium text-surface-700">{{ t('knowledge.form.name') }}</label>
         <InputText
           v-model="form.name"
           type="text"
-          placeholder="请输入知识库名称"
+          :placeholder="t('knowledge.form.namePlaceholder')"
           fluid
           class="!text-sm"
         />
@@ -53,10 +53,10 @@
 
       <!-- 描述 -->
       <div class="flex flex-col gap-1.5">
-        <label class="text-sm font-medium text-surface-700">知识库描述</label>
+        <label class="text-sm font-medium text-surface-700">{{ t('knowledge.form.desc') }}</label>
         <Textarea
           v-model="form.desc"
-          placeholder="请输入知识库描述（选填）"
+          :placeholder="t('knowledge.form.descPlaceholder')"
           rows="3"
           fluid
           class="!text-sm !resize-none"
@@ -66,8 +66,8 @@
 
     <template #footer>
       <div class="flex justify-end gap-2">
-        <Button label="取消" severity="secondary" variant="outlined" @click="close"/>
-        <Button label="创建" @click="submit"/>
+        <Button :label="t('common.cancel')" severity="secondary" variant="outlined" @click="close"/>
+        <Button :label="t('common.create')" @click="submit"/>
       </div>
     </template>
   </Dialog>
@@ -77,6 +77,7 @@ import {ref, reactive} from 'vue'
 import fileAPI from '@/api/file'
 import {TreeCommonAPI} from '@/api/tree'
 import type {TreeNode} from 'primevue/treenode'
+import {t} from '@/locales'
 
 const props = defineProps<{ api: TreeCommonAPI }>()
 const emit = defineEmits(['create:success'])

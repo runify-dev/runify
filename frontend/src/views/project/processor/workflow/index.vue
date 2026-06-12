@@ -6,7 +6,7 @@
     >
       <Button
         icon="pi pi-save"
-        label="保存"
+        :label="t('common.save')"
         variant="text"
         size="small"
         @click="save"
@@ -15,7 +15,7 @@
       <Button
         v-if="processor && processor.isDeploy"
         icon="pi pi-cloud-download"
-        label="取消部署"
+        :label="t('project.cancelDeploy')"
         variant="text"
         size="small"
         severity="warning"
@@ -24,7 +24,7 @@
       <Button
         v-if="processor && !processor.isDeploy"
         icon="pi pi-cloud-upload"
-        label="部署"
+        :label="t('project.deploy')"
         variant="text"
         size="small"
         severity="success"
@@ -38,6 +38,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref, provide } from 'vue'
+import { t } from '@/locales'
 import Workflow from '@/workflow/index.vue'
 import processorAPI from '@/api/processor'
 import { useRoute } from 'vue-router'
@@ -54,7 +55,7 @@ provide('WorkflowType', WorkflowType.PROCESSOR)
 const deploy = () => {
   processorAPI.deploy(route.params.id as string, route.params.processorId as string).then((ok) => {
     processor.value = ok.data
-    bus.emit('message:success', '部署成功')
+    bus.emit('message:success', t('project.deploySuccess'))
   })
 }
 
@@ -63,7 +64,7 @@ const unDeploy = () => {
     .undeploy(route.params.id as string, route.params.processorId as string)
     .then((ok) => {
       processor.value = ok.data
-      bus.emit('message:success', '取消部署成功')
+      bus.emit('message:success', t('project.cancelDeploySuccess'))
     })
 }
 
@@ -73,7 +74,7 @@ const save = () => {
       workflow: workflowRef.value?.getGraphData()
     })
     .then(() => {
-      bus.emit('message:success', '保存成功')
+      bus.emit('message:success', t('common.saveSuccess'))
     })
 }
 

@@ -65,7 +65,7 @@
           <FormField v-slot="$field: any" name="body">
             <CodeEditor
               lang="JSON"
-              title="请求体"
+              :title="t('project.http.body')"
               v-bind:modelValue="$field.value"
               @update:modelValue="
                 (v: string) => {
@@ -84,6 +84,7 @@
 </template>
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { t } from '@/locales'
 import CodeEditor from '@/components/code-editor/index.vue'
 import type { FormInstance } from '@primevue/forms'
 const props = defineProps<{ requestBody: Array<any> }>()

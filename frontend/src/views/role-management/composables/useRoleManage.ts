@@ -3,6 +3,7 @@ import { useToast } from 'primevue/usetoast'
 import type { PageState } from 'primevue/paginator'
 import roleAPI from '@/api/role'
 import userAPI from '@/api/user'
+import { t } from '@/locales'
 import type {
   InheritRoleType,
   MemberSearchField,
@@ -58,11 +59,10 @@ export function useRoleManage() {
   const memberSearchField = ref<MemberSearchField>('username')
   const memberSearchKeyword = ref('')
 
-  const memberSearchFieldOptions = [
-    { label: '全部', value: 'global' as const },
-    { label: '用户名', value: 'username' as const },
-    { label: '昵称', value: 'nickname' as const }
-  ]
+  const memberSearchFieldOptions = computed(() => [
+    { label: t('system.username'), value: 'username' as const },
+    { label: t('system.nickname'), value: 'nickname' as const }
+  ])
 
   const addUserDialogVisible = ref(false)
   const addUserSearchField = ref<MemberSearchField>('username')
@@ -79,10 +79,10 @@ export function useRoleManage() {
     type: 'USER'
   })
 
-  const inheritRoleOptions = [
-    { label: '系统管理员', value: 'ADMIN' as const },
-    { label: '普通用户', value: 'USER' as const }
-  ]
+  const inheritRoleOptions = computed(() => [
+    { label: t('role.adminRole'), value: 'ADMIN' as const },
+    { label: t('role.userRole'), value: 'USER' as const }
+  ])
 
   const selectedRole = computed(() => {
     return roles.value.find((item) => item.id === selectedRoleId.value) ?? null
@@ -252,8 +252,8 @@ export function useRoleManage() {
     if (!name) {
       toast.add({
         severity: 'warn',
-        summary: '提示',
-        detail: '请输入角色名称',
+        summary: t('common.tip'),
+        detail: t('role.roleNamePlaceholder'),
         life: 2500
       })
       return
@@ -262,8 +262,8 @@ export function useRoleManage() {
     if (!type) {
       toast.add({
         severity: 'warn',
-        summary: '提示',
-        detail: '请选择继承角色',
+        summary: t('common.tip'),
+        detail: t('role.inheritRolePlaceholder'),
         life: 2500
       })
       return
@@ -280,8 +280,8 @@ export function useRoleManage() {
 
       toast.add({
         severity: 'success',
-        summary: '成功',
-        detail: '角色创建成功',
+        summary: t('common.tip'),
+        detail: t('role.createRole') + ' ' + t('common.createSuccess'),
         life: 2500
       })
 
@@ -331,8 +331,8 @@ export function useRoleManage() {
 
       toast.add({
         severity: 'success',
-        summary: '成功',
-        detail: '权限保存成功',
+        summary: t('common.tip'),
+        detail: t('role.save') + ' ' + t('common.saveSuccess'),
         life: 2500
       })
     } finally {
@@ -369,8 +369,8 @@ export function useRoleManage() {
 
       toast.add({
         severity: 'success',
-        summary: '成功',
-        detail: '成员添加成功',
+        summary: t('common.tip'),
+        detail: t('role.addMember') + ' ' + t('common.addSuccess'),
         life: 2500
       })
 
@@ -414,8 +414,8 @@ export function useRoleManage() {
 
       toast.add({
         severity: 'success',
-        summary: '成功',
-        detail: '移除成功',
+        summary: t('common.tip'),
+        detail: t('role.removeMember') + ' ' + t('common.deleteSuccess'),
         life: 2500
       })
     } finally {

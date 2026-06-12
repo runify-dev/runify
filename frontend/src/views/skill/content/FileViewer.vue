@@ -3,14 +3,15 @@
     <div class="text-center max-w-sm">
       <i class="pi pi-file text-5xl text-primary-500 mb-4"/>
       <h3 class="text-lg font-semibold mb-2">{{ file.fileName || file.name }}</h3>
-      <p class="text-sm text-surface-500 mb-1">大小: {{ formatSize(file.fileSize) }}</p>
-      <p class="text-sm text-surface-500 mb-4" v-if="file.desc">描述: {{ file.desc }}</p>
-      <Button icon="pi pi-download" label="下载" @click="download"/>
+      <p class="text-sm text-surface-500 mb-1">{{ t('skill.details.size') }}: {{ formatSize(file.fileSize) }}</p>
+      <p class="text-sm text-surface-500 mb-4" v-if="file.desc">{{ t('skill.details.desc') }}: {{ file.desc }}</p>
+      <Button icon="pi pi-download" :label="t('skill.details.download')" @click="download"/>
     </div>
   </div>
 </template>
 <script setup lang="ts">
 import type {SkillFile} from '@/api/skill'
+import {t} from '@/locales'
 
 const props = defineProps<{ file: SkillFile; skillId: string }>()
 
@@ -23,7 +24,7 @@ const download = () => {
 }
 
 const formatSize = (bytes?: number) => {
-  if (!bytes) return '未知'
+  if (!bytes) return t('skill.details.unknown')
   if (bytes < 1024) return bytes + ' B'
   if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB'
   return (bytes / 1048576).toFixed(1) + ' MB'

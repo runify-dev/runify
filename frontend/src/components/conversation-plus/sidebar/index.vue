@@ -103,11 +103,11 @@
         <div v-if="!tokenStore.isAnonymous" class="sb-pop-divider" />
         <button v-if="tokenStore.isAnonymous" class="sb-pop-login" @click="handleLogin">
           <i class="pi pi-sign-in" />
-          <span>登录</span>
+          <span>{{ t('login.login') }}</span>
         </button>
         <button v-else class="sb-pop-logout" @click="handleLogout">
           <i class="pi pi-power-off" />
-          <span>退出登录</span>
+          <span>{{ t('topbar.logout') }}</span>
         </button>
       </div>
     </Popover>
@@ -120,23 +120,23 @@
           <img v-if="userIcon" :src="resetUrl(userIcon)" class="sb-dialog-icon" />
           <span v-else class="sb-dialog-avatar">{{ userAvatar }}</span>
           <h3 class="sb-dialog-name">{{ profile?.user?.nickname || profile?.user?.username }}</h3>
-          <span v-if="profile?.type === 'ANONYMOUS'" class="sb-dialog-tag">匿名</span>
+          <span v-if="profile?.type === 'ANONYMOUS'" class="sb-dialog-tag">{{ t('conversation.anonymousUser') }}</span>
         </div>
         <div v-if="!tokenStore.isAnonymous" class="sb-dialog-fields">
           <div v-if="profile?.user?.username" class="sb-dialog-row">
-            <span class="sb-dialog-label">用户名</span>
+            <span class="sb-dialog-label">{{ t('system.username') }}</span>
             <span class="sb-dialog-value">{{ profile.user.username }}</span>
           </div>
           <div v-if="profile?.user?.email" class="sb-dialog-row">
-            <span class="sb-dialog-label">邮箱</span>
+            <span class="sb-dialog-label">{{ t('system.email') }}</span>
             <span class="sb-dialog-value">{{ profile.user.email }}</span>
           </div>
           <div v-if="profile?.user?.phone" class="sb-dialog-row">
-            <span class="sb-dialog-label">手机</span>
+            <span class="sb-dialog-label">{{ t('system.phone') }}</span>
             <span class="sb-dialog-value">{{ profile.user.phone }}</span>
           </div>
           <div v-if="profile?.user?.createTime" class="sb-dialog-row">
-            <span class="sb-dialog-label">注册时间</span>
+            <span class="sb-dialog-label">{{ t('system.createTime') }}</span>
             <span class="sb-dialog-value">{{ profile.user.createTime }}</span>
           </div>
         </div>

@@ -2,13 +2,13 @@
   <Dialog
     v-model:visible="visible"
     modal
-    :header="isEdit ? '编辑应用' : '新建应用'"
+    :header="isEdit ? t('application.form.editHeader') : t('application.form.newHeader')"
     :style="{ width: '28rem' }"
   >
     <div class="flex flex-col gap-4">
       <!-- 应用图标 -->
       <div class="flex flex-col gap-2">
-        <label class="text-sm font-medium text-surface-700">应用图标</label>
+        <label class="text-sm font-medium text-surface-700">{{ t('application.form.appIcon') }}</label>
         <div class="flex items-center gap-3">
           <div
             v-if="!form.icon"
@@ -30,7 +30,7 @@
             </button>
           </div>
 
-          <span class="text-xs text-surface-400">支持 JPG、PNG 格式</span>
+          <span class="text-xs text-surface-400">{{ t('application.form.imageFormat') }}</span>
         </div>
         <input
           ref="fileInputRef"
@@ -43,11 +43,11 @@
 
       <!-- 应用名称 -->
       <div class="flex flex-col gap-1.5">
-        <label class="text-sm font-medium text-surface-700">应用名称</label>
+        <label class="text-sm font-medium text-surface-700">{{ t('application.form.appName') }}</label>
         <InputText
           v-model="form.name"
           type="text"
-          placeholder="请输入应用名称"
+          :placeholder="t('application.form.appNamePlaceholder')"
           fluid
           class="!text-sm"
         />
@@ -55,10 +55,10 @@
 
       <!-- 应用描述 -->
       <div class="flex flex-col gap-1.5">
-        <label class="text-sm font-medium text-surface-700">应用描述</label>
+        <label class="text-sm font-medium text-surface-700">{{ t('application.form.appDesc') }}</label>
         <Textarea
           v-model="form.desc"
-          placeholder="请输入应用描述（选填）"
+          :placeholder="t('application.form.appDescPlaceholder')"
           rows="3"
           fluid
           class="!text-sm !resize-none"
@@ -68,14 +68,14 @@
       <!-- 是否匿名 -->
       <div class="flex items-center gap-3">
         <ToggleSwitch v-model="form.allowAnonymousAccess"/>
-        <label class="text-sm text-surface-700">允许匿名访问</label>
+        <label class="text-sm text-surface-700">{{ t('application.form.allowAnonymous') }}</label>
       </div>
     </div>
 
     <template #footer>
       <div class="flex justify-end gap-2">
-        <Button label="取消" severity="secondary" variant="outlined" @click="close"/>
-        <Button :label="isEdit ? '保存' : '创建'" @click="submit"/>
+        <Button :label="t('common.cancel')" severity="secondary" variant="outlined" @click="close"/>
+        <Button :label="isEdit ? t('common.save') : t('common.create')" @click="submit"/>
       </div>
     </template>
   </Dialog>
@@ -83,6 +83,7 @@
 <script setup lang="ts">
 import {ref, reactive, computed} from 'vue'
 import fileAPI from '@/api/file'
+import { t } from '@/locales'
 import applicationAPI from '@/api/application'
 import {TreeCommonAPI} from '@/api/tree'
 import type {TreeNode} from 'primevue/treenode'
@@ -137,7 +138,7 @@ const submit = () => {
     desc: form.desc,
     icon: form.icon,
     allowAnonymousAccess: form.allowAnonymousAccess,
-    workflow: getWorkflowCall('customize')()
+    workflow: isEdit.value?null:getWorkflowCall('customize')()
   }
 
   if (isEdit.value) {

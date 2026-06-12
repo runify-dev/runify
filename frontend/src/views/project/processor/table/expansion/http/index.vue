@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col gap-4">
     <!-- 参数区域 -->
-    <Fieldset legend="请求参数" :pt="{ legend: { class: 'text-sm font-medium text-surface-700' } }">
+    <Fieldset :legend="t('project.http.params')" :pt="{ legend: { class: 'text-sm font-medium text-surface-700' } }">
       <Form ref="formRef">
         <div class="flex flex-col gap-3">
           <FormField
@@ -29,7 +29,7 @@
     <!-- 请求体 -->
     <Fieldset
       v-if="showBody"
-      legend="请求体"
+      :legend="t('project.http.body')"
       :pt="{ legend: { class: 'text-sm font-medium text-surface-700' } }"
     >
       <RequestBody
@@ -41,7 +41,7 @@
 
     <!-- 执行按钮 -->
     <Button
-      label="执行请求"
+      :label="t('project.http.execute')"
       icon="pi pi-play"
       class="w-full"
       @click="execute"
@@ -49,7 +49,7 @@
 
     <!-- 响应结果 -->
     <Fieldset
-      legend="响应结果"
+      :legend="t('project.http.response')"
       :pt="{ legend: { class: 'text-sm font-medium text-surface-700' } }"
     >
       <div v-loading="loading" class="min-h-[100px]">
@@ -58,7 +58,7 @@
           class="text-sm text-surface-600 bg-surface-50 p-3 rounded-lg overflow-auto max-h-[300px]"
         >{{ JSON.stringify(result, null, 2) }}</pre>
         <div v-else class="flex items-center justify-center h-[100px] text-surface-400 text-sm">
-          执行请求后查看结果
+          {{ t('project.http.executePlaceholder') }}
         </div>
       </div>
     </Fieldset>
@@ -69,6 +69,7 @@
 import Fieldset from 'primevue/fieldset'
 import RequestBody from './body/index.vue'
 import { computed, ref, inject } from 'vue'
+import { t } from '@/locales'
 import { Form, FormField, type FormInstance } from '@primevue/forms'
 import axios from 'axios'
 import { zodResolver } from '@primevue/forms/resolvers/zod'
@@ -95,7 +96,7 @@ const getResolver = (field: string, required: boolean) => {
             return val !== undefined && val !== '' && val !== null
           },
           {
-            message: field + ' ' + '此项必填'
+            message: field + ' ' + t('project.http.requiredField')
           }
         )
       : z.any()
