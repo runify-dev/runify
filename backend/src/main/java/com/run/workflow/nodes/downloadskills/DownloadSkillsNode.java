@@ -120,15 +120,29 @@ public class DownloadSkillsNode extends INode<DownloadSkillsNode, DownloadSkills
                                                 // 生成 .skill-meta.json
                                                 writeMetaFile(localDir, skill);
 
+                                                // 读取 SKILL.md
+                                                String skillContent = "";
+                                                Path skillMd = localDir.resolve("SKILL.md");
+                                                if (Files.exists(skillMd)) {
+                                                    try {
+                                                        skillContent = Files.readString(skillMd, java.nio.charset.StandardCharsets.UTF_8);
+                                                    } catch (Exception ignored) {
+                                                    }
+                                                }
+
+                                                String localPath = localDir.toString();
                                                 String summary = "已安装 " + skill.getName() + " (" + downloadedFiles.size() + " 个文件)";
                                                 String resultJson = JacksonUtils.toJson(Map.of(
                                                         "skillId", skill.getId().toString(),
                                                         "skillName", skill.getName(),
                                                         "files", downloadedFiles.size(),
-                                                        "localPath", localDir.toString()));
+                                                        "localPath", localPath,
+                                                        "skillContent", skillContent));
 
                                                 workFlowManage.writeContext(node, "skillId", skill.getId().toString());
                                                 workFlowManage.writeContext(node, "skillName", skill.getName());
+                                                workFlowManage.writeContext(node, "content", skillContent);
+                                                workFlowManage.writeContext(node, "local", localPath);
                                                 workFlowManage.writeContext(node, "files", downloadedFiles.size());
                                                 workFlowManage.writeContext(node, "status", "installed");
                                                 workFlowManage.writeContext(node, "localPath", localDir.toString());
@@ -137,7 +151,7 @@ public class DownloadSkillsNode extends INode<DownloadSkillsNode, DownloadSkills
                                                                 NodeStatus.SUCCESS, node, runId, config.id()).withMeta(config.meta())));
                                                 node.status = NodeStatus.SUCCESS;
 
-                                                workFlowManage.write(node, new ToolCallContent("download_skills", summary, "",
+                                                workFlowManage.write(node, new ToolCallContent("download_skills", resultJson, "",
                                                         NodeStatus.SUCCESS, node, runId, config.id()));
                                                 workFlowManage.nextInvoke(node, workFlowManage.nextNodeSupplier(node.node.getId()));
                                             })

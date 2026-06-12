@@ -80,7 +80,7 @@ const delConversation: (
 }
 
 const resumeStream = (applicationId: string, conversationId: string, index: number) => {
-  return postStream(`/application/${applicationId}/conversation/api/conversation/${conversationId}/resume-stream`, {}, {'Last-Event-ID': index})
+  return postStream(`/conversation/api/application/${applicationId}/conversation/${conversationId}/resume-stream`, {}, {'Last-Event-ID': index})
 }
 const cancel = (applicationId: string, conversationId: string) => {
   return post(`/application/${applicationId}/conversation/api/conversation/${conversationId}/cancel`, {}, {})

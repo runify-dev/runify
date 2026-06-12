@@ -10,6 +10,7 @@ export function init(ctx: NodeInitContext) {
     { label: '技能名称', value: 'skillName' },
     { label: '文件数', value: 'files' },
     { label: '安装状态', value: 'status' },
-    { label: '本地路径', value: 'localPath' }
+    { label: '本地路径', value: 'local' },
+    { label: '技能内容', value: 'content' }
   ]
 }

@@ -11,6 +11,7 @@ import com.github.dockerjava.core.command.LogContainerResultCallback;
 import com.github.dockerjava.core.command.WaitContainerResultCallback;
 import com.run.common.run_command.CommandResult;
 import com.run.common.run_command.CommandRunner;
+import com.run.common.run_command.CommandRunnerLifecycle;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -21,6 +22,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 /**
@@ -29,21 +31,24 @@ import java.util.function.Consumer;
  * 容器重（每个一份内存），并发上限收紧，避免拖垮服务器。读流走共享虚拟线程池 STREAM_EXECUTOR。
  * hush-toolbox 已退化为纯脚本执行器：不走 Hush 代理，因此不挂载 CA 证书、不注入 HTTP(S)_PROXY。
  *
- * <p><b>取消语义</b>：kill() 停容器，follow 日志流随之关闭。终态（onComplete）直接取累积内容，
- * 读流仅做一次合并的短兜底排空（STREAM_DRAIN 秒）；超时与取消用 killed 标志区分。
+ * <p><b>exactly-once 终态保证（结构性）</b>：实例级 {@code terminated} 守卫 + {@code catch (Throwable)}
+ * + finally 终极兜底，保证每次执行恰好一次 onComplete / onError。
  *
- * <p>本类实例为单次使用（持有累积缓冲区与 killed 状态），每次执行新建一个实例。
+ * <p><b>取消语义</b>：kill() 停容器，follow 日志流随之关闭；终态直接取累积内容，读流仅做合并短兜底
+ * 排空。{@code awaitStatusCode()} 已加超时包裹，避免停容器竞态下无限阻塞。onNext 经守卫，不会晚于终态。
+ *
+ * <p>本类实例为单次使用，每次执行新建一个实例。
  */
 public final class DockerCommandRunner implements CommandRunner {
 
-    private static final String DOCKER_IMAGE = "ghcr.io/runify-dev/hush-toolbox";
+    private static final String DOCKER_IMAGE = "ghcr.io/runify-dev/hush-toolbox:v0.1.0";
     /**
      * 拉镜像用独立超时，不占用命令执行的时间预算
      */
     private static final int IMAGE_PULL_TIMEOUT = 600;
 
     /**
-     * 取消/退出后读流的合并兜底排空时长（秒），也用作 stopContainer 的优雅停止超时。
+     * 取消/退出后读流的合并兜底排空时长（秒），也用作 stopContainer 优雅停止超时与状态码获取超时。
      */
     private static final int STREAM_DRAIN = CommandRunner.resolveQueueCap("runify.terminal.drain.seconds", 2);
 
@@ -59,6 +64,11 @@ public final class DockerCommandRunner implements CommandRunner {
             CommandRunner.namedFactory("runify-docker"),
             new ThreadPoolExecutor.AbortPolicy());
 
+    static {
+        // 登记本池，供优雅关停统一管理
+        CommandRunnerLifecycle.registerPool(DRIVER_EXECUTOR);
+    }
+
     private final String command;
     private final Map<String, String> env;
     private final String workDir;
@@ -73,6 +83,14 @@ public final class DockerCommandRunner implements CommandRunner {
      * 标记是否被外部 kill；用于区分“超时”与“取消”，并支持 kill 抢跑（容器尚未启动即被取消）。
      */
     private volatile boolean killed = false;
+    /**
+     * exactly-once 终态守卫。
+     */
+    private final AtomicBoolean terminated = new AtomicBoolean(false);
+    /**
+     * 单次使用守卫：run() 不可重复调用。
+     */
+    private final AtomicBoolean started = new AtomicBoolean(false);
 
     public DockerCommandRunner(String command, Map<String, String> env, String workDir, int timeout) {
         this.command = command;
@@ -83,6 +101,19 @@ public final class DockerCommandRunner implements CommandRunner {
 
     @Override
     public void run(Listener listener) {
+        // 单次使用：重复 run() 直接拒绝
+        if (!started.compareAndSet(false, true)) {
+            listener.onError(new IllegalStateException("DockerCommandRunner 为单次使用，run() 不可重复调用"));
+            return;
+        }
+
+        // onNext 守卫：终态之后丢弃迟到分片
+        Consumer<String> emit = chunk -> {
+            if (!terminated.get()) {
+                listener.onNext(chunk);
+            }
+        };
+
         Runnable driver = () -> {
             DockerClient dc = null;
             String cid = null;
@@ -120,7 +151,7 @@ public final class DockerCommandRunner implements CommandRunner {
                 WaitContainerResultCallback waitCallback =
                         client.waitContainerCmd(cid).exec(new WaitContainerResultCallback());
 
-                stdoutFuture = followLog(client, containerId, true, listener::onNext);
+                stdoutFuture = followLog(client, containerId, true, emit);
                 stderrFuture = followLog(client, containerId, false, null);
 
                 client.startContainerCmd(cid).exec();
@@ -135,11 +166,12 @@ public final class DockerCommandRunner implements CommandRunner {
                 if (!finished && !killed) {
                     // 真·超时（非取消）
                     stopContainer(client, cid);
-                    listener.onError(new RuntimeException("命令执行超时（" + timeout + "秒）"));
+                    fail(listener, new RuntimeException("命令执行超时（" + timeout + "秒）"));
                     return;
                 }
 
-                int exitCode = waitCallback.awaitStatusCode();
+                // awaitStatusCode() 无超时：停容器竞态下可能无限阻塞，必须加超时包裹
+                int exitCode = awaitExitCodeBounded(waitCallback);
 
                 // 合并短兜底排空读流；完不完成都不阻塞终态，直接取累积内容
                 drainStreams(stdoutFuture, stderrFuture);
@@ -150,14 +182,14 @@ public final class DockerCommandRunner implements CommandRunner {
                 synchronized (stderrSb) {
                     stderr = stderrSb.toString();
                 }
-                listener.onComplete(new CommandResult(exitCode, stdout, stderr));
-            } catch (Exception e) {
+                complete(listener, new CommandResult(exitCode, stdout, stderr));
+            } catch (Throwable t) {
+                // Throwable：连 Error 一起兜住，避免 driver 线程静默死亡而不回调
                 if (dc != null && cid != null) {
                     stopContainer(dc, cid);
                 }
-                listener.onError(e);
+                fail(listener, t);
             } finally {
-                // 不阻塞等待读流；仅吞掉异常完成。容器随后手动删除，follow 流自然结束
                 if (stdoutFuture != null) stdoutFuture.exceptionally(ex -> null);
                 if (stderrFuture != null) stderrFuture.exceptionally(ex -> null);
                 // 手动删除容器（替代 autoRemove），覆盖正常/取消/超时/异常所有路径
@@ -170,14 +202,29 @@ public final class DockerCommandRunner implements CommandRunner {
                     } catch (Exception ignored) {
                     }
                 }
+                // 终极兜底：任何路径都没产生终态 → 兜一个 onError
+                if (terminated.compareAndSet(false, true)) {
+                    listener.onError(new IllegalStateException("命令 driver 结束但未产生终态回调（结构性兜底触发）"));
+                }
+                CommandRunnerLifecycle.untrack(this);
             }
         };
 
+        // 提交前登记；关停进行中则直接拒绝
+        if (!CommandRunnerLifecycle.track(this)) {
+            fail(listener, new RuntimeException("服务正在关停，已拒绝新的 docker 命令"));
+            return;
+        }
         try {
             DRIVER_EXECUTOR.execute(driver);
         } catch (RejectedExecutionException e) {
-            // 队列满：在调用线程（工作流线程）上立即拒绝 → 走失败
-            listener.onError(new RuntimeException("docker 执行队列已满，请稍后重试", e));
+            // 队列满 / 池已关闭：在调用线程上立即拒绝 → 走失败
+            CommandRunnerLifecycle.untrack(this);
+            fail(listener, new RuntimeException("docker 执行队列已满，请稍后重试", e));
+        } catch (Throwable t) {
+            // 提交阶段的任何其它异常：driver 未启动、finally 兜底不存在，这里必须补一个终态
+            CommandRunnerLifecycle.untrack(this);
+            fail(listener, t);
         }
     }
 
@@ -217,11 +264,34 @@ public final class DockerCommandRunner implements CommandRunner {
         }
     }
 
+    // ---- 终态把关（exactly-once）----
+
+    private void complete(Listener l, CommandResult r) {
+        if (terminated.compareAndSet(false, true)) {
+            l.onComplete(r);
+        }
+    }
+
+    private void fail(Listener l, Throwable e) {
+        if (terminated.compareAndSet(false, true)) {
+            l.onError(e);
+        }
+    }
+
     // ---- docker 专属底层工具 ----
 
     /**
-     * 合并等待读流排空，封顶 STREAM_DRAIN 秒；超时即放弃（已累积内容已在缓冲区中），不抛出。
+     * 给无超时的 awaitStatusCode() 套一个超时；拿不到状态码（取消竞态）则返回 -1。
      */
+    private int awaitExitCodeBounded(WaitContainerResultCallback waitCallback) {
+        try {
+            return CompletableFuture.supplyAsync(waitCallback::awaitStatusCode, STREAM_EXECUTOR)
+                    .get(STREAM_DRAIN, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
     private static void drainStreams(CompletableFuture<?>... futures) {
         try {
             CompletableFuture.allOf(futures).get(STREAM_DRAIN, TimeUnit.SECONDS);

@@ -5,6 +5,7 @@ import com.run.common.run_command.CommandRunner;
 import com.run.common.run_command.CommandResult;
 import com.run.common.run_command.impl.DockerCommandRunner;
 import com.run.common.run_command.impl.LocalCommandRunner;
+import com.run.workflow.nodes.terminal.TerminalNode;
 import io.vertx.core.Future;
 import com.run.RunApplication;
 import com.run.common.util.CommonUtils;
@@ -100,6 +101,24 @@ public class RunSkillNode extends INode<RunSkillNode, RunSkillNodeData> {
             wfm.nextFailInvoke(node, e);
         }
 
+        /**
+         * 取消：写取消上下文 + 走取消 next
+         */
+        private void cancel(WorkFlowManage wfm, RunSkillNode node, RunSkillNode.RunSkillConfig config, String runId) {
+            String id = config != null ? config.id() : CommonUtils.uuid7().toString();
+            node.status = NodeStatus.CANCELLED;
+            wfm.writeContext(node, "result", "已取消");
+            wfm.writeContext(node, "stdout", "");
+            wfm.writeContext(node, "stderr", "");
+            wfm.writeContext(node, "exitCode", -1);
+            wfm.writeContext(node, "tool", JsonObject.mapFrom(new ToolCallContent("run_command", "已取消", "",
+                    NodeStatus.CANCELLED, node, runId, id)));
+
+            // ⚠️ 取消推进：你只给了成功(nextInvoke)/失败(nextFailInvoke)，没给取消。
+            // 原来是 return wfm.nextCancelNodeSupplier();，下面按异步模型套了一层 nextInvoke，待确认。
+            wfm.nextInvoke(node, wfm.nextCancelNodeSupplier());
+        }
+
         @Override
         public Supplier<List<Node>> apply(WorkFlowManage wfm, RunSkillNode node) {
             String runId = (String) wfm.getParams().get("workflowRunId");
@@ -166,13 +185,19 @@ public class RunSkillNode extends INode<RunSkillNode, RunSkillNodeData> {
 
                             @Override
                             public void onComplete(CommandResult result) {
-                                if (node.getStatus() == NodeStatus.CANCELLED) return;
+                                if (node.getStatus() == NodeStatus.CANCELLED) {
+                                    cancel(wfm, node, config, runId);
+                                    return;
+                                }
                                 complete(wfm, node, config, runId, result.stdout(), result.stderr(), result.exitCode());
                             }
 
                             @Override
                             public void onError(Throwable e) {
-                                if (node.getStatus() == NodeStatus.CANCELLED) return;
+                                if (node.getStatus() == NodeStatus.CANCELLED) {
+                                    cancel(wfm, node, config, runId);
+                                    return;
+                                }
                                 fail(wfm, node, config, runId, e.getMessage(), e.getMessage(), 1, e);
                             }
                         });
