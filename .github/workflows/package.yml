@@ -1,0 +1,354 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. v0.3.0-beta)'
+        required: true
+      title:
+        description: 'Release title (e.g. 新增免补丁文件创建节点)'
+        required: true
+      highlights:
+        description: 'Release highlights (one per line)'
+        required: true
+        type: textarea
+      prerelease:
+        description: 'Is prerelease'
+        required: false
+        type: boolean
+        default: false
+      make_latest:
+        description: 'Mark as latest release'
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  build-jar:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm install
+          npm run build
+
+      - name: Build backend with Maven
+        run: mvn clean package -DskipTests
+
+      - name: Upload jar artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-jar
+          path: backend/target/runify.jar
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.version }}
+          name: ${{ inputs.title }}
+          body: ${{ inputs.highlights }}
+          files: backend/target/runify.jar
+          prerelease: ${{ inputs.prerelease }}
+          make_latest: ${{ inputs.make_latest }}
+
+  build-desktop:
+    needs: build-jar
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest]
+        include:
+          - os: macos-latest
+            platform: mac
+          - os: windows-latest
+            platform: win
+
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download jar artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-jar
+          path: installer/electron
+
+      - name: Download JRE
+        shell: bash
+        run: |
+          cd installer
+          bash installer.sh --jre-only 2>/dev/null || true
+          # Download JDK 25 for the platform
+          JAVA_VERSION="25"
+          HASH="bd75d5f9689641da8e1daabeccb5528b"
+          BASE="https://download.java.net/java/GA/jdk${JAVA_VERSION}/${HASH}/36/GPL"
+          JRE_DIR="electron/jre"
+          mkdir -p "$JRE_DIR"
+
+          if [ "${{ matrix.platform }}" = "mac" ]; then
+            ARCH=$(uname -m)
+            if [ "$ARCH" = "arm64" ]; then
+              URL="${BASE}/openjdk-${JAVA_VERSION}_macos-aarch64_bin.tar.gz"
+            else
+              URL="${BASE}/openjdk-${JAVA_VERSION}_macos-x64_bin.tar.gz"
+            fi
+            curl -L --connect-timeout 10 --max-time 600 -o /tmp/jdk.tar.gz "$URL"
+            tar -xzf /tmp/jdk.tar.gz -C "$JRE_DIR"
+            # Flatten
+            NESTED=$(find "$JRE_DIR" -maxdepth 1 -type d -name "jdk-*" | head -1)
+            if [ -n "$NESTED" ]; then
+              mv "$NESTED"/* "$JRE_DIR"/
+              rmdir "$NESTED"
+            fi
+          else
+            URL="${BASE}/openjdk-${JAVA_VERSION}_windows-x64_bin.zip"
+            curl -L --connect-timeout 10 --max-time 600 -o /tmp/jdk.zip "$URL"
+            unzip -q /tmp/jdk.zip -d "$JRE_DIR"
+            INNER=$(ls -d "$JRE_DIR"/*/ 2>/dev/null | head -1)
+            if [ -n "$INNER" ]; then
+              mv "$INNER"/* "$JRE_DIR"/
+              rmdir "$INNER"
+            fi
+          fi
+          echo "JRE downloaded to $JRE_DIR"
+
+      - name: Convert icon to ICO for Windows
+        if: matrix.platform == 'win'
+        shell: bash
+        run: |
+          pip install Pillow
+          python -c "
+          from PIL import Image
+          img = Image.open('frontend/public/favicon.ico')
+          sizes = [(16,16),(32,32),(48,48),(64,64),(128,128),(256,256)]
+          img.save('installer/electron/icon.ico', format='ICO', sizes=sizes)
+          "
+
+      - name: Install Electron dependencies
+        run: |
+          cd installer/electron
+          npm install
+
+      - name: Build Electron app
+        run: |
+          cd installer/electron
+          npm run build:${{ matrix.platform }}
+
+      - name: Sign macOS app
+        if: matrix.platform == 'mac'
+        run: |
+          cd installer/electron
+          find dist -name "*.app" -exec codesign --force --deep --sign - {} \;
+
+      - name: Upload desktop installer
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.version }}
+          files: |
+            installer/electron/dist/*.dmg
+            installer/electron/dist/*.exe
+          generate_release_notes: false
+          make_latest: ${{ inputs.make_latest }}
+
+      - name: Upload artifacts for TOS
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.platform }}
+          path: |
+            installer/electron/dist/*.dmg
+            installer/electron/dist/*.exe
+
+  upload-to-tos:
+    needs: [build-jar, build-desktop]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare release files
+        run: |
+          mkdir -p release/${{ inputs.version }}
+
+          # Copy jar
+          cp artifacts/backend-jar/runify.jar release/${{ inputs.version }}/
+
+          # Copy desktop installers
+          for dir in artifacts/desktop-*; do
+            if [ -d "$dir" ]; then
+              cp "$dir"/*.dmg release/${{ inputs.version }}/ 2>/dev/null || true
+              cp "$dir"/*.exe release/${{ inputs.version }}/ 2>/dev/null || true
+            fi
+          done
+
+          echo "Release files:"
+          ls -la release/${{ inputs.version }}/
+
+      - name: Upload to TOS
+        env:
+          TOS_ACCESS_KEY: ${{ secrets.VOLC_ACCESSKEY }}
+          TOS_SECRET_KEY: ${{ secrets.VOLC_SECRETKEY }}
+        run: |
+          pip install tos
+
+          python3 << 'PYEOF'
+          import os
+          import json
+          from datetime import datetime, timezone
+
+          ak = os.environ["TOS_ACCESS_KEY"]
+          sk = os.environ["TOS_SECRET_KEY"]
+          endpoint = "tos-cn-beijing.volces.com"
+          region = "cn-beijing"
+          bucket_name = "runify"
+          version = "${{ inputs.version }}"
+
+          import tos
+          from tos.enum import ACLType
+          client = tos.TosClientV2(ak, sk, endpoint, region)
+
+          release_dir = f"release/{version}"
+          files_to_upload = []
+
+          # Collect files
+          for f in os.listdir(release_dir):
+              filepath = os.path.join(release_dir, f)
+              if os.path.isfile(filepath):
+                  files_to_upload.append((f, filepath))
+
+          # Upload each file to version directory
+          for filename, filepath in files_to_upload:
+              key = f"release/{version}/{filename}"
+              print(f"  Upload {key}")
+              client.put_object_from_file(bucket_name, key, filepath)
+              client.put_object_acl(bucket_name, key, acl=ACLType.ACL_Public_Read)
+
+          # Build version index.json
+          title = """${{ inputs.title }}"""
+          highlights_text = """${{ inputs.highlights }}"""
+          prerelease = ${{ inputs.prerelease }}
+
+          # Parse highlights (one per line)
+          highlights = [line.strip() for line in highlights_text.strip().split('\n') if line.strip()]
+
+          # Build assets
+          base_url = f"https://runify.tos-cn-beijing.volces.com/release/{version}"
+          assets = []
+          for filename, filepath in files_to_upload:
+              size = os.path.getsize(filepath)
+              if filename.endswith('.dmg'):
+                  assets.append({
+                      "os": "macOS",
+                      "arch": "Apple Silicon · arm64",
+                      "type": "dmg",
+                      "label": filename,
+                      "size": size,
+                      "url": f"{base_url}/{filename}"
+                  })
+              elif filename.endswith('.exe'):
+                  assets.append({
+                      "os": "Windows",
+                      "arch": "x64 · 安装版",
+                      "type": "exe",
+                      "label": filename,
+                      "size": size,
+                      "url": f"{base_url}/{filename}"
+                  })
+              elif filename.endswith('.jar'):
+                  assets.append({
+                      "os": "通用 JAR",
+                      "arch": "需 JDK 25+",
+                      "type": "jar",
+                      "label": filename,
+                      "size": size,
+                      "url": f"{base_url}/{filename}"
+                  })
+
+          version_index = {
+              "version": version,
+              "date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+              "prerelease": prerelease,
+              "title": title,
+              "highlights": highlights,
+              "assets": assets
+          }
+
+          version_json_path = os.path.join(release_dir, "index.json")
+          with open(version_json_path, "w", encoding="utf-8") as f:
+              json.dump(version_index, f, indent=2, ensure_ascii=False)
+
+          # Upload version index.json
+          v_key = f"release/{version}/index.json"
+          print(f"  Upload {v_key}")
+          client.put_object_from_file(bucket_name, v_key, version_json_path)
+          client.put_object_acl(bucket_name, v_key, acl=ACLType.ACL_Public_Read)
+
+          # Build/update root index.json
+          root_key = "release/index.json"
+          root_index = {
+              "project": "Runify",
+              "repo": "https://github.com/runify-dev/runify",
+              "releasesUrl": "https://github.com/runify-dev/runify/releases",
+              "notice": "Beta 测试阶段,API 与数据结构可能在后续版本调整。"
+          }
+
+          # Try to get existing root index
+          try:
+              resp = client.get_object(bucket_name, root_key)
+              root_index = json.loads(resp.read().decode("utf-8"))
+          except Exception:
+              pass
+
+          # Add to versions list if not exists
+          versions = root_index.get("versions", [])
+          version_nums = [v["version"] for v in versions]
+          now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+          if version not in version_nums:
+              versions.insert(0, {
+                  "version": version,
+                  "time": now
+              })
+          else:
+              # Update existing version time
+              for v in versions:
+                  if v["version"] == version:
+                      v["time"] = now
+                      break
+          root_index["versions"] = versions
+
+          root_json_path = "release/index.json"
+          with open(root_json_path, "w", encoding="utf-8") as f:
+              json.dump(root_index, f, indent=2, ensure_ascii=False)
+
+          print(f"\n  Upload {root_key}")
+          client.put_object_from_file(bucket_name, root_key, root_json_path)
+          client.put_object_acl(bucket_name, root_key, acl=ACLType.ACL_Public_Read)
+
+          print("\nDone!")
+          print(f"  release/{version}/ -> {files_to_upload}")
+          print(f"  release/index.json -> version: {version}")
+          PYEOF
