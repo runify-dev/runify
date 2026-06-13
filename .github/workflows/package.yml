@@ -263,7 +263,7 @@ jobs:
           # Build version index.json
           title = """${{ inputs.title }}"""
           highlights_text = """${{ inputs.highlights }}"""
-          prerelease = ${{ inputs.prerelease }}
+          prerelease = "${{ inputs.prerelease }}" == "true"
 
           # Parse highlights (one per line)
           highlights = [line.strip() for line in highlights_text.strip().split('\n') if line.strip()]
