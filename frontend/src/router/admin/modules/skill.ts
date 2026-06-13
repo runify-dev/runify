@@ -60,6 +60,15 @@ const skillRouter = {
       component: () => import('@/views/skill/Setting.vue')
     },
     {
+      path: 'store',
+      name: 'skillStore',
+      meta: {
+        title: '技能商店',
+        activeMenu: 'skill',
+      },
+      component: () => import('@/views/skill/Store.vue')
+    },
+    {
       path: '403',
       name: 'skill403',
       meta: {

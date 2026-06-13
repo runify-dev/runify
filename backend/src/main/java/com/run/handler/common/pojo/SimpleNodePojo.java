@@ -1,6 +1,7 @@
 package com.run.handler.common.pojo;
 
 import com.run.dao.common.annotations.Column;
+import io.vertx.core.json.JsonObject;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -28,4 +29,6 @@ public class SimpleNodePojo {
     private String icon;
 
     private String desc;
+
+    private JsonObject meta;
 }

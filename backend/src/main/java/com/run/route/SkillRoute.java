@@ -207,6 +207,32 @@ public class SkillRoute implements IRoute {
                         .build())
                 .handler(iSkillHandler::importSkill);
 
+        apiRoute.post("/skill/folders/:folderId/resources/install-from-store")
+                .handler(BodyHandler.create())
+                .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.SKILL_CREATE)
+                                .addPermission(PermissionConstants.SKILL_CREATE.getResourcePermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
+                .handler(iSkillHandler::installFromStore);
+
+        apiRoute.post("/skill/resources/:skillId/upgrade-from-store")
+                .handler(BodyHandler.create())
+                .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.SKILL_EDIT)
+                                .addPermission(PermissionConstants.SKILL_EDIT.getResourcePermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
+                .handler(iSkillHandler::upgradeFromStore);
+
         // ===================== 技能文件（详情页文件树） =====================
         apiRoute.get("/skill/resources/:resourceId/files/tree")
                 .handler(tokenBasicAuthHandler)

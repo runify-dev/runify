@@ -13,6 +13,8 @@ export default {
   deleteConfirm: '删除确认',
   deleteMessage: '确定要删除「{name}」吗？此操作不可撤销。',
   deleteSuccess: '删除成功',
+  upgradeConfirm: '升级确认',
+  upgradeMessage: '确定要升级「{name}」到最新版本吗？此操作会重新导入技能文件。',
   createSuccess: '创建成功',
   renameSuccess: '重命名成功',
   uploadSuccess: '{name} 上传成功',
@@ -76,5 +78,27 @@ export default {
     folderNamePlaceholder: '请输入文件夹名称',
     newFileName: '新建文本.md',
     newFolderName: '新建文件夹'
+  },
+  store: {
+    title: '技能商店',
+    search: '搜索技能...',
+    empty: '暂无技能',
+    noResults: '未找到匹配的技能',
+    capabilities: '能力',
+    requires: '依赖',
+    note: '备注',
+    versions: '版本',
+    versionHistory: '版本历史',
+    install: '安装',
+    installed: '已安装',
+    installSuccess: '安装成功',
+    downloadStarted: '下载已开始',
+    installFailed: '安装失败',
+    loadFailed: '加载技能商店失败',
+    upgrade: '升级',
+    upgradeSuccess: '升级成功',
+    upgradeFailed: '升级失败',
+    newVersion: '有新版本可用',
+    fromStore: '商店'
   }
 }

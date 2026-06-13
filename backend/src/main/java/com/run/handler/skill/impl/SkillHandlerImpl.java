@@ -106,6 +106,13 @@ public class SkillHandlerImpl extends ResourceHandlerImpl<Skill, SkillFolder, Sk
         this.skillRelationMapper = skillRelationMapper;
     }
 
+    private void safeDelete(Path path) {
+        try {
+            Files.deleteIfExists(path);
+        } catch (Exception ignored) {
+        }
+    }
+
     private boolean isTextFile(String name) {
         String lower = name.toLowerCase();
         int dot = lower.lastIndexOf('.');
@@ -423,6 +430,335 @@ public class SkillHandlerImpl extends ResourceHandlerImpl<Skill, SkillFolder, Sk
         } catch (Exception e) {
             context.fail(e);
         }
+    }
+
+    @Override
+    public void installFromStore(RoutingContext context) {
+        String folderId = context.pathParam("folderId");
+        String storeId = context.body().asJsonObject().getString("storeId");
+        String storeVersion = context.body().asJsonObject().getString("storeVersion");
+        String zipUrl = context.body().asJsonObject().getString("zipUrl");
+
+        if (storeId == null || storeVersion == null || zipUrl == null) {
+            context.fail(400);
+            return;
+        }
+
+        try {
+            // Download zip from URL
+            Path tempZip = Files.createTempFile("skill-store-", ".zip");
+            try (InputStream in = new java.net.URL(zipUrl).openStream()) {
+                Files.copy(in, tempZip, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            }
+
+            Path tempDir = Files.createTempDirectory("skill-store-");
+            try (ZipInputStream zis = new ZipInputStream(new FileInputStream(tempZip.toFile()))) {
+                ZipEntry entry;
+                while ((entry = zis.getNextEntry()) != null) {
+                    Path filePath = tempDir.resolve(entry.getName()).normalize();
+                    if (!filePath.startsWith(tempDir)) {
+                        zis.closeEntry();
+                        continue;
+                    }
+                    if (entry.isDirectory()) {
+                        Files.createDirectories(filePath);
+                    } else {
+                        Files.createDirectories(filePath.getParent());
+                        Files.copy(zis, filePath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    }
+                    zis.closeEntry();
+                }
+            }
+
+            Path contentRoot = resolveContentRoot(tempDir);
+            JsonArray structure = new JsonArray();
+            buildStructureFromDir(contentRoot, ROOT_FOLDER_ID, structure, new HashMap<>());
+
+            if (structure.isEmpty()) {
+                deleteTempDir(tempDir);
+                safeDelete(tempZip);
+                context.fail(new IllegalStateException("压缩包内未找到任何技能文件"));
+                return;
+            }
+
+            UUID skillId = UUID.randomUUID();
+            UUID parentUuId = TreeUtil.getParentUuId(folderId);
+            LocalDateTime now = LocalDateTime.now();
+
+            Map<String, UUID> idMap = new HashMap<>();
+            for (int i = 0; i < structure.size(); i++) {
+                idMap.put(structure.getJsonObject(i).getString("id"), UUID.randomUUID());
+            }
+
+            List<SkillFile> foldersToSave = new ArrayList<>();
+            List<SkillFile> textsToSave = new ArrayList<>();
+            List<Map.Entry<SkillFile, java.io.File>> filesToUpload = new ArrayList<>();
+
+            for (int i = 0; i < structure.size(); i++) {
+                JsonObject item = structure.getJsonObject(i);
+                String type = item.getString("type");
+                String oldParentId = item.getString("parentId", "");
+
+                SkillFile sf = new SkillFile();
+                sf.setId(idMap.get(item.getString("id")));
+                sf.setParentId(oldParentId.isEmpty() ? ROOT_FOLDER_ID : idMap.getOrDefault(oldParentId, ROOT_FOLDER_ID));
+                sf.setSkillId(skillId);
+                sf.setName(item.getString("name"));
+                sf.setType(type);
+                sf.setCreateTime(now);
+                sf.setUpdateTime(now);
+
+                Path contentPath = contentRoot.resolve(buildFilePathFromStructure(structure, item));
+
+                if ("text".equals(type)) {
+                    sf.setContent(Files.exists(contentPath) ? readTextFile(contentPath) : "");
+                    textsToSave.add(sf);
+                } else if ("file".equals(type)) {
+                    sf.setFileName(item.getString("fileName", item.getString("name")));
+                    sf.setFileSize(item.getLong("fileSize", 0L));
+                    if (Files.exists(contentPath)) {
+                        filesToUpload.add(Map.entry(sf, contentPath.toFile()));
+                    } else {
+                        foldersToSave.add(sf);
+                    }
+                } else {
+                    foldersToSave.add(sf);
+                }
+            }
+
+            String skillMd = null;
+            SkillFile skillMdFile = null;
+            StringBuilder corpus = new StringBuilder();
+            for (SkillFile sf : textsToSave) {
+                if (sf.getContent() != null) corpus.append(sf.getContent()).append('\n');
+                if ("SKILL.md".equalsIgnoreCase(sf.getName())) {
+                    if (ROOT_FOLDER_ID.equals(sf.getParentId()) || skillMd == null) {
+                        skillMd = sf.getContent();
+                        skillMdFile = sf;
+                    }
+                }
+            }
+            JsonArray paramForm = buildSkillParameterForm(skillMd, corpus.toString());
+
+            if (skillMdFile != null && skillMdFile.getContent() != null) {
+                Matcher fmMatcher = FRONTMATTER.matcher(skillMdFile.getContent());
+                if (fmMatcher.find()) {
+                    skillMdFile.setContent(fmMatcher.group(2));
+                }
+            }
+
+            Map<String, String> fmMeta = parseFrontmatterMeta(skillMd);
+            String skillName = fmMeta.getOrDefault("name", contentRoot.getFileName().toString());
+            String skillDesc = fmMeta.getOrDefault("description", "");
+
+            JsonObject meta = new JsonObject()
+                    .put("storeId", storeId)
+                    .put("storeVersion", storeVersion)
+                    .put("installedAt", java.time.Instant.now().toString());
+
+            Skill skill = new Skill(skillId, parentUuId, skillName, "", skillDesc, "", new JsonArray(), meta, now, now);
+            skill.setSkillParameterForm(paramForm);
+
+            Skill finalSkill = skill;
+            UUID finalSkillId = skillId;
+            Tool.getNodeRelation(skillRelationMapper, parentUuId, skillId, this::newRelation, this::getAncestorId, this::getDepth)
+                    .compose(skillRelationMapper::batch_save)
+                    .compose(_ -> skillMapper.save(finalSkill))
+                    .compose(_ -> {
+                        List<Future<?>> futures = new ArrayList<>();
+                        for (SkillFile sf : foldersToSave) futures.add(skillFileMapper.save(sf));
+                        for (SkillFile sf : textsToSave) futures.add(skillFileMapper.save(sf));
+                        for (var entry : filesToUpload) {
+                            SkillFile sf = entry.getKey();
+                            java.io.File file = entry.getValue();
+                            futures.add(fileMapper.upload(sf.getFileName(), file.length(), null, null, file)
+                                    .compose(fe -> {
+                                        sf.setFileId(fe.getId());
+                                        sf.setFileSize(fe.getSize());
+                                        return skillFileMapper.save(sf);
+                                    }));
+                        }
+                        return Future.all(futures);
+                    })
+                    .onSuccess(_ -> {
+                        deleteTempDir(tempDir);
+                        safeDelete(tempZip);
+                        context.end(Result.success(finalSkill).toBuffer());
+                    })
+                    .onFailure(e -> {
+                        deleteTempDir(tempDir);
+                        safeDelete(tempZip);
+                        context.fail(e);
+                    });
+        } catch (Exception e) {
+            context.fail(e);
+        }
+    }
+
+    @Override
+    public void upgradeFromStore(RoutingContext context) {
+        String skillId = context.pathParam("skillId");
+        String storeVersion = context.body().asJsonObject().getString("storeVersion");
+        String zipUrl = context.body().asJsonObject().getString("zipUrl");
+
+        if (storeVersion == null || zipUrl == null) {
+            context.fail(400);
+            return;
+        }
+
+        skillMapper.getById(skillId)
+                .compose(skill -> {
+                    if (skill == null) {
+                        return Future.failedFuture("技能不存在");
+                    }
+
+                    String oldParameterValue = skill.getParameterValue();
+                    return skillFileMapper.deleteBySkillId(skillId)
+                            .compose(_ -> {
+                                try {
+                                    // Download and import new version
+                                    Path tempZip = Files.createTempFile("skill-upgrade-", ".zip");
+                                    try (InputStream in = new java.net.URL(zipUrl).openStream()) {
+                                        Files.copy(in, tempZip, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                                    }
+
+                                    Path tempDir = Files.createTempDirectory("skill-upgrade-");
+                                    try (ZipInputStream zis = new ZipInputStream(new FileInputStream(tempZip.toFile()))) {
+                                        ZipEntry entry;
+                                        while ((entry = zis.getNextEntry()) != null) {
+                                            Path filePath = tempDir.resolve(entry.getName()).normalize();
+                                            if (!filePath.startsWith(tempDir)) {
+                                                zis.closeEntry();
+                                                continue;
+                                            }
+                                            if (entry.isDirectory()) {
+                                                Files.createDirectories(filePath);
+                                            } else {
+                                                Files.createDirectories(filePath.getParent());
+                                                Files.copy(zis, filePath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                                            }
+                                            zis.closeEntry();
+                                        }
+                                    }
+
+                                    Path contentRoot = resolveContentRoot(tempDir);
+                                    JsonArray structure = new JsonArray();
+                                    buildStructureFromDir(contentRoot, ROOT_FOLDER_ID, structure, new HashMap<>());
+
+                                    if (structure.isEmpty()) {
+                                        deleteTempDir(tempDir);
+                                        safeDelete(tempZip);
+                                        return Future.failedFuture("压缩包内未找到任何技能文件");
+                                    }
+
+                                    LocalDateTime now = LocalDateTime.now();
+                                    Map<String, UUID> idMap = new HashMap<>();
+                                    for (int i = 0; i < structure.size(); i++) {
+                                        idMap.put(structure.getJsonObject(i).getString("id"), UUID.randomUUID());
+                                    }
+
+                                    List<SkillFile> foldersToSave = new ArrayList<>();
+                                    List<SkillFile> textsToSave = new ArrayList<>();
+                                    List<Map.Entry<SkillFile, java.io.File>> filesToUpload = new ArrayList<>();
+
+                                    for (int i = 0; i < structure.size(); i++) {
+                                        JsonObject item = structure.getJsonObject(i);
+                                        String type = item.getString("type");
+                                        String oldParentId = item.getString("parentId", "");
+
+                                        SkillFile sf = new SkillFile();
+                                        sf.setId(idMap.get(item.getString("id")));
+                                        sf.setParentId(oldParentId.isEmpty() ? ROOT_FOLDER_ID : idMap.getOrDefault(oldParentId, ROOT_FOLDER_ID));
+                                        sf.setSkillId(UUID.fromString(skillId));
+                                        sf.setName(item.getString("name"));
+                                        sf.setType(type);
+                                        sf.setCreateTime(now);
+                                        sf.setUpdateTime(now);
+
+                                        Path contentPath = contentRoot.resolve(buildFilePathFromStructure(structure, item));
+
+                                        if ("text".equals(type)) {
+                                            sf.setContent(Files.exists(contentPath) ? readTextFile(contentPath) : "");
+                                            textsToSave.add(sf);
+                                        } else if ("file".equals(type)) {
+                                            sf.setFileName(item.getString("fileName", item.getString("name")));
+                                            sf.setFileSize(item.getLong("fileSize", 0L));
+                                            if (Files.exists(contentPath)) {
+                                                filesToUpload.add(Map.entry(sf, contentPath.toFile()));
+                                            } else {
+                                                foldersToSave.add(sf);
+                                            }
+                                        } else {
+                                            foldersToSave.add(sf);
+                                        }
+                                    }
+
+                                    String skillMd = null;
+                                    SkillFile skillMdFile = null;
+                                    StringBuilder corpus = new StringBuilder();
+                                    for (SkillFile sf : textsToSave) {
+                                        if (sf.getContent() != null) corpus.append(sf.getContent()).append('\n');
+                                        if ("SKILL.md".equalsIgnoreCase(sf.getName())) {
+                                            if (ROOT_FOLDER_ID.equals(sf.getParentId()) || skillMd == null) {
+                                                skillMd = sf.getContent();
+                                                skillMdFile = sf;
+                                            }
+                                        }
+                                    }
+                                    JsonArray paramForm = buildSkillParameterForm(skillMd, corpus.toString());
+
+                                    if (skillMdFile != null && skillMdFile.getContent() != null) {
+                                        Matcher fmMatcher = FRONTMATTER.matcher(skillMdFile.getContent());
+                                        if (fmMatcher.find()) {
+                                            skillMdFile.setContent(fmMatcher.group(2));
+                                        }
+                                    }
+
+                                    Map<String, String> fmMeta = parseFrontmatterMeta(skillMd);
+                                    String skillName = fmMeta.getOrDefault("name", contentRoot.getFileName().toString());
+                                    String skillDesc = fmMeta.getOrDefault("description", "");
+
+                                    // Update skill
+                                    skill.setName(skillName);
+                                    skill.setDesc(skillDesc);
+                                    skill.setSkillParameterForm(paramForm);
+                                    skill.setParameterValue(oldParameterValue);
+                                    skill.setUpdateTime(now);
+
+                                    JsonObject meta = skill.getMeta();
+                                    if (meta == null) meta = new JsonObject();
+                                    meta.put("storeVersion", storeVersion);
+                                    meta.put("upgradedAt", now.toString());
+                                    skill.setMeta(meta);
+
+                                    Skill finalSkill = skill;
+                                    List<Future<?>> futures = new ArrayList<>();
+                                    futures.add(skillMapper.update(finalSkill));
+                                    for (SkillFile sf : foldersToSave) futures.add(skillFileMapper.save(sf));
+                                    for (SkillFile sf : textsToSave) futures.add(skillFileMapper.save(sf));
+                                    for (var entry : filesToUpload) {
+                                        SkillFile sf = entry.getKey();
+                                        java.io.File file = entry.getValue();
+                                        futures.add(fileMapper.upload(sf.getFileName(), file.length(), null, null, file)
+                                                .compose(fe -> {
+                                                    sf.setFileId(fe.getId());
+                                                    sf.setFileSize(fe.getSize());
+                                                    return skillFileMapper.save(sf);
+                                                }));
+                                    }
+
+                                    return Future.all(futures).map(_ -> {
+                                        deleteTempDir(tempDir);
+                                        safeDelete(tempZip);
+                                        return finalSkill;
+                                    });
+                                } catch (Exception e) {
+                                    return Future.failedFuture(e);
+                                }
+                            });
+                })
+                .onSuccess(skill -> context.end(Result.success(skill).toBuffer()))
+                .onFailure(context::fail);
     }
 
     // ============ frontmatter 构建 ============

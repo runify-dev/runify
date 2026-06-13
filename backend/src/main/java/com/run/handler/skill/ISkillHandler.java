@@ -11,4 +11,8 @@ public interface ISkillHandler extends IResourceHandler<Skill> {
     void exportSkill(RoutingContext context);
 
     void importSkill(RoutingContext context);
+
+    void installFromStore(RoutingContext context);
+
+    void upgradeFromStore(RoutingContext context);
 }

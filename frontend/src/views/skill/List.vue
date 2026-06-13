@@ -16,6 +16,10 @@
       <!-- 操作按钮组 -->
       <div class="flex items-center gap-2 shrink-0">
         <input ref="fileInputRef" type="file" accept=".zip" class="hidden" @change="handleImport"/>
+        <Button icon="pi pi-shopping-bag"
+                :label="t('skill.store.title')"
+                severity="secondary"
+                @click="router.push({name: 'skillStore'})"/>
         <Button icon="pi pi-plus"
                 v-if="permissionCreate"
                 :label="t('skill.create')" @click="toggleCreateMenu"/>
@@ -53,10 +57,11 @@
             <div class="flex items-start justify-between p-4 pb-0">
               <div class="w-10 h-10 rounded-xl bg-primary-50 flex items-center justify-center text-primary-500 text-lg shrink-0 overflow-hidden">
                 <img
-                  v-if="item.icon"
-                  :src="item.icon"
+                  v-if="getStoreIcon(item)"
+                  :src="getStoreIcon(item)"
                   alt="icon"
                   class="w-full h-full object-cover"
+                  @error="($event.target as HTMLImageElement).style.display='none'"
                 />
                 <i v-else class="pi pi-bolt"/>
               </div>
@@ -73,7 +78,15 @@
           </template>
           <template #footer>
             <div class="flex items-center justify-between pt-2.5 border-t" style="border-color: var(--p-content-border-color);">
-              <span class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300">{{ t('skill.skillLabel') }}</span>
+              <div class="flex items-center gap-1.5">
+                <span v-if="(item.meta as any)?.storeId" class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300">{{ t('skill.store.fromStore') }}</span>
+                <span v-else class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300">{{ t('skill.skillLabel') }}</span>
+                <span v-if="upgradableMap[item.id]"
+                  class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-300 flex items-center gap-0.5 cursor-pointer hover:bg-green-100 dark:hover:bg-green-900/50"
+                  @click.stop="handleUpgrade(item)">
+                  <i class="pi pi-arrow-up text-[9px]"/> {{ t('skill.store.upgrade') }}
+                </span>
+              </div>
               <span class="flex items-center gap-1 text-[11px] text-surface-400"><i class="pi pi-clock text-[10px]"/> {{ item.updateTime }}</span>
             </div>
           </template>
@@ -111,6 +124,7 @@ import {PermissionConstants} from "@/permission/data.ts";
 import {Role} from "@/permission/common.ts";
 import {ROOT_FOLDER_ID} from "@/constants/common.ts";
 import {t} from '@/locales'
+import skillStoreApi from '@/api/skill-store'
 
 const treeCommonAPI = new TreeCommonAPI('skill')
 const router = useRouter()
@@ -124,6 +138,8 @@ const menuRef = ref()
 const createMenuRef = ref()
 const activeItem = ref<Node | null>(null)
 const fileInputRef = ref<HTMLInputElement>()
+const upgrading = ref(false)
+const upgradableMap = ref<Record<string, boolean>>({})
 
 const filteredList = computed(() =>
   searchText.value
@@ -139,6 +155,14 @@ const folderId = computed(() => {
   } = route as any
   return id
 })
+
+const getStoreIcon = (item: Node): string => {
+  const meta = item.meta as any
+  if (meta?.storeId && meta?.storeVersion) {
+    return skillStoreApi.getSkillIconUrl(meta.storeId, meta.storeVersion)
+  }
+  return item.icon || ''
+}
 
 const createMenuItems = computed(() => [
   {
@@ -186,7 +210,7 @@ const toggleMenu = (event: Event, item: Node) => {
 }
 
 const handleOpen = (item: Node) => {
-  router.push({name: 'skillDetails', params: {id: item.id, fileId: ROOT_FOLDER_ID}})
+  router.push({name: 'skillSetting', params: {id: item.id}})
   bus.emit('sidebar:flip', item.id)
 }
 
@@ -231,10 +255,66 @@ const handleDelete = (item: Node) => {
   })
 }
 
+const handleUpgrade = (item: Node) => {
+  const meta = item.meta as any
+  if (!meta?.storeId || !meta?.storeVersion) return
+
+  confirm.require({
+    message: t('skill.upgradeMessage', {name: item.name, version: meta.storeVersion}),
+    header: t('skill.upgradeConfirm'),
+    icon: 'pi pi-arrow-up',
+    rejectProps: {label: t('common.cancel'), severity: 'secondary', variant: 'outlined'},
+    acceptProps: {label: t('skill.store.upgrade'), severity: 'info'},
+    accept: async () => {
+      upgrading.value = true
+      try {
+        const storeDetail = await skillStoreApi.getSkillDetail(meta.storeId)
+        const latestVersion = storeDetail.versions[0]?.version
+        if (!latestVersion) {
+          toast.add({severity: 'error', summary: t('skill.store.upgradeFailed'), life: 3000})
+          return
+        }
+
+        const zipUrl = skillStoreApi.getSkillZipUrl(meta.storeId, latestVersion)
+        await skillStoreApi.upgradeFromStore(item.id, latestVersion, zipUrl)
+        toast.add({severity: 'success', summary: t('skill.store.upgradeSuccess'), life: 2000})
+        lisResource()
+      } catch (e) {
+        console.error('Upgrade failed:', e)
+        toast.add({severity: 'error', summary: t('skill.store.upgradeFailed'), life: 3000})
+      } finally {
+        upgrading.value = false
+        confirm.close()
+      }
+    }
+  })
+}
+
 const lisResource = () => {
   treeCommonAPI.listResource(folderId.value).then((ok) => {
     nodeList.value = ok.data
+    checkUpgrades(ok.data)
   })
+}
+
+const checkUpgrades = async (nodes: Node[]) => {
+  const storeSkills = nodes.filter(n => (n.meta as any)?.storeId)
+  const map: Record<string, boolean> = {}
+  for (const skill of storeSkills) {
+    const meta = skill.meta as any
+    try {
+      const storeDetail = await skillStoreApi.getSkillDetail(meta.storeId)
+      const latestVersion = storeDetail.versions[0]
+      if (latestVersion?.version && meta.storeVersion) {
+        if (latestVersion.version !== meta.storeVersion) {
+          map[skill.id] = true
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+  upgradableMap.value = map
 }
 
 watch(folderId, () => {

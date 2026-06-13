@@ -166,7 +166,7 @@ const nodeSelect = (treeNode?: TreeNode) => {
   } else {
     flipCardRef.value?.flip()
     loadSkillFileTree(treeNode.key)
-    router.push({name: 'skillDetails', params: {id: treeNode.key, fileId: ROOT_FOLDER_ID}})
+    router.push({name: 'skillSetting', params: {id: treeNode.key}})
   }
 }
 
@@ -441,7 +441,7 @@ onMounted(() => {
     const id = skillId || route.params.id as string
     if (id) {
       loadSkillFileTree(id)
-      router.push({name: 'skillDetails', params: {id, fileId: ROOT_FOLDER_ID}})
+      router.push({name: 'skillSetting', params: {id}})
     }
   })
   treeCommonAPI.listTree(ROOT_FOLDER_ID).then(ok => {
