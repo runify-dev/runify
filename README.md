@@ -26,36 +26,10 @@
   <a href="https://github.com/runify-dev/runify/releases/download/v0.2.0-beta/Runify-1.0.0-arm64.dmg">📦 下载 macOS (Apple Silicon)</a>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="https://github.com/runify-dev/runify/releases/download/v0.2.0-beta/Runify.Setup.1.0.0.exe">📦 下载 Windows</a>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="https://github.com/runify-dev/runify/releases/download/v0.2.0-beta/runify.jar">☕ 下载 JAR 包</a>
 </p>
 
----
-
-> **告别黑盒与魔法，一切尽在掌握。**  
-> 在 Runify 中，你看到的每一步推理、每一次工具调用、每一个决策节点，都是完全透明、可编辑且可调试的。我们致力于将算法与工程的确定性，重新完整地交还给开发者。
-
----
-
-## 🔍 为什么选择 Runify
-
-| 对比维度 | Runify | Dify | MaxKB | FastGPT |
-|---------|--------|------|-------|---------|
-| 内存占用 | **≈ 200MB** | 4GB+（官方建议 8GB+） | 4GB+（官方建议 4C/8GB） | 4GB+（官方 5 容器起步） |
-| 启动速度 | **1~2 秒** | 分钟级（13 个容器编排） | 分钟级 | 分钟级 |
-| 依赖 Docker | **❌ 不需要** | ✅ 必须 | ✅ 必须 | ✅ 必须 |
-| 桌面安装包 | **✅ macOS / Windows** | ❌ | ❌ | ❌ |
-| 外部组件依赖 | **SQLite 零配置运行** | PostgreSQL + Redis + Weaviate + Nginx + Sandbox 等 | PostgreSQL + pgvector | PostgreSQL + MongoDB + Sandbox |
-| 高并发能力 | **Vert.x NIO 异步架构**，轻量与高吞吐兼得 | Python + Flask/Celery | Python + Django | Next.js + Node.js |
-| 内置搜索引擎 | **✅ Lucene 内置** | ❌ 依赖 Weaviate/Qdrant | ❌ 依赖 pgvector | ❌ 依赖 PG 向量插件 |
-| 内置工作流模板 | **✅ 智能体 + 知识库检索** | 需自行搭建 | 需自行搭建 | 需自行搭建 |
-| 白盒透明度 | **全链路可查看、可编辑、可调试** | 部分可视化 | 部分可视化 | 部分可视化 |
-| 企业级权限 | **✅ RBAC 细粒度权限** | ✅ | 社区版限 1 人 | 基础权限 |
-| 统一对话管理 | **✅ 多 Agent 对话统筹** | 分应用管理 | 分应用管理 | 分应用管理 |
-| 第三方嵌入 | **API / Webhook 低成本接入** | API 接入 | iframe / API | iframe / API |
-
-> 💬 以上对比基于各项目官方文档与社区部署实践。Runify 不是要替代这些优秀项目，而是为追求**轻量部署、透明可控、低门槛上手**的开发者和团队提供另一种选择。
-
+🌐 **完整介绍与在线了解 → [runify.cn](https://runify.cn)**
 ---
 
 ## 🎬 项目演示
-<a href="http://115.159.2.32:8080/conversation/a/513ab165-edbc-40b8-af26-7ae4e09819e8">在线演示</a>
 <!-- 建议替换为你的截图或 GIF -->
 
 | <img width="400" src="https://github.com/user-attachments/assets/2ea7088b-a1a1-45c4-a235-bc19bcde2b8a" /> |  <img width="400" src="https://github.com/user-attachments/assets/565a2868-5c7d-439f-9993-d4a01cb95d9b" /> |
@@ -237,7 +211,7 @@ runify/
 ---
 ## 技术交流
 
-<img width="300" height="300" alt="c177135ae214abf9370e57496da28f76" src="https://github.com/user-attachments/assets/de289df0-e177-475e-80c8-611202c7910c" />
+<img width="300" height="300" alt="c177135ae214abf9370e57496da28f76" src="https://github.com/user-attachments/assets/b7639a91-89e5-46ec-934a-545cc747ac70" />
 
 ## 🤝 参与贡献
 
