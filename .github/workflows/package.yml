@@ -112,7 +112,7 @@ jobs:
             else
               URL="${BASE}/openjdk-${JAVA_VERSION}_macos-x64_bin.tar.gz"
             fi
-            curl -L --connect-timeout 10 --max-time 600 -o /tmp/jdk.tar.gz "$URL"
+            curl -fL --connect-timeout 10 --max-time 600 -o /tmp/jdk.tar.gz "$URL"
             tar -xzf /tmp/jdk.tar.gz -C "$JRE_DIR"
             # Flatten
             NESTED=$(find "$JRE_DIR" -maxdepth 1 -type d -name "jdk-*" | head -1)
@@ -122,7 +122,7 @@ jobs:
             fi
           else
             URL="${BASE}/openjdk-${JAVA_VERSION}_windows-x64_bin.zip"
-            curl -L --connect-timeout 10 --max-time 600 -o /tmp/jdk.zip "$URL"
+            curl -fL --connect-timeout 10 --max-time 600 -o /tmp/jdk.zip "$URL"
             unzip -q /tmp/jdk.zip -d "$JRE_DIR"
             INNER=$(ls -d "$JRE_DIR"/*/ 2>/dev/null | head -1)
             if [ -n "$INNER" ]; then
@@ -213,7 +213,9 @@ jobs:
           TOS_ACCESS_KEY: ${{ secrets.VOLC_ACCESSKEY }}
           TOS_SECRET_KEY: ${{ secrets.VOLC_SECRETKEY }}
         run: |
-          pip install tos
+          # 锁定 SDK 版本:complete_multipart_upload 的 PartInfo 接口随版本变动,
+          # 这里固定到你本地验证过能跑通的版本,升级前先回归测试。
+          pip install "tos==2.8.0"
 
           python3 << 'PYEOF'
           import os
@@ -232,11 +234,24 @@ jobs:
           print(f"AK exists: {bool(ak)}, SK exists: {bool(sk)}")
           sys.stdout.flush()
 
+          if not ak or not sk:
+              print("✗ 缺少 TOS_ACCESS_KEY / TOS_SECRET_KEY,无法上传")
+              sys.exit(1)
+
           import tos
           from tos.enum import ACLType
-          client = tos.TosClientV2(ak, sk, endpoint, region)
+          from tos.model import PartInfo
+
+          # 超时直接在构造时设置(原先 RequestOption 没传进任何调用,等于没生效)
+          client = tos.TosClientV2(
+              ak, sk, endpoint, region,
+              connection_time=30,
+              socket_timeout=300,
+          )
           print("TOS client created")
           sys.stdout.flush()
+
+          PUBLIC_READ = ACLType.ACL_Public_Read
 
           release_dir = f"release/{version}"
           files_to_upload = []
@@ -250,15 +265,78 @@ jobs:
           # Upload each file to version directory
           print(f"Found {len(files_to_upload)} files to upload")
           sys.stdout.flush()
+          import time
+
+          def upload_with_retry(bucket, key, filepath, max_retries=3):
+              """上传并在同一步设置公共读 ACL。
+              返回 (success, elapsed, speed)。ACL 失败也算整体失败,避免传上去却下不动。"""
+              size = os.path.getsize(filepath)
+              size_mb = size / (1024 * 1024)
+              for attempt in range(1, max_retries + 1):
+                  try:
+                      start = time.time()
+                      if size > 20 * 1024 * 1024:
+                          print(f"  Using multipart upload (attempt {attempt})...")
+                          sys.stdout.flush()
+                          part_size = 10 * 1024 * 1024
+                          # ACL 在初始化分片上传时设置,完成后对象即为公共读
+                          upload_id = client.init_multipart_upload(
+                              bucket, key, acl=PUBLIC_READ
+                          ).upload_id
+                          parts = []
+                          offset = 0
+                          part_num = 1
+                          while offset < size:
+                              end = min(offset + part_size, size)
+                              print(f"    Part {part_num}: {offset/(1024*1024):.1f}-{end/(1024*1024):.1f} MB")
+                              sys.stdout.flush()
+                              result = client.upload_part_from_file(
+                                  bucket, key, upload_id, part_num, filepath,
+                                  offset=offset, part_size=end - offset,
+                              )
+                              # 显式构造 PartInfo,不依赖返回对象能被 complete 直接消费
+                              parts.append(PartInfo(part_number=part_num, etag=result.etag))
+                              offset = end
+                              part_num += 1
+                          client.complete_multipart_upload(bucket, key, upload_id, parts)
+                      else:
+                          client.put_object_from_file(bucket, key, filepath, acl=PUBLIC_READ)
+                      elapsed = time.time() - start
+                      speed = size_mb / elapsed if elapsed > 0 else 0
+                      return True, elapsed, speed
+                  except Exception as e:
+                      print(f"  ⚠ Attempt {attempt} failed: {e}")
+                      sys.stdout.flush()
+                      if attempt < max_retries:
+                          wait = attempt * 5
+                          print(f"  Retrying in {wait}s...")
+                          sys.stdout.flush()
+                          time.sleep(wait)
+              return False, 0, 0
+
+          uploaded = []  # 只有真正上传成功的文件才进 assets
+          failed = []
+
           for filename, filepath in files_to_upload:
               key = f"release/{version}/{filename}"
               size = os.path.getsize(filepath)
-              print(f"  Upload {key} ({size} bytes)...")
+              size_mb = size / (1024 * 1024)
+              print(f"  Upload {key} ({size_mb:.1f} MB)...")
               sys.stdout.flush()
-              client.put_object_from_file(bucket_name, key, filepath)
-              client.put_object_acl(bucket_name, key, acl=ACLType.ACL_Public_Read)
-              print(f"  ✓ {key}")
+              success, elapsed, speed = upload_with_retry(bucket_name, key, filepath)
+              if success:
+                  print(f"  ✓ {key} ({elapsed:.1f}s, {speed:.1f} MB/s)")
+                  uploaded.append((filename, filepath))
+              else:
+                  print(f"  ✗ {key} FAILED after 3 attempts")
+                  failed.append(filename)
               sys.stdout.flush()
+
+          # 任一文件上传失败就让整个 job 失败,且不写出残缺的 index.json
+          if failed:
+              print(f"\n✗ {len(failed)} file(s) failed to upload: {failed}")
+              sys.stdout.flush()
+              sys.exit(1)
 
           # Build version index.json
           title = """${{ inputs.title }}"""
@@ -268,10 +346,10 @@ jobs:
           # Parse highlights (one per line)
           highlights = [line.strip() for line in highlights_text.strip().split('\n') if line.strip()]
 
-          # Build assets
+          # Build assets(只基于上传成功的文件)
           base_url = f"https://runify.tos-cn-beijing.volces.com/release/{version}"
           assets = []
-          for filename, filepath in files_to_upload:
+          for filename, filepath in uploaded:
               size = os.path.getsize(filepath)
               if filename.endswith('.dmg'):
                   assets.append({
@@ -314,12 +392,11 @@ jobs:
           with open(version_json_path, "w", encoding="utf-8") as f:
               json.dump(version_index, f, indent=2, ensure_ascii=False)
 
-          # Upload version index.json
+          # Upload version index.json(同样一步带公共读 ACL)
           v_key = f"release/{version}/index.json"
           print(f"  Upload {v_key}...")
           sys.stdout.flush()
-          client.put_object_from_file(bucket_name, v_key, version_json_path)
-          client.put_object_acl(bucket_name, v_key, acl=ACLType.ACL_Public_Read)
+          client.put_object_from_file(bucket_name, v_key, version_json_path, acl=PUBLIC_READ)
           print(f"  ✓ {v_key}")
           sys.stdout.flush()
 
@@ -366,13 +443,12 @@ jobs:
 
           print(f"\n  Upload {root_key}...")
           sys.stdout.flush()
-          client.put_object_from_file(bucket_name, root_key, root_json_path)
-          client.put_object_acl(bucket_name, root_key, acl=ACLType.ACL_Public_Read)
+          client.put_object_from_file(bucket_name, root_key, root_json_path, acl=PUBLIC_READ)
           print(f"  ✓ {root_key}")
           sys.stdout.flush()
 
           print("\n✅ Done!")
-          print(f"  release/{version}/ -> {files_to_upload}")
+          print(f"  release/{version}/ -> {uploaded}")
           print(f"  release/index.json -> version: {version}")
           sys.stdout.flush()
           PYEOF
