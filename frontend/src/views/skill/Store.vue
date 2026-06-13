@@ -145,7 +145,7 @@
                 <div class="flex items-center gap-2">
                   <span class="font-semibold text-sm">{{ ver.version }}</span>
                   <Tag v-if="ver.prerelease" value="Pre-release" severity="warn" class="text-[10px]"/>
-                  <span class="text-xs text-surface-400">{{ formatDate(ver.time) }}</span>
+                  <span class="text-xs text-surface-400">{{ formatDate(ver.date) }}</span>
                 </div>
                 <div v-if="getInstallStatus(selectedSkill.id, ver.version) === 'installed'">
                   <Tag :value="t('skill.store.installed')" severity="success" class="text-xs"/>
