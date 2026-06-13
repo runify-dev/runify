@@ -215,7 +215,7 @@ jobs:
         run: |
           # 锁定 SDK 版本:complete_multipart_upload 的 PartInfo 接口随版本变动,
           # 这里固定到你本地验证过能跑通的版本,升级前先回归测试。
-          pip install "tos==2.8.0"
+          pip install "tos==2.9.2"
 
           python3 << 'PYEOF'
           import os
