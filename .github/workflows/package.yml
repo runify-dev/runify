@@ -213,9 +213,8 @@ jobs:
           TOS_ACCESS_KEY: ${{ secrets.VOLC_ACCESSKEY }}
           TOS_SECRET_KEY: ${{ secrets.VOLC_SECRETKEY }}
         run: |
-          # 锁定 SDK 版本:complete_multipart_upload 的 PartInfo 接口随版本变动,
-          # 这里固定到你本地验证过能跑通的版本,升级前先回归测试。
-          pip install "tos==2.9.2"
+          # 锁定 SDK 版本,与另一个可正常上传的 workflow 保持一致
+          pip install --no-cache-dir "tos==2.9.2"
 
           python3 << 'PYEOF'
           import os
@@ -239,8 +238,10 @@ jobs:
               sys.exit(1)
 
           import tos
+          print("tos version:", getattr(tos, "__version__", "unknown"))
+          sys.stdout.flush()
+          # 用与另一个可正常上传的 workflow 完全一致的导入方式(2.9.2 已验证可用)
           from tos.enum import ACLType
-          from tos.model import PartInfo
 
           # 超时直接在构造时设置(原先 RequestOption 没传进任何调用,等于没生效)
           client = tos.TosClientV2(
@@ -250,8 +251,6 @@ jobs:
           )
           print("TOS client created")
           sys.stdout.flush()
-
-          PUBLIC_READ = ACLType.ACL_Public_Read
 
           release_dir = f"release/{version}"
           files_to_upload = []
@@ -268,39 +267,15 @@ jobs:
           import time
 
           def upload_with_retry(bucket, key, filepath, max_retries=3):
-              """上传并在同一步设置公共读 ACL。
+              """上传并设置公共读 ACL,与另一个可用 workflow 同样的写法。
               返回 (success, elapsed, speed)。ACL 失败也算整体失败,避免传上去却下不动。"""
               size = os.path.getsize(filepath)
               size_mb = size / (1024 * 1024)
               for attempt in range(1, max_retries + 1):
                   try:
                       start = time.time()
-                      if size > 20 * 1024 * 1024:
-                          print(f"  Using multipart upload (attempt {attempt})...")
-                          sys.stdout.flush()
-                          part_size = 10 * 1024 * 1024
-                          # ACL 在初始化分片上传时设置,完成后对象即为公共读
-                          upload_id = client.init_multipart_upload(
-                              bucket, key, acl=PUBLIC_READ
-                          ).upload_id
-                          parts = []
-                          offset = 0
-                          part_num = 1
-                          while offset < size:
-                              end = min(offset + part_size, size)
-                              print(f"    Part {part_num}: {offset/(1024*1024):.1f}-{end/(1024*1024):.1f} MB")
-                              sys.stdout.flush()
-                              result = client.upload_part_from_file(
-                                  bucket, key, upload_id, part_num, filepath,
-                                  offset=offset, part_size=end - offset,
-                              )
-                              # 显式构造 PartInfo,不依赖返回对象能被 complete 直接消费
-                              parts.append(PartInfo(part_number=part_num, etag=result.etag))
-                              offset = end
-                              part_num += 1
-                          client.complete_multipart_upload(bucket, key, upload_id, parts)
-                      else:
-                          client.put_object_from_file(bucket, key, filepath, acl=PUBLIC_READ)
+                      client.put_object_from_file(bucket, key, filepath)
+                      client.put_object_acl(bucket, key, acl=ACLType.ACL_Public_Read)
                       elapsed = time.time() - start
                       speed = size_mb / elapsed if elapsed > 0 else 0
                       return True, elapsed, speed
@@ -396,7 +371,8 @@ jobs:
           v_key = f"release/{version}/index.json"
           print(f"  Upload {v_key}...")
           sys.stdout.flush()
-          client.put_object_from_file(bucket_name, v_key, version_json_path, acl=PUBLIC_READ)
+          client.put_object_from_file(bucket_name, v_key, version_json_path)
+          client.put_object_acl(bucket_name, v_key, acl=ACLType.ACL_Public_Read)
           print(f"  ✓ {v_key}")
           sys.stdout.flush()
 
@@ -443,7 +419,8 @@ jobs:
 
           print(f"\n  Upload {root_key}...")
           sys.stdout.flush()
-          client.put_object_from_file(bucket_name, root_key, root_json_path, acl=PUBLIC_READ)
+          client.put_object_from_file(bucket_name, root_key, root_json_path)
+          client.put_object_acl(bucket_name, root_key, acl=ACLType.ACL_Public_Read)
           print(f"  ✓ {root_key}")
           sys.stdout.flush()
 
