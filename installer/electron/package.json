@@ -31,7 +31,7 @@
     ],
     "mac": {
       "target": "dmg",
-      "icon": "../../frontend/public/favicon.ico"
+      "icon": "icon.png"
     },
     "win": {
       "target": [
