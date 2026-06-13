@@ -217,19 +217,26 @@ jobs:
 
           python3 << 'PYEOF'
           import os
+          import sys
           import json
           from datetime import datetime, timezone
 
-          ak = os.environ["TOS_ACCESS_KEY"]
-          sk = os.environ["TOS_SECRET_KEY"]
+          ak = os.environ.get("TOS_ACCESS_KEY", "")
+          sk = os.environ.get("TOS_SECRET_KEY", "")
           endpoint = "tos-cn-beijing.volces.com"
           region = "cn-beijing"
           bucket_name = "runify"
           version = "${{ inputs.version }}"
 
+          print(f"TOS Config: endpoint={endpoint}, region={region}, bucket={bucket_name}")
+          print(f"AK exists: {bool(ak)}, SK exists: {bool(sk)}")
+          sys.stdout.flush()
+
           import tos
           from tos.enum import ACLType
           client = tos.TosClientV2(ak, sk, endpoint, region)
+          print("TOS client created")
+          sys.stdout.flush()
 
           release_dir = f"release/{version}"
           files_to_upload = []
@@ -241,11 +248,17 @@ jobs:
                   files_to_upload.append((f, filepath))
 
           # Upload each file to version directory
+          print(f"Found {len(files_to_upload)} files to upload")
+          sys.stdout.flush()
           for filename, filepath in files_to_upload:
               key = f"release/{version}/{filename}"
-              print(f"  Upload {key}")
+              size = os.path.getsize(filepath)
+              print(f"  Upload {key} ({size} bytes)...")
+              sys.stdout.flush()
               client.put_object_from_file(bucket_name, key, filepath)
               client.put_object_acl(bucket_name, key, acl=ACLType.ACL_Public_Read)
+              print(f"  ✓ {key}")
+              sys.stdout.flush()
 
           # Build version index.json
           title = """${{ inputs.title }}"""
@@ -303,9 +316,12 @@ jobs:
 
           # Upload version index.json
           v_key = f"release/{version}/index.json"
-          print(f"  Upload {v_key}")
+          print(f"  Upload {v_key}...")
+          sys.stdout.flush()
           client.put_object_from_file(bucket_name, v_key, version_json_path)
           client.put_object_acl(bucket_name, v_key, acl=ACLType.ACL_Public_Read)
+          print(f"  ✓ {v_key}")
+          sys.stdout.flush()
 
           # Build/update root index.json
           root_key = "release/index.json"
@@ -317,11 +333,15 @@ jobs:
           }
 
           # Try to get existing root index
+          print("  Getting existing root index...")
+          sys.stdout.flush()
           try:
               resp = client.get_object(bucket_name, root_key)
               root_index = json.loads(resp.read().decode("utf-8"))
-          except Exception:
-              pass
+              print("  ✓ Got existing root index")
+          except Exception as e:
+              print(f"  No existing root index: {e}")
+          sys.stdout.flush()
 
           # Add to versions list if not exists
           versions = root_index.get("versions", [])
@@ -344,11 +364,15 @@ jobs:
           with open(root_json_path, "w", encoding="utf-8") as f:
               json.dump(root_index, f, indent=2, ensure_ascii=False)
 
-          print(f"\n  Upload {root_key}")
+          print(f"\n  Upload {root_key}...")
+          sys.stdout.flush()
           client.put_object_from_file(bucket_name, root_key, root_json_path)
           client.put_object_acl(bucket_name, root_key, acl=ACLType.ACL_Public_Read)
+          print(f"  ✓ {root_key}")
+          sys.stdout.flush()
 
-          print("\nDone!")
+          print("\n✅ Done!")
           print(f"  release/{version}/ -> {files_to_upload}")
           print(f"  release/index.json -> version: {version}")
+          sys.stdout.flush()
           PYEOF
