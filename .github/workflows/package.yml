@@ -139,7 +139,7 @@ jobs:
           pip install Pillow
           python -c "
           from PIL import Image
-          img = Image.open('frontend/public/favicon.ico')
+          img = Image.open('installer/electron/icon.png')
           sizes = [(16,16),(32,32),(48,48),(64,64),(128,128),(256,256)]
           img.save('installer/electron/icon.ico', format='ICO', sizes=sizes)
           "
