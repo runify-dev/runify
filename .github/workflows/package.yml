@@ -238,19 +238,67 @@ jobs:
               sys.exit(1)
 
           import tos
-          print("tos version:", getattr(tos, "__version__", "unknown"))
+          try:
+              from tos import __version__ as _tos_ver
+              print("tos version:", getattr(_tos_ver, "__version__", _tos_ver))
+          except Exception:
+              print("tos version: unknown")
           sys.stdout.flush()
           # 用与另一个可正常上传的 workflow 完全一致的导入方式(2.9.2 已验证可用)
           from tos.enum import ACLType
 
-          # 超时直接在构造时设置(原先 RequestOption 没传进任何调用,等于没生效)
+          # 超时调短:跨境连不上时几十秒内就报错,而不是卡满 socket_timeout
           client = tos.TosClientV2(
               ak, sk, endpoint, region,
-              connection_time=30,
-              socket_timeout=300,
+              connection_time=15,
+              socket_timeout=60,
           )
           print("TOS client created")
           sys.stdout.flush()
+
+          # 运行时探测 upload_file 的真实签名,不靠记忆猜参数名。
+          # 探到大文件分片接口就用它,探不到就回退普通 put_object_from_file。
+          import inspect
+
+          _upload_fn = getattr(client, "upload_file", None)
+          _upload_params = set()
+          if _upload_fn is not None:
+              try:
+                  _upload_params = set(inspect.signature(_upload_fn).parameters.keys())
+                  print(f"  upload_file 可用,参数: {sorted(_upload_params)}")
+              except (ValueError, TypeError):
+                  print("  upload_file 可用,但无法取签名,按位置参数调用")
+          else:
+              print("  upload_file 不可用,大文件回退普通上传")
+          sys.stdout.flush()
+
+          # 25 MB 以上走分片续传;阈值与 TOS 默认分片相称
+          MULTIPART_THRESHOLD = 25 * 1024 * 1024
+
+          def _kw_for(name, value, candidates):
+              """仅当探测到的参数集合里存在候选名时才传该 kwarg,避免 TypeError。"""
+              for c in candidates:
+                  if c in _upload_params:
+                      return {c: value}
+              return {}
+
+          def do_upload(bucket, key, filepath):
+              """统一上传入口:大文件用 upload_file 分片+并发+续传,小文件用普通上传。"""
+              size = os.path.getsize(filepath)
+              if _upload_fn is not None and size > MULTIPART_THRESHOLD:
+                  kwargs = {}
+                  # 并发线程数:不同版本可能叫 task_num / taskNum
+                  kwargs.update(_kw_for("task_num", 4, ["task_num", "taskNum"]))
+                  # 分片大小:可能叫 part_size / partSize
+                  kwargs.update(_kw_for("part_size", 10 * 1024 * 1024, ["part_size", "partSize"]))
+                  # 断点续传开关:可能叫 enable_checkpoint / enableCheckpoint
+                  kwargs.update(_kw_for("enable_checkpoint", True, ["enable_checkpoint", "enableCheckpoint"]))
+                  # 前 3 个位置参数普遍是 bucket, key, file_path
+                  _upload_fn(bucket, key, filepath, **kwargs)
+              else:
+                  client.put_object_from_file(bucket, key, filepath)
+              # ACL 单独设(与可用 workflow 一致)
+              client.put_object_acl(bucket, key, acl=ACLType.ACL_Public_Read)
 
           release_dir = f"release/{version}"
           files_to_upload = []
@@ -266,6 +314,23 @@ jobs:
           sys.stdout.flush()
           import time
 
+          # 连接自检:先传一个几字节的小对象,验证 连接/鉴权/ACL 这条链路是否通。
+          # 若这一步就卡住或失败,说明问题在网络或鉴权,而非大文件本身。
+          print("Preflight: 测试一个小对象上传...")
+          sys.stdout.flush()
+          try:
+              _t = time.time()
+              probe_key = f"release/{version}/.preflight"
+              client.put_object(bucket_name, probe_key, content=b"ok")
+              client.put_object_acl(bucket_name, probe_key, acl=ACLType.ACL_Public_Read)
+              print(f"  ✓ Preflight 成功 ({time.time()-_t:.1f}s) — 连接与鉴权正常")
+          except Exception as e:
+              print(f"  ✗ Preflight 失败: {e}")
+              print("  → 上传链路本身有问题(网络/端点/鉴权/桶权限),不是大文件的事。")
+              sys.stdout.flush()
+              sys.exit(1)
+          sys.stdout.flush()
+
           def upload_with_retry(bucket, key, filepath, max_retries=3):
               """上传并设置公共读 ACL,与另一个可用 workflow 同样的写法。
               返回 (success, elapsed, speed)。ACL 失败也算整体失败,避免传上去却下不动。"""
@@ -274,8 +339,7 @@ jobs:
               for attempt in range(1, max_retries + 1):
                   try:
                       start = time.time()
-                      client.put_object_from_file(bucket, key, filepath)
-                      client.put_object_acl(bucket, key, acl=ACLType.ACL_Public_Read)
+                      do_upload(bucket, key, filepath)
                       elapsed = time.time() - start
                       speed = size_mb / elapsed if elapsed > 0 else 0
                       return True, elapsed, speed

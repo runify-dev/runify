@@ -319,7 +319,12 @@ const closeApproval = (action: 'approve' | 'reject') => {
 interface FileEntry { url: string; name: string }
 
 const uploadFile = async (file: File): Promise<FileEntry> => {
-  const cid = current.value?.id
+  let cid = current.value?.id
+  // 新对话没有 id，先创建对话
+  if (!cid) {
+    const chat = await newChat()
+    cid = chat?.id
+  }
   const fd = new FormData()
   fd.append('file', file)
   if (cid) {

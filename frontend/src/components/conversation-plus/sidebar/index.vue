@@ -273,6 +273,11 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.vs-scroller :deep(.p-virtualscroller-content) {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
 /* ── 容器 ─────────────────────────────────────────────────────────── */
 .sb {
   display: flex;
