@@ -21,6 +21,7 @@ import com.run.handler.common.impl.ResourceHandlerImpl;
 import com.run.handler.common.pojo.SimpleNodePojo;
 import com.run.common.util.TreeUtil;
 import com.run.handler.skill.ISkillHandler;
+import com.run.handler.skill.dto.SkillNodeDTO;
 import com.run.handler.skill.pojo.EditSkillPojo;
 import org.apache.commons.lang3.StringUtils;
 import com.run.sql.DSL;
@@ -1122,7 +1123,7 @@ public class SkillHandlerImpl extends ResourceHandlerImpl<Skill, SkillFolder, Sk
 
     @Override
     protected SimpleNodePojo resourceToSimpleNodePojo(Skill skill) {
-        SimpleNodePojo simpleNodePojo = new SimpleNodePojo();
+        SkillNodeDTO simpleNodePojo = new SkillNodeDTO();
         CommonUtils.copyProperties(skill, simpleNodePojo);
         simpleNodePojo.setType("skill");
         return simpleNodePojo;

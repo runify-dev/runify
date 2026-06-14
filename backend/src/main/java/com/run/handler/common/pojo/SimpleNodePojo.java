@@ -29,6 +29,4 @@ public class SimpleNodePojo {
     private String icon;
 
     private String desc;
-
-    private JsonObject meta;
 }
