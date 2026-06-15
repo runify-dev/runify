@@ -39,6 +39,12 @@ public class UIInitialization {
     public void init() {
         StaticHandlerImpl staticHandler = new StaticHandlerImpl(FileSystemAccess.RELATIVE, "admin/");
         staticHandler.setCachingEnabled(Boolean.FALSE);
+        router.route("/assets/*")
+                .handler(ctx -> {
+                    ctx.addHeadersEndHandler(v ->
+                            ctx.response().putHeader("Cache-Control", "public, max-age=31536000, immutable"));
+                    ctx.next();
+                });
         router.get().handler(staticHandler);
         router.route().last().handler(context -> {
             String path = context.request().path();
@@ -58,6 +64,12 @@ public class UIInitialization {
 
         StaticHandlerImpl conversationStaticHandlerImpl = new StaticHandlerImpl(FileSystemAccess.RELATIVE, "conversation/");
         conversationStaticHandlerImpl.setCachingEnabled(Boolean.FALSE);
+        conversationUIRoute.route("/assets/*")
+                .handler(ctx -> {
+                    ctx.addHeadersEndHandler(v ->
+                            ctx.response().putHeader("Cache-Control", "public, max-age=31536000, immutable"));
+                    ctx.next();
+                });
         conversationUIRoute.get().handler(conversationStaticHandlerImpl);
         conversationUIRoute.route().last().handler(context -> {
             String path = context.request().path();
