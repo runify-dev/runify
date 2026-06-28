@@ -25,4 +25,11 @@ public interface IIntegrationHandler extends IResourceHandler<Integration> {
      * @param context 上下文
      */
     void edit(RoutingContext context);
+
+    /**
+     * 平台类型目录(类型/标签/回调路径/认证方式/凭证字段), 供前端新建集成渲染
+     *
+     * @param context 上下文
+     */
+    void getTypes(RoutingContext context);
 }

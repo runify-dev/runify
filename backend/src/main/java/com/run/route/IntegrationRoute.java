@@ -46,6 +46,11 @@ public class IntegrationRoute implements IRoute {
 
     @Override
     public void initRoute() {
+        // 平台类型目录(静态元数据): 供前端新建集成渲染类型下拉与凭证表单
+        apiRoute.get("/integration/types")
+                .handler(tokenBasicAuthHandler)
+                .handler(integrationHandler::getTypes);
+
         apiRoute.get("/integration/resources/:resourceId")
                 .handler(tokenBasicAuthHandler)
                 .handler(Authenticator.builder()

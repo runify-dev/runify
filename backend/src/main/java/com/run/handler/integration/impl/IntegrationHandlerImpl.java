@@ -19,7 +19,9 @@ import com.run.handler.integration.IIntegrationHandler;
 import com.run.handler.integration.IntegrationCredentialMask;
 import com.run.handler.integration.pojo.IntegrationCreateVO;
 import com.run.handler.integration.pojo.IntegrationEditPojo;
+import com.run.integrations.IntegrationTypeCatalog;
 import com.run.integrations.impl.weixin.WeixinPollerManager;
+import com.run.integrations.impl.wecomstream.WecomStreamManager;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import lombok.SneakyThrows;
@@ -38,11 +40,13 @@ import java.util.UUID;
 public class IntegrationHandlerImpl extends ResourceHandlerImpl<Integration, IntegrationFolder, IntegrationPermission, IntegrationRelation, IntegrationMapper, IntegrationFolderMapper, IntegrationPermissionMapper, IntegrationRelationMapper> implements IIntegrationHandler {
 
     private final WeixinPollerManager weixinPollerManager;
+    private final WecomStreamManager wecomStreamManager;
 
     @Inject
-    public IntegrationHandlerImpl(IntegrationMapper integrationMapper, IntegrationFolderMapper integrationFolderMapper, IntegrationRelationMapper integrationRelationMapper, IntegrationPermissionMapper integrationPermissionMapper, CacheStore cacheStore, WeixinPollerManager weixinPollerManager) {
+    public IntegrationHandlerImpl(IntegrationMapper integrationMapper, IntegrationFolderMapper integrationFolderMapper, IntegrationRelationMapper integrationRelationMapper, IntegrationPermissionMapper integrationPermissionMapper, CacheStore cacheStore, WeixinPollerManager weixinPollerManager, WecomStreamManager wecomStreamManager) {
         super(integrationMapper, integrationFolderMapper, integrationRelationMapper, integrationPermissionMapper, cacheStore);
         this.weixinPollerManager = weixinPollerManager;
+        this.wecomStreamManager = wecomStreamManager;
     }
 
     @Override
@@ -51,6 +55,11 @@ public class IntegrationHandlerImpl extends ResourceHandlerImpl<Integration, Int
         resourceMapper.getResourceById(id)
                 .onSuccess(rs -> context.end(Result.success(rs).toBuffer()))
                 .onFailure(context::fail);
+    }
+
+    @Override
+    public void getTypes(RoutingContext context) {
+        context.end(Result.success(IntegrationTypeCatalog.list()).toBuffer());
     }
 
     @SneakyThrows
@@ -86,6 +95,13 @@ public class IntegrationHandlerImpl extends ResourceHandlerImpl<Integration, Int
                             weixinPollerManager.stop(integration.getId().toString());
                         } else {
                             weixinPollerManager.start(integration);
+                        }
+                    } else if ("WECOM_STREAM".equals(integration.getType())) {
+                        // 企业微信长连接同为常驻连接: 启用->start(内部先 stop 再起), 停用->显式 stop
+                        if (Boolean.FALSE.equals(integration.getEnabled())) {
+                            wecomStreamManager.stop(integration.getId().toString());
+                        } else {
+                            wecomStreamManager.start(integration);
                         }
                     }
                     context.end(Result.success(true).toBuffer());
@@ -170,6 +186,15 @@ public class IntegrationHandlerImpl extends ResourceHandlerImpl<Integration, Int
                 new JsonObject(), now, now);
         integration.setConfig(integration.encrypt(vo.getConfig() == null ? new JsonObject() : vo.getConfig()));
         return integration;
+    }
+
+    @Override
+    protected void afterCreate(Integration integration) {
+        // 新建即启用的常驻连接需立即拉起(否则要等重启或再保存一次才生效)。
+        // 个人微信(WEIXIN)需扫码后才有凭证, 不在此启动。
+        if ("WECOM_STREAM".equals(integration.getType()) && !Boolean.FALSE.equals(integration.getEnabled())) {
+            wecomStreamManager.start(integration);
+        }
     }
 
     @Override

@@ -247,8 +247,18 @@ public abstract class ResourceHandlerImpl<R extends BaseEntity<R>,
             });
         }
         future
-                .onSuccess(ok -> context.end(Result.success(ok).toBuffer()))
+                .onSuccess(ok -> {
+                    afterCreate(ok);
+                    context.end(Result.success(ok).toBuffer());
+                })
                 .onFailure(context::fail);
+    }
+
+    /**
+     * 资源创建成功(已落库)后的钩子, 默认空实现。
+     * 子类可重写以触发运行时副作用(如集成的常驻连接在创建即启用时立即拉起)。
+     */
+    protected void afterCreate(R resource) {
     }
 
     @Override

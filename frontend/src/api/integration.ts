@@ -2,7 +2,7 @@ import {Result} from '@/request/Result'
 import {get, put} from '@/request/admin/index'
 import {TreeCommonAPI} from '@/api/tree'
 import {ROOT_FOLDER_ID} from '@/constants/common'
-import type {Ref} from 'vue'
+import {ref, type Ref} from 'vue'
 
 /**
  * 各平台凭证字段定义(用于动态渲染表单)
@@ -17,74 +17,33 @@ export interface IntegrationConfigField {
 export interface IntegrationTypeMeta {
   type: string
   label: string
-  /** 回调路径(展示给用户去平台后台配置), :integrationId 由前端替换 */
+  /** 回调路径(展示给用户去平台后台配置), :integrationId 由前端替换; 空表示无需公网回调(自驱动连接) */
   callbackPath: string
+  /** 认证方式: credential=凭证表单, qrcode=扫码登录(个人微信) */
+  authMode?: string
   fields: IntegrationConfigField[]
 }
 
-export const INTEGRATION_TYPES: IntegrationTypeMeta[] = [
-  {
-    type: 'WECOM',
-    label: '企业微信应用',
-    callbackPath: '/integration/{id}/callback',
-    fields: [
-      {field: 'corpId', label: 'CorpID', placeholder: '企业ID'},
-      {field: 'agentId', label: 'AgentID', placeholder: '应用 AgentId'},
-      {field: 'secret', label: 'Secret', placeholder: '应用 Secret', secret: true},
-      {field: 'token', label: 'Token', placeholder: '回调 Token', secret: true},
-      {field: 'aesKey', label: 'EncodingAESKey', placeholder: '回调 EncodingAESKey', secret: true}
-    ]
-  },
-  {
-    type: 'WECOM_ROBOT',
-    label: '企业微信机器人',
-    callbackPath: '/integration/{id}/callback',
-    fields: [
-      {field: 'token', label: 'Token', placeholder: '回调 Token', secret: true},
-      {field: 'aesKey', label: 'EncodingAESKey', placeholder: '回调 EncodingAESKey', secret: true}
-    ]
-  },
-  {
-    type: 'FEISHU',
-    label: '飞书',
-    callbackPath: '/integration/{id}/callback',
-    fields: [
-      {field: 'appId', label: 'App ID', placeholder: '飞书应用 App ID'},
-      {field: 'appSecret', label: 'App Secret', placeholder: '飞书应用 App Secret', secret: true},
-      {field: 'verifyToken', label: 'Verification Token', placeholder: '事件订阅 Verification Token', secret: true},
-      {field: 'encryptKey', label: 'Encrypt Key', placeholder: '事件订阅 Encrypt Key', secret: true}
-    ]
-  },
-  {
-    type: 'DINGTALK',
-    label: '钉钉',
-    callbackPath: '/integration/{id}/callback',
-    fields: [
-      {field: 'appKey', label: 'AppKey', placeholder: '机器人 AppKey/ClientId'},
-      {field: 'appSecret', label: 'AppSecret', placeholder: '机器人 AppSecret(验签用)', secret: true}
-    ]
-  },
-  {
-    type: 'WEIXIN',
-    label: '微信(个人号)',
-    callbackPath: '',
-    fields: []
-  },
-  {
-    type: 'WECHAT',
-    label: '微信公众号',
-    callbackPath: '/integration/{id}/callback',
-    fields: [
-      {field: 'appId', label: 'AppID', placeholder: '公众号 AppID'},
-      {field: 'appSecret', label: 'AppSecret', placeholder: '公众号 AppSecret', secret: true},
-      {field: 'token', label: 'Token', placeholder: '服务器配置 Token', secret: true},
-      {field: 'aesKey', label: 'EncodingAESKey', placeholder: '消息加解密密钥', secret: true}
-    ]
+/**
+ * 平台类型目录(唯一真源在后端 IntegrationTypeCatalog): 进程内缓存, 首次拉取后复用。
+ * 响应式 ref, 供组件在加载完成后自动重渲染下拉与表单。
+ */
+const integrationTypes = ref<IntegrationTypeMeta[]>([])
+let typesLoaded = false
+
+export const useIntegrationTypes = (): Ref<IntegrationTypeMeta[]> => integrationTypes
+
+export const loadIntegrationTypes = async (loading?: Ref<boolean>): Promise<IntegrationTypeMeta[]> => {
+  if (!typesLoaded) {
+    const ok = await get('/integration/types', {}, loading)
+    integrationTypes.value = (ok.data || []) as IntegrationTypeMeta[]
+    typesLoaded = true
   }
-]
+  return integrationTypes.value
+}
 
 export const getTypeMeta = (type: string): IntegrationTypeMeta | undefined =>
-  INTEGRATION_TYPES.find((t) => t.type === type)
+  integrationTypes.value.find((t) => t.type === type)
 
 const edit: (
   resourceId: string,

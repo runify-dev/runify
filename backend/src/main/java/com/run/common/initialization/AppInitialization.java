@@ -7,6 +7,7 @@ import com.run.dao.entity.SystemSetting;
 import com.run.dao.mapper.DatasourceMapper;
 import com.run.dao.mapper.SystemSettingMapper;
 import com.run.integrations.impl.weixin.WeixinPollerManager;
+import com.run.integrations.impl.wecomstream.WecomStreamManager;
 import com.run.route.*;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
@@ -39,6 +40,7 @@ public class AppInitialization {
                              IntegrationRoute integrationRoute,
                              IntegrationCallbackRoute integrationCallbackRoute,
                              WeixinPollerManager weixinPollerManager,
+                             WecomStreamManager wecomStreamManager,
                              UIInitialization uiInitialization,
                              MigrationInitialization migrationInitialization,
                              SystemSettingMapper systemSettingMapper,
@@ -63,7 +65,10 @@ public class AppInitialization {
         ProjectManage.setDatasourceMapper(datasourceMapper);
         // 依赖加解密的初始化(如微信 poller 需解密集成配置)必须等 RSA 密钥就绪后再执行
         initRsa(systemSettingMapper)
-                .onSuccess(v -> weixinPollerManager.startAll())
+                .onSuccess(v -> {
+                    weixinPollerManager.startAll();
+                    wecomStreamManager.startAll();
+                })
                 .onFailure(Throwable::printStackTrace);
     }
 
