@@ -61,6 +61,12 @@ public class WeixinPoller {
     private final Map<String, Long> seen = new ConcurrentHashMap<>();
     private static final long DEDUP_TTL_MS = 5 * 60 * 1000L;
 
+    // 出站按用户串行化: 同一用户的文本/媒体/文件严格按入队顺序逐条发送, 避免并发乱序与竞态(尤其文件上传较慢时)。
+    // 每条任务仍在独立虚拟线程上执行, 队列空闲不占用线程。
+    private static final java.util.concurrent.Executor SEND_EXECUTOR =
+            java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor();
+    private final Map<String, CompletableFuture<Void>> sendChains = new ConcurrentHashMap<>();
+
     public WeixinPoller(Integration integration, String baseUrl, String token, String accountId,
                         IIntegrationMessageDispatcher dispatcher, FileMapper fileMapper, Vertx vertx) {
         this.integration = integration;
@@ -162,26 +168,44 @@ public class WeixinPoller {
                         System.out.println("[weixin-seg] recv type=" + type + " len=" + (seg == null ? -1 : seg.length()));
                         if ("TEXT".equals(type) || "REASONING".equals(type)) {
                             anySent.set(true);
-                            Thread.ofVirtual().start(() -> sendSegment(sender, seg, sentMedia));
+                            enqueueSend(sender, () -> sendSegment(sender, seg, sentMedia));
                         } else if ("TOOL".equals(type)) {
                             anySent.set(true);
-                            Thread.ofVirtual().start(() -> sendTextSafe(sender, seg));
+                            enqueueSend(sender, () -> sendTextSafe(sender, seg));
                         }
                     })
                     .onSuccess(reply -> {
-                        // ⚠️ 该回调在 Vert.x event loop 线程上执行; sendText 是阻塞 HTTP,
-                        // 直接调用会卡死事件循环并最终超时。必须丢到虚拟线程。
+                        // ⚠️ 该回调在 Vert.x event loop 线程上执行; sendText 是阻塞 HTTP, 不能直接调。
+                        // enqueueSend 会把任务丢到串行队列(虚拟线程)上跑, 既不卡事件循环又保证排在已有分段之后。
                         if (!anySent.get()) {
-                            Thread.ofVirtual().start(() -> sendTextSafe(sender, "(无回复)"));
+                            enqueueSend(sender, () -> sendTextSafe(sender, "(无回复)"));
                         }
                     })
                     .onFailure(e -> {
                         System.err.println("[weixin] dispatch failed: " + e.getMessage());
-                        Thread.ofVirtual().start(() -> sendTextSafe(sender, "⚠️ 处理失败: " + e.getMessage()));
+                        enqueueSend(sender, () -> sendTextSafe(sender, "⚠️ 处理失败: " + e.getMessage()));
                     });
         } catch (Exception e) {
             System.err.println("[weixin] handle error: " + e.getMessage());
         }
+    }
+
+    /**
+     * 把发送任务追加到该用户串行队列尾部, 保证逐条按入队顺序发送。
+     * 用 handleAsync 串链: 即使前一条异常也继续跑下一条; 任务内吞掉异常, 避免链断裂导致后续消息不发。
+     */
+    private void enqueueSend(String toUser, Runnable task) {
+        sendChains.compute(toUser, (k, tail) -> {
+            CompletableFuture<Void> base = tail == null ? CompletableFuture.completedFuture(null) : tail;
+            return base.handleAsync((v, ex) -> {
+                try {
+                    task.run();
+                } catch (Throwable t) {
+                    System.err.println("[weixin] send task error: " + t.getMessage());
+                }
+                return null;
+            }, SEND_EXECUTOR);
+        });
     }
 
     // ==================== 入站: 文本 + 媒体入参 ====================
@@ -415,19 +439,40 @@ public class WeixinPoller {
      * 内部存储引用 ./api/storage/file/{id}: 直接从 fileMapper 读字节(不走 HTTP), 按文件名后缀判类型发原生媒体
      */
     private void sendStorageMedia(String toUser, String fileId, String ctx) {
+        String name = "file.bin";
         try {
             FileEntity fe = fileMapper.getById(fileId).toCompletionStage().toCompletableFuture().get();
             if (fe == null) {
+                System.err.println("[weixin] send storage file: not found id=" + fileId);
                 return;
             }
-            String name = orElse(fe.getFileName(), "file.bin");
+            name = orElse(fe.getFileName(), "file.bin");
             byte[] data = readStorageBytes(fe);
             String kind = orElse(classify(name), "file");
             JsonObject item = WeixinMedia.uploadAndBuildItem(baseUrl, token, toUser, data, name, kind);
-            IlinkClient.sendItem(baseUrl, token, toUser, item, ctx, UUID.randomUUID().toString());
+            JsonObject resp = IlinkClient.sendItem(baseUrl, token, toUser, item, ctx, UUID.randomUUID().toString());
+            if (!checkItemResp(resp, kind, name)) {
+                // iLink 拒绝该媒体(文件类型/大小/session 等): 不能静默丢, 退化成文本告知用户
+                sendTextSafe(toUser, "⚠️ 文件发送失败: " + name);
+            }
         } catch (Exception e) {
-            System.err.println("[weixin] send storage file failed: " + e.getMessage());
+            System.err.println("[weixin] send storage file failed: " + name + " -> " + e.getMessage());
+            sendTextSafe(toUser, "⚠️ 文件发送失败: " + name);
         }
+    }
+
+    /**
+     * 检查 iLink sendItem 返回码(媒体/文件路径之前完全忽略返回, 失败会静默丢失)。失败返回 false。
+     */
+    private static boolean checkItemResp(JsonObject resp, String kind, String name) {
+        int ret = resp == null ? -1 : resp.getInteger("ret", 0);
+        int errcode = resp == null ? -1 : resp.getInteger("errcode", 0);
+        if (ret != 0 || errcode != 0) {
+            System.err.println("[weixin] sendItem " + kind + " failed name=" + name + " ret=" + ret
+                    + " errcode=" + errcode + " errmsg=" + (resp == null ? "" : resp.getString("errmsg", "")));
+            return false;
+        }
+        return true;
     }
 
     private byte[] readStorageBytes(FileEntity fe) throws Exception {
@@ -443,13 +488,18 @@ public class WeixinPoller {
     }
 
     private void sendMedia(String toUser, String url, String kind, String ctx) {
+        String name = fileNameFromUrl(url, kind);
         try {
             byte[] data = IlinkClient.downloadBytes(url);
-            String name = fileNameFromUrl(url, kind);
             JsonObject item = WeixinMedia.uploadAndBuildItem(baseUrl, token, toUser, data, name, kind);
-            IlinkClient.sendItem(baseUrl, token, toUser, item, ctx, UUID.randomUUID().toString());
+            JsonObject resp = IlinkClient.sendItem(baseUrl, token, toUser, item, ctx, UUID.randomUUID().toString());
+            if (!checkItemResp(resp, kind, name)) {
+                // 发送失败: 退化成把原始链接作为文本发出去, 用户至少能拿到内容
+                sendTextSafe(toUser, "📎 " + name + "\n" + url);
+            }
         } catch (Exception e) {
-            System.err.println("[weixin] send " + kind + " failed: " + e.getMessage());
+            System.err.println("[weixin] send " + kind + " failed: " + name + " -> " + e.getMessage());
+            sendTextSafe(toUser, "📎 " + name + "\n" + url);
         }
     }
 

@@ -42,8 +42,8 @@
         </div>
       </div>
 
-      <!-- 回调地址(只读) -->
-      <div v-if="!isWeixin" class="flex flex-col gap-1">
+      <!-- 回调地址(只读); 长连接/个人号等无回调路径的类型不展示 -->
+      <div v-if="hasCallback" class="flex flex-col gap-1">
         <label class="text-sm font-semibold text-color">{{ t('integration.details.callbackUrl') }}</label>
         <InputGroup>
           <InputText :model-value="callbackUrl" readonly fluid/>
@@ -84,7 +84,7 @@
 import {computed, onMounted, onBeforeUnmount, ref, watch} from 'vue'
 import {useRoute} from 'vue-router'
 import {TreeCommonAPI} from '@/api/tree'
-import IntegrationAPI, {getTypeMeta} from '@/api/integration'
+import IntegrationAPI, {loadIntegrationTypes, getTypeMeta} from '@/api/integration'
 import {ROOT_FOLDER_ID} from '@/constants/common'
 import bus from '@/bus'
 import { t } from '@/locales'
@@ -103,7 +103,8 @@ const formData = ref<Record<string, any>>({type: '', applicationId: '', enabled:
 
 const typeMeta = computed(() => getTypeMeta(formData.value.type))
 const fields = computed(() => typeMeta.value?.fields || [])
-const isWeixin = computed(() => formData.value.type === 'WEIXIN')
+const isWeixin = computed(() => typeMeta.value?.authMode === 'qrcode')
+const hasCallback = computed(() => !!typeMeta.value?.callbackPath)
 const connectedAccount = computed(() => formData.value.config?.accountId || '')
 
 // ============ 微信(个人号) 扫码登录 ============
@@ -185,6 +186,7 @@ const get = () => {
 watch(resourceId, () => get())
 
 onMounted(() => {
+  loadIntegrationTypes()
   IntegrationAPI.listAllApplications(ROOT_FOLDER_ID, loading).then((list) => {
     applicationOptions.value = list
   })

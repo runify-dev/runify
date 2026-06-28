@@ -85,7 +85,7 @@
 <script setup lang="ts">
 import {ref, computed} from 'vue'
 import {TreeCommonAPI} from '@/api/tree'
-import IntegrationAPI, {INTEGRATION_TYPES, getTypeMeta} from '@/api/integration'
+import IntegrationAPI, {loadIntegrationTypes, useIntegrationTypes, getTypeMeta} from '@/api/integration'
 import type {TreeNode} from 'primevue/treenode'
 import bus from '@/bus'
 import {ROOT_FOLDER_ID} from "@/constants/common.ts";
@@ -97,7 +97,7 @@ const emit = defineEmits(['create:success'])
 const visible = ref(false)
 const current = ref<TreeNode>()
 const loading = ref<boolean>(false)
-const typeOptions = INTEGRATION_TYPES
+const typeOptions = useIntegrationTypes()
 const applicationOptions = ref<Array<{id: string; name: string}>>([])
 
 const formData = ref<Record<string, any>>({
@@ -138,6 +138,7 @@ const open = (node?: TreeNode) => {
   current.value = node
   resetForm()
   visible.value = true
+  loadIntegrationTypes()
   IntegrationAPI.listAllApplications(ROOT_FOLDER_ID, loading).then((list) => {
     applicationOptions.value = list
   })
