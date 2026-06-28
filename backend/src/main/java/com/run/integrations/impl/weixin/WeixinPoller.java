@@ -156,11 +156,13 @@ public class WeixinPoller {
             }
             // 按内容块 id 分段: 每完成一段(TEXT)就立刻发该段的文本+媒体, "给一点发一点"
             java.util.concurrent.atomic.AtomicBoolean anySent = new java.util.concurrent.atomic.AtomicBoolean(false);
+            // 同一回答内已发出的媒体(绝对 URL / storage fileId): 跨 segment 去重, 避免一张图/一个文件被多段重复发送
+            Set<String> sentMedia = ConcurrentHashMap.newKeySet();
             dispatcher.dispatchSegments(integration, sender, content, (type, seg) -> {
                         System.out.println("[weixin-seg] recv type=" + type + " len=" + (seg == null ? -1 : seg.length()));
                         if ("TEXT".equals(type) || "REASONING".equals(type)) {
                             anySent.set(true);
-                            Thread.ofVirtual().start(() -> sendSegment(sender, seg));
+                            Thread.ofVirtual().start(() -> sendSegment(sender, seg, sentMedia));
                         } else if ("TOOL".equals(type)) {
                             anySent.set(true);
                             Thread.ofVirtual().start(() -> sendTextSafe(sender, seg));
@@ -240,9 +242,10 @@ public class WeixinPoller {
     // ==================== 出站: 按类型拆分 ====================
 
     /**
-     * 发送一段(TEXT 块): 文本整段发(一段=一条), 段内绝对 URL/内部引用的图片/视频/文件走原生媒体
+     * 发送一段(TEXT 块): 文本整段发(一段=一条), 段内绝对 URL/内部引用的图片/视频/文件走原生媒体。
+     * sentMedia: 同一回答内已发媒体的去重集合(跨 segment), 保证同一资源在一个回答里只发一次。
      */
-    private void sendSegment(String toUser, String seg) {
+    private void sendSegment(String toUser, String seg, Set<String> sentMedia) {
         String ctx = contextTokens.get(toUser);
         List<String> images = new ArrayList<>();
         List<String> videos = new ArrayList<>();
@@ -260,16 +263,24 @@ public class WeixinPoller {
                         + " errcode=" + resp.getInteger("errcode", 0) + " errmsg=" + resp.getString("errmsg", ""));
             }
             for (String url : images) {
-                sendMedia(toUser, url, "image", ctx);
+                if (sentMedia.add("url:" + url)) {
+                    sendMedia(toUser, url, "image", ctx);
+                }
             }
             for (String url : videos) {
-                sendMedia(toUser, url, "video", ctx);
+                if (sentMedia.add("url:" + url)) {
+                    sendMedia(toUser, url, "video", ctx);
+                }
             }
             for (String url : files) {
-                sendMedia(toUser, url, "file", ctx);
+                if (sentMedia.add("url:" + url)) {
+                    sendMedia(toUser, url, "file", ctx);
+                }
             }
             for (String id : storageIds) {
-                sendStorageMedia(toUser, id, ctx);
+                if (sentMedia.add("storage:" + id)) {
+                    sendStorageMedia(toUser, id, ctx);
+                }
             }
         } catch (Exception e) {
             System.err.println("[weixin] send segment failed: " + e.getMessage());

@@ -26,7 +26,8 @@ public class TextAggregator implements ContentAggregator<TextContent> {
         String prevContent = prev.getContent() != null ? prev.getContent() : "";
         String chunkContent = chunk.getContent() != null ? chunk.getContent() : "";
         result.setContent(prevContent + chunkContent);
-
+        // 合并 status: 优先使用 chunk 的，否则使用 prev 的
+        result.setStatus(chunk.getStatus() != null ? chunk.getStatus() : prev.getStatus());
         return result;
     }
 }

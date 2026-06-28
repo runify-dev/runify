@@ -1,5 +1,6 @@
 package com.run.handler.integration.impl;
 
+import com.run.common.constants.ContentTypeConstants;
 import com.run.common.constants.ConversationExecuteConstants;
 import com.run.common.constants.MessageConstants;
 import com.run.auth.constants.TokenTypeConstants;
@@ -157,14 +158,16 @@ public class ChatIntegrationMessageDispatcher implements IIntegrationMessageDisp
                                     JsonObject o = JsonObject.mapFrom(c);
                                     Object cont = o.getValue("content");
                                     int len = cont instanceof String s ? s.length() : -1;
-                                    boolean already = c.getId() != null && flushed.contains(c.getId());
+                                    String key = segKey(c);
+                                    boolean already = key != null && flushed.contains(key);
                                     System.out.println("[seg]   chunk id=" + c.getId() + " type=" + o.getString("type")
                                             + " status=" + o.getString("status") + " len=" + len + " alreadyFlushed=" + already);
                                 }
                                 for (Content c : all) {
-                                    if (c.getId() != null && flushed.add(c.getId())) {
-                                        System.out.println("[seg] end-flush id=" + c.getId());
-                                        flushSegment(wm, c.getId(), onSegment);
+                                    String key = segKey(c);
+                                    if (key != null && flushed.add(key)) {
+                                        System.out.println("[seg] end-flush key=" + key);
+                                        flushSegment(wm, c.getId(), c.getType(), onSegment);
                                     }
                                 }
                             } else {
@@ -172,13 +175,15 @@ public class ChatIntegrationMessageDispatcher implements IIntegrationMessageDisp
                             }
                             onComplete(wm, conversationId, applicationId, workflowRunId, promise);
                         } else if (onSegment != null && chunk != null) {
-                            // 分段: chunk 的 status 进入终态(非 RUNNING/BEFORE_RUNNING)说明该块完成 -> 立即发, 每 id 一次
+                            // 分段: chunk 的 status 进入终态(非 RUNNING/BEFORE_RUNNING)说明该块完成 -> 立即发, 每 (id,type) 一次。
+                            // 注意: reasoning 与 text 复用同一 chunkId(见 AIChat), 去重必须带上 type, 否则 reasoning 结束
+                            // 占用该 id 后, 同 id 的正文 text 会被误判已发而整段丢失。
                             String st = JsonObject.mapFrom(chunk).getString("status", "");
                             if (!st.isEmpty() && !"RUNNING".equals(st) && !"BEFORE_RUNNING".equals(st)) {
-                                String id = chunk.getId();
-                                if (id != null && flushed.add(id)) {
-                                    System.out.println("[seg] stream-flush id=" + id + " status=" + st);
-                                    flushSegment(wm, id, onSegment);
+                                String key = segKey(chunk);
+                                if (key != null && flushed.add(key)) {
+                                    System.out.println("[seg] stream-flush key=" + key + " status=" + st);
+                                    flushSegment(wm, chunk.getId(), chunk.getType(), onSegment);
                                 }
                             }
                         } else if (onDelta != null) {
@@ -203,28 +208,39 @@ public class ChatIntegrationMessageDispatcher implements IIntegrationMessageDisp
      * 渲染当前快照并回调; 吞掉异常(跑在节点 write 路径, 抛出会中断工作流)
      */
     /**
-     * 把某个 id 的内容块(已聚合完整)按 (type, content) 回调出去
+     * 聚合层按 id+type 区分内容块(见 AggregationManager), 去重键也必须一致, 否则同 id 的 reasoning/text 互相覆盖
      */
-    private void flushSegment(WorkFlowManage wm, String id, java.util.function.BiConsumer<String, String> onSegment) {
+    private static String segKey(Content c) {
+        if (c == null || c.getId() == null) {
+            return null;
+        }
+        return c.getId() + "_" + (c.getType() == null ? "" : c.getType().name());
+    }
+
+    /**
+     * 把某个 (id,type) 的内容块(已聚合完整)按 (type, content) 回调出去
+     */
+    private void flushSegment(WorkFlowManage wm, String id, ContentTypeConstants type,
+                              java.util.function.BiConsumer<String, String> onSegment) {
         try {
             for (Content c : wm.getChunks()) {
-                if (id.equals(c.getId())) {
+                if (id.equals(c.getId()) && type == c.getType()) {
                     JsonObject o = JsonObject.mapFrom(c);
-                    String type = o.getString("type");
-                    if ("TEXT".equals(type)) {
+                    String typeName = type == null ? "" : type.name();
+                    if ("TEXT".equals(typeName)) {
                         if (o.getValue("content") instanceof String s && !s.isEmpty()) {
                             System.out.println("[seg] emit TEXT id=" + id + " len=" + s.length());
                             onSegment.accept("TEXT", s);
                         } else {
                             System.out.println("[seg] emit TEXT id=" + id + " SKIP(empty/non-string) val=" + o.getValue("content"));
                         }
-                    } else if ("REASONING".equals(type)) {
+                    } else if ("REASONING".equals(typeName)) {
                         if (o.getValue("content") instanceof String s && !s.isEmpty()) {
                             onSegment.accept("REASONING", "💭 " + s);
                         }
-                    } else if ("TOOL".equals(type)) {
+                    } else if ("TOOL".equals(typeName)) {
                         onSegment.accept("TOOL", "🔧 调用工具 `" + o.getString("toolName", "tool") + "`");
-                    } else if ("FAILURE".equals(type)) {
+                    } else if ("FAILURE".equals(typeName)) {
                         // 工作流失败块: 之前未处理 -> 末段静默丢失, 用户什么都收不到。作为文本发出去。
                         if (o.getValue("content") instanceof String s && !s.isEmpty()) {
                             System.out.println("[seg] emit FAILURE id=" + id + " len=" + s.length());
