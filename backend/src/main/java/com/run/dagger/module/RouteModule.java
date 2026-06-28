@@ -87,5 +87,18 @@ public class RouteModule {
         return docRoute;
     }
 
+    /**
+     * 第三方集成回调路由(无 token, 平台签名校验), 返回原始报文(明文/XML), 不套 JSON ResultHandler
+     */
+    @Singleton
+    @Named("integrationCallbackRoute")
+    @Provides
+    @Inject
+    public Router integrationCallbackRoute(Vertx vertx, @Named("mainRoute") Router router) {
+        Router callbackRoute = Router.router(vertx);
+        router.route("/integration/*").subRouter(callbackRoute);
+        return callbackRoute;
+    }
+
 
 }

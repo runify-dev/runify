@@ -54,11 +54,11 @@ public class CacheQueryNode extends INode<CacheQueryNode, CacheQueryNodeData> {
 
             DataSourceManage.getCacheAsync(UUID.fromString(data.getCacheId()), (uuid, dm) -> dm.getById(uuid.toString()), mapper, vertx)
                     .onSuccess(cache -> {
-                        if (node.cancelled.get()) return;
+                        if (node.cancelled.get()) { workFlowManage.nextInvoke(node, workFlowManage.nextCancelNodeSupplier()); return; }
                         String cacheKey = resolveKey(data, workFlowManage);
                         cache.get(cacheKey, Object.class)
                                 .thenAccept(optional -> {
-                                    if (node.cancelled.get()) return;
+                                    if (node.cancelled.get()) { workFlowManage.nextInvoke(node, workFlowManage.nextCancelNodeSupplier()); return; }
                                     Object result = optional.orElse(null);
                                     workFlowManage.writeContext(node, "result", result);
                                     node.status = NodeStatus.SUCCESS;
@@ -69,13 +69,13 @@ public class CacheQueryNode extends INode<CacheQueryNode, CacheQueryNodeData> {
                                             .toList());
                                 })
                                 .exceptionally(e -> {
-                                    if (node.cancelled.get()) return null;
+                                    if (node.cancelled.get()) { workFlowManage.nextInvoke(node, workFlowManage.nextCancelNodeSupplier()); return null; }
                                     workFlowManage.nextInvoke(node, node.handleFail(workFlowManage, e));
                                     return null;
                                 });
                     })
                     .onFailure(e -> {
-                        if (node.cancelled.get()) return;
+                        if (node.cancelled.get()) { workFlowManage.nextInvoke(node, workFlowManage.nextCancelNodeSupplier()); return; }
                         workFlowManage.nextInvoke(node, node.handleFail(workFlowManage, e));
                     });
 

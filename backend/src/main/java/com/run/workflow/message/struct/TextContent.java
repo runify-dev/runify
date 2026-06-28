@@ -14,9 +14,11 @@ import java.util.Map;
 @NoArgsConstructor
 public class TextContent extends Content {
     private String content;
+    private NodeStatus status;
 
-    public TextContent(String content, INode<?, ?> node, String workflowRunId, String id) {
+    public TextContent(String content, NodeStatus status, INode<?, ?> node, String workflowRunId, String id) {
         super(ContentTypeConstants.TEXT, node, workflowRunId, id);
+        this.status = status;
         this.content = content;
     }
 

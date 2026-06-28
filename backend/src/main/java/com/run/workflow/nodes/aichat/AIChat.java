@@ -232,7 +232,7 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
                                                     reasoningEnd = true;
                                                     workFlowManage.write(node, new ReasoningContent("", NodeStatus.SUCCESS, node, (String) workFlowManage.getParams().get("workflowRunId"), chunkId));
                                                 }
-                                                workFlowManage.write(node, new TextContent(content, node, (String) workFlowManage.getParams().get("workflowRunId"),
+                                                workFlowManage.write(node, new TextContent(content, NodeStatus.RUNNING, node, (String) workFlowManage.getParams().get("workflowRunId"),
                                                         chunkId));
                                             });
                                         }
@@ -246,6 +246,8 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
 
                                     @Override
                                     public void onComplete(Optional<Throwable> error) {
+                                        workFlowManage.write(node, new TextContent("", NodeStatus.SUCCESS, node, (String) workFlowManage.getParams().get("workflowRunId"),
+                                                chunkId));
                                         if (node.cancelled) {
                                             return;
                                         }

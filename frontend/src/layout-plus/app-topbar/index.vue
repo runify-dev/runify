@@ -245,6 +245,12 @@ const items = computed(() => [
     icon: 'pi pi-search',
     name: 'project',
     permissions: [PermissionConstants.PROJECT_READ, Role.ADMIN, Role.USER]
+  },
+  {
+    label: t('topbar.nav.integration'),
+    icon: 'pi pi-share-alt',
+    name: 'integration',
+    permissions: [PermissionConstants.INTEGRATION_READ, Role.ADMIN, Role.USER]
   }
 ])
 

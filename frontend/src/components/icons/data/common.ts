@@ -64,6 +64,26 @@ const icons: any = {
       ])
     }
   },
+  'app-integration': {
+    iconReader: () => {
+      return h('i', [
+        h(
+          'svg',
+          {
+            viewBox: '0 0 1024 1024',
+            version: '1.1',
+            xmlns: 'http://www.w3.org/2000/svg'
+          },
+          [
+            h('path', {
+              d: 'M832 384h-64V256a256 256 0 0 0-512 0v128h-64a64 64 0 0 0-64 64v448a64 64 0 0 0 64 64h640a64 64 0 0 0 64-64V448a64 64 0 0 0-64-64zM320 256a192 192 0 0 1 384 0v128H320V256z m512 640H192V448h640v448z m-320-320a64 64 0 0 0-32 119.04V768a32 32 0 0 0 64 0v-72.96A64 64 0 0 0 512 576z',
+              fill: 'currentColor'
+            })
+          ]
+        )
+      ])
+    }
+  },
   'app-model': {
     iconReader: () => {
       return h('i', [

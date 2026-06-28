@@ -133,7 +133,10 @@ public class WorkFlowManage {
      * @param getNextNode 获取下一个节点的函数
      */
     public void nextInvoke(INode<?, ?> upINode, Supplier<List<Node>> getNextNode) {
-        if (this.cancelled.get()) this.assertionEnd();
+        if (this.cancelled.get()) {
+            this.assertionEnd();
+            return;
+        }
         try {
             List<Node> nodes = getNextNode.get();
             if (nodes.size() == 1) {
@@ -357,7 +360,9 @@ public class WorkFlowManage {
     }
 
     public Supplier<List<Node>> nextCancelNodeSupplier() {
-        return null;
+        // 取消时没有后续节点,返回空列表 -> nextInvoke 会走到 assertionEnd 正常结束工作流。
+        // 不能返回 null,否则 invoke() 会跳过 nextInvoke、或在 nextInvoke 内部对 null 调用 get() 抛 NPE。
+        return List::of;
     }
 
     /**

@@ -12,6 +12,7 @@ export default {
     model: '模型',
     skill: '技能',
     datasource: '資料來源',
-    project: '專案'
+    project: '專案',
+    integration: '整合'
   }
 }

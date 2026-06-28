@@ -82,8 +82,7 @@ public class RunSkillNode extends INode<RunSkillNode, RunSkillNodeData> {
                     new ToolCallContent("run_skill", statusOutput, config.toArguments(),
                             status, node, runId, config.id()).withMeta(config.meta())));
 
-            wfm.nextInvoke(node, () -> wfm.getNextList(node.node.getId()).stream()
-                    .map(DefaultKeyValue::getValue).toList());
+            wfm.nextInvoke(node, wfm.nextNodeSupplier(node.node.getId()));
         }
 
         private void fail(WorkFlowManage wfm, RunSkillNode node, RunSkillConfig config, String runId,
@@ -166,7 +165,10 @@ public class RunSkillNode extends INode<RunSkillNode, RunSkillNodeData> {
             final String finalCommand = command;
             querySkillEnv(config.skillId(), wfm.getWorkingDirectory())
                     .onSuccess(env -> {
-                        if (node.getStatus() == NodeStatus.CANCELLED) return;
+                        if (node.getStatus() == NodeStatus.CANCELLED) {
+                            wfm.nextInvoke(node, wfm.nextCancelNodeSupplier());
+                            return;
+                        }
 
                         CommandRunner runner;
                         if ("docker".equals(config.runtime())) {
