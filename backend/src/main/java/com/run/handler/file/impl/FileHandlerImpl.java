@@ -1,6 +1,7 @@
 package com.run.handler.file.impl;
 
 
+import com.run.common.exception.ApiException;
 import com.run.common.result.Result;
 import com.run.dao.common.constants.RefType;
 import com.run.dao.entity.FileEntity;
@@ -66,6 +67,9 @@ public class FileHandlerImpl implements IFileHandler {
     public void download(RoutingContext context) {
         String fileId = context.pathParam("fileId");
         fileMapper.getById(fileId).compose(file -> {
+            if (file == null) {
+                throw new ApiException(404, "文件不存在");
+            }
             String contentType = MimeMapping.mimeTypeForFilename(file.getFileName());
             if (contentType != null) {
                 if (contentType.startsWith("text")) {

@@ -87,7 +87,7 @@ public class FileDownloadNode extends INode<FileDownloadNode, FileDownloadNodeDa
             String fileId = extractFileId(config.fileId());
             fileMapper.getById(fileId)
                     .onSuccess(entity -> {
-                        if (node.cancelled.get()) return;
+                        if (node.cancelled.get()) { workFlowManage.nextInvoke(node, workFlowManage.nextCancelNodeSupplier()); return; }
                         if (entity == null) {
                             invokeFail(workFlowManage, node, config, runId, new RuntimeException("文件不存在: " + config.fileId()));
                             return;
@@ -108,7 +108,7 @@ public class FileDownloadNode extends INode<FileDownloadNode, FileDownloadNodeDa
                         // 下载文件
                         downloadToFile(vertx, fileMapper, entity, targetFile)
                                 .onSuccess(v -> {
-                                    if (node.cancelled.get()) return;
+                                    if (node.cancelled.get()) { workFlowManage.nextInvoke(node, workFlowManage.nextCancelNodeSupplier()); return; }
 
                                     String resultJson = JacksonUtils.toJson(Map.of(
                                             "filePath", targetPath.toString(),
@@ -128,12 +128,12 @@ public class FileDownloadNode extends INode<FileDownloadNode, FileDownloadNodeDa
                                     workFlowManage.nextInvoke(node, workFlowManage.nextNodeSupplier(node.node.getId()));
                                 })
                                 .onFailure(e -> {
-                                    if (node.cancelled.get()) return;
+                                    if (node.cancelled.get()) { workFlowManage.nextInvoke(node, workFlowManage.nextCancelNodeSupplier()); return; }
                                     invokeFail(workFlowManage, node, config, runId, e);
                                 });
                     })
                     .onFailure(e -> {
-                        if (node.cancelled.get()) return;
+                        if (node.cancelled.get()) { workFlowManage.nextInvoke(node, workFlowManage.nextCancelNodeSupplier()); return; }
                         invokeFail(workFlowManage, node, config, runId, e);
                     });
 

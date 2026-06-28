@@ -88,7 +88,10 @@ public class FileUploadNode extends INode<FileUploadNode, FileUploadNodeData> {
 
             fileMapper.upload(fileName, file.length(), null, null, file)
                     .onSuccess(entity -> {
-                        if (node.cancelled.get()) return;
+                        if (node.cancelled.get()) {
+                            workFlowManage.nextInvoke(node, workFlowManage.nextCancelNodeSupplier());
+                            return;
+                        }
                         workFlowManage.writeContext(node, "url", "./api/storage/file/" + entity.getId().toString());
                         workFlowManage.writeContext(node, "fileId", entity.getId().toString());
                         workFlowManage.writeContext(node, "fileName", entity.getFileName());
@@ -107,7 +110,10 @@ public class FileUploadNode extends INode<FileUploadNode, FileUploadNodeData> {
                         workFlowManage.nextInvoke(node, workFlowManage.nextNodeSupplier(node.node.getId()));
                     })
                     .onFailure(e -> {
-                        if (node.cancelled.get()) return;
+                        if (node.cancelled.get()) {
+                            workFlowManage.nextInvoke(node, workFlowManage.nextCancelNodeSupplier());
+                            return;
+                        }
                         workFlowManage.nextInvoke(node, invokeFail(workFlowManage, node, config, runId, e));
                     });
             return null;

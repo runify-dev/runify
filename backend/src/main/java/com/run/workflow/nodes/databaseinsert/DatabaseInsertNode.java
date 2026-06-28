@@ -60,7 +60,7 @@ public class DatabaseInsertNode extends INode<DatabaseInsertNode, DatabaseInsert
             Vertx vertx = RunApplication.appComponent.vertx();
             Future<Pool> cacheAsync = DataSourceManage.getPoolAsync(UUID.fromString(poolId), (uuid, dm) -> dm.getById(uuid.toString()), datasourceMapper, vertx);
             cacheAsync.onSuccess(pool -> {
-                if (node.cancelled.get()) return;
+                if (node.cancelled.get()) { workFlowManage.nextInvoke(node, workFlowManage.nextCancelNodeSupplier()); return; }
                 HashMap<String, Object> params = new HashMap<>();
                 if (data.getParameters() != null) {
                     for (DatabaseSearchNodeData.Parameter parameter : data.getParameters()) {
@@ -103,7 +103,7 @@ public class DatabaseInsertNode extends INode<DatabaseInsertNode, DatabaseInsert
 
                 SqlTemplate.forQuery(pool, sql)
                         .execute(params).onSuccess(ok -> {
-                            if (node.cancelled.get()) return;
+                            if (node.cancelled.get()) { workFlowManage.nextInvoke(node, workFlowManage.nextCancelNodeSupplier()); return; }
                             int affectedRows = ok.rowCount();
                             workFlowManage.writeContext(node, "affectedRows", affectedRows);
                             node.status = NodeStatus.SUCCESS;
@@ -113,7 +113,7 @@ public class DatabaseInsertNode extends INode<DatabaseInsertNode, DatabaseInsert
                                     .map(DefaultKeyValue::getValue)
                                     .toList());
                         }).onFailure(e -> {
-                            if (node.cancelled.get()) return;
+                            if (node.cancelled.get()) { workFlowManage.nextInvoke(node, workFlowManage.nextCancelNodeSupplier()); return; }
                             workFlowManage.nextInvoke(node, node.handleFail(workFlowManage, e));
                         });
             }).onFailure(e -> {

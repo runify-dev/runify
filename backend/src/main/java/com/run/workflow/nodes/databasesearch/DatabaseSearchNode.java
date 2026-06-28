@@ -113,7 +113,7 @@ public class DatabaseSearchNode extends INode<DatabaseSearchNode, DatabaseSearch
 
                 SqlTemplate.forQuery(pool, sql)
                         .execute(params).onSuccess(ok -> {
-                            if (node.cancelled.get()) return;
+                            if (node.cancelled.get()) { workFlowManage.nextInvoke(node, workFlowManage.nextCancelNodeSupplier()); return; }
                             List<Map<String, Object>> result = ok.stream().map(Row::toJson).map(JsonObject::getMap).toList();
                             workFlowManage.writeContext(node, "result", result);
                             node.status = NodeStatus.SUCCESS;
@@ -123,12 +123,12 @@ public class DatabaseSearchNode extends INode<DatabaseSearchNode, DatabaseSearch
                                     .map(DefaultKeyValue::getValue)
                                     .toList());
                         }).onFailure(e -> {
-                            if (node.cancelled.get()) return;
+                            if (node.cancelled.get()) { workFlowManage.nextInvoke(node, workFlowManage.nextCancelNodeSupplier()); return; }
                             workFlowManage.nextInvoke(node, node.handleFail(workFlowManage, e));
                         });
 
             }).onFailure(e -> {
-                if (node.cancelled.get()) return;
+                if (node.cancelled.get()) { workFlowManage.nextInvoke(node, workFlowManage.nextCancelNodeSupplier()); return; }
                 workFlowManage.nextInvoke(node, node.handleFail(workFlowManage, e));
             });
             return null;

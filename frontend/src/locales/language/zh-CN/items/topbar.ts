@@ -12,6 +12,7 @@ export default {
     model: '模型',
     skill: '技能',
     datasource: '数据源',
-    project: '项目'
+    project: '项目',
+    integration: '集成'
   }
 }

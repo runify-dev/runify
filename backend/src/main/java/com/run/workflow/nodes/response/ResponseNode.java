@@ -111,7 +111,7 @@ public class ResponseNode extends INode<ResponseNode, ResponseNodeData> {
                 } else {
                     text = workFlowManage.generatePrompt(plainText.getValue());
                 }
-                workFlowManage.write(node, new TextContent(text, node, (String) workFlowManage.getParams().get("workflowRunId"),
+                workFlowManage.write(node, new TextContent(text, NodeStatus.SUCCESS, node, (String) workFlowManage.getParams().get("workflowRunId"),
                         CommonUtils.uuid7().toString()));
             }
 

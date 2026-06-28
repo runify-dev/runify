@@ -12,6 +12,7 @@ export default {
     model: 'モデル',
     skill: 'スキル',
     datasource: 'データソース',
-    project: 'プロジェクト'
+    project: 'プロジェクト',
+    integration: '連携'
   }
 }

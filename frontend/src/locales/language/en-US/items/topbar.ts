@@ -12,6 +12,7 @@ export default {
     model: 'Models',
     skill: 'Skills',
     datasource: 'Datasources',
-    project: 'Projects'
+    project: 'Projects',
+    integration: 'Integrations'
   }
 }

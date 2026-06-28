@@ -1,4 +1,4 @@
-export type Resource = 'knowledge' | 'application' | 'model' | 'note' | 'project' | 'datasource' | 'skill'
+export type Resource = 'knowledge' | 'application' | 'model' | 'note' | 'project' | 'datasource' | 'skill' | 'integration'
 
 export type Type = "folder" | "md" | "application" | 'model'
 

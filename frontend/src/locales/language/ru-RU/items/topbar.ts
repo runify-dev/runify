@@ -12,6 +12,7 @@ export default {
     model: 'Модели',
     skill: 'Навыки',
     datasource: 'Источники данных',
-    project: 'Проекты'
+    project: 'Проекты',
+    integration: 'Интеграции'
   }
 }

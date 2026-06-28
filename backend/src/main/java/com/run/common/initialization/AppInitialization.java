@@ -6,7 +6,9 @@ import com.run.common.util.RSAUtil;
 import com.run.dao.entity.SystemSetting;
 import com.run.dao.mapper.DatasourceMapper;
 import com.run.dao.mapper.SystemSettingMapper;
+import com.run.integrations.impl.weixin.WeixinPollerManager;
 import com.run.route.*;
+import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
 
 import javax.inject.Inject;
@@ -34,6 +36,9 @@ public class AppInitialization {
                              SkillRoute skillRoute,
                              KnowledgeRoute knowledgeRoute,
                              ConversationRoute conversationRoute,
+                             IntegrationRoute integrationRoute,
+                             IntegrationCallbackRoute integrationCallbackRoute,
+                             WeixinPollerManager weixinPollerManager,
                              UIInitialization uiInitialization,
                              MigrationInitialization migrationInitialization,
                              SystemSettingMapper systemSettingMapper,
@@ -53,26 +58,38 @@ public class AppInitialization {
         processorRoute.init();
         conversationRoute.init();
         roleRoute.init();
+        integrationRoute.init();
+        integrationCallbackRoute.init();
         ProjectManage.setDatasourceMapper(datasourceMapper);
-        systemSettingMapper.getById("RSA").onSuccess(systemSetting -> {
-            if (systemSetting == null) {
-                KeyPair keyPair = RSAUtil.generateKeyPair();
-                String privateKey = RSAUtil.getPrivateKey(keyPair);
-                String publicKey = RSAUtil.getPublicKey(keyPair);
-                SystemSetting instance = new SystemSetting();
-                instance.setType("RSA");
-                instance.setMeta(JsonObject.of("private", privateKey, "public", publicKey));
-                systemSettingMapper.save(instance).onSuccess(ok -> {
-                    RSAUtil.setKeyPair(keyPair);
-                });
-            } else {
-                JsonObject meta = systemSetting.getMeta();
-                String privateKey = meta.getString("private");
-                String publicKey = meta.getString("public");
-                KeyPair keyPair = new KeyPair(RSAUtil.loadPublicKey(publicKey), RSAUtil.loadPrivateKey(privateKey));
-                RSAUtil.setKeyPair(keyPair);
-            }
-        });
+        // 依赖加解密的初始化(如微信 poller 需解密集成配置)必须等 RSA 密钥就绪后再执行
+        initRsa(systemSettingMapper)
+                .onSuccess(v -> weixinPollerManager.startAll())
+                .onFailure(Throwable::printStackTrace);
+    }
 
+    /**
+     * 初始化 RSA 密钥对(首次生成并持久化, 否则从 system_setting 加载), 完成后才可加解密
+     */
+    private Future<Void> initRsa(SystemSettingMapper systemSettingMapper) {
+        return systemSettingMapper.getById("RSA")
+                .compose(systemSetting -> {
+                    if (systemSetting == null) {
+                        KeyPair keyPair = RSAUtil.generateKeyPair();
+                        SystemSetting instance = new SystemSetting();
+                        instance.setType("RSA");
+                        instance.setMeta(JsonObject.of("private", RSAUtil.getPrivateKey(keyPair),
+                                "public", RSAUtil.getPublicKey(keyPair)));
+                        return systemSettingMapper.save(instance).map(ok -> {
+                            RSAUtil.setKeyPair(keyPair);
+                            return null;
+                        });
+                    }
+                    JsonObject meta = systemSetting.getMeta();
+                    KeyPair keyPair = new KeyPair(
+                            RSAUtil.loadPublicKey(meta.getString("public")),
+                            RSAUtil.loadPrivateKey(meta.getString("private")));
+                    RSAUtil.setKeyPair(keyPair);
+                    return Future.succeededFuture();
+                });
     }
 }

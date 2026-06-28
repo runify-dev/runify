@@ -94,7 +94,7 @@ public class DownloadSkillsNode extends INode<DownloadSkillsNode, DownloadSkills
                         // 查询技能文件列表
                         skillFileMapper.list(DSL.field(SkillFile::getSkillId).eq(skillUuid))
                                 .onSuccess(skillFiles -> {
-                                    if (node.getStatus() == NodeStatus.CANCELLED) return;
+                                    if (node.getStatus() == NodeStatus.CANCELLED) { workFlowManage.nextInvoke(node, workFlowManage.nextCancelNodeSupplier()); return; }
 
                                     // 确定本地目录，已存在则先删除再创建
                                     Path localDir = workFlowManage.getApplicationDirectory()
@@ -115,7 +115,7 @@ public class DownloadSkillsNode extends INode<DownloadSkillsNode, DownloadSkills
                                     // 下载所有文件
                                     downloadAll(vertx, fileMapper, localDir, skillFiles)
                                             .onSuccess(downloadedFiles -> {
-                                                if (node.getStatus() == NodeStatus.CANCELLED) return;
+                                                if (node.getStatus() == NodeStatus.CANCELLED) { workFlowManage.nextInvoke(node, workFlowManage.nextCancelNodeSupplier()); return; }
 
                                                 // 生成 .skill-meta.json
                                                 writeMetaFile(localDir, skill);

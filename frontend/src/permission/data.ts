@@ -111,4 +111,12 @@ export const PermissionConstants = {
   KNOWLEDGE_FOLDER_DELETE: new Permission(Group.KNOWLEDGE, Group.FOLDER, Operate.DELETE, 5),
   KNOWLEDGE_FOLDER_CREATE: new Permission(Group.KNOWLEDGE, Group.FOLDER, Operate.CREATE, 6),
 
+  INTEGRATION_READ: new Permission(Group.INTEGRATION, Group.INTEGRATION, Operate.READ, 0),
+  INTEGRATION_EDIT: new Permission(Group.INTEGRATION, Group.INTEGRATION, Operate.EDIT, 1),
+  INTEGRATION_DELETE: new Permission(Group.INTEGRATION, Group.INTEGRATION, Operate.DELETE, 2),
+  INTEGRATION_CREATE: new Permission(Group.INTEGRATION, Group.INTEGRATION, Operate.CREATE, 3),
+  INTEGRATION_FOLDER_EDIT: new Permission(Group.INTEGRATION, Group.FOLDER, Operate.EDIT, 4),
+  INTEGRATION_FOLDER_DELETE: new Permission(Group.INTEGRATION, Group.FOLDER, Operate.DELETE, 5),
+  INTEGRATION_FOLDER_CREATE: new Permission(Group.INTEGRATION, Group.FOLDER, Operate.CREATE, 6),
+
 }
