@@ -1,5 +1,5 @@
 <template>
-  <SimpleNodeContainer :model="model" :validate="validate" :submit="submit">
+  <SimpleNodeContainer ref="containerRef" :model="model" :validate="validate" :submit="submit">
     <Content ref="contentRef"></Content>
   </SimpleNodeContainer>
 </template>
@@ -9,10 +9,14 @@ import type { BaseNodeModel } from '@logicflow/core'
 import Content from './content/index.vue'
 import { init } from './content'
 import { inject, ref, onMounted } from 'vue'
+import { useNodeValidator } from '@/workflow/common/useNodeValidator'
 
 const getModel = inject('getModel') as () => BaseNodeModel
 const model = getModel()
+const containerRef = ref<InstanceType<typeof SimpleNodeContainer>>()
 const contentRef = ref<InstanceType<typeof Content>>()
+
+useNodeValidator(model, containerRef)
 
 const validate = () => {
   return contentRef.value ? contentRef.value.validate() : Promise.resolve(true)

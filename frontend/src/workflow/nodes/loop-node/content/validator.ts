@@ -5,7 +5,7 @@ import { WorkflowType } from '@/workflow/common/data'
 
 export const schema = z
   .object({
-    loopType: z.string().min(1, { error: '请选择循环类型' }),
+    loopType: z.string({ error: '请选择循环类型' }).min(1, { error: '请选择循环类型' }),
     loopCount: z.number().min(1).optional(),
     loopVariable: z.array(z.string()).optional()
   })

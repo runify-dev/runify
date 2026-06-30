@@ -63,8 +63,11 @@ const resourceId = computed(() => {
   return id
 })
 const save = () => {
-  ApplicationAPI.edit(resourceId.value,{workflow: workflowRef.value?.getGraphData()}).then(() => {
-    bus.emit('message:success', t('application.saveSuccess'))
+  workflowRef.value?.validateWorkflow().then((ok) => {
+    if (!ok.valid) return
+    ApplicationAPI.edit(resourceId.value, { workflow: workflowRef.value?.getGraphData() }).then(() => {
+      bus.emit('message:success', t('application.saveSuccess'))
+    })
   })
 }
 
