@@ -1,6 +1,7 @@
 package com.run.integrations.impl.wecomstream;
 
 import com.run.dao.entity.Integration;
+import com.run.dao.mapper.FileMapper;
 import com.run.dao.mapper.IntegrationMapper;
 import com.run.handler.integration.impl.ChatIntegrationMessageDispatcher;
 import io.vertx.core.Vertx;
@@ -25,13 +26,16 @@ public class WecomStreamManager {
 
     private final IntegrationMapper integrationMapper;
     private final ChatIntegrationMessageDispatcher dispatcher;
+    private final FileMapper fileMapper;
     private final Vertx vertx;
     private final Map<String, WecomStreamConnection> connections = new ConcurrentHashMap<>();
 
     @Inject
-    public WecomStreamManager(IntegrationMapper integrationMapper, ChatIntegrationMessageDispatcher dispatcher, Vertx vertx) {
+    public WecomStreamManager(IntegrationMapper integrationMapper, ChatIntegrationMessageDispatcher dispatcher,
+                              FileMapper fileMapper, Vertx vertx) {
         this.integrationMapper = integrationMapper;
         this.dispatcher = dispatcher;
+        this.fileMapper = fileMapper;
         this.vertx = vertx;
     }
 
@@ -64,7 +68,7 @@ public class WecomStreamManager {
         }
         String id = integration.getId().toString();
         stop(id);
-        WecomStreamConnection conn = new WecomStreamConnection(integration, botId, secret, dispatcher, vertx);
+        WecomStreamConnection conn = new WecomStreamConnection(integration, botId, secret, dispatcher, fileMapper, vertx);
         connections.put(id, conn);
         conn.start();
     }
