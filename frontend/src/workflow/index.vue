@@ -31,6 +31,7 @@ import RunEdge from './common/edge'
 import { onMounted, onBeforeUnmount, ref, provide, inject, nextTick } from 'vue'
 import type { ValidationResult } from './common/type'
 import { WorkflowType } from './common/data'
+import bus from '@/bus'
 
 const reNameDialogRef = ref<InstanceType<typeof ReNameDialog>>()
 const addNodeDialogRef = ref<InstanceType<typeof AddNodeDialog>>()
@@ -58,6 +59,15 @@ for (const path in validatorModules) {
 
 const workflowType = inject<string>('WorkflowType') || WorkflowType.APPLICATION
 
+// ── 校验失败时弹出错误提示（取首条错误信息，带上节点名） ──
+function emitValidationError(failedNodeId: string, errors?: Record<string, string>) {
+  const failedNode = lf.value?.graphModel?.nodes?.find((n: any) => n.id === failedNodeId)
+  const name = failedNode?.properties?.name
+  const keys = errors ? Object.keys(errors) : []
+  const message = keys.length ? errors![keys[0]] : '节点配置校验未通过'
+  bus.emit('message:error', name ? `「${name}」${message}` : message)
+}
+
 // ── 校验整个工作流（短路） ──
 async function validateWorkflow(): Promise<{ valid: boolean; nodeId?: string }> {
   if (!lf.value) return { valid: true }
@@ -74,6 +84,7 @@ async function validateWorkflow(): Promise<{ valid: boolean; nodeId?: string }> 
         if (failedNodeId !== node.id && path.length === 0) {
           path.push(node.id)
         }
+        emitValidationError(failedNodeId, result.errors)
         if (path.length) {
           await expandAndOpen(path, failedNodeId)
         } else {
@@ -82,6 +93,7 @@ async function validateWorkflow(): Promise<{ valid: boolean; nodeId?: string }> 
         return { valid: false, nodeId: failedNodeId }
       }
     } catch {
+      emitValidationError(node.id)
       selectAndOpenNode(node.id)
       return { valid: false, nodeId: node.id }
     }

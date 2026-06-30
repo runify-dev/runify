@@ -3,7 +3,7 @@ import type { ValidationResult } from '@/workflow/common/type'
 import { parseZodResult } from '@/workflow/common/validator-utils'
 
 export const schema = z.object({
-  modelId: z.string().min(1, { error: '请选择模型' }),
+  modelId: z.string({ error: '请选择模型' }).min(1, { error: '请选择模型' }),
   enableContext: z.boolean().optional(),
   user: z.string().optional()
 }).refine(
