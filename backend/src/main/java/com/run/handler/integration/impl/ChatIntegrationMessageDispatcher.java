@@ -40,6 +40,12 @@ import static com.run.sql.DSL.field;
  */
 public class ChatIntegrationMessageDispatcher implements IIntegrationMessageDispatcher {
 
+    // 会话空闲超过该时长后, 下一条消息自动开新会话(IM 无"新建对话"入口, 靠时间滚动)
+    private static final long CONVERSATION_IDLE_HOURS = 12;
+    // 显式开新会话的指令(全文匹配, /new 不区分大小写)
+    private static final Set<String> NEW_CONVERSATION_COMMANDS = Set.of("/new", "新对话");
+    private static final String NEW_CONVERSATION_REPLY = "✅ 已开启新对话";
+
     private final ApplicationMapper applicationMapper;
     private final ConversationMapper conversationMapper;
     private final ConversationMessageMapper conversationMessageMapper;
@@ -76,6 +82,17 @@ public class ChatIntegrationMessageDispatcher implements IIntegrationMessageDisp
             return Future.failedFuture("integration not bound to an application");
         }
         String userKey = integration.getType() + ":" + fromUser;
+        if (isNewConversationCommand(content)) {
+            // 指令: 直接开新会话并确认, 不进工作流(后续消息按 createTime 最新会命中新会话)
+            return createConversation(applicationId, userKey, fromUser).map(c -> {
+                if (onSegment != null) {
+                    onSegment.accept("TEXT", NEW_CONVERSATION_REPLY);
+                } else if (onDelta != null) {
+                    onDelta.accept(NEW_CONVERSATION_REPLY);
+                }
+                return NEW_CONVERSATION_REPLY;
+            });
+        }
         return findOrCreateConversation(applicationId, userKey, fromUser).compose(conversation -> {
             UUID conversationId = conversation.getId();
             UUID workflowRunId = UUID.randomUUID();
@@ -97,20 +114,54 @@ public class ChatIntegrationMessageDispatcher implements IIntegrationMessageDisp
         });
     }
 
+    /** 纯文本消息且全文命中新会话指令(带媒体的消息不算) */
+    private static boolean isNewConversationCommand(JsonObject content) {
+        if (content.containsKey("images") || content.containsKey("videos") || content.containsKey("files")) {
+            return false;
+        }
+        String text = content.getValue("content") instanceof String s ? s.strip() : "";
+        return NEW_CONVERSATION_COMMANDS.contains(text) || NEW_CONVERSATION_COMMANDS.contains(text.toLowerCase());
+    }
+
+    /**
+     * 取该用户最新会话; 不存在或已空闲超过 CONVERSATION_IDLE_HOURS 时开新会话(隔夜自动换话题, 避免旧上下文串味)
+     */
     private Future<Conversation> findOrCreateConversation(UUID applicationId, String userKey, String name) {
-        return conversationMapper.list(field(Conversation::getApplicationId).eq(applicationId.toString())
-                        .and(field(Conversation::getConversationUserId).eq(userKey)))
+        return conversationMapper.list(conversationMapper.select()
+                        .where(field(Conversation::getApplicationId).eq(applicationId.toString())
+                                .and(field(Conversation::getConversationUserId).eq(userKey)))
+                        .orderBy(field(Conversation::getCreateTime).desc())
+                        .limit(1).render())
                 .compose(list -> {
-                    if (list != null && !list.isEmpty()) {
-                        return Future.succeededFuture(list.getFirst());
+                    if (list == null || list.isEmpty()) {
+                        return createConversation(applicationId, userKey, name);
                     }
-                    LocalDateTime now = LocalDateTime.now();
-                    Conversation conversation = new Conversation(UUID.randomUUID(),
-                            applicationId, name, ConversationExecuteConstants.CONVERSATION,
-                            new JsonObject(), userKey, TokenTypeConstants.USER,
-                            0, 0, 0, 0, Boolean.FALSE, now, now);
-                    return conversationMapper.save(conversation).map(ok -> conversation);
+                    Conversation latest = list.getFirst();
+                    return lastActivity(latest).compose(t ->
+                            t.isBefore(LocalDateTime.now().minusHours(CONVERSATION_IDLE_HOURS))
+                                    ? createConversation(applicationId, userKey, name)
+                                    : Future.succeededFuture(latest));
                 });
+    }
+
+    /** 会话最后活跃时间: 最新一条消息的时间; 还没有消息就用会话创建时间 */
+    private Future<LocalDateTime> lastActivity(Conversation conversation) {
+        return conversationMessageMapper.list(conversationMessageMapper.select()
+                        .where(field(ConversationMessage::getConversationId).eq(conversation.getId().toString()))
+                        .orderBy(field(ConversationMessage::getCreateTime).desc())
+                        .limit(1).render())
+                .map(msgs -> msgs == null || msgs.isEmpty()
+                        ? conversation.getCreateTime()
+                        : msgs.getFirst().getCreateTime());
+    }
+
+    private Future<Conversation> createConversation(UUID applicationId, String userKey, String name) {
+        LocalDateTime now = LocalDateTime.now();
+        Conversation conversation = new Conversation(UUID.randomUUID(),
+                applicationId, name, ConversationExecuteConstants.CONVERSATION,
+                new JsonObject(), userKey, TokenTypeConstants.USER,
+                0, 0, 0, 0, Boolean.FALSE, now, now);
+        return conversationMapper.save(conversation).map(ok -> conversation);
     }
 
     private Future<List<ConversationMessage>> loadHistory(UUID conversationId) {

@@ -171,7 +171,6 @@ public class LoopNode extends INode<LoopNode, LoopNodeData> {
                             return;
                         }
                         if (done) {
-                            System.out.println(done + node.getNode().getId());
                             List<Map<String, Object>> list = wm.getNodes().stream().map(INode::serialize).map(NodeSerialize::toMap).toList();
                             parentWm.writeContext(node, LOOP_CONTEXT_KEY, list);
 
