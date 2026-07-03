@@ -7,6 +7,9 @@ import com.run.integrations.IntegrationProviderInfo;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 /**
  * {@code @Author:张少虎}
  * {@code @Date: 2026/6/20  10:00}
@@ -15,6 +18,10 @@ import io.vertx.ext.web.RoutingContext;
  * 回复通过 tenant_access_token 调 API 主动发送。凭证: appId/appSecret/encryptKey(可选)/verifyToken(可选)。 }
  */
 public class FeishuProvider implements IIntegrationProvider {
+
+    // 飞书事件是至少一次投递(响应慢会重试), 按 event_id + 5min 窗口去重, 避免重复触发工作流
+    private static final long DEDUP_TTL_MS = 5 * 60 * 1000L;
+    private final Map<String, Long> seenEvents = new ConcurrentHashMap<>();
 
     @Override
     public IntegrationProviderInfo info() {
@@ -44,6 +51,19 @@ public class FeishuProvider implements IIntegrationProvider {
             return;
         }
 
+        // 校验 Verification Token(配置了才校验): url_verification 带在根节点, v2 事件带在 header 里。
+        // 不校验的话, 未配置 encryptKey 时回调 URL 泄露即可伪造事件白嫖工作流
+        JsonObject header = root.getJsonObject("header", new JsonObject());
+        String verifyToken = config.getString("verifyToken", "");
+        if (!verifyToken.isEmpty()) {
+            String token = root.getString("token", header.getString("token", ""));
+            if (!verifyToken.equals(token)) {
+                System.err.println("[feishu] verification token mismatch");
+                context.response().setStatusCode(401).end();
+                return;
+            }
+        }
+
         // URL 验证握手
         if ("url_verification".equals(root.getString("type"))) {
             context.response().putHeader("Content-Type", "application/json")
@@ -51,11 +71,14 @@ public class FeishuProvider implements IIntegrationProvider {
             return;
         }
 
-        // 事件: 立即回 200
+        // 事件: 立即回 200(重复事件也回 200, 让飞书停止重试)
         context.response().putHeader("Content-Type", "application/json").end("{}");
 
-        JsonObject header = root.getJsonObject("header", new JsonObject());
         if (!"im.message.receive_v1".equals(header.getString("event_type"))) {
+            return;
+        }
+        String eventId = header.getString("event_id", "");
+        if (!eventId.isEmpty() && isDuplicate(eventId)) {
             return;
         }
 
@@ -92,5 +115,11 @@ public class FeishuProvider implements IIntegrationProvider {
      */
     private static String stripMention(String text) {
         return text.replaceAll("@_user_\\d+", "").replaceAll("@_all", "").strip();
+    }
+
+    private boolean isDuplicate(String eventId) {
+        long now = System.currentTimeMillis();
+        seenEvents.entrySet().removeIf(e -> now - e.getValue() > DEDUP_TTL_MS);
+        return seenEvents.putIfAbsent(eventId, now) != null;
     }
 }
