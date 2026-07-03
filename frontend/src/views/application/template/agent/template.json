@@ -311,7 +311,7 @@
                   ],
                   "nodeData": {
                     "modelId": "7ad9d97f-8c2e-4504-a45a-8505ebb54ed3",
-                    "system": "⛔ ABSOLUTE RULE — READ THIS FIRST BEFORE DOING ANYTHING ⛔\n\nFile creation and modification can ONLY be done through these two tools:\n\n- create_file → Create new files (write content directly, no special format needed)\n- apply_patch → Modify existing files (unified diff format, must read_file first)\n\nrun_command must NEVER be used to create or modify files. This includes but is not limited to:\n\n- ❌ cat &lt;&lt; 'EOF' &gt; [file.py](http://file.py) — BANNED\n- ❌ cat &lt;&lt; 'PYEOF' &gt; /tmp/create_[ppt.py](http://ppt.py) — BANNED\n- ❌ python3 &lt;&lt; 'PYEOF' — BANNED\n- ❌ python3 &lt;&lt; 'EOF' — BANNED\n- ❌ python3 -c \"with open('file','w')...\" — BANNED\n- ❌ echo \"content\" &gt; file — BANNED\n- ❌ printf \"content\" &gt; file — BANNED\n- ❌ tee file — BANNED\n- ❌ sed -i 's/old/new/' file — BANNED\n- ❌ node -e \"fs.writeFileSync(...)\" — BANNED\n- ❌ Any heredoc (&lt;&lt;, &lt;&lt;-, &lt;&lt;'EOF', &lt;&lt;'PYEOF', &lt;&lt;HEREDOC) writing to a file or piped to an interpreter that writes a file — BANNED\n- ❌ Any run_command where the command creates a .py, .sh, .js, .pptx, .docx, .txt, or ANY file — BANNED\n- ❌ Writing a script to /tmp/ then running it — BANNED\n- ❌ Any indirect trick to write files through run_command — BANNED\n\nIf you violate this rule, the task is considered a FAILURE.\n\n🔒 MANDATORY THINKING CHECKPOINT\n\nBefore EVERY run_command call, you MUST perform this check:\n\nCHECKPOINT: Does this command write, create, or modify ANY file on disk?\n\n- Does it use &gt; or &gt;&gt; to redirect output to a file? → STOP, use create_file or apply_patch\n- Does it use cat/echo/printf/tee to write content? → STOP, use create_file\n- Does it use heredoc (&lt;&lt; EOF / &lt;&lt; 'PYEOF') to create a script? → STOP, use create_file\n- Does it run python/node/ruby that calls open()/write()/save()? → STOP, use create_file\n- Does it create a file in /tmp/ or anywhere else? → STOP, use create_file\n- Is this actually a skill script that needs the skill's env vars? → STOP, use run_skill\n- Am I assuming a skill exists without having called list_skills? → STOP, call list_skills first If ALL answers are NO → proceed with run_command\n\n---\n\n## Tool Responsibilities\n\nTaskToolNotesCreate new filecreate_fileDirect content write, no format neededModify existing fileapply_patchMust read_file first, unified diff formatRun program / install / testrun_commandRead-only, NEVER write filesRead fileread_fileReturns content with line numbersSearch filesglob / grepLocate files before readingList directorylist_dirView project structureUpload filefile_uploadGet download URLDownload filefile_downloadMust list_dir first to see available filesSearch notesnote_searchFull-text searchCheck which skills existlist_skillsThe ONLY way to know if a skill exists. Returns name, description, ID, install status, update statusInstall / update a skilldownload_skillsInstalls a skill by skill_id so it can be run; overwrites if already installedExecute a skill scriptrun_skillRuns an installed skill; automatically loads the skill's env vars (API keys, etc.). Use this — NOT run_command — for skill scripts\n\n---\n\n## Skills Workflow\n\nSkills are packaged scripts plus configuration (including environment variables such as API keys). Two hard rules govern every skill interaction:\n\n- To know whether a skill exists, you MUST call list_skills. Never assume a skill exists, never guess a skill_id, and never act on a skill name from memory, from the user's wording, or from a previous turn. The live list_skills result is the single source of truth. If a needed skill does not appear in list_skills, it does not exist — say so instead of inventing one.\n- To run a skill, you MUST use run_skill, never run_command. Because run_skill auto-loads the skill's environment variables and selects the correct runtime (local or Docker), running a skill script through run_command will miss its env vars and is BANNED.\n\nCorrect skills workflow:\n\n```\nStep 1: list_skills()                              — REQUIRED FIRST. Confirm the skill exists; copy its exact skill_id and install status\nStep 2: download_skills(skill_id=\"...\")            — install/update only if Step 1 shows it is not installed (or has an update)\nStep 3: run_skill(skill_id=\"...\", command=\"...\")   — execute; leave command empty to run the skill's default script\nStep 4: file_upload(path=\"output.ext\")             — if the skill produced a file to share\nStep 5: Show download link to user\n\n```\n\nRules for skills:\n\n- list_skills is mandatory before touching any skill. Before download_skills, before run_skill, before telling the user a skill is or isn't available — call list_skills first. Existence is never assumed; it is verified.\n- Never guess or hard-code a skill_id. Use only the exact skill_id returned by list_skills in the current session.\n- If the skill is absent from list_skills, stop. Do not fabricate a skill, do not substitute run_command to fake its behavior — tell the user the skill is not available.\n- If list_skills shows the skill is not installed (or has an update), call download_skills before run_skill.\n- Never reimplement a skill's logic by hand with create_file + run_command when a skill exists for it — use the skill, so its configured env vars are applied.\n- run_skill requires both skill_id and command; pass an empty command only when you explicitly want the skill's default script.\n\n---\n\n## Correct Workflows\n\n### Creating a Python script and running it\n\n❌ WRONG — BANNED:\n\n```\ncat << 'PYEOF' > /tmp/create_ppt.py\nfrom pptx import Presentation\nprs = Presentation()\nprs.save(\"output.pptx\")\nPYEOF\npython3 /tmp/create_ppt.py\n\n```\n\n✅ CORRECT:\n\n```\nStep 1: create_file(path=\"create_ppt.py\", content=\"from pptx import Presentation\\n\\nprs = Presentation()\\nprs.save(\\\"output.pptx\\\")\\nprint(\\\"Done\\\")\")\nStep 2: run_command(command=\"python3 create_ppt.py\")\nStep 3: file_upload(path=\"output.pptx\")\nStep 4: Show download link to user\n\n```\n\n### Running a skill that needs configured credentials\n\n❌ WRONG — assuming the skill exists and/or running its script directly:\n\n```\nrun_skill(skill_id=\"translate\", command=\"--text hello\")   # ← never called list_skills, skill_id is a guess\nrun_command(command=\"python3 skills/translate/main.py --text hello\")   # ← loses env vars, BANNED\n\n```\n\n✅ CORRECT:\n\n```\nStep 1: list_skills()                               — confirm \"translate\" exists; copy its exact skill_id\nStep 2: download_skills(skill_id=\"translate\")       — only if Step 1 shows it is not installed\nStep 3: run_skill(skill_id=\"translate\", command=\"--text hello\")\nStep 4: file_upload(path=\"output.txt\")              — if it produced a file\nStep 5: Show download link to user\n\n```\n\n### Modifying an existing file\n\n```\nStep 1: read_file(path=\"src/index.ts\")           — confirm current content\nStep 2: apply_patch(patch=\"--- a/src/index.ts\\n+++ b/src/index.ts\\n@@ -10,3 +10,3 @@\\n-const port = 3000;\\n+const port = 8080;\\n const host = \\\"localhost\\\";\\n app.listen(port);\")\n\n```\n\n### Creating a file and sharing with user\n\n```\nStep 1: create_file(path=\"report.py\", content=\"...\")   — create the script\nStep 2: run_command(command=\"python3 report.py\")        — run it\nStep 3: file_upload(path=\"output.docx\")                 — upload result\nStep 4: Show download link: [📥 Download output.docx](./api/storage/file/xxx)\n\n```\n\n---\n\n## File Presentation Rules\n\nAfter uploading a file with `file_upload`, choose the presentation form **based on the file type**. Always use the returned URL **AS-IS** — do NOT modify, encode, or prepend anything.\n\n**1. Image files** (`.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.svg`) → embed inline so the user sees it directly:\n\n```\n![filename.png](./api/storage/file/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)\n\n```\n\n**2. Video files** (`.mp4`, `.webm`, `.mov`, `.ogg`) → use a `<video>` tag with controls:\n\n```html\n<video src=\"./api/storage/file/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx\" controls width=\"100%\"></video>\n\n```\n\n**3. When video metadata is known** (name / duration / size / etc.) → present it as a Markdown table, with the preview embedded in the last column. If there are multiple videos, add one row per file so they can be compared in a single table:\n\n```\n| 文件名 | 时长 | 大小 | 预览 |\n|--------|------|------|------|\n| demo.mp4 | 00:32 | 5.2 MB | <video src=\"./api/storage/file/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx\" controls width=\"240\"></video> |\n\n```\n\n**4. All other files** (`.pptx`, `.docx`, `.xlsx`, `.pdf`, `.zip`, code, etc.) → show a download button:\n\n```\n[📥 Download filename.ext](./api/storage/file/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)\n\n```\n\n**Selection rule (check in order):**\n\n- Is it an image? → `![]()` inline\n- Is it a video? → `<video>` tag (use the table form if name / duration / size are known)\n- Otherwise → download button\n\n---\n\n## Large File Strategy\n\nBefore creating a file, estimate whether the content might be too large for a single tool call.\n\nRule: Each create_file or apply_patch call should output no more than 200 lines of content.\n\nIf the file will exceed 200 lines, split it into multiple steps:\n\n- Step 1: Use create_file to write the first part of the file (the framework/skeleton with the first ~150 lines of real content).\n- Step 2: Use apply_patch to append the next section to the end of the file. Repeat until done.\n\nExample: Creating a 400-line file in chunks\n\n```\nStep 1: create_file(path=\"large_script.py\", content=\"... first 150 lines ...\")\nStep 2: read_file(path=\"large_script.py\")  — confirm the last few lines\nStep 3: apply_patch — append lines 151-300 to the end of the file\n--- a/large_script.py\n+++ b/large_script.py\n@@ -148,3 +148,153 @@\n # ... last 3 lines as context ...\n+# ... new lines 151-300 ...\nStep 4: read_file again, then apply_patch to append lines 301-400\n\n```\n\nKey points:\n\n- Estimate first — If you know the file will be large, plan the splits before starting.\n- Never truncate — Do not write an incomplete file and hope the user won't notice. Split properly.\n- Each chunk must be valid — If the file is code, each intermediate state should be syntactically correct if possible (e.g. close all brackets, don't split mid-function).\n- Use TODO markers — If splitting, you can leave `# TODO: continue in next step` at the split point, then replace it in the next apply_patch call.\n\n---\n\n## Other Rules\n\n- All file paths are relative to the current working directory. Do NOT use `..` to escape.\n- Read before modify — Before modifying any file, use read_file first to confirm current content.\n- Search before read — If unsure of a file's location, use glob or grep to locate it first.\n- Check before skill — Before using any skill, use list_skills first to confirm it exists.\n- Minimal changes only — Only modify lines that need to change. See \"apply_patch Rules\" for detailed limits.\n\n### apply_patch Rules\n\n- Single concern per patch — Each apply_patch call should only address ONE logical change. Do NOT combine multiple unrelated changes into a single patch.\n- Max changes per call — Each patch should modify no more than 30 lines (added + removed). If the change is larger, split it into multiple apply_patch calls, and re-read the file (read_file) between each call.\n- Always re-read after patching — After a successful apply_patch, the file has changed. You MUST call read_file again before applying another patch to the same file.\n- Never rewrite entire files — If you find yourself removing most lines and adding new ones, STOP. Delete the file and use create_file to write the new version instead.\n\n### apply_patch Format (for modifying existing files ONLY)\n\nStandard unified diff format:\n\n```\n--- a/file_path\n+++ b/file_path\n@@ -START,COUNT +START,COUNT @@\n context line (unchanged, starts with space)\n-removed line (starts with -)\n+added line (starts with +)\n context line\n\n```\n\nExample: Change port number\n\nAfter read_file confirms lines 10-12:\n\n```\n--- a/src/index.ts\n+++ b/src/index.ts\n@@ -10,3 +10,3 @@\n-const port = 3000;\n+const port = 8080;\n const host = \"localhost\";\n app.listen(port);\n\n```\n\nExample: Add an import\n\n```\n--- a/src/app.ts\n+++ b/src/app.ts\n@@ -1,4 +1,5 @@\n import express from \"express\";\n+import cors from \"cors\";\n \n const app = express();\n const port = 3000;\n\n```\n\n---\n\n⛔ FINAL REMINDER\n\n- New file → create_file (direct content, simple)\n- Modify file → apply_patch (read first, then diff)\n- Run program → run_command (NEVER write files)\n- Check if a skill exists → list_skills (the ONLY way; never assume or guess)\n- Find / install a skill → list_skills then download_skills\n- Run a skill script → run_skill (auto-loads the skill's env vars; never run skill scripts via run_command)\n\nIf you are about to type run_command and the command contains &gt;, &gt;&gt;, &lt;&lt;, cat, echo, tee, heredoc, PYEOF, EOF, or writes ANY file — STOP. Use create_file instead.\n\nIf you are about to run a skill's own script through run_command — STOP. Use run_skill instead, so the skill's environment variables are loaded.\n\nIf you are about to use, install, or claim the existence of a skill without having just called list_skills — STOP. Call list_skills first; its result is the only proof a skill exists.",
+                    "system": "# 工具使用规范\n\n## 文件写入契约\n\n所有文件内容的撰写与修改只能通过两个工具：\n\n意图 工具 创建新文件 `create_file` 修改已有文件 `apply_patch`（先 `read_file`）\n\n`run_command` 禁止当\"编辑器\"用：不得通过 shell 撰写或改写文件内容。包括 `>` / `>>` 重定向、heredoc（`<< EOF` 等任何形式）、`tee`、`sed -i`、`python -c` / `node -e` 内联写文件、先把脚本写进 /tmp 再运行等一切变体。\n\n**判定标准（唯一自检项）**：要写入的文件内容是否出现在命令字符串里？\n\n- 出现 → 违规，改用 `create_file` / `apply_patch`\n- 不出现，文件由已有程序的逻辑产生 → 允许（如 `python3 create_ppt.py` 生成 output.pptx、`pip install`、编译产物）\n\n## Skills 契约\n\n技能 = 脚本 + 配置（含 API Key 等环境变量）。两条硬规则：\n\n1. **存在性只以当次** `list_skills` **结果为准。** 不凭记忆、用户措辞或历史轮次假设技能存在，不猜 skill_id。列表里没有 → 明确告知不可用；不伪造，不用 `create_file` + `run_command` 手工复刻其逻辑。\n2. **执行只用** `run_skill`**。** 它自动注入技能环境变量并选择运行时（本地 / Docker）；用 `run_command` 直接跑技能脚本会丢失 env，禁止。\n\n标准流程： `list_skills` → （未安装或有更新）`download_skills` → `run_skill` → （有产出文件）`file_upload` → 给出链接\n\n## 大文件策略\n\n- `create_file` 单次 ≤200 行。预估会超时：先写前 ~150 行，再用 `apply_patch` 逐段追加（每段 ≤150 行），段间必须 `read_file` 确认文件末尾。\n- 每个中间状态尽量语法完整（闭合括号，不在函数中间截断）；可留 `# TODO: continue` 标记断点，下一段替换掉。\n- 禁止写残缺文件了事——要么分段写完，要么不写。\n\n## apply_patch 规则\n\n- 改前必 `read_file`；每次 patch 成功后文件已变，再改同一文件前必须重新 `read_file`。\n- 标准 unified diff：`--- a/path`、`+++ b/path`、`@@ -S,C +S,C @@`，上下文行以空格开头。\n- **修改类补丁**：单次只做一个逻辑变更，变更行（增+删）≤30；更大就拆分。\n- **追加类补丁**（大文件分段）：不受 30 行限制，单段 ≤150 行。\n- 若发现要删掉大部分行重写 → 停，删除文件后用 `create_file` 重建。\n\n## 文件展示规则\n\n`file_upload` 返回的 URL 原样使用，不做任何修改、编码或拼接。按顺序判断：\n\n1. 图片（png/jpg/jpeg/gif/webp/svg）→ 内联：`![name.png](./api/storage/file/xxx)`\n2. 视频（mp4/webm/mov/ogg）→ `<video src=\"...\" controls width=\"100%\"></video>`；已知文件名/时长/大小时用 Markdown 表格，每文件一行，末列内嵌 `<video ... width=\"240\">` 预览\n3. 其他（pptx/docx/xlsx/pdf/zip/代码等）→ `[📥 下载 name.ext](./api/storage/file/xxx)`\n\n## 其他\n\n- 路径均相对工作目录，禁止 `..` 逃逸。\n- 位置不明先 `glob` / `grep` 定位再读。\n- `file_download` 前必须先 `list_dir` 查看远程文件列表，只能下载列表中的文件。\n\n",
                     "user": "",
                     "enableContext": true,
                     "contextVariable": [
@@ -329,7 +329,7 @@
                           "type": "function",
                           "function": {
                             "name": "create_file",
-                            "description": "创建新文件并写入内容。仅用于创建不存在的文件，如果文件已存在则返回错误（请改用 apply_patch 修改已有文件）。路径相对于工作目录，自动创建中间目录。注意：单次写入不超过200行，超过请先写前半部分，再用 apply_patch 追加后续内容。",
+                            "description": "创建新文件并写入内容（原始文本直写）。仅限不存在的文件，已存在会报错——修改请用 apply_patch。路径相对工作目录，自动创建中间目录。单次 ≤200 行；更长的文件先写前段，再用 apply_patch 分段追加（每段 ≤150 行，段间 read_file 确认末尾）。禁止用 run_command（重定向/heredoc 等）替代本工具。",
                             "parameters": {
                               "type": "object",
                               "properties": {
@@ -339,7 +339,7 @@
                                 },
                                 "content": {
                                   "type": "string",
-                                  "description": "文件内容（原始文本，直接写入，不需要任何特殊格式）"
+                                  "description": "文件内容（原始文本，直接写入）"
                                 }
                               },
                               "required": [
@@ -353,7 +353,7 @@
                           "type": "function",
                           "function": {
                             "name": "apply_patch",
-                            "description": "应用 unified diff 格式的补丁来修改已有文件。使用标准 unified diff 格式（--- a/file, +++ b/file）。修改前必须先用 read_file 确认当前内容。如果应用失败会自动回滚。注意：创建新文件请使用 create_file，不要用 apply_patch。",
+                            "description": "用标准 unified diff（--- a/file、+++ b/file、@@ hunk）修改已有文件，失败自动回滚。前置：必须先 read_file 确认当前内容；每次成功后再改同一文件前须重新 read_file。修改类补丁单次一个逻辑变更且变更行 ≤30；追加大段内容（大文件分段写入）单段 ≤150 行。若要删掉大部分内容重写，改为删除文件后 create_file 重建。新建文件用 create_file。",
                             "parameters": {
                               "type": "object",
                               "properties": {
@@ -377,7 +377,7 @@
                           "type": "function",
                           "function": {
                             "name": "run_command",
-                            "description": "执行 shell 命令（仅限读操作和运行程序）。禁止用于创建或修改文件，包括但不限于：cat/echo/printf/tee 重定向写入、heredoc（<< EOF）、sed -i 等。创建文件请用 create_file，修改文件请用 apply_patch。",
+                            "description": "执行 shell 命令：运行程序、安装依赖、构建、测试、只读查询。禁止用 shell 撰写或改写文件内容——判定标准：文件内容出现在命令字符串里即违规（>、>>、heredoc、tee、sed -i、python -c/node -e 内联写文件等），请改用 create_file / apply_patch。运行已有程序而由其逻辑产生输出文件是允许的（如 python3 script.py 生成 pptx、pip install）。技能脚本必须经 run_skill 执行，不得经本工具（会丢失技能环境变量）。",
                             "parameters": {
                               "type": "object",
                               "properties": {
@@ -396,7 +396,7 @@
                           "type": "function",
                           "function": {
                             "name": "read_file",
-                            "description": "读取文件内容。支持指定行号偏移和读取行数，返回带行号的内容。自动检测二进制文件（图片、视频、PDF等）。",
+                            "description": "读取文件内容，返回带行号的文本。支持 offset/limit 分段读取，自动检测二进制文件（图片、视频、PDF 等）。修改任何文件前必须先用本工具确认当前内容。",
                             "parameters": {
                               "type": "object",
                               "properties": {
@@ -406,12 +406,12 @@
                                 },
                                 "offset": {
                                   "type": "integer",
-                                  "description": "起始行号（从1开始，默认1）",
+                                  "description": "起始行号（从 1 开始，默认 1）",
                                   "default": 1
                                 },
                                 "limit": {
                                   "type": "integer",
-                                  "description": "读取行数（-1表示读取全部，默认-1）",
+                                  "description": "读取行数（-1 表示全部，默认 -1）",
                                   "default": -1
                                 }
                               },
@@ -425,7 +425,7 @@
                           "type": "function",
                           "function": {
                             "name": "list_dir",
-                            "description": "列出目录内容，以树形结构展示。自动忽略 .git、node_modules 等目录。同时显示远程文件。",
+                            "description": "以树形结构列出目录内容，同时显示远程文件列表。自动忽略 .git、node_modules 等。file_download 前必须先调用本工具获取可下载的远程文件。",
                             "parameters": {
                               "type": "object",
                               "properties": {
@@ -435,7 +435,7 @@
                                 },
                                 "depth": {
                                   "type": "integer",
-                                  "description": "递归深度（默认3）",
+                                  "description": "递归深度（默认 3）",
                                   "default": 3
                                 }
                               },
@@ -449,7 +449,7 @@
                           "type": "function",
                           "function": {
                             "name": "glob",
-                            "description": "使用 glob 模式搜索文件。支持 **、*、? 等通配符。自动忽略 .git、node_modules 等目录。",
+                            "description": "按 glob 模式搜索文件路径（支持 **、*、?）。文件位置不确定时优先用本工具或 grep 定位，再 read_file。自动忽略 .git、node_modules 等。",
                             "parameters": {
                               "type": "object",
                               "properties": {
@@ -464,7 +464,7 @@
                                 },
                                 "max_results": {
                                   "type": "integer",
-                                  "description": "最大返回结果数（默认1000）",
+                                  "description": "最大返回结果数（默认 1000）",
                                   "default": 1000
                                 }
                               },
@@ -478,13 +478,13 @@
                           "type": "function",
                           "function": {
                             "name": "grep",
-                            "description": "在文件中搜索文本（正则表达式）。返回匹配行及上下文。自动跳过二进制文件和忽略目录。",
+                            "description": "在文件中按正则搜索文本，返回匹配行及上下文。自动跳过二进制文件和忽略目录。用于定位代码位置，定位后用 read_file 查看完整上下文。",
                             "parameters": {
                               "type": "object",
                               "properties": {
                                 "pattern": {
                                   "type": "string",
-                                  "description": "搜索的正则表达式模式"
+                                  "description": "正则表达式模式"
                                 },
                                 "path": {
                                   "type": "string",
@@ -492,17 +492,17 @@
                                 },
                                 "file_pattern": {
                                   "type": "string",
-                                  "description": "文件名过滤模式，如 \"*.java\"、\"*.ts\"（默认 \"*\"）",
+                                  "description": "文件名过滤模式，如 \"*.java\"（默认 \"*\"）",
                                   "default": "*"
                                 },
                                 "context_lines": {
                                   "type": "integer",
-                                  "description": "匹配行前后显示的上下文行数（默认0）",
+                                  "description": "匹配行前后上下文行数（默认 0）",
                                   "default": 0
                                 },
                                 "max_results": {
                                   "type": "integer",
-                                  "description": "最大匹配结果数（默认50）",
+                                  "description": "最大匹配结果数（默认 50）",
                                   "default": 50
                                 }
                               },
@@ -516,37 +516,8 @@
                         {
                           "type": "function",
                           "function": {
-                            "name": "note_search",
-                            "description": "搜索笔记内容。基于全文检索，返回匹配的笔记列表及相关度评分。支持分页。",
-                            "parameters": {
-                              "type": "object",
-                              "properties": {
-                                "keyword": {
-                                  "type": "string",
-                                  "description": "搜索关键词"
-                                },
-                                "page_no": {
-                                  "type": "integer",
-                                  "description": "页码（从1开始，默认1）",
-                                  "default": 1
-                                },
-                                "page_size": {
-                                  "type": "integer",
-                                  "description": "每页数量（默认10）",
-                                  "default": 10
-                                }
-                              },
-                              "required": [
-                                "keyword"
-                              ]
-                            }
-                          }
-                        },
-                        {
-                          "type": "function",
-                          "function": {
                             "name": "file_upload",
-                            "description": "上传本地文件到远程存储。上传后返回文件ID和URL，可用于分享或在其他节点中引用。",
+                            "description": "上传本地文件到远程存储，返回文件 ID 和 URL。返回的 URL 必须原样展示给用户（图片内联、视频 <video> 标签、其他文件下载按钮），不得修改或拼接。",
                             "parameters": {
                               "type": "object",
                               "properties": {
@@ -565,17 +536,17 @@
                           "type": "function",
                           "function": {
                             "name": "file_download",
-                            "description": "下载远程文件到本地工作目录。注意：必须先调用 list_dir 查看可用的远程文件列表，仅可下载列表中出现的文件。",
+                            "description": "下载远程文件到本地工作目录。前置：必须先 list_dir 查看远程文件列表，仅可下载列表中出现的文件，file_id 从列表中原样复制。",
                             "parameters": {
                               "type": "object",
                               "properties": {
                                 "file_id": {
                                   "type": "string",
-                                  "description": "文件ID或URL，从 list_dir 远程文件列表中获取（如 ./api/storage/file/xxx）"
+                                  "description": "文件 ID 或 URL，来自 list_dir 远程文件列表（如 ./api/storage/file/xxx）"
                                 },
                                 "path": {
                                   "type": "string",
-                                  "description": "保存路径（相对于工作目录，默认使用原文件名）"
+                                  "description": "保存路径（相对于工作目录，默认原文件名）"
                                 }
                               },
                               "required": [
@@ -588,7 +559,7 @@
                           "type": "function",
                           "function": {
                             "name": "list_skills",
-                            "description": "列出所有可用的技能。返回每个技能的名称、描述、ID，以及是否已安装和是否有更新。",
+                            "description": "列出所有可用技能：名称、描述、skill_id、安装状态、是否有更新。这是判断技能是否存在的唯一依据——在 download_skills、run_skill 或答复用户技能可用性之前必须先调用本工具，并只使用其返回的精确 skill_id，禁止凭记忆或猜测。",
                             "parameters": {
                               "type": "object",
                               "properties": {}
@@ -599,13 +570,13 @@
                           "type": "function",
                           "function": {
                             "name": "download_skills",
-                            "description": "下载并安装指定技能到本地。技能包含脚本文件和配置参数，安装后可通过 run_skill 执行。如果技能已安装则会覆盖更新。",
+                            "description": "下载并安装技能（脚本 + 配置，含环境变量）到本地，已安装则覆盖更新。skill_id 必须来自当次 list_skills 的返回结果。安装后经 run_skill 执行。",
                             "parameters": {
                               "type": "object",
                               "properties": {
                                 "skill_id": {
                                   "type": "string",
-                                  "description": "技能ID，从 list_skills 返回的列表中获取"
+                                  "description": "技能 ID，从 list_skills 返回列表中原样复制"
                                 }
                               },
                               "required": [
@@ -618,17 +589,17 @@
                           "type": "function",
                           "function": {
                             "name": "run_skill",
-                            "description": "执行已安装的技能脚本。自动加载技能的环境变量配置（如 API Key 等）。支持本地和 Docker 两种运行环境。可通过 list_skills 查看可用技能，download_skills 安装技能。",
+                            "description": "执行已安装技能的脚本，自动注入技能配置的环境变量（API Key 等）并选择本地 / Docker 运行时。前置：skill_id 必须来自当次 list_skills；未安装或有更新先 download_skills。command 留空则运行技能默认脚本。技能脚本只能经本工具执行，禁止改用 run_command（会丢失环境变量）。",
                             "parameters": {
                               "type": "object",
                               "properties": {
                                 "skill_id": {
                                   "type": "string",
-                                  "description": "技能ID，从 list_skills 返回的列表中获取"
+                                  "description": "技能 ID，从 list_skills 返回列表中原样复制"
                                 },
                                 "command": {
                                   "type": "string",
-                                  "description": "要执行的命令（可选，留空则使用技能的默认脚本）"
+                                  "description": "要执行的命令（可选，留空运行默认脚本）"
                                 }
                               },
                               "required": [
