@@ -14,7 +14,9 @@ import java.util.concurrent.CompletableFuture;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -33,6 +35,14 @@ public class WeixinPoller {
 
     private static final int SESSION_EXPIRED = -14;
     private static final int MAX_FAILURES = 3;
+    // sendmessage ret=-2 且 errmsg 为空/unknown error => context_token 失效(见 hermes #17228/#18100), 真限流的 errmsg 会带 frequency 文案
+    private static final int RET_STALE_SESSION = -2;
+    // 每用户暂存补发队列上限, 超出丢最旧的
+    private static final int MAX_PENDING = 50;
+    // 单条文本上限(字符): 1200 字中文约 3.6KB, 低于 iLink 单条文本 ~4KB 上限; 超长整条会被拒收
+    private static final int MAX_TEXT_CHARS = 1200;
+    // 同一用户两次发送的最小间隔, 避免分段回复背靠背触发频控
+    private static final long MIN_SEND_INTERVAL_MS = 800;
 
     private static final Set<String> IMAGE_EXT = Set.of("png", "jpg", "jpeg", "gif", "webp", "bmp");
     private static final Set<String> VIDEO_EXT = Set.of("mp4", "mov", "webm", "mkv");
@@ -66,6 +76,12 @@ public class WeixinPoller {
     private static final java.util.concurrent.Executor SEND_EXECUTOR =
             java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor();
     private final Map<String, CompletableFuture<Void>> sendChains = new ConcurrentHashMap<>();
+
+    // 会话失效的用户集合: 命中后该用户的出站消息直接进 pending, 不再逐条白发; 收到新 context_token 时解除并补发。
+    // pending/lastSendAt 只在该用户的发送链(串行)上读写, 队列本身无并发。
+    private final Set<String> staleSessions = ConcurrentHashMap.newKeySet();
+    private final Map<String, Deque<Outbound>> pending = new ConcurrentHashMap<>();
+    private final Map<String, Long> lastSendAt = new ConcurrentHashMap<>();
 
     public WeixinPoller(Integration integration, String baseUrl, String token, String accountId,
                         IIntegrationMessageDispatcher dispatcher, FileMapper fileMapper, Vertx vertx) {
@@ -155,6 +171,11 @@ public class WeixinPoller {
             String ctx = msg.getString("context_token", "");
             if (!ctx.isEmpty()) {
                 contextTokens.put(sender, ctx);
+                // 新 ctx 到手: 解除会话失效标记, 上一轮被拒暂存的消息排在本轮回复之前按序补发
+                staleSessions.remove(sender);
+                if (pending.containsKey(sender)) {
+                    enqueueSend(sender, () -> replayPending(sender));
+                }
             }
             JsonObject content = buildContent(msg.getJsonArray("item_list"));
             if (content == null) {
@@ -166,12 +187,11 @@ public class WeixinPoller {
             Set<String> sentMedia = ConcurrentHashMap.newKeySet();
             dispatcher.dispatchSegments(integration, sender, content, (type, seg) -> {
                         System.out.println("[weixin-seg] recv type=" + type + " len=" + (seg == null ? -1 : seg.length()));
+                        // TOOL 通知("🔧 调用工具 xxx")不单独发: iLink 每个 context_token 回复条数有限,
+                        // 一次 agent 回答动辄 8~9 个工具调用, 通知会把配额烧光, 导致后面的正文/文件全被拒(ret=-2)
                         if ("TEXT".equals(type) || "REASONING".equals(type)) {
                             anySent.set(true);
                             enqueueSend(sender, () -> sendSegment(sender, seg, sentMedia));
-                        } else if ("TOOL".equals(type)) {
-                            anySent.set(true);
-                            enqueueSend(sender, () -> sendTextSafe(sender, seg));
                         }
                     })
                     .onSuccess(reply -> {
@@ -266,11 +286,10 @@ public class WeixinPoller {
     // ==================== 出站: 按类型拆分 ====================
 
     /**
-     * 发送一段(TEXT 块): 文本整段发(一段=一条), 段内绝对 URL/内部引用的图片/视频/文件走原生媒体。
+     * 发送一段(TEXT 块): 文本整段发(超长自动切分), 段内绝对 URL/内部引用的图片/视频/文件走原生媒体。
      * sentMedia: 同一回答内已发媒体的去重集合(跨 segment), 保证同一资源在一个回答里只发一次。
      */
     private void sendSegment(String toUser, String seg, Set<String> sentMedia) {
-        String ctx = contextTokens.get(toUser);
         List<String> images = new ArrayList<>();
         List<String> videos = new ArrayList<>();
         List<String> files = new ArrayList<>();
@@ -278,36 +297,30 @@ public class WeixinPoller {
         collectMedia(seg, images, videos, files, storageIds);
         String text = stripAbsMedia(seg);
         System.out.println("[weixin-seg] sendSegment segLen=" + seg.length() + " textLen=" + text.length()
-                + " blank=" + text.isBlank() + " images=" + images.size() + " videos=" + videos.size()
+                + " images=" + images.size() + " videos=" + videos.size()
                 + " files=" + files.size() + " storageIds=" + storageIds.size());
-        try {
-            if (!text.isBlank()) {
-                JsonObject resp = IlinkClient.sendText(baseUrl, token, toUser, text, ctx, UUID.randomUUID().toString());
-                System.out.println("[weixin-seg] sendText ret=" + resp.getInteger("ret", 0)
-                        + " errcode=" + resp.getInteger("errcode", 0) + " errmsg=" + resp.getString("errmsg", ""));
+        if (!text.isBlank()) {
+            submit(toUser, Outbound.text(text));
+        }
+        for (String url : images) {
+            if (sentMedia.add("url:" + url)) {
+                submit(toUser, Outbound.media(url, "image"));
             }
-            for (String url : images) {
-                if (sentMedia.add("url:" + url)) {
-                    sendMedia(toUser, url, "image", ctx);
-                }
+        }
+        for (String url : videos) {
+            if (sentMedia.add("url:" + url)) {
+                submit(toUser, Outbound.media(url, "video"));
             }
-            for (String url : videos) {
-                if (sentMedia.add("url:" + url)) {
-                    sendMedia(toUser, url, "video", ctx);
-                }
+        }
+        for (String url : files) {
+            if (sentMedia.add("url:" + url)) {
+                submit(toUser, Outbound.media(url, "file"));
             }
-            for (String url : files) {
-                if (sentMedia.add("url:" + url)) {
-                    sendMedia(toUser, url, "file", ctx);
-                }
+        }
+        for (String id : storageIds) {
+            if (sentMedia.add("storage:" + id)) {
+                submit(toUser, Outbound.storage(id));
             }
-            for (String id : storageIds) {
-                if (sentMedia.add("storage:" + id)) {
-                    sendStorageMedia(toUser, id, ctx);
-                }
-            }
-        } catch (Exception e) {
-            System.err.println("[weixin] send segment failed: " + e.getMessage());
         }
     }
 
@@ -318,11 +331,7 @@ public class WeixinPoller {
     }
 
     private void sendTextSafe(String toUser, String text) {
-        try {
-            IlinkClient.sendText(baseUrl, token, toUser, text, contextTokens.get(toUser), UUID.randomUUID().toString());
-        } catch (Exception e) {
-            System.err.println("[weixin] send text failed: " + e.getMessage());
-        }
+        submit(toUser, Outbound.text(text));
     }
 
     /**
@@ -435,44 +444,221 @@ public class WeixinPoller {
         return url != null && (url.startsWith("http://") || url.startsWith("https://"));
     }
 
+    // ==================== 出站: 统一发送出口(会话失效可暂存补发) ====================
+
     /**
-     * 内部存储引用 ./api/storage/file/{id}: 直接从 fileMapper 读字节(不走 HTTP), 按文件名后缀判类型发原生媒体
+     * 一条出站消息(文本 / 外链媒体 / 内部存储媒体)。媒体只存来源引用不存字节,
+     * 补发时整条重做(重新下载/加密/上传), 避免暂存大对象和过期的上传凭证。
      */
-    private void sendStorageMedia(String toUser, String fileId, String ctx) {
-        String name = "file.bin";
-        try {
-            FileEntity fe = fileMapper.getById(fileId).toCompletionStage().toCompletableFuture().get();
-            if (fe == null) {
-                System.err.println("[weixin] send storage file: not found id=" + fileId);
-                return;
-            }
-            name = orElse(fe.getFileName(), "file.bin");
-            byte[] data = readStorageBytes(fe);
-            String kind = orElse(classify(name), "file");
-            JsonObject item = WeixinMedia.uploadAndBuildItem(baseUrl, token, toUser, data, name, kind);
-            JsonObject resp = IlinkClient.sendItem(baseUrl, token, toUser, item, ctx, UUID.randomUUID().toString());
-            if (!checkItemResp(resp, kind, name)) {
-                // iLink 拒绝该媒体(文件类型/大小/session 等): 不能静默丢, 退化成文本告知用户
-                sendTextSafe(toUser, "⚠️ 文件发送失败: " + name);
-            }
-        } catch (Exception e) {
-            System.err.println("[weixin] send storage file failed: " + name + " -> " + e.getMessage());
-            sendTextSafe(toUser, "⚠️ 文件发送失败: " + name);
+    private record Outbound(Kind kind, String text, String url, String mediaKind, String storageId) {
+        enum Kind {TEXT, URL_MEDIA, STORAGE_MEDIA}
+
+        static Outbound text(String text) {
+            return new Outbound(Kind.TEXT, text, null, null, null);
+        }
+
+        static Outbound media(String url, String mediaKind) {
+            return new Outbound(Kind.URL_MEDIA, null, url, mediaKind, null);
+        }
+
+        static Outbound storage(String id) {
+            return new Outbound(Kind.STORAGE_MEDIA, null, null, null, id);
         }
     }
 
     /**
-     * 检查 iLink sendItem 返回码(媒体/文件路径之前完全忽略返回, 失败会静默丢失)。失败返回 false。
+     * 发送入口: 该用户会话已标记失效时直接暂存(不再逐条白发); 否则立即尝试,
+     * 发送中命中会话失效由 deliver 自行暂存未送达部分。任何路径都不抛异常。
      */
-    private static boolean checkItemResp(JsonObject resp, String kind, String name) {
-        int ret = resp == null ? -1 : resp.getInteger("ret", 0);
-        int errcode = resp == null ? -1 : resp.getInteger("errcode", 0);
-        if (ret != 0 || errcode != 0) {
-            System.err.println("[weixin] sendItem " + kind + " failed name=" + name + " ret=" + ret
-                    + " errcode=" + errcode + " errmsg=" + (resp == null ? "" : resp.getString("errmsg", "")));
+    private void submit(String toUser, Outbound out) {
+        if (staleSessions.contains(toUser)) {
+            park(toUser, out);
+        } else {
+            deliver(toUser, out);
+        }
+    }
+
+    private void deliver(String toUser, Outbound out) {
+        switch (out.kind()) {
+            case TEXT -> deliverText(toUser, out.text());
+            case URL_MEDIA -> deliverUrlMedia(toUser, out);
+            case STORAGE_MEDIA -> deliverStorageMedia(toUser, out);
+        }
+    }
+
+    /**
+     * 文本(超长先切分逐条发)。会话失效: 从失败的那条起合并暂存, 已发出的不重发;
+     * 非会话类拒绝: 记日志丢弃继续, 避免毒消息永久卡住补发队列。
+     */
+    private void deliverText(String toUser, String text) {
+        List<String> parts = splitText(text);
+        for (int i = 0; i < parts.size(); i++) {
+            String part = parts.get(i);
+            boolean ok = sendViaIlink(toUser, "text",
+                    ctx -> IlinkClient.sendText(baseUrl, token, toUser, part, ctx, UUID.randomUUID().toString()));
+            if (!ok && staleSessions.contains(toUser)) {
+                park(toUser, Outbound.text(String.join("\n", parts.subList(i, parts.size()))));
+                return;
+            }
+        }
+    }
+
+    private void deliverUrlMedia(String toUser, Outbound out) {
+        String name = fileNameFromUrl(out.url(), out.mediaKind());
+        try {
+            byte[] data = IlinkClient.downloadBytes(out.url());
+            deliverItem(toUser, data, name, out.mediaKind(), out, "📎 " + name + "\n" + out.url());
+        } catch (Exception e) {
+            System.err.println("[weixin] download " + out.mediaKind() + " failed: " + name + " -> " + e.getMessage());
+            // 拿不到字节: 退化成把原始链接发出去, 用户至少能拿到内容
+            deliverText(toUser, "📎 " + name + "\n" + out.url());
+        }
+    }
+
+    /**
+     * 内部存储引用 ./api/storage/file/{id}: 直接从 fileMapper 读字节(不走 HTTP), 按文件名后缀判类型发原生媒体
+     */
+    private void deliverStorageMedia(String toUser, Outbound out) {
+        String name = "file.bin";
+        try {
+            FileEntity fe = fileMapper.getById(out.storageId()).toCompletionStage().toCompletableFuture().get();
+            if (fe == null) {
+                System.err.println("[weixin] send storage file: not found id=" + out.storageId());
+                return;
+            }
+            name = orElse(fe.getFileName(), "file.bin");
+            byte[] data = readStorageBytes(fe);
+            deliverItem(toUser, data, name, orElse(classify(name), "file"), out, "⚠️ 文件发送失败: " + name);
+        } catch (Exception e) {
+            System.err.println("[weixin] send storage file failed: " + name + " -> " + e.getMessage());
+            deliverText(toUser, "⚠️ 文件发送失败: " + name);
+        }
+    }
+
+    /**
+     * 加密上传 CDN 并发送媒体 item。会话失效: 暂存原始 Outbound(补发时整条重做);
+     * 其他拒绝/异常: 降级为 fallback 文本, 不能静默丢。
+     */
+    private void deliverItem(String toUser, byte[] data, String name, String kind, Outbound origin, String fallback) {
+        try {
+            JsonObject item = WeixinMedia.uploadAndBuildItem(baseUrl, token, toUser, data, name, kind);
+            boolean ok = sendViaIlink(toUser, kind + " " + name,
+                    ctx -> IlinkClient.sendItem(baseUrl, token, toUser, item, ctx, UUID.randomUUID().toString()));
+            if (ok) {
+                return;
+            }
+            if (staleSessions.contains(toUser)) {
+                park(toUser, origin);
+            } else {
+                deliverText(toUser, fallback);
+            }
+        } catch (Exception e) {
+            System.err.println("[weixin] send " + kind + " failed: " + name + " -> " + e.getMessage());
+            deliverText(toUser, fallback);
+        }
+    }
+
+    private interface IlinkSend {
+        JsonObject run(String ctx) throws Exception;
+    }
+
+    /**
+     * 统一 sendmessage 出口: 限速后带当前 ctx 发送; 命中会话失效信号时去掉 ctx 重试一次(tokenless retry),
+     * 仍失败则标记该用户会话失效(后续消息转入 pending, 等新 ctx 补发)。返回是否被服务端接受。
+     */
+    private boolean sendViaIlink(String toUser, String what, IlinkSend call) {
+        pace(toUser);
+        try {
+            JsonObject resp = call.run(contextTokens.getOrDefault(toUser, ""));
+            if (accepted(resp)) {
+                return true;
+            }
+            if (isStaleSession(resp)) {
+                resp = call.run("");
+                if (accepted(resp)) {
+                    // 旧 ctx 已死但 tokenless 可发: 摘掉死 ctx, 等下一条入站消息刷新
+                    contextTokens.remove(toUser);
+                    return true;
+                }
+                staleSessions.add(toUser);
+            }
+            System.err.println("[weixin] send " + what + " rejected ret=" + resp.getInteger("ret", 0)
+                    + " errcode=" + resp.getInteger("errcode", 0) + " errmsg=" + resp.getString("errmsg", "")
+                    + " stale=" + staleSessions.contains(toUser));
+            return false;
+        } catch (Exception e) {
+            System.err.println("[weixin] send " + what + " error: " + e.getMessage());
             return false;
         }
-        return true;
+    }
+
+    private static boolean accepted(JsonObject resp) {
+        return resp != null && resp.getInteger("ret", 0) == 0 && resp.getInteger("errcode", 0) == 0;
+    }
+
+    /** ret=-2 且 errmsg 为空或 unknown error => context_token 失效; 真限流会带 frequency 类文案, 不算失效 */
+    private static boolean isStaleSession(JsonObject resp) {
+        if (resp == null || resp.getInteger("ret", 0) != RET_STALE_SESSION) {
+            return false;
+        }
+        String msg = orElse(resp.getString("errmsg", ""), "").strip().toLowerCase();
+        return msg.isEmpty() || "unknown error".equals(msg);
+    }
+
+    /** 同一用户两次发送之间保持最小间隔(发送链串行, 直接 sleep 即可) */
+    private void pace(String toUser) {
+        long wait = MIN_SEND_INTERVAL_MS - (System.currentTimeMillis() - lastSendAt.getOrDefault(toUser, 0L));
+        if (wait > 0) {
+            sleep(wait);
+        }
+        lastSendAt.put(toUser, System.currentTimeMillis());
+    }
+
+    private void park(String toUser, Outbound out) {
+        Deque<Outbound> q = pending.computeIfAbsent(toUser, k -> new ArrayDeque<>());
+        q.addLast(out);
+        while (q.size() > MAX_PENDING) {
+            System.err.println("[weixin] pending overflow, drop " + q.pollFirst().kind() + " toUser=" + toUser);
+        }
+        System.out.println("[weixin] park " + out.kind() + " pending=" + q.size() + " toUser=" + toUser);
+    }
+
+    /** 拿到新 context_token 后按原顺序补发暂存消息; 若再次失效, submit 会把剩余的按序重新暂存 */
+    private void replayPending(String toUser) {
+        Deque<Outbound> q = pending.remove(toUser);
+        if (q == null || q.isEmpty()) {
+            return;
+        }
+        System.out.println("[weixin] replay pending=" + q.size() + " toUser=" + toUser);
+        for (Outbound out : q) {
+            submit(toUser, out);
+        }
+    }
+
+    /** 超长文本切成 ≤ MAX_TEXT_CHARS 的多条: 优先在换行处断, 硬切时避开代理对 */
+    private static List<String> splitText(String text) {
+        if (text.length() <= MAX_TEXT_CHARS) {
+            return List.of(text);
+        }
+        List<String> parts = new ArrayList<>();
+        int i = 0;
+        while (i < text.length()) {
+            int end = Math.min(i + MAX_TEXT_CHARS, text.length());
+            if (end < text.length()) {
+                int nl = text.lastIndexOf('\n', end - 1);
+                if (nl > i) {
+                    end = nl + 1;
+                } else if (Character.isHighSurrogate(text.charAt(end - 1))) {
+                    end--;
+                }
+            }
+            String part = text.substring(i, end).strip();
+            if (!part.isEmpty()) {
+                parts.add(part);
+            }
+            i = end;
+        }
+        return parts;
     }
 
     private byte[] readStorageBytes(FileEntity fe) throws Exception {
@@ -485,22 +671,6 @@ public class WeixinPoller {
         stream.read();
         done.get();
         return out.toByteArray();
-    }
-
-    private void sendMedia(String toUser, String url, String kind, String ctx) {
-        String name = fileNameFromUrl(url, kind);
-        try {
-            byte[] data = IlinkClient.downloadBytes(url);
-            JsonObject item = WeixinMedia.uploadAndBuildItem(baseUrl, token, toUser, data, name, kind);
-            JsonObject resp = IlinkClient.sendItem(baseUrl, token, toUser, item, ctx, UUID.randomUUID().toString());
-            if (!checkItemResp(resp, kind, name)) {
-                // 发送失败: 退化成把原始链接作为文本发出去, 用户至少能拿到内容
-                sendTextSafe(toUser, "📎 " + name + "\n" + url);
-            }
-        } catch (Exception e) {
-            System.err.println("[weixin] send " + kind + " failed: " + name + " -> " + e.getMessage());
-            sendTextSafe(toUser, "📎 " + name + "\n" + url);
-        }
     }
 
     private static String ext(String url) {
