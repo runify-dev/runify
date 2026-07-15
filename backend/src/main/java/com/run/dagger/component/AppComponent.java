@@ -35,6 +35,14 @@ public interface AppComponent {
 
     FileMapper fileMapper();
 
+    ConversationMessageMapper conversationMessageMapper();
+
+    CtxFactMapper ctxFactMapper();
+
+    CtxSummaryMapper ctxSummaryMapper();
+
+    CtxSectionMapper ctxSectionMapper();
+
     SearchClient searchClient();
 
     Vertx vertx();

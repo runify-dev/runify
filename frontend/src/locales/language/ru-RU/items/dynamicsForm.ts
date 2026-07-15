@@ -91,7 +91,7 @@ export default {
     validationFailed: 'Проверка не пройдена',
     mustBeGreaterThan: 'должно быть больше',
     mustBeLessThan: 'должно быть меньше',
-    optionExample: '[{"label":"вариант1","value":"1"}]'
+    optionExample: `[{'{'}"label":"вариант1","value":"1"{'}'}]`
   },
   demo: {
     constructorTitle: 'Конструктор полей',

@@ -55,7 +55,8 @@ public class ConversationWorkflowExecutor {
                                     UUID applicationId,
                                     UUID workflowRunId,
                                     List<ConversationMessage> conversationMessages,
-                                    Content question) {
+                                    Content question,
+                                    ConversationUser user) {
 
         List<ConversationMessage> sorted = sortByTime(conversationMessages);
 
@@ -72,7 +73,8 @@ public class ConversationWorkflowExecutor {
         execute(context, workflow, conversationId, applicationId,
                 workflowRunId, conversationMessages,
                 Map.of("content", JsonObject.mapFrom(question),
-                        "workflowRunId", workflowRunId.toString()),
+                        "workflowRunId", workflowRunId.toString(),
+                        "user", user != null ? user.toParam() : new JsonObject()),
                 kv.getValue(),
                 kv.getKey());
     }

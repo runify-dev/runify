@@ -91,7 +91,7 @@ export default {
     validationFailed: 'Validation failed',
     mustBeGreaterThan: 'must be greater than',
     mustBeLessThan: 'must be less than',
-    optionExample: '[{"label":"option1","value":"1"}]'
+    optionExample: `[{'{'}"label":"option1","value":"1"{'}'}]`
   },
   demo: {
     constructorTitle: 'Field Constructor',

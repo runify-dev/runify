@@ -31,6 +31,46 @@ export function init(ctx: NodeInitContext) {
           value: 'files'
         }]
     },
+    {
+      label: '用户',
+      value: 'user',
+      children: [
+        {
+          label: 'ID',
+          value: 'id'
+        },
+        {
+          label: '类型',
+          value: 'type'
+        },
+        {
+          label: '资料',
+          value: 'profile',
+          children: [
+            {
+              label: '昵称',
+              value: 'nickname'
+            },
+            {
+              label: '用户名',
+              value: 'username'
+            },
+            {
+              label: '邮箱',
+              value: 'email'
+            },
+            {
+              label: '手机',
+              value: 'phone'
+            },
+            {
+              label: '头像',
+              value: 'icon'
+            }
+          ]
+        }
+      ]
+    },
 
   ]
 

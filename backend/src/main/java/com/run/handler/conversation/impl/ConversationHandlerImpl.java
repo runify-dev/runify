@@ -16,6 +16,7 @@ import com.run.common.queue.MessageQueue;
 import com.run.common.result.Page;
 import com.run.common.result.Result;
 import com.run.common.util.CommonUtils;
+import com.run.common.util.ConversationUser;
 import com.run.common.util.ConversationWorkflowExecutor;
 import com.run.common.util.JacksonUtils;
 
@@ -30,6 +31,7 @@ import com.run.handler.conversation.dto.ConversationProfileDTO;
 import com.run.handler.conversation.dto.UserProfileDTO;
 import com.run.handler.conversation.vo.*;
 import com.run.handler.user.dto.UserDTO;
+import com.run.workflow.nodes.contextmanage.service.SectionRegistry;
 import com.run.sql.DSL;
 import com.run.sql.condition.Condition;
 import com.run.workflow.*;
@@ -197,9 +199,13 @@ public class ConversationHandlerImpl implements IConversationHandler {
                            UUID workflowRunId,
                            List<ConversationMessage> conversationMessages,
                            Content question) {
-
+        // 会话用户：可能匿名；会话令牌无 name/email，profile 留空
+        User principal = context.user();
+        String userId = principal.get("conversationUserId");
+        TokenTypeConstants userType = TokenTypeConstants.valueOf(principal.get("conversationUserType"));
+        ConversationUser user = new ConversationUser(userId, userType, null);
         executor.executeWithQuestion(context, workflow, conversationId,
-                applicationId, workflowRunId, conversationMessages, question);
+                applicationId, workflowRunId, conversationMessages, question, user);
     }
 
     @Override
@@ -431,6 +437,34 @@ public class ConversationHandlerImpl implements IConversationHandler {
         }).onFailure(e -> {
             context.response().setStatusCode(404).end("Application not found");
         });
+    }
+
+    /**
+     * 终端用户「我的便签」：读当前登录用户在本应用的 user 档便签（非观察期），附子区标题、按子区顺序排列。
+     * 匿名用户无 user 档 → 空数组。scope_id=userId、application_id=applicationId，与 save/query 节点同规则。
+     */
+    @Override
+    public void mySections(RoutingContext context) {
+        String applicationId = context.pathParam("applicationId");
+        User principal = context.user();
+        String userId = principal.get("conversationUserId");
+        String userType = principal.get("conversationUserType");
+        if (StringUtils.isBlank(applicationId) || StringUtils.isBlank(userId)
+                || !TokenTypeConstants.USER.name().equals(userType)) {
+            context.end(Result.success(new JsonArray()).toBuffer());
+            return;
+        }
+
+        Future<List<CtxSection>> sectionFuture = com.run.RunApplication.appComponent.ctxSectionMapper().list(
+                field(CtxSection::getApplicationId).eq(applicationId), Map.of());
+        Future<List<CtxFact>> factFuture = com.run.RunApplication.appComponent.ctxFactMapper().list(
+                field(CtxFact::getScopeType).eq("user").and(field(CtxFact::getScopeId).eq(userId))
+                        .and(field(CtxFact::getApplicationId).eq(applicationId)), Map.of());
+
+        Future.all(sectionFuture, factFuture).onSuccess(composite ->
+                context.end(Result.success(SectionRegistry.renderUserFacts(
+                        composite.resultAt(0), composite.resultAt(1))).toBuffer())
+        ).onFailure(context::fail);
     }
 
     public void resumeStream(RoutingContext context) {

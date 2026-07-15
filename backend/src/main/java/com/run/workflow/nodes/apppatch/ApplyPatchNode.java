@@ -257,7 +257,9 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
             } else {
                 try {
                     patched = file.getPatch().applyTo(original);
-                } catch (PatchFailedException e) {
+                } catch (PatchFailedException | IndexOutOfBoundsException e) {
+                    // [FIX-10] hunk 起始行号越界时 applyTo 抛的是 IndexOutOfBoundsException 而非
+                    // PatchFailedException，同样交给按内容搜索的兜底，而不是直接失败。
                     patched = applyPatchBySearchFallback(file.getPatch(), original, e);
                 }
             }
@@ -298,7 +300,7 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
          * 周围上下文；只要某行有一个不可见字符差异(全半角标点 / 破折号 / NBSP / 零宽 / BOM)，
          * applyTo 与本兜底都会失败。matchesAt 的 Level 5 用来吸收这类差异。
          */
-        private List<String> applyPatchBySearchFallback(Patch<String> patch, List<String> original, PatchFailedException cause) {
+        private List<String> applyPatchBySearchFallback(Patch<String> patch, List<String> original, Exception cause) {
             List<String> result = new ArrayList<>(original);
 
             List<AbstractDelta<String>> deltas = new ArrayList<>(patch.getDeltas());
@@ -468,7 +470,7 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
                     .collect(Collectors.joining(" "));
         }
 
-        private String buildPatchMismatchMessage(List<String> original, Patch<String> patch, PatchFailedException cause) {
+        private String buildPatchMismatchMessage(List<String> original, Patch<String> patch, Exception cause) {
             StringBuilder detail = new StringBuilder("上下文不匹配: ").append(cause.getMessage());
 
             for (AbstractDelta<String> delta : patch.getDeltas()) {
@@ -670,10 +672,17 @@ public class ApplyPatchNode extends INode<ApplyPatchNode, ApplyPatchNodeData> {
             // [FIX-1] hunk 内的完全空行补空格前缀，
             // 避免 java-diff-utils 解析时丢失上下文行导致匹配失败。
             // [FIX-6] 文件头边界检测使用 isFileHeaderStart，区分内容行与真实文件头。
+            // [FIX-10] split("\n", -1) 会把结尾换行拆出一个尾部空元素，它不是 patch 的真实行；
+            // 若不跳过，会被 FIX-1 补成幽灵上下文行混入最后一个 hunk 的 source 块，
+            // 导致 applyTo 与兜底搜索双双失败——这正是"以换行结尾的 patch 全部应用失败"的根因。
             String[] lines = s.split("\n", -1);
+            int lineCount = lines.length;
+            if (lineCount > 0 && lines[lineCount - 1].isEmpty()) {
+                lineCount--;
+            }
             StringBuilder sb = new StringBuilder();
             boolean inHunk = false;
-            for (int i = 0; i < lines.length; i++) {
+            for (int i = 0; i < lineCount; i++) {
                 String line = lines[i];
                 if (line.startsWith("@@")) {
                     inHunk = true;

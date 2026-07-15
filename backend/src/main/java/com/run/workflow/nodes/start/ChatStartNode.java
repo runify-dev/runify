@@ -69,6 +69,10 @@ public class ChatStartNode extends INode<ChatStartNode, StartNodeData> {
             }
             workFlowManage.writeContext(node, "messages", messages);
             workFlowManage.writeContext(node, "question", node.params.messages.getLast().getContent().getJsonObject(0));
+            // 会话用户（白名单展示字段），供个性化节点引用；params 里恒为 JsonObject，
+            // 无会话用户（IM/processor 等入口未注入）时兜底空对象
+            JsonObject user = (JsonObject) workFlowManage.getParams().getOrDefault("user", new JsonObject());
+            workFlowManage.writeContext(node, "user", user);
             node.end(NodeStatus.SUCCESS);
             return () -> workFlowManage.getNextList(node.node.getId()).stream().map(DefaultKeyValue::getValue).toList();
         }

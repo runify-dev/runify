@@ -2,6 +2,11 @@ export default {
   newChat: '新しいチャット', empty: '会話がありません', rename: '名前変更', delete: '削除',
   pushMode: 'プッシュモード', drawerMode: 'ドロワーモード', lightMode: 'ライトモード', darkMode: 'ダークモード',
   anonymousUser: '匿名ユーザー', user: 'ユーザー', welcomeBack: 'おかえりなさい',
+  notes: {
+    title: 'マイノート',
+    desc: 'エージェントが会話をまたいで記憶するあなたの個人情報（呼び名、言語、口調の好みなど）',
+    empty: 'ノートはまだありません'
+  },
   loginToChat: 'ログインしてエージェントとチャットを開始', agreeToTerms: 'ログインすると利用規約に同意したことになります',
   anonymousAccess: '匿名アクセス', reauth: '権限が変更されました、再認証中',
   group: { today: '今日', yesterday: '昨日', thisWeek: '今週', earlier: '以前' },

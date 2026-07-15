@@ -97,6 +97,10 @@ const getApplication = (applicationId: string) => {
 const authProfile = (applicationId: string) => {
   return get(`/application/${applicationId}/auth-profile`)
 }
+// 我的便签：当前登录用户在该应用下的 user 档便签（匿名返回空）
+const getMySections = (applicationId: string, loading?: Ref<boolean>) => {
+  return get(`/application/${applicationId}/section-fact`, {}, loading)
+}
 export default {
   queryApplication,
   login,
@@ -113,5 +117,6 @@ export default {
   cancel,
   userProfile,
   getApplication,
-  authProfile
+  authProfile,
+  getMySections
 }

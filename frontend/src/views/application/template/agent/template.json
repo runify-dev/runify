@@ -40,6 +40,46 @@
                 "value": "files"
               }
             ]
+          },
+          {
+            "label": "用户",
+            "value": "user",
+            "children": [
+              {
+                "label": "ID",
+                "value": "id"
+              },
+              {
+                "label": "类型",
+                "value": "type"
+              },
+              {
+                "label": "资料",
+                "value": "profile",
+                "children": [
+                  {
+                    "label": "昵称",
+                    "value": "nickname"
+                  },
+                  {
+                    "label": "用户名",
+                    "value": "username"
+                  },
+                  {
+                    "label": "邮箱",
+                    "value": "email"
+                  },
+                  {
+                    "label": "手机",
+                    "value": "phone"
+                  },
+                  {
+                    "label": "头像",
+                    "value": "icon"
+                  }
+                ]
+              }
+            ]
           }
         ],
         "globalFieldList": []
@@ -48,8 +88,8 @@
     {
       "id": "05e716af-35e7-48a7-9f93-5a5ff978b0d7",
       "type": "loop-node",
-      "x": 440,
-      "y": 25,
+      "x": 444.1875,
+      "y": 44.5390625,
       "properties": {
         "width": 280,
         "height": 50,
@@ -68,6 +108,18 @@
           {
             "label": "context",
             "value": "context"
+          },
+          {
+            "label": "摘要状态",
+            "value": "summary"
+          },
+          {
+            "label": "便签",
+            "value": "facts"
+          },
+          {
+            "label": "压缩后的上下文",
+            "value": "compress_context"
           }
         ],
         "nodeData": {
@@ -76,6 +128,24 @@
             {
               "name": "context",
               "label": "context",
+              "dataType": "array",
+              "defaultValue": "[]"
+            },
+            {
+              "name": "summary",
+              "label": "摘要状态",
+              "dataType": "dict",
+              "defaultValue": "{}"
+            },
+            {
+              "name": "facts",
+              "label": "便签",
+              "dataType": "array",
+              "defaultValue": "[]"
+            },
+            {
+              "name": "compress_context",
+              "label": "压缩后的上下文",
               "dataType": "array",
               "defaultValue": "[]"
             }
@@ -96,188 +166,10 @@
                 }
               },
               {
-                "id": "0db20591-d2bc-4c8e-9e7d-9221429afa7c",
-                "type": "judge-node",
-                "x": 386.63908124492207,
-                "y": 233.93496431756665,
-                "properties": {
-                  "width": 200,
-                  "height": 164,
-                  "name": "条件判断",
-                  "isHovered": false,
-                  "field_list": [],
-                  "nodeData": {
-                    "branches": [
-                      {
-                        "id": "6aa401b5-98cb-417a-b6f1-ebb7354f7442",
-                        "type": "if",
-                        "logic": "and",
-                        "conditions": [
-                          {
-                            "id": "764655a3-6923-4bf9-8662-4ad266ded6a0",
-                            "variable": [
-                              "05e716af-35e7-48a7-9f93-5a5ff978b0d7",
-                              "index"
-                            ],
-                            "compare": "eq",
-                            "value": "0"
-                          }
-                        ]
-                      },
-                      {
-                        "id": "f33cafd2-304a-49f1-ab4d-eabbb3ba89f4",
-                        "type": "else"
-                      }
-                    ]
-                  }
-                }
-              },
-              {
-                "id": "2567e578-98ae-4592-8e64-61941556fe9e",
-                "type": "loop-node",
-                "x": 1038.2666015625005,
-                "y": 182.78564453125006,
-                "properties": {
-                  "width": 280,
-                  "height": 50,
-                  "expanded": true,
-                  "name": "循环",
-                  "isHovered": false,
-                  "field_list": [
-                    {
-                      "label": "当前项",
-                      "value": "item"
-                    },
-                    {
-                      "label": "当前索引",
-                      "value": "index"
-                    }
-                  ],
-                  "nodeData": {
-                    "loopType": "foreach",
-                    "loopVariable": [
-                      "a0a956f8-7dbd-4347-814c-ce8b61771918",
-                      "result"
-                    ],
-                    "loopVariables": [],
-                    "children": {
-                      "nodes": [
-                        {
-                          "id": "loop-start-node",
-                          "type": "loop-start-node",
-                          "x": 100,
-                          "y": 150,
-                          "properties": {
-                            "width": 200,
-                            "height": 50,
-                            "name": "循环开始",
-                            "isHovered": false,
-                            "field_list": []
-                          }
-                        },
-                        {
-                          "id": "6b10dcc9-c92a-4b9c-8edf-1066f3dea2d5",
-                          "type": "context-push-node",
-                          "x": 500,
-                          "y": 150,
-                          "properties": {
-                            "width": 200,
-                            "height": 50,
-                            "name": "推送上下文",
-                            "isHovered": false,
-                            "field_list": [],
-                            "nodeData": {
-                              "items": [
-                                {
-                                  "variable": [
-                                    "05e716af-35e7-48a7-9f93-5a5ff978b0d7",
-                                    "context"
-                                  ],
-                                  "mode": "reference",
-                                  "reference": [
-                                    "2567e578-98ae-4592-8e64-61941556fe9e",
-                                    "item"
-                                  ],
-                                  "role": "user"
-                                }
-                              ]
-                            }
-                          }
-                        }
-                      ],
-                      "edges": [
-                        {
-                          "id": "0bf02d9c-267a-419f-9d73-f8a96341c124",
-                          "type": "run-edge",
-                          "properties": {},
-                          "sourceNodeId": "loop-start-node",
-                          "targetNodeId": "6b10dcc9-c92a-4b9c-8edf-1066f3dea2d5",
-                          "sourceAnchorId": "loop-start-node_right_main_success",
-                          "targetAnchorId": "6b10dcc9-c92a-4b9c-8edf-1066f3dea2d5_left_main_success",
-                          "startPoint": {
-                            "x": 200,
-                            "y": 150
-                          },
-                          "endPoint": {
-                            "x": 400,
-                            "y": 150
-                          },
-                          "pointsList": [
-                            {
-                              "x": 200,
-                              "y": 150
-                            },
-                            {
-                              "x": 300,
-                              "y": 150
-                            },
-                            {
-                              "x": 300,
-                              "y": 150
-                            },
-                            {
-                              "x": 400,
-                              "y": 150
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  },
-                  "loopFieldList": []
-                }
-              },
-              {
-                "id": "c3a343b9-39ad-444a-820f-1188cdf96683",
-                "type": "context-push-node",
-                "x": 1300.83740234375,
-                "y": 140,
-                "properties": {
-                  "width": 200,
-                  "height": 50,
-                  "name": "推送上下文",
-                  "isHovered": false,
-                  "field_list": [],
-                  "nodeData": {
-                    "items": [
-                      {
-                        "variable": [
-                          "05e716af-35e7-48a7-9f93-5a5ff978b0d7",
-                          "context"
-                        ],
-                        "mode": "custom",
-                        "content": "用户问题\n\n:::variable {value=\"start-node.question.content\" label=\"开始节点 / 用户问题 / 问题\"} :::\n\n\n图片  \n\n:::variable {value=\"start-node.question.images\" label=\"开始节点 / 用户问题 / 图片\"} :::\n\n\n文本\n\n:::variable {value=\"start-node.question.texts\" label=\"开始节点 / 用户问题 / 文本\"} :::\n\n\n视频\n\n:::variable {value=\"start-node.question.videos\" label=\"开始节点 / 用户问题 / 视频\"} :::\n\n\n文件\n\n:::variable {value=\"start-node.question.files\" label=\"开始节点 / 用户问题 / 文件\"} :::\n\n\n",
-                        "role": "user"
-                      }
-                    ]
-                  }
-                }
-              },
-              {
                 "id": "cabe76e6-9448-4d45-bcf9-0c27aada72bd",
                 "type": "ai-chat-node",
-                "x": 1266.3415524506595,
-                "y": 389.8059402286982,
+                "x": 1030.661908299443,
+                "y": 357.764232575029,
                 "properties": {
                   "width": 200,
                   "height": 50,
@@ -310,13 +202,13 @@
                     }
                   ],
                   "nodeData": {
-                    "modelId": "7ad9d97f-8c2e-4504-a45a-8505ebb54ed3",
-                    "system": "# 工具使用规范\n\n## 文件写入契约\n\n所有文件内容的撰写与修改只能通过两个工具：\n\n意图 工具 创建新文件 `create_file` 修改已有文件 `apply_patch`（先 `read_file`）\n\n`run_command` 禁止当\"编辑器\"用：不得通过 shell 撰写或改写文件内容。包括 `>` / `>>` 重定向、heredoc（`<< EOF` 等任何形式）、`tee`、`sed -i`、`python -c` / `node -e` 内联写文件、先把脚本写进 /tmp 再运行等一切变体。\n\n**判定标准（唯一自检项）**：要写入的文件内容是否出现在命令字符串里？\n\n- 出现 → 违规，改用 `create_file` / `apply_patch`\n- 不出现，文件由已有程序的逻辑产生 → 允许（如 `python3 create_ppt.py` 生成 output.pptx、`pip install`、编译产物）\n\n## Skills 契约\n\n技能 = 脚本 + 配置（含 API Key 等环境变量）。两条硬规则：\n\n1. **存在性只以当次** `list_skills` **结果为准。** 不凭记忆、用户措辞或历史轮次假设技能存在，不猜 skill_id。列表里没有 → 明确告知不可用；不伪造，不用 `create_file` + `run_command` 手工复刻其逻辑。\n2. **执行只用** `run_skill`**。** 它自动注入技能环境变量并选择运行时（本地 / Docker）；用 `run_command` 直接跑技能脚本会丢失 env，禁止。\n\n标准流程： `list_skills` → （未安装或有更新）`download_skills` → `run_skill` → （有产出文件）`file_upload` → 给出链接\n\n## 大文件策略\n\n- `create_file` 单次 ≤200 行。预估会超时：先写前 ~150 行，再用 `apply_patch` 逐段追加（每段 ≤150 行），段间必须 `read_file` 确认文件末尾。\n- 每个中间状态尽量语法完整（闭合括号，不在函数中间截断）；可留 `# TODO: continue` 标记断点，下一段替换掉。\n- 禁止写残缺文件了事——要么分段写完，要么不写。\n\n## apply_patch 规则\n\n- 改前必 `read_file`；每次 patch 成功后文件已变，再改同一文件前必须重新 `read_file`。\n- 标准 unified diff：`--- a/path`、`+++ b/path`、`@@ -S,C +S,C @@`，上下文行以空格开头。\n- **修改类补丁**：单次只做一个逻辑变更，变更行（增+删）≤30；更大就拆分。\n- **追加类补丁**（大文件分段）：不受 30 行限制，单段 ≤150 行。\n- 若发现要删掉大部分行重写 → 停，删除文件后用 `create_file` 重建。\n\n## 文件展示规则\n\n`file_upload` 返回的 URL 原样使用，不做任何修改、编码或拼接。按顺序判断：\n\n1. 图片（png/jpg/jpeg/gif/webp/svg）→ 内联：`![name.png](./api/storage/file/xxx)`\n2. 视频（mp4/webm/mov/ogg）→ `<video src=\"...\" controls width=\"100%\"></video>`；已知文件名/时长/大小时用 Markdown 表格，每文件一行，末列内嵌 `<video ... width=\"240\">` 预览\n3. 其他（pptx/docx/xlsx/pdf/zip/代码等）→ `[📥 下载 name.ext](./api/storage/file/xxx)`\n\n## 其他\n\n- 路径均相对工作目录，禁止 `..` 逃逸。\n- 位置不明先 `glob` / `grep` 定位再读。\n- `file_download` 前必须先 `list_dir` 查看远程文件列表，只能下载列表中的文件。\n\n",
+                    "modelId": "51fb48a2-679d-482f-ac53-fce307f346fe",
+                    "system": "# 角色与目标\n\n你是一个具备文件系统读写、命令执行和技能调用能力的 AI 助手。你的目标是**自主、可靠地完成用户交给的任务**——理解意图、动手执行、验证结果，而不是停留在解释和建议。\n\n# 工作方法\n\n1. **先理解，再动手**。看清用户到底要什么；位置/现状不明时，先用 `glob` / `grep` / `list_dir` 定位，别凭空假设。\n\n2. **规划再执行**。复杂任务先想清步骤，再逐步落地，每步选最合适的工具。\n\n3. **改动必验证**。写文件后 `read_file` 读回确认；跑程序后看输出判断成败。不臆断\"应该成功了\"。\n\n4. **失败要诊断**。命令/补丁失败时，读报错、定位原因、修正后重试；不要无视错误继续。\n\n5. **诚实汇报**。做到的说做到、没做到说没做到、跳过的说跳过；不夸大、不隐瞒。\n\n# 何时结束（重要）\n\n你运行在一个\"调用工具 → 拿到结果 → 继续\"的循环里，**你自己决定何时收尾**：\n\n- **任务完成**：目标达成、结果已验证 → 停止调用工具，直接给出最终答复（含产出文件链接）。\n\n- **需要用户输入**：缺少关键信息或需要用户决策 → 停止调用工具，明确向用户提问。\n\n- **不空跑**：不要为了\"再确认一下\"反复调用只读工具；也**不要在任务没做完时提前收尾**。\n\n- 一句话：**还有明确的下一步就继续做，没有了就停下来回话。**\n\n# 沟通与语言\n\n- 用**中文**、简洁地回复；避免长篇复述已知信息。\n\n- 有文件产出时，按下方「文件展示规则」给出链接/预览。\n\n- 需要展示计划或多步结果时可用简短列表，但不为凑格式而啰嗦。\n\n---\n\n# 工具契约（红线，务必遵守）\n\n## 文件写入\n\n**所有文件内容的撰写与修改只能通过 `create_file`（新建）或 `apply_patch`（改已有，先 `read_file`）。**\n\n`run_command` **禁止当编辑器用**：不得用 shell 撰写/改写文件内容，包括 `>` / `>>` 重定向、heredoc`<< EOF`）`teesed -ipython -c` / `node -e` 内联写文件、先把脚本写进 /tmp 再运行等一切变体。\n\n**唯一自检**：要写入的文件内容是否出现在命令字符串里？\n\n- 出现 → 违规，改用 `create_file` / `apply_patch`。\n\n- 不出现，文件由已有程序逻辑产生 → 允许（如 `python3 gen.py` 产出 output.pptx`pip install`、编译产物）。\n\n## apply_patch 规则\n\n- 改前必 `read_file`；每次 patch 成功后文件已变，再改同一文件前**必须重新** `read_file`。\n\n- 标准 unified diff`--- a/path+++ b/path@@ -S,C +S,C @@`，上下文行以空格开头。\n\n- **修改类补丁**：单次只做一个逻辑变更，变更行（增+删）≤30；更大就拆分。\n\n- **追加类补丁**（大文件分段）：不受 30 行限制，单段 ≤150 行。\n\n- 若发现要删掉大部分行重写 → 停，删除文件后用 `create_file` 重建。\n\n## 大文件策略\n\n- `create_file` 单次 ≤200 行。预估会超时：先写前 ~150 行，再用 `apply_patch` 逐段追加（每段 ≤150 行），段间必须 `read_file` 确认文件末尾。\n\n- 每个中间状态尽量语法完整（闭合括号，不在函数中间截断）；可留 `# TODO: continue` 标记断点，下一段替换掉。\n\n- **禁止写残缺文件了事**——要么分段写完，要么不写。\n\n## Skills 契约\n\n技能 = 脚本 + 配置（含 API Key 等环境变量）。两条硬规则：\n\n1. **存在性只以当次 `list_skills` 结果为准**。不凭记忆/用户措辞/历史轮次假设技能存在，不猜 skill_id。列表里没有 → 明确告知不可用；不伪造，不用 `create_file` + `run_command` 手工复刻其逻辑。\n\n2. **执行只用 `run_skill`**。它自动注入技能环境变量并选择运行时（本地 / Docker）；用 `run_command` 直接跑技能脚本会丢失 env，禁止。\n\n标准流程`list_skills` →（未安装或有更新`download_skills` → `run_skill` →（有产出文件`file_upload` → 给出链接。\n\n## 文件展示规则\n\n`file_upload` 返回的 URL **原样使用**，不做任何修改、编码或拼接。按顺序判断类型：\n\n1. 图片（png/jpg/jpeg/gif/webp/svg）→ 内联`![name.png](./api/storage/file/xxx)`\n\n2. 视频（mp4/webm/mov/ogg）→ `<video src=\"...\" controls width=\"100%\"></video>`；已知文件名/时长/大小时用 Markdown 表格，每文件一行，末列内嵌 `<video ... width=\"240\">` 预览。\n\n3. 其他（pptx/docx/xlsx/pdf/zip/代码等）→ `[📥 下载 name.ext](./api/storage/file/xxx)`\n\n## 通用约束\n\n- 路径均相对工作目录，**禁止 `..` 逃逸**。\n\n- 位置不明先 `glob` / `grep` 定位再 `read_file`。\n\n- `file_download` 前必须先 `list_dir` 查看远程文件列表，只能下载列表中出现的文件，file_id 从列表原样复制。",
                     "user": "",
                     "enableContext": true,
                     "contextVariable": [
                       "05e716af-35e7-48a7-9f93-5a5ff978b0d7",
-                      "context"
+                      "compress_context"
                     ],
                     "contextNumber": 0,
                     "images": [],
@@ -617,8 +509,8 @@
               {
                 "id": "30eca289-a102-459c-9d48-a2797d6988f0",
                 "type": "loop-node",
-                "x": 2174.305605665735,
-                "y": 198.29044010768305,
+                "x": 1860.7081289708476,
+                "y": 159.9301909975328,
                 "properties": {
                   "width": 280,
                   "height": 50,
@@ -1576,8 +1468,8 @@
                         {
                           "id": "bf145dd1-4764-4359-bb0f-8dcb04ce7f89",
                           "type": "create-file-node",
-                          "x": 1000,
-                          "y": 1071.2139751023192,
+                          "x": 907.5499376209989,
+                          "y": 1175.18045120252,
                           "properties": {
                             "width": 200,
                             "height": 50,
@@ -1612,8 +1504,8 @@
                         {
                           "id": "261e0f01-490d-48a4-a02b-bb976854c709",
                           "type": "context-push-node",
-                          "x": 1300,
-                          "y": 1015,
+                          "x": 1310.3299456750894,
+                          "y": 1202.2317410675223,
                           "properties": {
                             "width": 200,
                             "height": 50,
@@ -1737,7 +1629,11 @@
                               },
                               {
                                 "label": "本地路径",
-                                "value": "localPath"
+                                "value": "local"
+                              },
+                              {
+                                "label": "技能内容",
+                                "value": "content"
                               }
                             ],
                             "nodeData": {
@@ -2643,8 +2539,8 @@
                             "y": 637.2498721009549
                           },
                           "endPoint": {
-                            "x": 900,
-                            "y": 1071.2139751023192
+                            "x": 807.5499376209989,
+                            "y": 1175.18045120252
                           },
                           "pointsList": [
                             {
@@ -2656,12 +2552,12 @@
                               "y": 637.2498721009549
                             },
                             {
-                              "x": 800,
-                              "y": 1071.2139751023192
+                              "x": 707.5499376209989,
+                              "y": 1175.18045120252
                             },
                             {
-                              "x": 900,
-                              "y": 1071.2139751023192
+                              "x": 807.5499376209989,
+                              "y": 1175.18045120252
                             }
                           ]
                         },
@@ -2674,29 +2570,29 @@
                           "sourceAnchorId": "bf145dd1-4764-4359-bb0f-8dcb04ce7f89_right_main_success",
                           "targetAnchorId": "261e0f01-490d-48a4-a02b-bb976854c709_left_main_success",
                           "startPoint": {
-                            "x": 1100,
-                            "y": 1061.2139751023192
+                            "x": 1007.549937620999,
+                            "y": 1165.18045120252
                           },
                           "endPoint": {
-                            "x": 1200,
-                            "y": 1015
+                            "x": 1210.3299456750894,
+                            "y": 1202.2317410675223
                           },
                           "pointsList": [
                             {
-                              "x": 1100,
-                              "y": 1061.2139751023192
+                              "x": 1007.549937620999,
+                              "y": 1165.18045120252
                             },
                             {
-                              "x": 1200,
-                              "y": 1061.2139751023192
+                              "x": 1107.549937620999,
+                              "y": 1165.18045120252
                             },
                             {
-                              "x": 1100,
-                              "y": 1015
+                              "x": 1110.3299456750894,
+                              "y": 1202.2317410675223
                             },
                             {
-                              "x": 1200,
-                              "y": 1015
+                              "x": 1210.3299456750894,
+                              "y": 1202.2317410675223
                             }
                           ]
                         },
@@ -2709,29 +2605,29 @@
                           "sourceAnchorId": "bf145dd1-4764-4359-bb0f-8dcb04ce7f89_right_main_fail",
                           "targetAnchorId": "261e0f01-490d-48a4-a02b-bb976854c709_left_main_success",
                           "startPoint": {
-                            "x": 1100,
-                            "y": 1086.2139751023192
+                            "x": 1007.549937620999,
+                            "y": 1190.18045120252
                           },
                           "endPoint": {
-                            "x": 1200,
-                            "y": 1015
+                            "x": 1210.3299456750894,
+                            "y": 1202.2317410675223
                           },
                           "pointsList": [
                             {
-                              "x": 1100,
-                              "y": 1086.2139751023192
+                              "x": 1007.549937620999,
+                              "y": 1190.18045120252
                             },
                             {
-                              "x": 1200,
-                              "y": 1086.2139751023192
+                              "x": 1107.549937620999,
+                              "y": 1190.18045120252
                             },
                             {
-                              "x": 1100,
-                              "y": 1015
+                              "x": 1110.3299456750894,
+                              "y": 1202.2317410675223
                             },
                             {
-                              "x": 1200,
-                              "y": 1015
+                              "x": 1210.3299456750894,
+                              "y": 1202.2317410675223
                             }
                           ]
                         },
@@ -2946,7 +2842,8 @@
                           ]
                         }
                       ]
-                    }
+                    },
+                    "modelId": "51fb48a2-679d-482f-ac53-fce307f346fe"
                   },
                   "loopFieldList": []
                 }
@@ -2954,8 +2851,8 @@
               {
                 "id": "4963e3e0-b169-47f0-ae2d-b1b7faf04c4a",
                 "type": "judge-node",
-                "x": 1908.2619401278266,
-                "y": 317.6227562478705,
+                "x": 1358.9652975264503,
+                "y": 360.94803844895273,
                 "properties": {
                   "width": 200,
                   "height": 164,
@@ -3006,47 +2903,116 @@
                 }
               },
               {
-                "id": "39620bf3-7d42-4afa-85d1-42722ea0312d",
-                "type": "java-script-node",
-                "x": 1487.8891376779318,
-                "y": 404.10814193324364,
+                "id": "b3f4a9d0-6c1e-4e2b-8a7f-5d9c0e1f2a3b",
+                "type": "context-manage-node",
+                "x": 754.6848385002272,
+                "y": 313.6178788710867,
                 "properties": {
                   "width": 200,
                   "height": 50,
-                  "name": "javaScript执行",
+                  "name": "上下文管理",
                   "isHovered": false,
                   "field_list": [
                     {
-                      "label": "结果",
-                      "value": "result"
+                      "label": "消息",
+                      "value": "messages"
+                    },
+                    {
+                      "label": "摘要",
+                      "value": "summary"
+                    },
+                    {
+                      "label": "统计",
+                      "value": "stats"
                     }
                   ],
                   "nodeData": {
-                    "mode": "function",
-                    "codeLocation": "customize",
-                    "codeReference": [],
-                    "functionName": "test",
-                    "code": "const test=(params)=>{\nreturn params.context.filter(item=>{\n     if(item.type===\"QUESTION\"){\n         if(item.images||item.videos||item.files){\n             return false\n         }\n        \n     }\n    return true\n})\n    \n}",
-                    "allowIO": false,
-                    "parameters": [
+                    "sourceSeedVariable": [
+                      "05e716af-35e7-48a7-9f93-5a5ff978b0d7",
+                      "context"
+                    ],
+                    "sourceVariable": [
+                      "05e716af-35e7-48a7-9f93-5a5ff978b0d7",
+                      "compress_context"
+                    ],
+                    "summarySeedVariable": [
+                      "f0e1d2c3-b4a5-4968-8776-655443322110",
+                      "summary"
+                    ],
+                    "summaryVariable": [
+                      "05e716af-35e7-48a7-9f93-5a5ff978b0d7",
+                      "summary"
+                    ],
+                    "factsSeedVariable": [
+                      "f0e1d2c3-b4a5-4968-8776-655443322110",
+                      "facts"
+                    ],
+                    "factsVariable": [
+                      "05e716af-35e7-48a7-9f93-5a5ff978b0d7",
+                      "facts"
+                    ],
+                    "budget": 24000,
+                    "highRatio": 0.85,
+                    "lowRatio": 0.6,
+                    "keepRecentItems": 5,
+                    "stripMultimodal": true,
+                    "enableSummarizer": true,
+                    "summarizerModelId": "51fb48a2-679d-482f-ac53-fce307f346fe",
+                    "summarizerMethod": "fc",
+                    "factSections": [
+                      "convention",
+                      "env",
+                      "goal",
+                      "todo",
+                      "preference"
+                    ],
+                    "reservedTokens": 3000,
+                    "tokenEncoding": "cl100k"
+                  }
+                }
+              },
+              {
+                "id": "fd9a9abe-667e-49d9-a154-d414b8ee61da",
+                "type": "judge-node",
+                "x": 500,
+                "y": 150,
+                "properties": {
+                  "width": 200,
+                  "height": 164,
+                  "name": "条件判断",
+                  "isHovered": false,
+                  "field_list": [],
+                  "nodeData": {
+                    "branches": [
                       {
-                        "field": "context",
-                        "description": "上下文",
-                        "location": "reference",
-                        "value": [
-                          "05e716af-35e7-48a7-9f93-5a5ff978b0d7",
-                          "context"
+                        "id": "21b8ebd8-7d8c-4623-921e-87ff6fe4b3cc",
+                        "type": "if",
+                        "logic": "and",
+                        "conditions": [
+                          {
+                            "id": "13c47e7f-2c65-48b1-b841-586cd670b411",
+                            "variable": [
+                              "05e716af-35e7-48a7-9f93-5a5ff978b0d7",
+                              "index"
+                            ],
+                            "compare": "eq",
+                            "value": "0"
+                          }
                         ]
+                      },
+                      {
+                        "id": "c1861547-16cc-4a30-876f-cd0ec2ba77a2",
+                        "type": "else"
                       }
                     ]
                   }
                 }
               },
               {
-                "id": "1f9da35d-6009-40e0-9b1e-8eb2b88eb309",
+                "id": "a4937f7e-0a7d-4778-8db3-5342fba6c59d",
                 "type": "variable-assign-node",
-                "x": 1726.9338819961133,
-                "y": 436.7963521605164,
+                "x": 900,
+                "y": 140,
                 "properties": {
                   "width": 200,
                   "height": 50,
@@ -3062,45 +3028,8 @@
                         ],
                         "type": "reference",
                         "reference": [
-                          "39620bf3-7d42-4afa-85d1-42722ea0312d",
-                          "result"
-                        ]
-                      }
-                    ]
-                  }
-                }
-              },
-              {
-                "id": "a0a956f8-7dbd-4347-814c-ce8b61771918",
-                "type": "java-script-node",
-                "x": 706.0180664062498,
-                "y": 185.37353515625006,
-                "properties": {
-                  "width": 200,
-                  "height": 50,
-                  "name": "javaScript执行",
-                  "isHovered": false,
-                  "field_list": [
-                    {
-                      "label": "结果",
-                      "value": "result"
-                    }
-                  ],
-                  "nodeData": {
-                    "mode": "function",
-                    "codeLocation": "customize",
-                    "codeReference": [],
-                    "functionName": "filter_tools",
-                    "code": "const filter_tools=(params)=>{\n   const len=params.context;\n   return params.context.filter((item,index)=>{\n     if(item.type===\"QUESTION\"){\n         if(item.images||item.videos||item.files){\n             return false\n         }\n        \n     }\n       if(len-index<10&&item.type==='TOOL'){\n           return false\n       }\n    return true\n})\n}",
-                    "allowIO": false,
-                    "parameters": [
-                      {
-                        "field": "context",
-                        "description": "context",
-                        "location": "reference",
-                        "value": [
-                          "start-node",
-                          "messages"
+                          "f0e1d2c3-b4a5-4968-8776-655443322110",
+                          "full"
                         ]
                       }
                     ]
@@ -3110,146 +3039,6 @@
             ],
             "edges": [
               {
-                "id": "87f5ae67-63ad-4336-90c9-b24d31df854b",
-                "type": "run-edge",
-                "properties": {},
-                "sourceNodeId": "loop-start-node",
-                "targetNodeId": "0db20591-d2bc-4c8e-9e7d-9221429afa7c",
-                "sourceAnchorId": "loop-start-node_right_main_success",
-                "targetAnchorId": "0db20591-d2bc-4c8e-9e7d-9221429afa7c_left_main_success",
-                "startPoint": {
-                  "x": 200,
-                  "y": 150
-                },
-                "endPoint": {
-                  "x": 286.63908124492207,
-                  "y": 233.93496431756665
-                },
-                "pointsList": [
-                  {
-                    "x": 200,
-                    "y": 150
-                  },
-                  {
-                    "x": 300,
-                    "y": 150
-                  },
-                  {
-                    "x": 186.63908124492207,
-                    "y": 233.93496431756665
-                  },
-                  {
-                    "x": 286.63908124492207,
-                    "y": 233.93496431756665
-                  }
-                ]
-              },
-              {
-                "id": "5033db62-d94e-4258-b018-b05e925684dd",
-                "type": "run-edge",
-                "properties": {},
-                "sourceNodeId": "2567e578-98ae-4592-8e64-61941556fe9e",
-                "targetNodeId": "c3a343b9-39ad-444a-820f-1188cdf96683",
-                "sourceAnchorId": "2567e578-98ae-4592-8e64-61941556fe9e_right_main_success",
-                "targetAnchorId": "c3a343b9-39ad-444a-820f-1188cdf96683_left_main_success",
-                "startPoint": {
-                  "x": 1178.2666015625005,
-                  "y": 182.78564453125006
-                },
-                "endPoint": {
-                  "x": 1200.83740234375,
-                  "y": 140
-                },
-                "pointsList": [
-                  {
-                    "x": 1178.2666015625005,
-                    "y": 182.78564453125006
-                  },
-                  {
-                    "x": 1278.2666015625005,
-                    "y": 182.78564453125006
-                  },
-                  {
-                    "x": 1100.83740234375,
-                    "y": 140
-                  },
-                  {
-                    "x": 1200.83740234375,
-                    "y": 140
-                  }
-                ]
-              },
-              {
-                "id": "5aa89e21-da97-4883-82a1-7a11e4547e71",
-                "type": "run-edge",
-                "properties": {},
-                "sourceNodeId": "c3a343b9-39ad-444a-820f-1188cdf96683",
-                "targetNodeId": "cabe76e6-9448-4d45-bcf9-0c27aada72bd",
-                "sourceAnchorId": "c3a343b9-39ad-444a-820f-1188cdf96683_right_main_success",
-                "targetAnchorId": "cabe76e6-9448-4d45-bcf9-0c27aada72bd_left_main_success",
-                "startPoint": {
-                  "x": 1400.83740234375,
-                  "y": 140
-                },
-                "endPoint": {
-                  "x": 1166.3415524506595,
-                  "y": 389.8059402286982
-                },
-                "pointsList": [
-                  {
-                    "x": 1400.83740234375,
-                    "y": 140
-                  },
-                  {
-                    "x": 1500.83740234375,
-                    "y": 140
-                  },
-                  {
-                    "x": 1066.3415524506595,
-                    "y": 389.8059402286982
-                  },
-                  {
-                    "x": 1166.3415524506595,
-                    "y": 389.8059402286982
-                  }
-                ]
-              },
-              {
-                "id": "72b0ef1b-4387-4538-9c1e-4a8723257ccb",
-                "type": "run-edge",
-                "properties": {},
-                "sourceNodeId": "0db20591-d2bc-4c8e-9e7d-9221429afa7c",
-                "targetNodeId": "cabe76e6-9448-4d45-bcf9-0c27aada72bd",
-                "sourceAnchorId": "0db20591-d2bc-4c8e-9e7d-9221429afa7c_right_f33cafd2-304a-49f1-ab4d-eabbb3ba89f4_success",
-                "targetAnchorId": "cabe76e6-9448-4d45-bcf9-0c27aada72bd_left_main_success",
-                "startPoint": {
-                  "x": 486.63908124492207,
-                  "y": 259.93496431756665
-                },
-                "endPoint": {
-                  "x": 1166.3415524506595,
-                  "y": 389.8059402286982
-                },
-                "pointsList": [
-                  {
-                    "x": 486.63908124492207,
-                    "y": 259.93496431756665
-                  },
-                  {
-                    "x": 586.6390812449221,
-                    "y": 259.93496431756665
-                  },
-                  {
-                    "x": 1066.3415524506595,
-                    "y": 389.8059402286982
-                  },
-                  {
-                    "x": 1166.3415524506595,
-                    "y": 389.8059402286982
-                  }
-                ]
-              },
-              {
                 "id": "ebd38722-69ee-4009-af95-740a3b0df954",
                 "type": "run-edge",
                 "properties": {},
@@ -3258,29 +3047,29 @@
                 "sourceAnchorId": "4963e3e0-b169-47f0-ae2d-b1b7faf04c4a_right_3f1ea753-e609-40f3-9ad0-5f012648737b_success",
                 "targetAnchorId": "30eca289-a102-459c-9d48-a2797d6988f0_left_main_success",
                 "startPoint": {
-                  "x": 2008.2619401278266,
-                  "y": 307.6227562478705
+                  "x": 1458.9652975264503,
+                  "y": 350.94803844895273
                 },
                 "endPoint": {
-                  "x": 2034.3056056657351,
-                  "y": 198.29044010768305
+                  "x": 1720.7081289708476,
+                  "y": 159.9301909975328
                 },
                 "pointsList": [
                   {
-                    "x": 2008.2619401278266,
-                    "y": 307.6227562478705
+                    "x": 1458.9652975264503,
+                    "y": 350.94803844895273
                   },
                   {
-                    "x": 2108.2619401278266,
-                    "y": 307.6227562478705
+                    "x": 1558.9652975264503,
+                    "y": 350.94803844895273
                   },
                   {
-                    "x": 1934.3056056657351,
-                    "y": 198.29044010768305
+                    "x": 1620.7081289708476,
+                    "y": 159.9301909975328
                   },
                   {
-                    "x": 2034.3056056657351,
-                    "y": 198.29044010768305
+                    "x": 1720.7081289708476,
+                    "y": 159.9301909975328
                   }
                 ]
               },
@@ -3293,8 +3082,8 @@
                 "sourceAnchorId": "4963e3e0-b169-47f0-ae2d-b1b7faf04c4a_right_e2082f2e-e84e-4498-a17f-b22e5b3cebe4_success",
                 "targetAnchorId": "66dc8937-76c3-4b27-b194-ec864a86b680_left_main_success",
                 "startPoint": {
-                  "x": 2008.2619401278266,
-                  "y": 343.6227562478705
+                  "x": 1458.9652975264503,
+                  "y": 386.94803844895273
                 },
                 "endPoint": {
                   "x": 2117.1965992187356,
@@ -3302,12 +3091,12 @@
                 },
                 "pointsList": [
                   {
-                    "x": 2008.2619401278266,
-                    "y": 343.6227562478705
+                    "x": 1458.9652975264503,
+                    "y": 386.94803844895273
                   },
                   {
-                    "x": 2108.2619401278266,
-                    "y": 343.6227562478705
+                    "x": 1558.9652975264503,
+                    "y": 386.94803844895273
                   },
                   {
                     "x": 2017.1965992187356,
@@ -3324,173 +3113,208 @@
                 "type": "run-edge",
                 "properties": {},
                 "sourceNodeId": "cabe76e6-9448-4d45-bcf9-0c27aada72bd",
-                "targetNodeId": "39620bf3-7d42-4afa-85d1-42722ea0312d",
-                "sourceAnchorId": "cabe76e6-9448-4d45-bcf9-0c27aada72bd_right_main_success",
-                "targetAnchorId": "39620bf3-7d42-4afa-85d1-42722ea0312d_left_main_success",
-                "startPoint": {
-                  "x": 1366.3415524506595,
-                  "y": 389.8059402286982
-                },
-                "endPoint": {
-                  "x": 1387.8891376779318,
-                  "y": 404.10814193324364
-                },
-                "pointsList": [
-                  {
-                    "x": 1366.3415524506595,
-                    "y": 389.8059402286982
-                  },
-                  {
-                    "x": 1466.3415524506595,
-                    "y": 389.8059402286982
-                  },
-                  {
-                    "x": 1287.8891376779318,
-                    "y": 404.10814193324364
-                  },
-                  {
-                    "x": 1387.8891376779318,
-                    "y": 404.10814193324364
-                  }
-                ]
-              },
-              {
-                "id": "9b2fc4d5-56ae-48e2-b28f-102e632c9a14",
-                "type": "run-edge",
-                "properties": {},
-                "sourceNodeId": "39620bf3-7d42-4afa-85d1-42722ea0312d",
-                "targetNodeId": "1f9da35d-6009-40e0-9b1e-8eb2b88eb309",
-                "sourceAnchorId": "39620bf3-7d42-4afa-85d1-42722ea0312d_right_main_success",
-                "targetAnchorId": "1f9da35d-6009-40e0-9b1e-8eb2b88eb309_left_main_success",
-                "startPoint": {
-                  "x": 1587.8891376779318,
-                  "y": 404.10814193324364
-                },
-                "endPoint": {
-                  "x": 1626.9338819961133,
-                  "y": 436.7963521605164
-                },
-                "pointsList": [
-                  {
-                    "x": 1587.8891376779318,
-                    "y": 404.10814193324364
-                  },
-                  {
-                    "x": 1687.8891376779318,
-                    "y": 404.10814193324364
-                  },
-                  {
-                    "x": 1526.9338819961133,
-                    "y": 436.7963521605164
-                  },
-                  {
-                    "x": 1626.9338819961133,
-                    "y": 436.7963521605164
-                  }
-                ]
-              },
-              {
-                "id": "e627a10d-bafb-4652-a79b-84986170ab9e",
-                "type": "run-edge",
-                "properties": {},
-                "sourceNodeId": "1f9da35d-6009-40e0-9b1e-8eb2b88eb309",
                 "targetNodeId": "4963e3e0-b169-47f0-ae2d-b1b7faf04c4a",
-                "sourceAnchorId": "1f9da35d-6009-40e0-9b1e-8eb2b88eb309_right_main_success",
+                "sourceAnchorId": "cabe76e6-9448-4d45-bcf9-0c27aada72bd_right_main_success",
                 "targetAnchorId": "4963e3e0-b169-47f0-ae2d-b1b7faf04c4a_left_main_success",
                 "startPoint": {
-                  "x": 1826.9338819961133,
-                  "y": 436.7963521605164
+                  "x": 1130.661908299443,
+                  "y": 357.764232575029
                 },
                 "endPoint": {
-                  "x": 1808.2619401278266,
-                  "y": 317.6227562478705
+                  "x": 1258.9652975264503,
+                  "y": 360.94803844895273
                 },
                 "pointsList": [
                   {
-                    "x": 1826.9338819961133,
-                    "y": 436.7963521605164
+                    "x": 1130.661908299443,
+                    "y": 357.764232575029
                   },
                   {
-                    "x": 1926.9338819961133,
-                    "y": 436.7963521605164
+                    "x": 1230.661908299443,
+                    "y": 357.764232575029
                   },
                   {
-                    "x": 1708.2619401278266,
-                    "y": 317.6227562478705
+                    "x": 1158.9652975264503,
+                    "y": 360.94803844895273
                   },
                   {
-                    "x": 1808.2619401278266,
-                    "y": 317.6227562478705
+                    "x": 1258.9652975264503,
+                    "y": 360.94803844895273
                   }
                 ]
               },
               {
-                "id": "ec50b4b6-f759-4c3e-a9e4-30c84fe44379",
+                "id": "f0e1d2c3-b4a5-4968-8776-655443322110",
                 "type": "run-edge",
                 "properties": {},
-                "sourceNodeId": "0db20591-d2bc-4c8e-9e7d-9221429afa7c",
-                "targetNodeId": "a0a956f8-7dbd-4347-814c-ce8b61771918",
-                "sourceAnchorId": "0db20591-d2bc-4c8e-9e7d-9221429afa7c_right_6aa401b5-98cb-417a-b6f1-ebb7354f7442_success",
-                "targetAnchorId": "a0a956f8-7dbd-4347-814c-ce8b61771918_left_main_success",
+                "sourceNodeId": "b3f4a9d0-6c1e-4e2b-8a7f-5d9c0e1f2a3b",
+                "targetNodeId": "cabe76e6-9448-4d45-bcf9-0c27aada72bd",
+                "sourceAnchorId": "b3f4a9d0-6c1e-4e2b-8a7f-5d9c0e1f2a3b_right_main_success",
+                "targetAnchorId": "cabe76e6-9448-4d45-bcf9-0c27aada72bd_left_main_success",
                 "startPoint": {
-                  "x": 486.63908124492207,
-                  "y": 223.93496431756665
+                  "x": 854.6848385002276,
+                  "y": 313.6178788710867
                 },
                 "endPoint": {
-                  "x": 606.0180664062498,
-                  "y": 185.37353515625006
+                  "x": 930.661908299443,
+                  "y": 357.764232575029
                 },
                 "pointsList": [
                   {
-                    "x": 486.63908124492207,
-                    "y": 223.93496431756665
+                    "x": 854.6848385002276,
+                    "y": 313.6178788710867
                   },
                   {
-                    "x": 586.6390812449221,
-                    "y": 223.93496431756665
+                    "x": 912.8556147255572,
+                    "y": 313.6178788710867
                   },
                   {
-                    "x": 506.0180664062498,
-                    "y": 185.37353515625006
+                    "x": 872.4911320741132,
+                    "y": 357.764232575029
                   },
                   {
-                    "x": 606.0180664062498,
-                    "y": 185.37353515625006
+                    "x": 930.661908299443,
+                    "y": 357.764232575029
                   }
                 ]
               },
               {
-                "id": "ca557de1-93dc-4e65-bbd8-488b46eaae2d",
+                "id": "70c931b0-adce-4bf5-904a-cc33f7bf9678",
                 "type": "run-edge",
                 "properties": {},
-                "sourceNodeId": "a0a956f8-7dbd-4347-814c-ce8b61771918",
-                "targetNodeId": "2567e578-98ae-4592-8e64-61941556fe9e",
-                "sourceAnchorId": "a0a956f8-7dbd-4347-814c-ce8b61771918_right_main_success",
-                "targetAnchorId": "2567e578-98ae-4592-8e64-61941556fe9e_left_main_success",
+                "sourceNodeId": "loop-start-node",
+                "targetNodeId": "fd9a9abe-667e-49d9-a154-d414b8ee61da",
+                "sourceAnchorId": "loop-start-node_right_main_success",
+                "targetAnchorId": "fd9a9abe-667e-49d9-a154-d414b8ee61da_left_main_success",
                 "startPoint": {
-                  "x": 806.0180664062498,
-                  "y": 185.37353515625006
+                  "x": 200,
+                  "y": 150
                 },
                 "endPoint": {
-                  "x": 898.2666015625005,
-                  "y": 182.78564453125006
+                  "x": 400,
+                  "y": 150
                 },
                 "pointsList": [
                   {
-                    "x": 806.0180664062498,
-                    "y": 185.37353515625006
+                    "x": 200,
+                    "y": 150
                   },
                   {
-                    "x": 906.0180664062498,
-                    "y": 185.37353515625006
+                    "x": 300,
+                    "y": 150
                   },
                   {
-                    "x": 798.2666015625005,
-                    "y": 182.78564453125006
+                    "x": 300,
+                    "y": 150
                   },
                   {
-                    "x": 898.2666015625005,
-                    "y": 182.78564453125006
+                    "x": 400,
+                    "y": 150
+                  }
+                ]
+              },
+              {
+                "id": "d76e38e2-b016-42a1-9871-c42668108acf",
+                "type": "run-edge",
+                "properties": {},
+                "sourceNodeId": "fd9a9abe-667e-49d9-a154-d414b8ee61da",
+                "targetNodeId": "b3f4a9d0-6c1e-4e2b-8a7f-5d9c0e1f2a3b",
+                "sourceAnchorId": "fd9a9abe-667e-49d9-a154-d414b8ee61da_right_c1861547-16cc-4a30-876f-cd0ec2ba77a2_success",
+                "targetAnchorId": "b3f4a9d0-6c1e-4e2b-8a7f-5d9c0e1f2a3b_left_main_success",
+                "startPoint": {
+                  "x": 600,
+                  "y": 176
+                },
+                "endPoint": {
+                  "x": 654.6848385002272,
+                  "y": 313.6178788710867
+                },
+                "pointsList": [
+                  {
+                    "x": 600,
+                    "y": 176
+                  },
+                  {
+                    "x": 700,
+                    "y": 176
+                  },
+                  {
+                    "x": 554.6848385002272,
+                    "y": 313.6178788710867
+                  },
+                  {
+                    "x": 654.6848385002272,
+                    "y": 313.6178788710867
+                  }
+                ]
+              },
+              {
+                "id": "801ef08d-d39a-454f-84d2-7100a36a833e",
+                "type": "run-edge",
+                "properties": {},
+                "sourceNodeId": "fd9a9abe-667e-49d9-a154-d414b8ee61da",
+                "targetNodeId": "a4937f7e-0a7d-4778-8db3-5342fba6c59d",
+                "sourceAnchorId": "fd9a9abe-667e-49d9-a154-d414b8ee61da_right_21b8ebd8-7d8c-4623-921e-87ff6fe4b3cc_success",
+                "targetAnchorId": "a4937f7e-0a7d-4778-8db3-5342fba6c59d_left_main_success",
+                "startPoint": {
+                  "x": 600,
+                  "y": 140
+                },
+                "endPoint": {
+                  "x": 800,
+                  "y": 140
+                },
+                "pointsList": [
+                  {
+                    "x": 600,
+                    "y": 140
+                  },
+                  {
+                    "x": 700,
+                    "y": 140
+                  },
+                  {
+                    "x": 700,
+                    "y": 140
+                  },
+                  {
+                    "x": 800,
+                    "y": 140
+                  }
+                ]
+              },
+              {
+                "id": "76baea06-cfeb-495d-b06a-c380e5087f32",
+                "type": "run-edge",
+                "properties": {},
+                "sourceNodeId": "a4937f7e-0a7d-4778-8db3-5342fba6c59d",
+                "targetNodeId": "b3f4a9d0-6c1e-4e2b-8a7f-5d9c0e1f2a3b",
+                "sourceAnchorId": "a4937f7e-0a7d-4778-8db3-5342fba6c59d_right_main_success",
+                "targetAnchorId": "b3f4a9d0-6c1e-4e2b-8a7f-5d9c0e1f2a3b_left_main_success",
+                "startPoint": {
+                  "x": 1000,
+                  "y": 140
+                },
+                "endPoint": {
+                  "x": 654.6848385002272,
+                  "y": 313.6178788710867
+                },
+                "pointsList": [
+                  {
+                    "x": 1000,
+                    "y": 140
+                  },
+                  {
+                    "x": 1100,
+                    "y": 140
+                  },
+                  {
+                    "x": 554.6848385002272,
+                    "y": 313.6178788710867
+                  },
+                  {
+                    "x": 654.6848385002272,
+                    "y": 313.6178788710867
                   }
                 ]
               }
@@ -3501,8 +3325,87 @@
           {
             "label": "context",
             "value": "context"
+          },
+          {
+            "label": "摘要状态",
+            "value": "summary"
+          },
+          {
+            "label": "便签",
+            "value": "facts"
+          },
+          {
+            "label": "压缩后的上下文",
+            "value": "compress_context"
           }
         ]
+      }
+    },
+    {
+      "id": "f0e1d2c3-b4a5-4968-8776-655443322110",
+      "type": "context-query-node",
+      "x": 167.9375,
+      "y": 172.06640625,
+      "properties": {
+        "width": 200,
+        "height": 50,
+        "name": "上下文查询",
+        "isHovered": false,
+        "field_list": [
+          {
+            "label": "历史上下文",
+            "value": "history"
+          },
+          {
+            "label": "完整历史（含当前）",
+            "value": "full"
+          },
+          {
+            "label": "摘要",
+            "value": "summary"
+          },
+          {
+            "label": "便签",
+            "value": "facts"
+          },
+          {
+            "label": "载入边界",
+            "value": "historyUpto"
+          }
+        ],
+        "nodeData": {}
+      }
+    },
+    {
+      "id": "11223344-5566-4778-899a-abbccddeeff0",
+      "type": "context-save-node",
+      "x": 820,
+      "y": 25,
+      "properties": {
+        "width": 200,
+        "height": 50,
+        "name": "上下文写入",
+        "isHovered": false,
+        "field_list": [
+          {
+            "label": "摘要已写入",
+            "value": "savedSummary"
+          },
+          {
+            "label": "便签写入数",
+            "value": "savedFacts"
+          }
+        ],
+        "nodeData": {
+          "summaryReference": [
+            "05e716af-35e7-48a7-9f93-5a5ff978b0d7",
+            "summary"
+          ],
+          "factsReference": [
+            "05e716af-35e7-48a7-9f93-5a5ff978b0d7",
+            "facts"
+          ]
+        }
       }
     }
   ],
@@ -3512,16 +3415,16 @@
       "type": "run-edge",
       "properties": {},
       "sourceNodeId": "start-node",
-      "targetNodeId": "05e716af-35e7-48a7-9f93-5a5ff978b0d7",
+      "targetNodeId": "f0e1d2c3-b4a5-4968-8776-655443322110",
       "sourceAnchorId": "start-node_right_main_success",
-      "targetAnchorId": "05e716af-35e7-48a7-9f93-5a5ff978b0d7_left_main_success",
+      "targetAnchorId": "f0e1d2c3-b4a5-4968-8776-655443322110_left_main_success",
       "startPoint": {
         "x": 200,
         "y": 25
       },
       "endPoint": {
-        "x": 300,
-        "y": 25
+        "x": 67.9375,
+        "y": 172.06640625
       },
       "pointsList": [
         {
@@ -3529,16 +3432,86 @@
           "y": 25
         },
         {
-          "x": 300,
+          "x": 260,
           "y": 25
         },
         {
-          "x": 200,
+          "x": 7.9375,
+          "y": 172.06640625
+        },
+        {
+          "x": 67.9375,
+          "y": 172.06640625
+        }
+      ]
+    },
+    {
+      "id": "5f4e3d2c-1b0a-4998-8877-665544332211",
+      "type": "run-edge",
+      "properties": {},
+      "sourceNodeId": "05e716af-35e7-48a7-9f93-5a5ff978b0d7",
+      "targetNodeId": "11223344-5566-4778-899a-abbccddeeff0",
+      "sourceAnchorId": "05e716af-35e7-48a7-9f93-5a5ff978b0d7_right_main_success",
+      "targetAnchorId": "11223344-5566-4778-899a-abbccddeeff0_left_main_success",
+      "startPoint": {
+        "x": 584.1875,
+        "y": 44.5390625
+      },
+      "endPoint": {
+        "x": 720,
+        "y": 25
+      },
+      "pointsList": [
+        {
+          "x": 584.1875,
+          "y": 44.5390625
+        },
+        {
+          "x": 654.1875,
+          "y": 44.5390625
+        },
+        {
+          "x": 650,
           "y": 25
         },
         {
-          "x": 300,
+          "x": 720,
           "y": 25
+        }
+      ]
+    },
+    {
+      "id": "a9314aad-4c59-46c6-8cc3-1809045c9709",
+      "type": "run-edge",
+      "properties": {},
+      "sourceNodeId": "f0e1d2c3-b4a5-4968-8776-655443322110",
+      "targetNodeId": "05e716af-35e7-48a7-9f93-5a5ff978b0d7",
+      "sourceAnchorId": "f0e1d2c3-b4a5-4968-8776-655443322110_right_main_success",
+      "targetAnchorId": "05e716af-35e7-48a7-9f93-5a5ff978b0d7_left_main_success",
+      "startPoint": {
+        "x": 267.9375,
+        "y": 172.06640625
+      },
+      "endPoint": {
+        "x": 304.1875,
+        "y": 44.5390625
+      },
+      "pointsList": [
+        {
+          "x": 267.9375,
+          "y": 172.06640625
+        },
+        {
+          "x": 367.9375,
+          "y": 172.06640625
+        },
+        {
+          "x": 204.1875,
+          "y": 44.5390625
+        },
+        {
+          "x": 304.1875,
+          "y": 44.5390625
         }
       ]
     }

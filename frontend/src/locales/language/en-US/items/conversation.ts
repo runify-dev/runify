@@ -9,6 +9,11 @@ export default {
   darkMode: 'Dark Mode',
   anonymousUser: 'Anonymous User',
   user: 'User',
+  notes: {
+    title: 'My Notes',
+    desc: 'Personal details the agent remembers across conversations (e.g. how to address you, language, tone preferences)',
+    empty: 'No notes yet'
+  },
   welcomeBack: 'Welcome Back',
   loginToChat: 'Login to start chatting with the agent',
   agreeToTerms: 'By logging in, you agree to the Terms of Use',

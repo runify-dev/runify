@@ -750,6 +750,113 @@ export const createFileNode = {
   }
 }
 
+export const contextManageNode = {
+  type: 'context-manage-node',
+  text: '',
+  x: 0,
+  y: 0,
+  label: '上下文压缩',
+  properties: {
+    width: 200,
+    height: 50,
+    name: '上下文压缩',
+    isHovered: false,
+    field_list: [
+      { label: '消息', value: 'messages' },
+      { label: '摘要', value: 'summary' },
+      { label: '便签', value: 'facts' },
+      { label: '统计', value: 'stats' }
+    ],
+    nodeData: {
+      sourceSeedVariable: [],
+      sourceVariable: [],
+      summarySeedVariable: [],
+      summaryVariable: [],
+      factsSeedVariable: [],
+      factsVariable: [],
+      budget: 32000,
+      highRatio: 0.85,
+      lowRatio: 0.6,
+      keepRecentItems: 10,
+      stripMultimodal: true,
+      enableSummarizer: false,
+      summarizerModelId: '',
+      summarizerMethod: 'fc',
+      factSections: ['convention', 'preference', 'env', 'goal', 'todo'],
+      reservedTokens: 3000,
+      tokenEncoding: 'cl100k'
+    }
+  }
+}
+
+export const contextQueryNode = {
+  type: 'context-query-node',
+  text: '',
+  x: 0,
+  y: 0,
+  label: '上下文查询',
+  properties: {
+    width: 200,
+    height: 50,
+    name: '上下文查询',
+    isHovered: false,
+    field_list: [
+      { label: '历史上下文', value: 'history' },
+      { label: '完整历史（含当前）', value: 'full' },
+      { label: '摘要', value: 'summary' },
+      { label: '便签', value: 'facts' },
+      { label: '载入边界', value: 'historyUpto' }
+    ],
+    nodeData: {}
+  }
+}
+
+export const contextSaveNode = {
+  type: 'context-save-node',
+  text: '',
+  x: 0,
+  y: 0,
+  label: '上下文写入',
+  properties: {
+    width: 200,
+    height: 50,
+    name: '上下文写入',
+    isHovered: false,
+    field_list: [
+      { label: '摘要已写入', value: 'savedSummary' },
+      { label: '便签写入数', value: 'savedFacts' }
+    ],
+    nodeData: {
+      summaryReference: [],
+      factsReference: []
+    }
+  }
+}
+
+export const factExtractNode = {
+  type: 'fact-extract-node',
+  text: '',
+  x: 0,
+  y: 0,
+  label: 'AI 便签提取',
+  properties: {
+    width: 200,
+    height: 50,
+    name: 'AI 便签提取',
+    isHovered: false,
+    field_list: [
+      { label: '便签', value: 'facts' },
+      { label: '本轮抽取数', value: 'extracted' }
+    ],
+    nodeData: {
+      sourceReference: [],
+      factsVariable: [],
+      modelId: '',
+      method: 'fc'
+    }
+  }
+}
+
 export const contextPushNode = {
   type: 'context-push-node',
   text: '',

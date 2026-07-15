@@ -158,7 +158,7 @@ const to = (routeName: string) => {
   router.push({name: routeName})
 }
 const isFlipped = ref<boolean>(
-  ['applicationOverview', 'applicationSetting', 'applicationConversationLog'].includes(
+  ['applicationOverview', 'applicationSetting', 'applicationConversationLog', 'applicationSectionSetting'].includes(
     route.name as string
   )
 )
@@ -193,6 +193,15 @@ const items = computed(() => {
         PermissionConstants.APPLICATION_CONVERSATION_LOG_READ.newResourcePermission(
           route.params.id as string
         ),
+        Role.ADMIN
+      ]
+    },
+    {
+      name: 'applicationSectionSetting',
+      label: t('application.sectionSetting'),
+      icon: 'pi pi-fw pi-tag p-1',
+      permissions: [
+        PermissionConstants.APPLICATION_SETTING_READ.newResourcePermission(route.params.id as string),
         Role.ADMIN
       ]
     }
@@ -276,7 +285,7 @@ const nodeSelect = (treeNode?: TreeNode) => {
   } else {
     flipCardRef.value?.flip()
     if (
-      !['applicationOverview', 'applicationSetting', 'applicationConversationLog'].includes(
+      !['applicationOverview', 'applicationSetting', 'applicationConversationLog', 'applicationSectionSetting'].includes(
         route.name as string
       )
     ) {

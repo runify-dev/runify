@@ -12,6 +12,7 @@ import com.run.common.keyvalue.DefaultKeyValue;
 import com.run.common.queue.MessageQueue;
 import com.run.common.result.Result;
 import com.run.common.util.CommonUtils;
+import com.run.common.util.ConversationUser;
 import com.run.common.util.ConversationWorkflowExecutor;
 import com.run.common.util.JacksonUtils;
 import com.run.common.util.TreeUtil;
@@ -39,6 +40,7 @@ import com.run.sql.DSL;
 import com.run.sql.condition.Condition;
 import com.run.sql.model.Field;
 import com.run.workflow.*;
+import com.run.workflow.nodes.contextmanage.service.SectionRegistry;
 import com.run.workflow.entity.Node;
 import com.run.workflow.entity.NodeSerialize;
 import com.run.workflow.entity.WorkFlow;
@@ -84,6 +86,8 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
     private final MessageQueue<String> messageQueue;
     private final ConversationWorkflowExecutor executor;
     private final AppConfig appConfig;
+    private final com.run.dao.mapper.CtxSummaryMapper ctxSummaryMapper;
+    private final com.run.dao.mapper.CtxFactMapper ctxFactMapper;
 
     @Inject
     public ApplicationHandlerImpl(ApplicationMapper applicationMapper,
@@ -94,13 +98,17 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
                                   ConversationMessageMapper conversationMessageMapper,
                                   CacheStore cacheStore,
                                   MessageQueue<String> messageQueue,
-                                  AppConfig appConfig) {
+                                  AppConfig appConfig,
+                                  com.run.dao.mapper.CtxSummaryMapper ctxSummaryMapper,
+                                  com.run.dao.mapper.CtxFactMapper ctxFactMapper) {
         super(applicationMapper, applicationFolderMapper, applicationRelationMapper, applicationPermissionMapper, cacheStore);
         this.applicationMapper = applicationMapper;
         this.conversationMapper = conversationMapper;
         this.conversationMessageMapper = conversationMessageMapper;
         this.messageQueue = messageQueue;
         this.appConfig = appConfig;
+        this.ctxSummaryMapper = ctxSummaryMapper;
+        this.ctxFactMapper = ctxFactMapper;
         executor = new ConversationWorkflowExecutor(messageQueue, conversationMessageMapper);
     }
 
@@ -123,7 +131,7 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
             application.setIcon(pojo.getIcon());
         }
         if (pojo.getAllowAnonymousAccess() != null) {
-            this.cacheStore.delete("c::" + ((User)context.user().get("user")).getId());
+            this.cacheStore.delete("c::" + ((User) context.user().get("user")).getId());
             application.setAllowAnonymousAccess(pojo.getAllowAnonymousAccess());
         }
         if (!StringUtils.isBlank(pojo.getName())) {
@@ -257,7 +265,6 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
         String conversationId = context.pathParam("conversationId");
         ConversationVO conversationVO = context.body().asPojo(ConversationVO.class);
         Content content = ContentConverter.of(conversationVO.getContent(), conversationVO.getWorkflowRunId());
-
         ConversationMessage conversationMessage = new ConversationMessage(UUID.randomUUID(),
                 UUID.fromString(conversationId),
                 UUID.fromString(applicationId), UUID.fromString(conversationVO.getWorkflowRunId()),
@@ -305,8 +312,18 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
                            UUID workflowRunId,
                            List<ConversationMessage> conversationMessages,
                            Content question) {
+        // 登录用户：白名单展示字段（排除 password/role 等敏感与授权字段），恒 USER 类型
+        User principal = context.user().get("user");
+        JsonObject profile = new JsonObject()
+                .put("nickname", principal.getNickname())
+                .put("username", principal.getUsername())
+                .put("email", principal.getEmail())
+                .put("phone", principal.getPhone())
+                .put("icon", principal.getIcon());
+        ConversationUser user = new ConversationUser(principal.getId().toString(),
+                TokenTypeConstants.USER, profile);
         executor.executeWithQuestion(context, workflow, conversationId,
-                applicationId, workflowRunId, conversationMessages, question);
+                applicationId, workflowRunId, conversationMessages, question, user);
     }
 
     @Override
@@ -412,6 +429,205 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
 
     }
 
+    /**
+     * 会话的上下文记忆（跨对话层）：ctx_summary 摘要 + ctx_fact 便签。
+     * 合并顺序与 context-query-node 注入上下文时严格一致 —— 应用级非观察期 → 用户级非观察期 → 对话级，
+     * 后者覆盖同键（越具体越优先）；用户级取本会话归属用户（applicationId:userId，仅登录用户，匿名无）。
+     * 产物是 subtype=artifact 的便签。
+     */
+    @Override
+    public void conversationContext(RoutingContext context) {
+        String applicationId = context.pathParam("applicationId");
+        String conversationId = context.pathParam("conversationId");
+
+        conversationMapper.getById(conversationId)
+                .compose(conversation -> loadConversationMemory(applicationId, conversationId, conversation))
+                .onSuccess(result -> context.end(Result.success(result).toBuffer()))
+                .onFailure(context::fail);
+    }
+
+    /**
+     * 载入并组装某会话的记忆（摘要 + 三 scope 合并便签）。userScopeId 与 save/query 节点同规则。
+     */
+    private Future<JsonObject> loadConversationMemory(String applicationId, String conversationId,
+                                                      Conversation conversation) {
+        String userScopeId = userScopeId(applicationId, conversation);
+
+        Future<com.run.dao.entity.CtxSummary> summaryFuture = ctxSummaryMapper.one(
+                field(com.run.dao.entity.CtxSummary::getScopeType).eq("conversation")
+                        .and(field(com.run.dao.entity.CtxSummary::getScopeId).eq(conversationId)), Map.of());
+        Future<List<com.run.dao.entity.CtxFact>> appFactsFuture = ctxFactMapper.list(
+                field(com.run.dao.entity.CtxFact::getScopeType).eq("application")
+                        .and(field(com.run.dao.entity.CtxFact::getScopeId).eq(applicationId)), Map.of());
+        Future<List<com.run.dao.entity.CtxFact>> userFactsFuture = StringUtils.isBlank(userScopeId)
+                ? Future.succeededFuture(List.of())
+                : ctxFactMapper.list(field(com.run.dao.entity.CtxFact::getScopeType).eq("user")
+                        .and(field(com.run.dao.entity.CtxFact::getScopeId).eq(userScopeId))
+                        .and(field(com.run.dao.entity.CtxFact::getApplicationId).eq(applicationId)), Map.of());
+        Future<List<com.run.dao.entity.CtxFact>> convFactsFuture = ctxFactMapper.list(
+                field(com.run.dao.entity.CtxFact::getScopeType).eq("conversation")
+                        .and(field(com.run.dao.entity.CtxFact::getScopeId).eq(conversationId)), Map.of());
+
+        return Future.all(summaryFuture, appFactsFuture, userFactsFuture, convFactsFuture).map(composite -> {
+            com.run.dao.entity.CtxSummary summaryRow = composite.resultAt(0);
+            List<com.run.dao.entity.CtxFact> appFacts = composite.resultAt(1);
+            List<com.run.dao.entity.CtxFact> userFacts = composite.resultAt(2);
+            List<com.run.dao.entity.CtxFact> convFacts = composite.resultAt(3);
+
+            Map<String, com.run.dao.entity.CtxFact> merged = new LinkedHashMap<>();
+            for (com.run.dao.entity.CtxFact fact : appFacts) {
+                if (!Boolean.TRUE.equals(fact.getProvisional())) {
+                    merged.put(fact.getSubtype() + "|" + fact.getFactKey(), fact);
+                }
+            }
+            for (com.run.dao.entity.CtxFact fact : userFacts) {
+                if (!Boolean.TRUE.equals(fact.getProvisional())) {
+                    merged.put(fact.getSubtype() + "|" + fact.getFactKey(), fact);
+                }
+            }
+            for (com.run.dao.entity.CtxFact fact : convFacts) {
+                merged.put(fact.getSubtype() + "|" + fact.getFactKey(), fact);
+            }
+
+            JsonObject summary = new JsonObject();
+            if (summaryRow != null) {
+                summary.put("text", summaryRow.getSummaryText())
+                        .put("coveredUpto", Objects.toString(summaryRow.getCoveredUpto(), null))
+                        .put("updateTime", Objects.toString(summaryRow.getUpdateTime(), null));
+            }
+            JsonArray facts = new JsonArray();
+            for (com.run.dao.entity.CtxFact fact : merged.values()) {
+                facts.add(new JsonObject()
+                        .put("subtype", fact.getSubtype())
+                        .put("key", fact.getFactKey())
+                        .put("value", fact.getFactValue())
+                        .put("scopeType", fact.getScopeType())
+                        .put("updateTime", Objects.toString(fact.getUpdateTime(), null)));
+            }
+            return new JsonObject()
+                    .put("summary", summary)
+                    .put("facts", facts);
+        });
+    }
+
+    /**
+     * user 档 scope_id = 裸 userId；per-app 隔离由查询追加的 application_id 条件承担。
+     * 仅登录用户（type=USER）成立，匿名/无身份返回 null。与 context-save/query 节点规则严格一致，
+     * 保证读到的正是注入对话的那份。
+     */
+    private String userScopeId(String applicationId, Conversation conversation) {
+        if (StringUtils.isBlank(applicationId) || conversation == null
+                || conversation.getConversationUserType() != TokenTypeConstants.USER) {
+            return null;
+        }
+        String userId = conversation.getConversationUserId();
+        return StringUtils.isBlank(userId) ? null : userId;
+    }
+
+    /**
+     * 便签设置：列出该应用的便签子区配置。
+     * 首次访问（库中无该应用的行）时把内置默认子区落库，之后即为普通可编辑/可删除记录——
+     * 不再靠前端写死"内置清单"做特判，内置默认只作为一次性种子。
+     */
+    @Override
+    public void listSections(RoutingContext context) {
+        String applicationId = context.pathParam("applicationId");
+        var mapper = com.run.RunApplication.appComponent.ctxSectionMapper();
+        mapper.list(field(com.run.dao.entity.CtxSection::getApplicationId).eq(applicationId), Map.of())
+                .compose(rows -> {
+                    if ((rows != null && !rows.isEmpty()) || StringUtils.isBlank(applicationId)) {
+                        return io.vertx.core.Future.succeededFuture(rows);
+                    }
+                    LocalDateTime now = LocalDateTime.now();
+                    List<com.run.dao.entity.CtxSection> seed = new ArrayList<>();
+                    for (com.run.workflow.nodes.contextmanage.service.SectionRegistry.Section s
+                            : com.run.workflow.nodes.contextmanage.service.SectionRegistry.BUILTIN_DEFAULTS) {
+                        seed.add(new com.run.dao.entity.CtxSection(CommonUtils.uuid7(), applicationId,
+                                s.key(), s.label(), s.description(), s.scope(),
+                                s.listStyle(), s.enabled(), s.sortOrder(), now, now));
+                    }
+                    // 并发首访可能同时播种：失败（唯一键冲突）则回读一次，拿到已落库的行
+                    return mapper.batch_save(seed).map(ok -> seed)
+                            .recover(err -> mapper.list(
+                                    field(com.run.dao.entity.CtxSection::getApplicationId).eq(applicationId), Map.of()));
+                })
+                .onSuccess(rows -> {
+                    JsonArray arr = new JsonArray();
+                    for (com.run.workflow.nodes.contextmanage.service.SectionRegistry.Section s
+                            : com.run.workflow.nodes.contextmanage.service.SectionRegistry.fromRows(rows)) {
+                        arr.add(new JsonObject()
+                                .put("sectionKey", s.key())
+                                .put("label", s.label())
+                                .put("description", s.description())
+                                .put("scope", s.scope())
+                                .put("listStyle", s.listStyle())
+                                .put("enabled", s.enabled())
+                                .put("sortOrder", s.sortOrder()));
+                    }
+                    context.end(Result.success(arr).toBuffer());
+                })
+                .onFailure(context::fail);
+    }
+
+    /**
+     * 便签设置：整表替换该应用的便签子区配置（删旧 + 批量插新，一次落全量编辑/增删/排序）
+     */
+    @Override
+    public void saveSections(RoutingContext context) {
+        String applicationId = context.pathParam("applicationId");
+        JsonArray body = context.body().asJsonArray();
+        java.util.List<com.run.dao.entity.CtxSection> rows = new java.util.ArrayList<>();
+        LocalDateTime now = LocalDateTime.now();
+        if (body != null) {
+            for (int i = 0; i < body.size(); i++) {
+                JsonObject o = body.getJsonObject(i);
+                String key = o.getString("sectionKey");
+                if (key == null || key.isBlank()) {
+                    continue;
+                }
+                rows.add(new com.run.dao.entity.CtxSection(CommonUtils.uuid7(), applicationId, key,
+                        o.getString("label"), o.getString("description"),
+                        o.getString("scope", "conversation"),
+                        o.getBoolean("listStyle", false), o.getBoolean("enabled", true),
+                        o.getInteger("sortOrder", 0), now, now));
+            }
+        }
+        var mapper = com.run.RunApplication.appComponent.ctxSectionMapper();
+        mapper.delete(field(com.run.dao.entity.CtxSection::getApplicationId).eq(applicationId), Map.of())
+                .compose(ok -> rows.isEmpty()
+                        ? io.vertx.core.Future.succeededFuture()
+                        : mapper.batch_save(rows))
+                .onSuccess(ok -> context.end(Result.success(true).toBuffer()))
+                .onFailure(context::fail);
+    }
+
+    /**
+     * 后台侧「我的便签」：当前登录管理员在该应用作为 user 沉淀的 user 档便签（调试/管理端对话页用）。
+     * 身份取后台登录用户；scope_id = 管理员id、application_id = applicationId —— 与调试执行时 save 落库规则一致。
+     * 与终端侧 {@link ConversationHandlerImpl#mySections} 仅身份来源不同，视图组装共用 SectionRegistry。
+     */
+    @Override
+    public void mySections(RoutingContext context) {
+        String applicationId = context.pathParam("applicationId");
+        User principal = context.user().get("user");
+        if (StringUtils.isBlank(applicationId) || principal == null || principal.getId() == null) {
+            context.end(Result.success(new JsonArray()).toBuffer());
+            return;
+        }
+        String userId = principal.getId().toString();
+
+        Future<List<CtxSection>> sectionFuture = com.run.RunApplication.appComponent.ctxSectionMapper().list(
+                field(CtxSection::getApplicationId).eq(applicationId), Map.of());
+        Future<List<CtxFact>> factFuture = ctxFactMapper.list(
+                field(CtxFact::getScopeType).eq("user").and(field(CtxFact::getScopeId).eq(userId))
+                        .and(field(CtxFact::getApplicationId).eq(applicationId)), Map.of());
+
+        Future.all(sectionFuture, factFuture).onSuccess(composite ->
+                context.end(Result.success(SectionRegistry.renderUserFacts(
+                        composite.resultAt(0), composite.resultAt(1))).toBuffer())
+        ).onFailure(context::fail);
+    }
+
     public void statusStream(RoutingContext context) {
         String conversationId = context.pathParam("conversationId");
         messageQueue.exists(conversationId, ok -> {
@@ -501,11 +717,11 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
                 .where(appCondition.and(typeField.eq("ASSISTANT")));
 
         var statsSql = dsl.select(
-                        Field.<Long>expression("conversation_count", ctx -> convCountSub.render(ctx)).as("conversation_count"),
-                        Field.<Long>expression("message_count", ctx -> msgCountSub.render(ctx)).as("message_count"),
-                        Field.<Long>expression("total_tokens", ctx -> totalTokensSub.render(ctx)).as("total_tokens"),
-                        Field.<Long>expression("avg_duration", ctx -> avgDurationSub.render(ctx)).as("avg_duration")
-                ).render();
+                Field.<Long>expression("conversation_count", ctx -> convCountSub.render(ctx)).as("conversation_count"),
+                Field.<Long>expression("message_count", ctx -> msgCountSub.render(ctx)).as("message_count"),
+                Field.<Long>expression("total_tokens", ctx -> totalTokensSub.render(ctx)).as("total_tokens"),
+                Field.<Long>expression("avg_duration", ctx -> avgDurationSub.render(ctx)).as("avg_duration")
+        ).render();
 
         Future<OverviewStatsVO> statsFuture = SqlTemplate.forQuery(client, statsSql.sql())
                 .mapTo(statsConvert::mapTo)

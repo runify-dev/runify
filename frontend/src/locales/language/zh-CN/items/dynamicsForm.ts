@@ -91,7 +91,7 @@ export default {
     validationFailed: '校验失败',
     mustBeGreaterThan: '必须大于',
     mustBeLessThan: '必须小于',
-    optionExample: '[{"label":"选项1","value":"1"}]'
+    optionExample: `[{'{'}"label":"选项1","value":"1"{'}'}]`
   },
   demo: {
     constructorTitle: '字段构造器',

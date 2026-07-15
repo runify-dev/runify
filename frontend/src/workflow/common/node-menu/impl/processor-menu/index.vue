@@ -40,6 +40,9 @@ import {
   terminalNode,
   variableAssignNode,
   contextPushNode,
+  contextManageNode,
+  contextQueryNode,  contextSaveNode,
+  factExtractNode,
   approvalNode,
   applyPatchNode,
   readFileNode,
@@ -59,7 +62,7 @@ const groups = [
     value: '0',
     label: 'AI',
     icon: 'pi pi-sparkles',
-    nodes: [aiChatNode]
+    nodes: [aiChatNode, contextManageNode, factExtractNode]
   },
   {
     value: '1',
@@ -83,7 +86,7 @@ const groups = [
     value: '4',
     label: '工具',
     icon: 'pi pi-wrench',
-    nodes: [javaScriptNode, extractNode, variableAssignNode, contextPushNode, approvalNode, jsonResponseNode, staticFileNode]
+    nodes: [javaScriptNode, extractNode, variableAssignNode, contextPushNode, contextQueryNode, contextSaveNode, approvalNode, jsonResponseNode, staticFileNode]
   }
 ]
 

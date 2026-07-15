@@ -9,6 +9,11 @@ export default {
   darkMode: '暗色',
   anonymousUser: '匿名用户',
   user: '用户',
+  notes: {
+    title: '我的便签',
+    desc: '智能体跨对话记住的你的个人信息（如称呼、语言、语气偏好等）',
+    empty: '暂无便签'
+  },
   welcomeBack: '欢迎回来',
   loginToChat: '登录后开始与智能体对话',
   agreeToTerms: '登录即表示同意使用条款',

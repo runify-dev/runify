@@ -109,6 +109,24 @@ const noteRouter = {
           component: () => import('@/views/application/ConversationLog.vue')
         },
         {
+          path: 'section',
+          name: 'applicationSectionSetting',
+          meta: {
+            title: '便签设置',
+            activeMenu: 'application',
+            permission: (to: any) => {
+              return [
+                buildBaseResourcePermission(
+                  PermissionConstants.APPLICATION_SETTING_READ,
+                  String(to.params.id)
+                )
+              ]
+            },
+            fallbackRouteNames: ['application403']
+          },
+          component: () => import('@/views/application/SectionSetting.vue')
+        },
+        {
           path: '403',
           name: 'application403',
           meta: {
