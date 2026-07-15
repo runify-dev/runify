@@ -7,6 +7,7 @@
     optionLabel="label"
     optionGroupLabel="label"
     optionGroupChildren="children"
+    showClear
     v-bind="$attrs"
     :formControl="undefined"
     name=""
@@ -29,13 +30,11 @@ provide('$pcForm', undefined)
 provide('$pcFormField', undefined)
 const props = defineProps<{ options: Array<any>; modelValue?: any; config: Options }>()
 const handleInnerChange = (event: any) => {
-  console.log(event)
   // 1. 若事件有原始DOM事件，手动阻止冒泡
   if (event.originalEvent) {
     event.originalEvent.stopPropagation()
   }
-  console.log(event.value?.fullValue)
-  // 2. 只对外抛出fullValue
+  // 2. 只对外抛出fullValue（清空时 value 为 null，回退为空数组）
   emit('update:modelValue', event.value?.fullValue || [])
 }
 const _options = computed(() => {
@@ -45,15 +44,16 @@ const _options = computed(() => {
 const emit = defineEmits(['update:modelValue'])
 const data = computed({
   get: () => {
-    console.log(props.modelValue)
     const v = findNodeByValuePath(_options.value, props.modelValue, props.config)
     if (v) {
       return v
     }
-    return []
+    // 返回 null（而非空数组），未选中时 d_value 为 null，清空按钮才会隐藏
+    return null
   },
   set: (event: any) => {
-    emit('update:modelValue', event.fullValue)
+    // 清空时 event 为 null，回退为空数组
+    emit('update:modelValue', event?.fullValue || [])
   }
 })
 </script>

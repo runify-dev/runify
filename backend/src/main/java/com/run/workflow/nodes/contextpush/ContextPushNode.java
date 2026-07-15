@@ -177,8 +177,9 @@ public class ContextPushNode extends INode<ContextPushNode, ContextPushNodeData>
                     Map<String, Object> toolContent = JacksonUtils.fromJson(content, new com.fasterxml.jackson.core.type.TypeReference<>() {
                     });
                     element.put("id", CommonUtils.uuid7().toString());
-                    element.put("functionName", toolContent.getOrDefault("toolName", ""));
-                    element.put("arguments", toolContent.getOrDefault("functionArguments", "{}"));
+                    // 字段名与 ToolCallContent / ConversationMessageConverter 对齐（toolName/functionArguments）
+                    element.put("toolName", toolContent.getOrDefault("toolName", ""));
+                    element.put("functionArguments", toolContent.getOrDefault("functionArguments", "{}"));
                     element.put("content", toolContent.getOrDefault("content", ""));
                 } catch (Exception e) {
                     element.put("content", content);

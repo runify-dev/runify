@@ -91,7 +91,7 @@ export default {
     validationFailed: '유효성 검사 실패',
     mustBeGreaterThan: '보다 커야 합니다',
     mustBeLessThan: '보다 작아야 합니다',
-    optionExample: '[{"label":"option1","value":"1"}]'
+    optionExample: `[{'{'}"label":"option1","value":"1"{'}'}]`
   },
   demo: {
     constructorTitle: '필드 생성기',

@@ -1,5 +1,6 @@
 <template>
   <div class="question-wrapper">
+    <div class="question-col">
     <div class="question-card">
       <div v-if="images.length + texts.length + videos.length + files.length > 0" class="question-attachments">
         <!-- 图片 -->
@@ -68,6 +69,18 @@
       </div>
       <button v-if="isLong" class="expand-btn" @click="expanded = !expanded">
         {{ expanded ? t('conversation.panel.collapse') : t('conversation.panel.expand') }}
+      </button>
+    </div>
+      <!-- 复制提问 -->
+      <button v-if="content" class="q-copy" :class="{ done: copied }" @click="copyQuestion">
+        <svg v-if="copied" class="q-copy-ic" viewBox="0 0 16 16" fill="none">
+          <path d="M3.5 8.5l3 3 6-6.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <svg v-else class="q-copy-ic" viewBox="0 0 16 16" fill="none">
+          <rect x="5" y="5" width="8.5" height="9.5" rx="1.6" stroke="currentColor" stroke-width="1.2"/>
+          <path d="M3 11V3.6A1.6 1.6 0 0 1 4.6 2H10.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
+        <span>{{ copied ? t('conversation.panel.copied') : t('conversation.panel.copy') }}</span>
       </button>
     </div>
 
@@ -144,6 +157,30 @@ const isLong = computed(() => {
 watch(content, () => {
   expanded.value = false
 })
+
+// 复制提问（点击后短暂显示“已复制”）
+const copied = ref(false)
+let copyTimer: ReturnType<typeof setTimeout> | null = null
+const copyQuestion = async () => {
+  const text = content.value || ''
+  if (!text) return
+  try {
+    await navigator.clipboard.writeText(text)
+  } catch {
+    // 降级：兼容非安全上下文
+    const ta = document.createElement('textarea')
+    ta.value = text
+    ta.style.position = 'fixed'
+    ta.style.opacity = '0'
+    document.body.appendChild(ta)
+    ta.select()
+    document.execCommand('copy')
+    document.body.removeChild(ta)
+  }
+  copied.value = true
+  if (copyTimer) clearTimeout(copyTimer)
+  copyTimer = setTimeout(() => (copied.value = false), 1500)
+}
 </script>
 <style scoped>
 .question-wrapper {
@@ -153,10 +190,19 @@ watch(content, () => {
   padding: 8px 0;
 }
 
-.question-card {
+/* 卡片 + 复制按钮竖排、右对齐 */
+.question-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
   max-width: 420px;
+}
+
+.question-card {
+  max-width: 100%;
   padding: 8px 12px;
-  background: var(--ab);
+  background: var(--p-primary-100);
   color: var(--t1);
   border-radius: 12px;
   border-bottom-right-radius: 3px;
@@ -164,6 +210,44 @@ watch(content, () => {
   line-height: 1.6;
   word-break: break-word;
   text-align: right;
+}
+
+/* 复制按钮 */
+.q-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--t3);
+  cursor: pointer;
+  font-family: inherit;
+  opacity: 0.6;
+  transition: opacity 0.15s, color 0.15s, background 0.15s;
+}
+
+.question-wrapper:hover .q-copy {
+  opacity: 1;
+}
+
+.q-copy:hover {
+  color: var(--t1);
+  background: var(--hv);
+}
+
+.q-copy.done {
+  color: var(--p-primary-color);
+  opacity: 1;
+}
+
+.q-copy-ic {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
 }
 
 .question-attachments {
@@ -238,7 +322,7 @@ watch(content, () => {
   left: 0;
   right: 0;
   height: 2.4em;
-  background: linear-gradient(transparent, var(--ab));
+  background: linear-gradient(transparent, var(--p-primary-100));
   pointer-events: none;
 }
 

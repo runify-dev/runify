@@ -1,5 +1,6 @@
 package com.run.workflow.nodes.loop.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.run.workflow.entity.Edge;
 import com.run.workflow.entity.Node;
 import lombok.Getter;
@@ -14,6 +15,7 @@ import java.util.List;
  */
 @Getter
 @Setter
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class LoopNodeData {
 
     /**

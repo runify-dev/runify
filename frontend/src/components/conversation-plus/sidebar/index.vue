@@ -80,6 +80,10 @@
         <span class="icon">{{ isDark ? '☀' : '☾' }}</span>
         {{ isDark ? t('conversation.lightMode') : t('conversation.darkMode') }}
       </button>
+      <!-- 我的便签（DEBUG/管理端对话页：当前管理员的 user 档；这两页无头像弹层，直接放常驻按钮）-->
+      <button v-if="type === 'DEBUG' || type === 'ADMIN_CONVERSATION'" @click="openSections">
+        <span class="icon">🔖</span>{{ t('conversation.notes.title') }}
+      </button>
       <!-- 用户头像入口 -->
       <div v-if="tokenStore.isLogged && type === 'CONVERSATION'" class="sb-user" @click="togglePopover">
         <img v-if="userIcon" :src="resetUrl(userIcon)" class="sb-user-icon" />
@@ -101,6 +105,10 @@
           <i class="pi pi-chevron-right sb-pop-arrow" />
         </div>
         <div v-if="!tokenStore.isAnonymous" class="sb-pop-divider" />
+        <button v-if="!tokenStore.isAnonymous" class="sb-pop-item" @click="openSections">
+          <i class="pi pi-bookmark" />
+          <span>{{ t('conversation.notes.title') }}</span>
+        </button>
         <button v-if="tokenStore.isAnonymous" class="sb-pop-login" @click="handleLogin">
           <i class="pi pi-sign-in" />
           <span>{{ t('login.login') }}</span>
@@ -142,6 +150,36 @@
         </div>
       </div>
     </Dialog>
+
+    <!-- 我的便签 Dialog（跨对话记住的个人便签，只读） -->
+    <Dialog
+      v-model:visible="showSectionsDialog"
+      modal
+      :header="t('conversation.notes.title')"
+      :style="{ width: '420px' }"
+      :pt="{ content: { class: 'pt-0' } }"
+    >
+      <div class="sb-notes">
+        <p class="sb-notes-desc">{{ t('conversation.notes.desc') }}</p>
+        <div v-if="sectionsLoading" class="sb-notes-loading">
+          <span class="vs-loader-dot" /><span class="vs-loader-dot" /><span class="vs-loader-dot" />
+        </div>
+        <p v-else-if="sectionGroups.length === 0" class="sb-notes-empty">
+          {{ t('conversation.notes.empty') }}
+        </p>
+        <div v-else class="sb-notes-list">
+          <div v-for="group in sectionGroups" :key="group.subtype" class="sb-notes-group">
+            <div class="sb-notes-label"><span class="sb-notes-dot" />{{ group.label }}</div>
+            <div class="sb-notes-card">
+              <div v-for="(fact, fi) in group.facts" :key="fi" class="sb-notes-fact">
+                <span class="sb-notes-key">{{ fact.key }}</span>
+                <span class="sb-notes-value">{{ fact.value }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Dialog>
   </aside>
 </template>
 
@@ -152,6 +190,8 @@ import Popover from 'primevue/popover'
 import Dialog from 'primevue/dialog'
 import { useChatStore } from '../common/use-chat-store/index'
 import useConversationTokenStore from '@/stores/converstaion/modules/conversation-token'
+import conversationAPI from '@/api/conversation'
+import applicationAPI from '@/api/application'
 import { t } from '@/locales'
 import {resetUrl} from "@/utils/common"
 import type { FlatItem } from '@/components/conversation-plus/common/types'
@@ -213,6 +253,7 @@ const handleLogin = () => {
 
 const {
   appInfo,
+  applicationId,
   toNewConversation,
   flatItems,
   hasMore,
@@ -225,6 +266,44 @@ const {
   loadMore,
   init
 } = useChatStore(props.type)
+
+// ─── 我的便签（跨对话 user 档，只读）───────────────────────────────────
+const showSectionsDialog = ref(false)
+const sectionsLoading = ref(false)
+const sections = ref<Array<{ subtype: string; label: string; key: string; value: string }>>([])
+
+// 按子区分组（后端已按子区顺序返回，这里保持首次出现顺序）
+const sectionGroups = computed(() => {
+  const groups: Array<{ subtype: string; label: string; facts: any[] }> = []
+  const index: Record<string, number> = {}
+  for (const fact of sections.value) {
+    if (index[fact.subtype] === undefined) {
+      index[fact.subtype] = groups.length
+      groups.push({ subtype: fact.subtype, label: fact.label || fact.subtype, facts: [] })
+    }
+    groups[index[fact.subtype]].facts.push(fact)
+  }
+  return groups
+})
+
+const openSections = () => {
+  popoverRef.value?.hide()
+  showSectionsDialog.value = true
+  sectionsLoading.value = true
+  // 身份来源随页面不同：CONVERSATION 是终端用户（conversation token），
+  // DEBUG/ADMIN_CONVERSATION 是后台管理员本人（后台 token），走各自的接口
+  const request =
+    props.type === 'CONVERSATION'
+      ? conversationAPI.getMySections(applicationId.value)
+      : applicationAPI.getMySections(applicationId.value)
+  request
+    .then((res: any) => {
+      sections.value = res?.data ?? []
+    })
+    .finally(() => {
+      sectionsLoading.value = false
+    })
+}
 
 // ─── VirtualScroller ────────────────────────────────────────────────
 const itemSizes = computed(() =>
@@ -612,4 +691,42 @@ onMounted(() => {
 .sb-dialog-row { display: flex; justify-content: space-between; align-items: center; padding: 0 4px; }
 .sb-dialog-label { font-size: 12px; color: var(--t3); }
 .sb-dialog-value { font-size: 12.5px; color: var(--t1); }
+
+/* ── 我的便签 ─────────────────────────────────────────────────────── */
+.sb-pop-item { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 12px; border: none; background: transparent; color: var(--t2); font-size: 12.5px; font-family: inherit; cursor: pointer; transition: background 0.12s; }
+.sb-pop-item:hover { background: var(--hv); }
+.sb-pop-item .pi { font-size: 13px; color: var(--t3); }
+
+/* 我的便签弹层：Dialog 会 teleport 到 body（脱离 .cw），故直接用 PrimeVue 全局 --p-* 主题令牌，
+   保证明暗主题都正确、不依赖 .cw 上的别名变量（那些在弹层里取不到）。 */
+.sb-notes { display: flex; flex-direction: column; gap: 18px; padding: 4px 0 4px; }
+.sb-notes-desc {
+  font-size: 12.5px; line-height: 1.6; margin: 0;
+  color: var(--p-text-muted-color);
+  padding: 10px 12px; border-radius: 8px;
+  background: var(--p-content-hover-background, rgba(125, 125, 125, 0.06));
+}
+.sb-notes-empty { font-size: 12.5px; color: var(--p-text-muted-color); text-align: center; padding: 28px 0; margin: 0; }
+.sb-notes-loading { display: flex; align-items: center; justify-content: center; gap: 5px; padding: 28px 0; }
+.sb-notes-loading .vs-loader-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--p-text-muted-color); animation: sb-notes-dot 1.2s ease-in-out infinite; }
+.sb-notes-loading .vs-loader-dot:nth-child(2) { animation-delay: 0.2s; }
+.sb-notes-loading .vs-loader-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes sb-notes-dot { 0%, 80%, 100% { opacity: 0.2; } 40% { opacity: 1; } }
+.sb-notes-list { display: flex; flex-direction: column; gap: 18px; }
+.sb-notes-group { display: flex; flex-direction: column; gap: 8px; }
+.sb-notes-label {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 600; color: var(--p-text-color);
+}
+.sb-notes-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--p-primary-color); flex-shrink: 0; }
+.sb-notes-card {
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 10px; overflow: hidden;
+  background: var(--p-content-background);
+}
+.sb-notes-fact { display: flex; align-items: baseline; gap: 12px; padding: 9px 12px; transition: background 0.12s; }
+.sb-notes-fact:hover { background: var(--p-content-hover-background, rgba(125, 125, 125, 0.05)); }
+.sb-notes-fact + .sb-notes-fact { border-top: 1px solid var(--p-content-border-color); }
+.sb-notes-key { flex-shrink: 0; width: 72px; font-size: 12px; color: var(--p-text-muted-color); }
+.sb-notes-value { flex: 1; font-size: 13px; font-weight: 500; color: var(--p-text-color); word-break: break-word; }
 </style>

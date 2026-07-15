@@ -80,6 +80,24 @@ public class ChatRoute implements IRoute {
                 .handler(tokenBasicAuthHandler)
                 .handler(applicationHandler::pageConversationMessage);
 
+        apiRoute.get("/application/:applicationId/conversation/:conversationId/context")
+                .handler(tokenBasicAuthHandler)
+                .handler(applicationHandler::conversationContext);
+
+        apiRoute.get("/application/:applicationId/section")
+                .handler(tokenBasicAuthHandler)
+                .handler(applicationHandler::listSections);
+
+        apiRoute.put("/application/:applicationId/section")
+                .handler(BodyHandler.create())
+                .handler(tokenBasicAuthHandler)
+                .handler(applicationHandler::saveSections);
+
+        // 后台侧「我的便签」：调试/管理端对话页查看当前管理员的 user 档便签
+        apiRoute.get("/application/:applicationId/section-fact")
+                .handler(tokenBasicAuthHandler)
+                .handler(applicationHandler::mySections);
+
         apiRoute.get("/application/:applicationId/overview")
                 .handler(tokenBasicAuthHandler)
                 .handler(applicationHandler::overview);

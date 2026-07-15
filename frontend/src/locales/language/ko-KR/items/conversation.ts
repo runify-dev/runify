@@ -9,6 +9,11 @@ export default {
   darkMode: '다크 모드',
   anonymousUser: '익명 사용자',
   user: '사용자',
+  notes: {
+    title: '내 메모',
+    desc: '에이전트가 대화 간에 기억하는 개인 정보(호칭, 언어, 어조 선호 등)',
+    empty: '메모가 없습니다'
+  },
   welcomeBack: '환영합니다',
   loginToChat: '로그인하여 에이전트와 대화를 시작하세요',
   agreeToTerms: '로그인하면 이용약관에 동의하는 것으로 간주됩니다',

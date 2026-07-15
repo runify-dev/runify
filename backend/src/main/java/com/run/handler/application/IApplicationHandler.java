@@ -48,6 +48,22 @@ public interface IApplicationHandler extends IResourceHandler<Application> {
     void pageConversationMessage(RoutingContext context);
 
     /**
+     * 会话的上下文记忆（跨对话层）：摘要 + 便签（含产物）
+     *
+     * @param context 上下文
+     */
+    void conversationContext(RoutingContext context);
+
+    void listSections(RoutingContext context);
+
+    void saveSections(RoutingContext context);
+
+    /**
+     * 后台侧「我的便签」：当前登录管理员作为 user 在该应用沉淀的 user 档便签（调试/管理端对话页用）。
+     */
+    void mySections(RoutingContext context);
+
+    /**
      * 导出应用
      *
      * @param context 上下文

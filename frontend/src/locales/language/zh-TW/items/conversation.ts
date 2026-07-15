@@ -9,6 +9,11 @@ export default {
   darkMode: '深色模式',
   anonymousUser: '匿名使用者',
   user: '使用者',
+  notes: {
+    title: '我的便籤',
+    desc: '智能體跨對話記住的你的個人資訊（如稱呼、語言、語氣偏好等）',
+    empty: '暫無便籤'
+  },
   welcomeBack: '歡迎回來',
   loginToChat: '登入後開始與智慧體對話',
   agreeToTerms: '登入即表示同意使用條款',

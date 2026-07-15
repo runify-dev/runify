@@ -140,6 +140,17 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
             return toolsList.isEmpty() ? null : toolsList;
         }
 
+        /** 首条消息若是 SYSTEM 则返回其 JsonObject，用于把节点 system 合并进去（否则返回 null） */
+        @SuppressWarnings("unchecked")
+        private static JsonObject asSystemContent(Object first) {
+            if (first == null) {
+                return null;
+            }
+            JsonObject jo = first instanceof JsonObject j ? j
+                    : (first instanceof Map<?, ?> m ? new JsonObject((Map<String, Object>) m) : null);
+            return jo != null && "SYSTEM".equals(jo.getString("type")) ? jo : null;
+        }
+
         @Override
         public Supplier<List<Node>> apply(WorkFlowManage workFlowManage, AIChat node) {
             List<AIChatNodeData.Tool> tools = getTools(workFlowManage, node.params.getTools());
@@ -164,7 +175,16 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
             ArrayList<Object> _messages = new ArrayList<>(messages);
             if (StringUtils.isNotEmpty(node.params.getSystem())) {
                 String system = workFlowManage.generatePrompt(node.params.getSystem());
-                _messages.addFirst(JsonObject.mapFrom(new SystemContent(system, "")));
+                // 若上下文首条已是 SYSTEM（如压缩节点产出的工作便签），合并成一条：节点 system 在前、原 system 在后，
+                // 避免 messages 里出现两条 system（Anthropic 等要求 system 唯一/顶层的模型会踩坑）。
+                JsonObject firstSystem = asSystemContent(_messages.isEmpty() ? null : _messages.get(0));
+                if (firstSystem != null) {
+                    String existing = firstSystem.getString("content", "");
+                    String merged = StringUtils.isBlank(existing) ? system : system + "\n\n" + existing;
+                    _messages.set(0, JsonObject.mapFrom(new SystemContent(merged, "")));
+                } else {
+                    _messages.addFirst(JsonObject.mapFrom(new SystemContent(system, "")));
+                }
             }
             QuestionContent questionContent = new QuestionContent("", List.of(), List.of(), List.of(), List.of(), "");
 

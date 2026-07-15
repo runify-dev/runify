@@ -91,7 +91,7 @@ export default {
     validationFailed: '校驗失敗',
     mustBeGreaterThan: '必須大於',
     mustBeLessThan: '必須小於',
-    optionExample: '[{"label":"選項1","value":"1"}]'
+    optionExample: `[{'{'}"label":"選項1","value":"1"{'}'}]`
   },
   demo: {
     constructorTitle: '欄位建構器',

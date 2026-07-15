@@ -82,4 +82,10 @@ public interface IConversationHandler {
     void authProfile(RoutingContext context);
 
     void embed(RoutingContext context);
+
+    /**
+     * 终端用户查看「我的便签」：当前登录用户在该应用下的 user 档便签（跨对话个人喜好等）。
+     * 匿名用户无跨对话稳定身份，返回空。
+     */
+    void mySections(RoutingContext context);
 }

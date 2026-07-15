@@ -57,6 +57,11 @@ public class ConversationRoute implements IRoute {
                 .handler(tokenBasicAuthHandler)
                 .handler(conversationHandler::userProfile);
 
+        apiRoute.get("/application/:applicationId/section-fact")
+                .handler(tokenBasicAuthHandler)
+                .handler(conversationAuthenticator)
+                .handler(conversationHandler::mySections);
+
         apiRoute.post("/anonymousLogin")
                 .handler(BodyHandler.create())
                 .handler(conversationHandler::anonymousLogin);

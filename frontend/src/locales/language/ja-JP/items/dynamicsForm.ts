@@ -91,7 +91,7 @@ export default {
     validationFailed: 'バリデーション失敗',
     mustBeGreaterThan: 'より大きい必要があります',
     mustBeLessThan: 'より小さい必要があります',
-    optionExample: '[{"label":"オプション1","value":"1"}]'
+    optionExample: `[{'{'}"label":"オプション1","value":"1"{'}'}]`
   },
   demo: {
     constructorTitle: 'フィールドコンストラクタ',

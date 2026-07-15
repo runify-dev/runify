@@ -57,6 +57,27 @@ const pageConversationMessage: (
       loading
     )
   }
+const getConversationContext: (
+  applicationId: string,
+  conversationId: string,
+  loading?: Ref<boolean>
+) => Promise<Result<any>> = (applicationId, conversationId, loading) => {
+  return get(`/application/${applicationId}/conversation/${conversationId}/context`, {}, loading)
+}
+
+const getSections = (applicationId: string, loading?: Ref<boolean>) => {
+  return get(`/application/${applicationId}/section`, {}, loading)
+}
+
+const saveSections = (applicationId: string, sections: any[], loading?: Ref<boolean>) => {
+  return put(`/application/${applicationId}/section`, sections, {}, loading)
+}
+
+// 我的便签（后台侧）：当前登录管理员在该应用的 user 档便签，调试/管理端对话页用
+const getMySections = (applicationId: string, loading?: Ref<boolean>) => {
+  return get(`/application/${applicationId}/section-fact`, {}, loading)
+}
+
 const createConversation = (applicationId: string, name: string, executeType?: string) => {
   return post(`/application/${applicationId}/conversation`, { name, executeType }, {})
 }
@@ -131,6 +152,10 @@ export default {
   mineConversation,
   createConversation,
   pageConversationMessage,
+  getConversationContext,
+  getSections,
+  saveSections,
+  getMySections,
   statusStream,
   resumeStream,
   getApplicationInfo,
