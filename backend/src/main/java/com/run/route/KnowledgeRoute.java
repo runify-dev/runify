@@ -242,6 +242,19 @@ public class KnowledgeRoute implements IRoute {
                         .build())
                 .handler(iDocumentHandler::createText);
 
+        apiRoute.post("/knowledge/resources/:resourceId/documents/:documentId/import")
+                .handler(BodyHandler.create().setBodyLimit(Long.MAX_VALUE)
+                        .setDeleteUploadedFilesOnEnd(true))
+                .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.KNOWLEDGE_EDIT)
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
+                .handler(iDocumentHandler::importDocument);
+
         apiRoute.put("/knowledge/resources/:resourceId/documents/:documentId/content")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)

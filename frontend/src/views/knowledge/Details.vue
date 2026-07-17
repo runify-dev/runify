@@ -23,6 +23,9 @@
             </a>
           </template>
         </Menu>
+        <input ref="importInputRef" type="file" class="hidden"
+               accept=".pdf,.docx,.doc,.zip,.txt,.md,.markdown,.csv,.json,.xml,.log,.html,.yaml,.yml"
+               @change="onImportFileChange"/>
       </div>
 
       <!-- 卡片网格 -->
@@ -258,8 +261,37 @@ const createMenuItems = computed(() => [
     description: t('knowledge.details.newDocumentDesc'),
     icon: 'pi pi-file-edit',
     command: () => createTextRef.value?.open({knowledgeId: knowledgeId.value, parentId: currentFolderId.value})
+  },
+  {
+    label: t('knowledge.details.importDocument'),
+    description: t('knowledge.details.importDocumentDesc'),
+    icon: 'pi pi-file-import',
+    command: () => importInputRef.value?.click()
   }
 ])
+
+const importInputRef = ref<HTMLInputElement>()
+const importing = ref(false)
+
+const onImportFileChange = (event: Event) => {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  importing.value = true
+  knowledgeApi.importDocument(knowledgeId.value, currentFolderId.value, file)
+    .then(() => {
+      loadTree()
+      bus.emit('knowledge:document:refresh')
+      toast.add({severity: 'success', summary: t('knowledge.createSuccess'), life: 2000})
+    })
+    .catch((e: any) => {
+      toast.add({severity: 'error', summary: e?.message || t('knowledge.details.importFailed'), life: 3000})
+    })
+    .finally(() => {
+      importing.value = false
+      input.value = ''
+    })
+}
 
 const onFolderCreated = (data: {knowledgeId: string; parentId: string; name: string}) => {
   knowledgeApi.createFolder(data.knowledgeId, data.parentId, data.name).then(() => {
