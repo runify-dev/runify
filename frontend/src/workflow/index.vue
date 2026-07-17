@@ -6,12 +6,21 @@
       :zoom-percent="zoomPercent"
       :mode="interactionMode"
       :fullscreen="isFullscreen"
+      :show-ai-generate="showAiGenerate"
       @zoom-in="onZoomIn"
       @zoom-out="onZoomOut"
       @fit-view="onFitView"
       @auto-layout="onAutoLayout"
       @set-mode="onSetMode"
       @toggle-fullscreen="toggleFullscreen"
+      @ai-generate="aiGeneratePanelRef?.open()"
+    />
+    <AiGeneratePanel
+      v-if="showAiGenerate"
+      ref="aiGeneratePanelRef"
+      :get-lf="() => lf"
+      :validate-workflow="validateWorkflow"
+      :relayout="onAutoLayout"
     />
   </div>
   <ReNameDialog ref="reNameDialogRef"></ReNameDialog>
@@ -22,13 +31,14 @@
 import ReNameDialog from '@/workflow/common/rename-dialog/index.vue'
 import AddNodeDialog from '@/workflow/common/add-node-dialog/index.vue'
 import CanvasToolbar from '@/workflow/common/CanvasToolbar.vue'
+import AiGeneratePanel from '@/workflow/ai-generate/index.vue'
 import LogicFlow from '@logicflow/core'
 import '@logicflow/core/dist/index.css'
 import '@logicflow/extension/lib/style/index.css'
 import dagre from 'dagre'
 
 import RunEdge from './common/edge'
-import { onMounted, onBeforeUnmount, ref, provide, inject, nextTick } from 'vue'
+import { onMounted, onBeforeUnmount, ref, computed, provide, inject, nextTick } from 'vue'
 import type { ValidationResult } from './common/type'
 import { WorkflowType } from './common/data'
 import bus from '@/bus'
@@ -59,6 +69,10 @@ for (const path in validatorModules) {
 
 const workflowType = inject<string>('WorkflowType') || WorkflowType.APPLICATION
 
+// ── AI 生成工作流（第一期仅应用画布） ──
+const aiGeneratePanelRef = ref<InstanceType<typeof AiGeneratePanel>>()
+const showAiGenerate = computed(() => workflowType === WorkflowType.APPLICATION)
+
 // ── 校验失败时弹出错误提示（取首条错误信息，带上节点名） ──
 function emitValidationError(failedNodeId: string, errors?: Record<string, string>) {
   const failedNode = lf.value?.graphModel?.nodes?.find((n: any) => n.id === failedNodeId)
@@ -68,8 +82,11 @@ function emitValidationError(failedNodeId: string, errors?: Record<string, strin
   bus.emit('message:error', name ? `「${name}」${message}` : message)
 }
 
-// ── 校验整个工作流（短路） ──
-async function validateWorkflow(): Promise<{ valid: boolean; nodeId?: string }> {
+// ── 校验整个工作流（短路）；silent 供 AI 生成用：不弹提示、不打开设置抽屉 ──
+async function validateWorkflow(
+  options?: { silent?: boolean }
+): Promise<{ valid: boolean; nodeId?: string; errors?: Record<string, string> }> {
+  const silent = options?.silent === true
   if (!lf.value) return { valid: true }
   const { nodes } = lf.value.getGraphData()
   for (const node of nodes) {
@@ -79,6 +96,9 @@ async function validateWorkflow(): Promise<{ valid: boolean; nodeId?: string }> 
       const result = validateFn(node.properties?.nodeData ?? {}, nodeValidators, workflowType)
       if (!result.valid) {
         const failedNodeId = result.failedNodeId ?? node.id
+        if (silent) {
+          return { valid: false, nodeId: failedNodeId, errors: result.errors }
+        }
         const path = result.failedPath ?? []
         // failedNodeId !== node.id 说明是子节点失败，需要展开父循环
         if (failedNodeId !== node.id && path.length === 0) {
@@ -90,9 +110,12 @@ async function validateWorkflow(): Promise<{ valid: boolean; nodeId?: string }> 
         } else {
           selectAndOpenNode(node.id)
         }
-        return { valid: false, nodeId: failedNodeId }
+        return { valid: false, nodeId: failedNodeId, errors: result.errors }
       }
     } catch {
+      if (silent) {
+        return { valid: false, nodeId: node.id, errors: { node: '节点配置校验异常' } }
+      }
       emitValidationError(node.id)
       selectAndOpenNode(node.id)
       return { valid: false, nodeId: node.id }
@@ -448,7 +471,8 @@ defineExpose({ init, render, getGraphData, validateWorkflow })
   position: absolute;
   right: 16px;
   bottom: 16px;
-  z-index: 10;
+  // 高于 AI 生成遮罩(20)：生成过程中仍可缩放/适应屏幕
+  z-index: 25;
 }
 // 全屏时 PrimeVue 弹出层需要高于画布 wrapper (z-index: 999)
 .p-overlay-mask {

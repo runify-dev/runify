@@ -44,6 +44,9 @@ export default {
     newFolderDesc: '現在のディレクトリにフォルダを作成',
     newDocument: '新しいドキュメント',
     newDocumentDesc: '現在のディレクトリにドキュメントを作成',
+    importDocument: 'ドキュメントをインポート',
+    importDocumentDesc: 'PDF/Word/アーカイブなどのファイルをアップロードしてドキュメントとして抽出',
+    importFailed: 'インポートに失敗しました',
     noDocuments: 'ドキュメントがありません',
     back: '戻る'
   },

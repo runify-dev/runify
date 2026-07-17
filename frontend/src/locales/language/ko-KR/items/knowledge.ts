@@ -44,6 +44,9 @@ export default {
     newFolderDesc: '현재 디렉토리에 폴더를 생성합니다',
     newDocument: '새 문서',
     newDocumentDesc: '현재 디렉토리에 문서를 생성합니다',
+    importDocument: '문서 가져오기',
+    importDocumentDesc: 'PDF/Word/압축 파일 등을 업로드하여 문서로 추출합니다',
+    importFailed: '가져오기 실패',
     noDocuments: '문서 없음',
     back: '뒤로'
   },

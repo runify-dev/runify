@@ -176,11 +176,12 @@ export const del: (
  * @param data 请求body
  * @returns
  */
-export const postStream: (url: string, data?: unknown, _headers?: any) => Promise<Result<any> | any> = (
-  url,
-  data,
-  _headers
-) => {
+export const postStream: (
+  url: string,
+  data?: unknown,
+  _headers?: any,
+  signal?: AbortSignal
+) => Promise<Result<any> | any> = (url, data, _headers, signal) => {
   const { user } = useStore()
   const token = user.getToken()
   const headers: HeadersInit = { 'Content-Type': 'application/json' }
@@ -195,7 +196,8 @@ export const postStream: (url: string, data?: unknown, _headers?: any) => Promis
   return fetch(url, {
     method: 'POST',
     body: data ? JSON.stringify(data) : undefined,
-    headers: headers
+    headers: headers,
+    signal
   })
 }
 

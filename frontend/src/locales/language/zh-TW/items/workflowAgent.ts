@@ -1,0 +1,51 @@
+export default {
+  entry: 'AI 生成工作流',
+  title: 'AI 生成工作流',
+  modelLabel: '模型',
+  modelPlaceholder: '請選擇模型',
+  requirementLabel: '需求描述',
+  requirementPlaceholder: '描述你想要的工作流，例如：做一個基於知識庫的問答應用',
+  doneToast: '生成完成，請檢查後保存',
+  followUpPlaceholder: '繼續溝通：哪裡需要調整，直接說…（Enter 發送）',
+  status: {
+    paused: '已暫停',
+    running: '生成中…'
+  },
+  action: {
+    generate: '開始生成',
+    pause: '暫停',
+    resume: '繼續',
+    stop: '停止',
+    retry: '重試',
+    restart: '重新開始',
+    expand: '展開日誌',
+    collapse: '收起',
+    send: '發送'
+  },
+  log: {
+    started: '開始生成工作流…',
+    done: '生成完成',
+    paused: '已暫停，點擊「繼續」恢復生成',
+    resumed: '繼續生成…',
+    stopped: '已停止，畫布保留當前進度',
+    retrying: '重試本輪…',
+    maxIterations: '已達到本輪次數上限，自動暫停；點擊「繼續」接著生成'
+  },
+  tool: {
+    clear_workflow: '清空畫布',
+    plan: '更新規劃',
+    get_node_schema: '查詢節點文檔',
+    add_node: '添加節點',
+    update_node: '更新節點',
+    add_edge: '連線',
+    delete_edge: '刪除連線',
+    delete_node: '刪除節點',
+    get_workflow: '讀取畫布',
+    get_node_detail: '讀取節點配置',
+    get_models: '獲取模型列表',
+    get_knowledge_bases: '獲取知識庫列表',
+    validate_workflow: '校驗工作流',
+    locate_node: '定位節點',
+    finish: '完成'
+  }
+}

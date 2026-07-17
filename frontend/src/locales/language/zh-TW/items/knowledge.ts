@@ -44,6 +44,9 @@ export default {
     newFolderDesc: '在目前目錄下建立資料夾',
     newDocument: '新建文件',
     newDocumentDesc: '在目前目錄下建立文件',
+    importDocument: '匯入文件',
+    importDocumentDesc: '上傳 PDF/Word/壓縮包等檔案並提取為文件',
+    importFailed: '匯入失敗',
     noDocuments: '暫無文件',
     back: '返回'
   },

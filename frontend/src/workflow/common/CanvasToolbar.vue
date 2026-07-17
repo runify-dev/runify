@@ -31,6 +31,12 @@
     >
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke-dasharray="4 2"/></svg>
     </button>
+    <template v-if="showAiGenerate">
+      <div class="toolbar-divider"></div>
+      <button class="toolbar-btn" :title="t('workflowAgent.entry')" @click="$emit('ai-generate')">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4V2"/><path d="M15 16v-2"/><path d="M8 9h2"/><path d="M20 9h2"/><path d="M17.8 11.8L19 13"/><path d="M15 9h0"/><path d="M17.8 6.2L19 5"/><path d="M3 21l9-9"/><path d="M12.2 6.2L11 5"/></svg>
+      </button>
+    </template>
     <div class="toolbar-divider"></div>
     <button
       class="toolbar-btn"
@@ -43,14 +49,18 @@
   </div>
 </template>
 <script setup lang="ts">
+import { t } from '@/locales'
+
 withDefaults(defineProps<{
   zoomPercent: number
   mode: 'drag' | 'select'
   showZoomOut?: boolean
   fullscreen?: boolean
+  showAiGenerate?: boolean
 }>(), {
   showZoomOut: true,
-  fullscreen: false
+  fullscreen: false,
+  showAiGenerate: false
 })
 
 defineEmits<{
@@ -60,6 +70,7 @@ defineEmits<{
   'auto-layout': []
   'set-mode': [mode: 'drag' | 'select']
   'toggle-fullscreen': []
+  'ai-generate': []
 }>()
 </script>
 <style scoped>
