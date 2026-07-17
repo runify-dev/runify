@@ -44,6 +44,9 @@ export default {
     newFolderDesc: 'Create a folder in current directory',
     newDocument: 'New Document',
     newDocumentDesc: 'Create a document in current directory',
+    importDocument: 'Import Document',
+    importDocumentDesc: 'Upload PDF/Word/archive files and extract as a document',
+    importFailed: 'Import failed',
     noDocuments: 'No documents',
     back: 'Back'
   },

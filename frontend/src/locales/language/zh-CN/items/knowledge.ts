@@ -44,6 +44,9 @@ export default {
     newFolderDesc: '在当前目录下创建文件夹',
     newDocument: '新建文档',
     newDocumentDesc: '在当前目录下创建文档',
+    importDocument: '导入文档',
+    importDocumentDesc: '上传 PDF/Word/压缩包等文件并提取为文档',
+    importFailed: '导入失败',
     noDocuments: '暂无文档',
     back: '返回'
   },

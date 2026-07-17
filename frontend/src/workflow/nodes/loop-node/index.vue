@@ -336,7 +336,33 @@ onMounted(() => {
   }
 
   model.graphModel.eventCenter.on('runify:node:expand-body', onExpandBody)
+  model.graphModel.eventCenter.on('runify:node:refresh-body', onRefreshBody)
 })
+
+/**
+ * 强制以 nodeData.children 为准重渲染子画布（未展开则先展开）
+ * AI 生成等场景直接改写 children JSON 后触发，保证子画布实时可见且不被旧数据覆盖
+ */
+function onRefreshBody(nodeId: string) {
+  if (nodeId !== model.id) return
+  if (!expanded.value) {
+    expanded.value = true
+    model.properties.expanded = true
+    nextTick(() => {
+      movePanelToBody()
+      const data = model.properties?.nodeData?.children
+      subCanvasRef.value?.render(data && data.nodes?.length ? data : undefined)
+      subCanvasRef.value?.centerContent()
+      startTracking()
+    })
+  } else {
+    nextTick(() => {
+      const data = model.properties?.nodeData?.children
+      subCanvasRef.value?.render(data && data.nodes?.length ? data : undefined)
+      subCanvasRef.value?.centerContent()
+    })
+  }
+}
 
 function onExpandBody(nodeId: string) {
   if (nodeId !== model.id) return
@@ -377,6 +403,7 @@ onBeforeUnmount(() => {
   stopTracking()
   window.removeEventListener('resize', onFullscreenResize)
   model.graphModel.eventCenter.off('runify:node:expand-body', onExpandBody)
+  model.graphModel.eventCenter.off('runify:node:refresh-body', onRefreshBody)
   // 把面板移回原位，让 Vue 正常卸载，避免 foreignObject 已销毁导致报错
   movePanelBack()
 })

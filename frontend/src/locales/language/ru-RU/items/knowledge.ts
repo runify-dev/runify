@@ -44,6 +44,9 @@ export default {
     newFolderDesc: 'Создать папку в текущем каталоге',
     newDocument: 'Новый документ',
     newDocumentDesc: 'Создать документ в текущем каталоге',
+    importDocument: 'Импорт документа',
+    importDocumentDesc: 'Загрузите файлы PDF/Word/архивы и извлеките как документ',
+    importFailed: 'Ошибка импорта',
     noDocuments: 'Нет документов',
     back: 'Назад'
   },
