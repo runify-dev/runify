@@ -17,6 +17,8 @@ public interface IDocumentHandler {
 
     void createText(RoutingContext context);
 
+    void importDocument(RoutingContext context);
+
     void updateContent(RoutingContext context);
 
     void rename(RoutingContext context);

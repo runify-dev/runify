@@ -1,5 +1,5 @@
 import { Result } from '@/request/Result'
-import { get, post, put, del } from '@/request/admin/index'
+import { get, post, put, del, request } from '@/request/admin/index'
 
 export interface Document {
   id: string
@@ -38,6 +38,14 @@ const updateContent = (resourceId: string, documentId: string, content: string):
   return put(`/knowledge/resources/${resourceId}/documents/${documentId}/content`, { content })
 }
 
+const importDocument = (resourceId: string, parentId: string, file: File): Promise<Result<Document>> => {
+  const fd = new FormData()
+  fd.append('file', file)
+  return request
+    .post(`/knowledge/resources/${resourceId}/documents/${parentId}/import`, fd)
+    .then(ok => ok.data)
+}
+
 const rename = (resourceId: string, documentId: string, name: string): Promise<Result<Document>> => {
   return put(`/knowledge/resources/${resourceId}/documents/${documentId}/rename`, { name })
 }
@@ -56,6 +64,7 @@ export default {
   getDocument,
   createFolder,
   createText,
+  importDocument,
   updateContent,
   rename,
   remove,

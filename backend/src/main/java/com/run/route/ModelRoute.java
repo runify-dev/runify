@@ -5,7 +5,9 @@ import com.run.auth.Authenticator;
 import com.run.auth.TokenBasicAuthHandler;
 import com.run.auth.constants.PermissionConstants;
 import com.run.common.route.IRoute;
+import com.run.handler.model.IModelChatCompletionHandler;
 import com.run.handler.model.IModelHandler;
+import com.run.handler.model.impl.ModelChatCompletionHandlerImpl;
 import com.run.handler.model.impl.ModelFolderHandlerImpl;
 import com.run.handler.model.impl.ModelHandlerImpl;
 import com.run.handler.model.IModelFolderHandler;
@@ -29,6 +31,7 @@ public class ModelRoute implements IRoute {
 
     private final IModelHandler modelHandler;
     private final IModelFolderHandler modelFolderHandler;
+    private final IModelChatCompletionHandler modelChatCompletionHandler;
 
     protected OpenAPI openAPI;
 
@@ -36,11 +39,13 @@ public class ModelRoute implements IRoute {
     public ModelRoute(@Named("apiRoute") Router apiRoute, OpenAPI openAPI,
                       @Named("tokenBasicAuthHandler") TokenBasicAuthHandler tokenBasicAuthHandler,
                       ModelHandlerImpl modelHandler,
-                      ModelFolderHandlerImpl modelFolderHandler) {
+                      ModelFolderHandlerImpl modelFolderHandler,
+                      ModelChatCompletionHandlerImpl modelChatCompletionHandler) {
         this.apiRoute = apiRoute;
         this.openAPI = openAPI;
         this.modelHandler = modelHandler;
         this.modelFolderHandler = modelFolderHandler;
+        this.modelChatCompletionHandler = modelChatCompletionHandler;
         this.tokenBasicAuthHandler = tokenBasicAuthHandler;
     }
 
@@ -55,6 +60,19 @@ public class ModelRoute implements IRoute {
         apiRoute.get("/model/:provider/type")
                 .handler(tokenBasicAuthHandler)
                 .handler(modelHandler::listModelType);
+
+        apiRoute.post("/model/resources/:resourceId/chat-completion")
+                .handler(BodyHandler.create())
+                .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.MODEL_READ)
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .addRole(PermissionConstants.Role.USER)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
+                .handler(modelChatCompletionHandler::completion);
 
         apiRoute.get("/model/resources/:resourceId")
                 .handler(tokenBasicAuthHandler)
