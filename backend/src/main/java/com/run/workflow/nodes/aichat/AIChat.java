@@ -53,7 +53,7 @@ public class AIChat extends INode<AIChat, AIChatNodeData> {
      * 节点类型
      */
     public final static String type = "ai-chat-node";
-    public final static List<WorkflowType> supportWorkflow = List.of(WorkflowType.CHAT_WORKFLOW, WorkflowType.CHAT_WORKFLOW_LOOP);
+    public final static List<WorkflowType> supportWorkflow = List.of(WorkflowType.CHAT_WORKFLOW, WorkflowType.CHAT_WORKFLOW_LOOP, WorkflowType.PROCESSOR_HTTP, WorkflowType.PROCESSOR_HTTP_LOOP);
     static final Set<String> streamingFunctions = Set.of("run_command", "read_file", "apply_patch", "list_dir");
 
     private volatile boolean cancelled = false;

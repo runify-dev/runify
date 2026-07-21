@@ -1,298 +1,44 @@
 import { cloneDeep } from 'lodash'
-import { reactive } from 'vue'
-import { generateAnchor, randomId } from '@/utils/common'
+import { randomId, generateAnchor } from '@/utils/common'
 import { TreeCommonAPI } from '@/api/tree'
 import { ROOT_FOLDER_ID } from '@/constants/common'
 import { baseWorkflow } from '@/workflow/common/data'
-import {
-  nodeCatalog,
-  catalogTypes,
-  buildNodeProperties,
-  refreshNodeProperties,
-  renderDoc,
-  sanitizeNodeDataPatch
-} from './node-catalog'
-import { AGENT_TOOL_DEFINITIONS } from './agent-tools'
+import { buildNodeProperties, refreshNodeProperties, renderDoc, sanitizeNodeDataPatch } from './node-catalog'
 import { mergeJudgeBranches, lintWorkflowGraph } from './graph-ops'
+import type { WorkflowAgentProfile } from './profiles/types'
+import type { WorkflowAgentContext, ToolExecution } from './types'
+import {
+  START_NODE_ID,
+  LOOP_START_NODE_ID,
+  getGraphModel,
+  hasCanvasContent,
+  queueLoopRefresh,
+  flushLoopRefresh,
+  requireLoopChildren,
+  requireScopedNode,
+  collectAllCanvasNodes,
+  resolveSourceBranch,
+  removeBranchEdges,
+  nextPosition,
+  detailNodeData,
+  simplifyCanvas,
+  buildWorkflowSnapshot
+} from './canvas-ops'
 
-/**
- * agent 工具执行所需的画布上下文，由挂载方（workflow/index.vue）提供
- */
-export interface WorkflowAgentContext {
-  getLf: () => any
-  validateWorkflow: (options?: { silent?: boolean }) => Promise<{ valid: boolean; nodeId?: string; errors?: Record<string, string> }>
-}
-
-export interface ToolExecution {
-  /** 是否改变了画布图结构/配置（用于批次后自动布局） */
-  mutating: boolean
-  /** 图变更后跳过 dagre 自动布局（如模板加载：坐标已人工排好） */
-  skipLayout?: boolean
-  /** 工具结果回喂模型的截断上限（默认见 useWorkflowAgent 的 TOOL_RESULT_LIMIT） */
-  resultLimit?: number
-  execute: (args: Record<string, any>, ctx: WorkflowAgentContext) => Promise<any> | any
-}
-
-const START_NODE_ID = 'start-node'
-const LOOP_START_NODE_ID = 'loop-start-node'
-
-function getGraphModel(ctx: WorkflowAgentContext) {
-  const lf = ctx.getLf()
-  if (!lf) throw new Error('画布未初始化')
-  return lf
-}
-
-/** 画布是否有开始节点以外的内容 */
-export function hasCanvasContent(lf: any): boolean {
-  return !!lf && (lf.graphModel.nodes.length > 1 || lf.graphModel.edges.length > 0)
-}
-
-/**
- * 递归查找循环节点的子画布（支持嵌套循环）
- * 返回 children（{nodes, edges} 的 JSON 引用，可直接改写）
- */
-function findLoopChildren(container: { nodes: any[] }, loopId: string): { nodes: any[]; edges: any[] } | null {
-  for (const node of container.nodes ?? []) {
-    const type = node.type
-    if (type !== 'loop-node') continue
-    const nodeData = (node.properties.nodeData = node.properties.nodeData ?? {})
-    nodeData.children = nodeData.children ?? { nodes: [], edges: [] }
-    nodeData.children.nodes = nodeData.children.nodes ?? []
-    nodeData.children.edges = nodeData.children.edges ?? []
-    if (node.id === loopId) {
-      return nodeData.children
-    }
-    const found = findLoopChildren(nodeData.children, loopId)
-    if (found) return found
-  }
-  return null
-}
-
-function containsLoopId(children: { nodes?: any[] }, loopId: string): boolean {
-  for (const node of children.nodes ?? []) {
-    if (node.id === loopId) return true
-    if (
-      node.type === 'loop-node' &&
-      containsLoopId(node.properties?.nodeData?.children ?? { nodes: [] }, loopId)
-    ) {
-      return true
-    }
-  }
-  return false
-}
-
-/** 找到包含指定循环的顶层 loop-node id（loopId 本身在顶层时即它自己） */
-function findTopLoopId(lf: any, loopId: string): string | null {
-  for (const model of lf.graphModel.nodes) {
-    if (model.type !== 'loop-node') continue
-    if (
-      model.id === loopId ||
-      containsLoopId(model.properties?.nodeData?.children ?? { nodes: [] }, loopId)
-    ) {
-      return model.id
-    }
-  }
-  return null
-}
-
-/**
- * 子画布刷新按批合并：工具执行只登记受影响的循环，
- * 批次结束由 flushLoopRefresh 统一触发展开+重渲染（避免加 N 个子节点重排 N 次）
- */
-const pendingLoopRefresh = new Set<string>()
-
-function queueLoopRefresh(loopId: string) {
-  pendingLoopRefresh.add(loopId)
-}
-
-/** 展开顶层循环并强制以 nodeData.children 重渲染子画布（每个受影响的顶层循环仅一次） */
-export function flushLoopRefresh(lf: any) {
-  if (!pendingLoopRefresh.size) return
-  const topIds = new Set<string>()
-  if (lf) {
-    for (const loopId of pendingLoopRefresh) {
-      const topId = findTopLoopId(lf, loopId)
-      if (topId) topIds.add(topId)
-    }
-  }
-  pendingLoopRefresh.clear()
-  for (const topId of topIds) {
-    lf.graphModel.eventCenter.emit('runify:node:refresh-body', topId)
-  }
-}
-
-function requireLoopChildren(ctx: WorkflowAgentContext, loopId: string): { nodes: any[]; edges: any[] } {
-  const lf = getGraphModel(ctx)
-  const top = lf.graphModel.getNodeModelById(loopId)
-  if (top && top.type !== 'loop-node') {
-    throw new Error(`parentLoopId ${loopId} 不是循环节点`)
-  }
-  const children = findLoopChildren({ nodes: lf.graphModel.nodes }, loopId)
-  if (!children) throw new Error(`循环节点不存在: ${loopId}`)
-  return children
-}
-
-/**
- * 在主画布或指定循环子画布中查找节点（返回统一的 {id,type,properties} 视图）
- * 主画布节点包成 Vue reactive 代理再返回：teleport 里节点组件读的是 reactive(model)，
- * 直接改 raw model 不会触发视图更新（改名/改配置后卡片显示旧值）
- */
-function requireScopedNode(ctx: WorkflowAgentContext, nodeId: string, parentLoopId?: string) {
-  if (parentLoopId) {
-    const children = requireLoopChildren(ctx, parentLoopId)
-    const node = children.nodes.find((n: any) => n.id === nodeId)
-    if (!node) throw new Error(`循环 ${parentLoopId} 内不存在节点: ${nodeId}`)
-    return node
-  }
-  const lf = getGraphModel(ctx)
-  const nodeModel = lf.graphModel.getNodeModelById(nodeId)
-  if (!nodeModel) throw new Error(`节点不存在: ${nodeId}`)
-  return reactive(nodeModel)
-}
-
-/** 递归收集整个画布（含循环子画布）的节点，用于重名检测 */
-function collectAllCanvasNodes(lf: any): any[] {
-  const result: any[] = []
-  const walk = (nodes: any[]) => {
-    for (const node of nodes ?? []) {
-      result.push(node)
-      const children = node?.properties?.nodeData?.children
-      if (children?.nodes?.length) walk(children.nodes)
-    }
-  }
-  walk(lf.graphModel.nodes)
-  return result
-}
-
-/** judge 出边解析分支；其余节点固定 main 出口 */
-function resolveSourceBranch(sourceNode: any, sourceBranchId?: string): string {
-  if (sourceNode.type === 'judge-node') {
-    const branchIds = (sourceNode.properties?.nodeData?.branches ?? [])
-      .map((b: any) => b?.id)
-      .filter(Boolean)
-    if (!sourceBranchId) {
-      throw new Error(`judge-node 出边必须指定 sourceBranchId，可用分支: ${branchIds.join(', ')}`)
-    }
-    if (!branchIds.includes(sourceBranchId)) {
-      throw new Error(`分支 ${sourceBranchId} 不存在，可用分支: ${branchIds.join(', ')}`)
-    }
-    return sourceBranchId
-  }
-  if (sourceBranchId) {
-    throw new Error(`sourceBranchId 仅用于 judge-node 出边（${sourceNode.id} 是 ${sourceNode.type}）`)
-  }
-  return 'main'
-}
-
-/** 删除指定分支的出边（judge 分支被移除后清理悬空边），返回删除数量 */
-function removeBranchEdges(
-  ctx: WorkflowAgentContext,
-  nodeId: string,
-  branchIds: string[],
-  parentLoopId?: string
-): number {
-  const anchorIds = new Set(branchIds.map((b) => generateAnchor(nodeId, 'right', b, 'success')))
-  if (parentLoopId) {
-    const children = requireLoopChildren(ctx, parentLoopId)
-    const before = children.edges.length
-    children.edges = children.edges.filter((edge: any) => !anchorIds.has(edge.sourceAnchorId))
-    return before - children.edges.length
-  }
-  const lf = getGraphModel(ctx)
-  const hits = lf.graphModel.edges.filter((edge: any) => anchorIds.has(edge.sourceAnchorId))
-  for (const edgeId of hits.map((edge: any) => edge.id)) {
-    lf.graphModel.deleteEdgeById(edgeId)
-  }
-  return hits.length
-}
-
-/** 新节点的临时落点：现有节点最右侧再往右（主画布会被 dagre 重排；子画布按此简单排链） */
-function nextPosition(nodes: any[]): { x: number; y: number } {
-  if (!nodes.length) return { x: 300, y: 300 }
-  const rightmost = nodes.reduce((a: any, b: any) => (a.x > b.x ? a : b))
-  return { x: rightmost.x + 320, y: rightmost.y }
-}
-
-/**
- * get_workflow 只返回拓扑概览（不含 nodeData 配置全文）：
- * 完整工作流的配置 JSON 动辄几十 KB，会被工具结果截断拦腰砍掉——
- * 模型看不到末尾节点和全部连线，既发现不了重复节点也修不了接线。
- * 节点详细配置改由 get_node_detail 按需获取。
- */
-function simplifyNode(node: any): Record<string, any> {
-  const properties = node.properties ?? {}
-  const nodeData = properties.nodeData ?? null
-  const result: Record<string, any> = {
-    id: node.id,
-    type: node.type,
-    name: properties.name,
-    field_list: (properties.field_list ?? []).map((f: any) => ({ label: f.label, value: f.value }))
-  }
-  if (node.type === 'judge-node') {
-    result.branches = (nodeData?.branches ?? []).map((b: any) => ({ id: b.id, type: b.type }))
-  }
-  if (node.type === 'loop-node') {
-    result.children = simplifyGraphData(nodeData?.children ?? { nodes: [], edges: [] })
-  }
-  return result
-}
-
-/**
- * get_node_detail 返回的完整 nodeData：
- * - ai-chat 的标准工具定义压缩为 {"function":{"name":标准名}}（回填也按此格式，系统自动替换全文）
- * - loop 的 children 不在此返回（拓扑看 get_workflow，子节点配置逐个查）
- */
-function detailNodeData(type: string, nodeData: Record<string, any> | null): Record<string, any> | null {
-  if (!nodeData) return null
-  const data = cloneDeep(nodeData)
-  if (type === 'ai-chat-node' && Array.isArray(data.tools?.tools)) {
-    data.tools.tools = data.tools.tools.map((tool: any) => {
-      const name = tool?.function?.name
-      return name && AGENT_TOOL_DEFINITIONS[name] ? { type: 'function', function: { name } } : tool
-    })
-  }
-  if (type === 'loop-node') delete data.children
-  return data
-}
-
-function simplifyGraphData(graph: { nodes: any[]; edges: any[] }) {
-  return {
-    nodes: (graph.nodes ?? []).map(simplifyNode),
-    edges: (graph.edges ?? []).map((edge: any) => ({
-      sourceNodeId: edge.sourceNodeId,
-      targetNodeId: edge.targetNodeId,
-      sourceAnchorId: edge.sourceAnchorId
-    }))
-  }
-}
-
-function simplifyCanvas(lf: any) {
-  return simplifyGraphData({ nodes: lf.graphModel.nodes, edges: lf.graphModel.edges })
-}
-
-const SNAPSHOT_LIMIT = 6000
-
-/** 供用户消息自动附带的画布结构快照（拓扑概览，超长截断并提示改用 get_workflow） */
-export function buildWorkflowSnapshot(lf: any): string {
-  try {
-    const json = JSON.stringify(simplifyCanvas(lf))
-    return json.length > SNAPSHOT_LIMIT
-      ? json.slice(0, SNAPSHOT_LIMIT) + '…(快照超长已截断，完整结构请调用 get_workflow)'
-      : json
-  } catch {
-    return ''
-  }
-}
+// 引擎类型 WorkflowAgentContext / ToolExecution 见 ./types；画布操作辅助见 ./canvas-ops。
+// 本文件只负责通用工具的 executors 与 schemas 定义、下发与解析。
 
 export const toolExecutors: Record<string, ToolExecution> = {
   get_node_schema: {
     mutating: false,
-    execute: ({ types }) => {
+    execute: ({ types }, ctx) => {
       const list = Array.isArray(types) ? types : []
       if (!list.length) throw new Error('types 不能为空')
       return list.map((type: string) => {
-        const entry = nodeCatalog[type]
-        if (!entry) return { type, error: `未知节点类型，可用类型: ${catalogTypes.join(', ')}` }
+        const entry = ctx.profile.catalog[type]
+        if (!entry) {
+          return { type, error: `当前画布不支持该节点类型，可用类型: ${Object.keys(ctx.profile.catalog).join(', ')}` }
+        }
         return { type, label: entry.label, doc: renderDoc(entry) }
       })
     }
@@ -313,7 +59,16 @@ export const toolExecutors: Record<string, ToolExecution> = {
     mutating: true,
     execute: ({ type, name, nodeData, parentLoopId }, ctx) => {
       const lf = getGraphModel(ctx)
-      const { properties, warnings } = buildNodeProperties(type, name, nodeData)
+      const entry = ctx.profile.catalog[type]
+      if (!entry) {
+        throw new Error(
+          `当前画布不支持该节点类型: ${type}，可用类型: ${Object.keys(ctx.profile.catalog).join(', ')}`
+        )
+      }
+      if (entry.addable === false) {
+        throw new Error(`${type} 是画布固有节点，不可添加，只能 update_node 修改`)
+      }
+      const { properties, warnings } = buildNodeProperties(ctx.profile.catalog, type, name, nodeData)
       // 重名告警：AI 路径没有画布手动添加的自动改名逻辑，重复添加往往意味着模型忘了自己已经加过
       const duplicate = collectAllCanvasNodes(lf).find(
         (n: any) => n.type === type && n.properties?.name === properties.name
@@ -349,15 +104,19 @@ export const toolExecutors: Record<string, ToolExecution> = {
 
   update_node: {
     mutating: true,
-    execute: ({ nodeId, name, nodeData, parentLoopId }, ctx) => {
-      if (nodeId === START_NODE_ID) throw new Error('开始节点不可修改')
+    execute: async ({ nodeId, name, nodeData, parentLoopId }, ctx) => {
+      if (nodeId === START_NODE_ID) {
+        // 开始节点是否可修改由画布档案决定（如处理器：HTTP 入参可配，且需联动持久化到处理器配置）
+        if (!ctx.profile.updateStartNode) throw new Error('开始节点不可修改')
+        return await ctx.profile.updateStartNode(ctx, nodeData ?? {})
+      }
       if (nodeId === LOOP_START_NODE_ID) throw new Error('循环开始节点不可修改')
       const node = requireScopedNode(ctx, nodeId, parentLoopId)
       if (name) node.properties.name = name
       let warnings: string[] = []
       let removedBranchIds: string[] = []
       if (nodeData && typeof nodeData === 'object') {
-        const sanitized = sanitizeNodeDataPatch(node.type, cloneDeep(nodeData))
+        const sanitized = sanitizeNodeDataPatch(ctx.profile.catalog, node.type, cloneDeep(nodeData))
         warnings = sanitized.warnings
         const patch = sanitized.patch
         // 子画布由 add_node(parentLoopId) 管理，禁止经 update_node 整体覆盖
@@ -373,7 +132,7 @@ export const toolExecutors: Record<string, ToolExecution> = {
           ...patch
         }
       }
-      refreshNodeProperties(node.type, node.properties)
+      refreshNodeProperties(ctx.profile.catalog, node.type, node.properties)
       if (removedBranchIds.length) {
         const removedEdges = removeBranchEdges(ctx, nodeId, removedBranchIds, parentLoopId)
         warnings.push(
@@ -541,13 +300,28 @@ export const toolExecutors: Record<string, ToolExecution> = {
   validate_workflow: {
     mutating: false,
     execute: async (_args, ctx) => {
-      const result = await ctx.validateWorkflow({ silent: true })
+      let result = await ctx.validateWorkflow({ silent: true })
+      // 开始节点错误的归类取决于画布档案：可修改（有 updateStartNode 钩子）时按普通配置错误
+      // 让 AI 自行修复；不可修改时单独归类为 startNodeErrors，不阻塞 finish，但必须在总结中
+      // 提醒用户；后者需跳过开始节点再校验一遍，避免短路校验掩盖其余节点的错误
+      let startNodeErrors: Record<string, string> | undefined
+      if (!result.valid && result.nodeId === START_NODE_ID && !ctx.profile.updateStartNode) {
+        startNodeErrors = result.errors
+        result = await ctx.validateWorkflow({ silent: true, skipNodeIds: [START_NODE_ID] })
+      }
       // 结构 lint：孤立节点/悬空边/非法分支边为错误，同名同类型重复节点为警告
       const lint = lintWorkflowGraph(getGraphModel(ctx).getGraphData())
       return {
         valid: result.valid && lint.errors.length === 0,
         ...(result.nodeId ? { nodeId: result.nodeId } : {}),
         ...(result.errors ? { errors: result.errors } : {}),
+        ...(startNodeErrors
+          ? {
+              startNodeErrors,
+              startNodeNote:
+                '开始节点的配置由用户维护，你无权修改：不影响本次交付（valid 不含它），但必须在 finish 总结中提醒用户按提示到开始节点完成配置'
+            }
+          : {}),
         ...(lint.errors.length ? { structuralErrors: lint.errors } : {}),
         ...(lint.warnings.length ? { structuralWarnings: lint.warnings } : {})
       }
@@ -576,16 +350,36 @@ const parentLoopIdSchema = {
   description: '可选：循环节点 id。传入后在该循环的子画布内操作（支持嵌套循环）；省略则在主画布操作'
 }
 
+/** 工具执行器解析：通用执行器优先，其次画布档案的专属执行器 */
+export function resolveToolExecutor(name: string, profile: WorkflowAgentProfile): ToolExecution | undefined {
+  return toolExecutors[name] ?? profile.tools?.executors[name]
+}
+
 /**
- * 每轮请求前由前端按画布状态决定传哪些工具（AI 只在被给到工具时才可能调用）：
+ * 每轮请求前由前端按画布状态与画布档案决定传哪些工具（AI 只在被给到工具时才可能调用）：
  * - clear_workflow 仅在画布非空时提供（是否清空由 AI 决策；空画布没有可清的内容）
+ * - 节点类型 enum（get_node_schema/add_node）按画布档案的目录收窄
+ * - 画布专属工具（profile.tools.schemas）追加在通用工具之后
  */
-export function buildActiveToolSchemas(lf: any): any[] {
+export function buildActiveToolSchemas(lf: any, profile: WorkflowAgentProfile): any[] {
   const hasContent = hasCanvasContent(lf)
-  return toolSchemas.filter((tool: any) => {
-    if (tool.function.name === 'clear_workflow') return hasContent
-    return true
-  })
+  const types = Object.keys(profile.catalog)
+  const base = toolSchemas
+    .filter((tool: any) => tool.function.name !== 'clear_workflow' || hasContent)
+    .map((tool: any) => {
+      const name = tool.function.name
+      if (name !== 'get_node_schema' && name !== 'add_node') return tool
+      const clone = cloneDeep(tool)
+      if (name === 'get_node_schema') clone.function.parameters.properties.types.items.enum = types
+      if (name === 'add_node') {
+        // 画布固有节点（addable=false，如处理器 start-node）可查文档但不可添加
+        clone.function.parameters.properties.type.enum = types.filter(
+          (type) => profile.catalog[type].addable !== false
+        )
+      }
+      return clone
+    })
+  return [...base, ...(profile.tools?.schemas ?? [])]
 }
 
 export const toolSchemas = [
@@ -599,7 +393,8 @@ export const toolSchemas = [
         properties: {
           types: {
             type: 'array',
-            items: { type: 'string', enum: catalogTypes },
+            // enum 由 buildActiveToolSchemas 按画布档案的目录注入
+            items: { type: 'string' },
             description: '要查询的节点类型列表'
           }
         },
@@ -651,7 +446,8 @@ export const toolSchemas = [
       parameters: {
         type: 'object',
         properties: {
-          type: { type: 'string', enum: catalogTypes, description: '节点类型' },
+          // enum 由 buildActiveToolSchemas 按画布档案的目录注入
+          type: { type: 'string', description: '节点类型' },
           name: { type: 'string', description: '节点显示名（中文，简洁描述用途）' },
           nodeData: { type: 'object', description: '节点配置，结构见 get_node_schema；可只传需要覆盖的字段' },
           parentLoopId: parentLoopIdSchema

@@ -103,7 +103,7 @@ public class ProcessorStartNode extends INode<ProcessorStartNode, ProcessorStart
             String field = parameter.getField();
             if (Strings.CS.equals(parameter.getLocation(), "query")) {
                 MultiMap entries = routingContext.queryParams();
-                if (parameter.getMany()) {
+                if (parameter.getMany() != null && parameter.getMany()) {
                     workFlowManage.writeContext(this, field, entries.getAll(field));
                 } else {
                     workFlowManage.writeContext(this, field, entries.get(field));

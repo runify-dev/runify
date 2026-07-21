@@ -45,6 +45,9 @@ export default {
     get_node_detail: 'Read node config',
     get_models: 'List models',
     get_knowledge_bases: 'List knowledge bases',
+    get_database_pools: 'List database pools',
+    get_database_tables: 'List database tables',
+    get_database_columns: 'List table columns',
     validate_workflow: 'Validate workflow',
     locate_node: 'Locate node',
     finish: 'Finish'

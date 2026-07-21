@@ -69,9 +69,11 @@ for (const path in validatorModules) {
 
 const workflowType = inject<string>('WorkflowType') || WorkflowType.APPLICATION
 
-// ── AI 生成工作流（第一期仅应用画布） ──
+// ── AI 生成工作流（应用画布 + 处理器画布） ──
 const aiGeneratePanelRef = ref<InstanceType<typeof AiGeneratePanel>>()
-const showAiGenerate = computed(() => workflowType === WorkflowType.APPLICATION)
+const showAiGenerate = computed(
+  () => workflowType === WorkflowType.APPLICATION || workflowType === WorkflowType.PROCESSOR
+)
 
 // ── 校验失败时弹出错误提示（取首条错误信息，带上节点名） ──
 function emitValidationError(failedNodeId: string, errors?: Record<string, string>) {
@@ -82,14 +84,17 @@ function emitValidationError(failedNodeId: string, errors?: Record<string, strin
   bus.emit('message:error', name ? `「${name}」${message}` : message)
 }
 
-// ── 校验整个工作流（短路）；silent 供 AI 生成用：不弹提示、不打开设置抽屉 ──
+// ── 校验整个工作流（短路）；silent 供 AI 生成用：不弹提示、不打开设置抽屉；
+//    skipNodeIds 供 AI 生成用：开始节点配置属用户职责，跳过后单独校验其余节点 ──
 async function validateWorkflow(
-  options?: { silent?: boolean }
+  options?: { silent?: boolean; skipNodeIds?: string[] }
 ): Promise<{ valid: boolean; nodeId?: string; errors?: Record<string, string> }> {
   const silent = options?.silent === true
+  const skipNodeIds = options?.skipNodeIds ?? []
   if (!lf.value) return { valid: true }
   const { nodes } = lf.value.getGraphData()
   for (const node of nodes) {
+    if (skipNodeIds.includes(node.id)) continue
     const validateFn = nodeValidators.get(node.type)
     if (!validateFn) continue
     try {

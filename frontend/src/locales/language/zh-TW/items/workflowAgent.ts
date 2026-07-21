@@ -44,6 +44,9 @@ export default {
     get_node_detail: '讀取節點配置',
     get_models: '獲取模型列表',
     get_knowledge_bases: '獲取知識庫列表',
+    get_database_pools: '獲取數據庫連接列表',
+    get_database_tables: '獲取數據表列表',
+    get_database_columns: '獲取表字段結構',
     validate_workflow: '校驗工作流',
     locate_node: '定位節點',
     finish: '完成'

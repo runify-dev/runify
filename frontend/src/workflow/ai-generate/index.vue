@@ -228,20 +228,26 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, inject } from 'vue'
 import Textarea from 'primevue/textarea'
 import { t } from '@/locales'
 import bus from '@/bus'
 import { TreeCommonAPI } from '@/api/tree'
 import { ROOT_FOLDER_ID } from '@/constants/common'
+import { WorkflowType } from '@/workflow/common/data'
+import { getProfile } from './profiles'
 import { useWorkflowAgent } from './useWorkflowAgent'
-import type { WorkflowAgentContext } from './tools'
+import type { WorkflowAgentContext } from './types'
 
 const props = defineProps<{
   getLf: () => any
   validateWorkflow: WorkflowAgentContext['validateWorkflow']
   relayout: () => void
 }>()
+
+const profile = getProfile(inject<string>('WorkflowType') || WorkflowType.APPLICATION)
+// 画布宿主详情（处理器/应用实体）：profile 钩子做联动持久化时用（如处理器保存 HTTP 入参）
+const getDetails = inject<() => any>('getDetails', () => undefined)
 
 const visible = ref(false)
 const collapsed = ref(false)
@@ -251,7 +257,10 @@ const modelList = ref<Array<any>>([])
 const logContainerRef = ref<HTMLElement>()
 
 const { status, logs, logsVersion, plan, busy, start, send, pause, resume, stop, retry, reset } =
-  useWorkflowAgent({ getLf: props.getLf, validateWorkflow: props.validateWorkflow }, props.relayout)
+  useWorkflowAgent(
+    { getLf: props.getLf, profile, getDetails, validateWorkflow: props.validateWorkflow },
+    props.relayout
+  )
 
 const followUp = ref('')
 
@@ -289,6 +298,9 @@ const toolLabelMap: Record<string, string> = {
   get_node_detail: t('workflowAgent.tool.get_node_detail'),
   get_models: t('workflowAgent.tool.get_models'),
   get_knowledge_bases: t('workflowAgent.tool.get_knowledge_bases'),
+  get_database_pools: t('workflowAgent.tool.get_database_pools'),
+  get_database_tables: t('workflowAgent.tool.get_database_tables'),
+  get_database_columns: t('workflowAgent.tool.get_database_columns'),
   validate_workflow: t('workflowAgent.tool.validate_workflow'),
   locate_node: t('workflowAgent.tool.locate_node'),
   finish: t('workflowAgent.tool.finish')
