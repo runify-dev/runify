@@ -60,6 +60,7 @@
     <Parameters
       ref="parametersRef"
       v-model:parameters="formData.parameters"
+      :errors="errors"
     />
   </div>
 </template>
@@ -114,6 +115,20 @@ function validate() {
     if (!formData.template || formData.template.trim() === '') {
       errors.template = '请输入SQL'
     }
+  }
+
+  if (Array.isArray(formData.parameters)) {
+    formData.parameters.forEach((param: any, i: number) => {
+      const value = param?.value
+      const empty =
+        value === undefined ||
+        value === null ||
+        (typeof value === 'string' && value.trim() === '') ||
+        (Array.isArray(value) && value.length === 0)
+      if (empty) {
+        errors[`parameters.${i}.value`] = '请填写参数值'
+      }
+    })
   }
 
   const valid = Object.keys(errors).length === 0

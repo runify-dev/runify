@@ -25,5 +25,19 @@ export function validate(nodeData: Record<string, any> | undefined): ValidationR
     }
   }
 
+  if (Array.isArray(data.parameters)) {
+    for (let i = 0; i < data.parameters.length; i++) {
+      const value = data.parameters[i]?.value
+      const empty =
+        value === undefined ||
+        value === null ||
+        (typeof value === 'string' && value.trim() === '') ||
+        (Array.isArray(value) && value.length === 0)
+      if (empty) {
+        return { valid: false, errors: { [`parameters.${i}.value`]: '请填写参数值' } }
+      }
+    }
+  }
+
   return { valid: true, errors: {} }
 }

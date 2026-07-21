@@ -3,7 +3,8 @@ import type { NodeCatalogDef } from '@/workflow/ai-generate/node-catalog'
 
 const DB_PARAMETER_DOC =
   'SQL 参数数组。元素 { field 参数名(对应 SQL 模板中的 #{field} 占位符), location:"reference"|"customize", ' +
-  'value: location=reference 时为变量引用路径 [节点ID,字段]、customize 时为常量值, desc 可选说明 }'
+  'value, desc 可选说明 }。★ 无独立 reference 字段：location="reference" 时 value 填引用路径数组 [节点ID,字段]、' +
+  'location="customize" 时 value 填常量值；不要写 reference 字段。'
 
 /** SQL 方言提示（mysql / postgresql 语法差异；参数占位符 #{名} 由后端统一处理，与方言无关） */
 const SQL_DIALECT_DOC =

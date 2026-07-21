@@ -53,9 +53,14 @@ provide('getDetails', () => processor.value)
 provide('WorkflowType', WorkflowType.PROCESSOR)
 
 const deploy = () => {
-  processorAPI.deploy(route.params.id as string, route.params.processorId as string).then((ok) => {
-    processor.value = ok.data
-    bus.emit('message:success', t('project.deploySuccess'))
+  workflowRef.value?.validateWorkflow().then((ok) => {
+    if (!ok || !ok.valid) return
+    processorAPI
+      .deploy(route.params.id as string, route.params.processorId as string)
+      .then((res) => {
+        processor.value = res.data
+        bus.emit('message:success', t('project.deploySuccess'))
+      })
   })
 }
 
@@ -69,13 +74,16 @@ const unDeploy = () => {
 }
 
 const save = () => {
-  processorAPI
-    .editProcessor(route.params.id as string, route.params.processorId as string, {
-      workflow: workflowRef.value?.getGraphData()
-    })
-    .then(() => {
-      bus.emit('message:success', t('common.saveSuccess'))
-    })
+  workflowRef.value?.validateWorkflow().then((ok) => {
+    if (!ok || !ok.valid) return
+    processorAPI
+      .editProcessor(route.params.id as string, route.params.processorId as string, {
+        workflow: workflowRef.value?.getGraphData()
+      })
+      .then(() => {
+        bus.emit('message:success', t('common.saveSuccess'))
+      })
+  })
 }
 
 onMounted(() => {

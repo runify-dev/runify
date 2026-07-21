@@ -18,12 +18,14 @@ export const catalog: NodeCatalogDef = {
         type: 'array',
         default: [],
         description:
-          'script 模式注入为顶层变量。元素 { field 变量名, location:"reference"|"customize", reference:[节点ID,字段], value 固定值, type/description 可选 }'
+          'script 模式注入为顶层变量。元素 { field 变量名, location:"reference"|"customize", value, type/description 可选 }。' +
+          '★ 无独立 reference 字段：location="reference" 时 value 填引用路径数组 [节点ID,字段]；' +
+          'location="customize" 时 value 填常量值。不要写 reference 字段。'
       }
     ],
     outputs: [{ value: 'result', label: '结果', type: 'any', description: '代码最后一个表达式的值' }],
     notes: [
-      '示例：parameters=[{field:"hits",location:"reference",reference:["知识检索节点ID","hits"]}]，code="hits.map(h => h.content).join(\'\\n\')"'
+      '示例：parameters=[{field:"hits",location:"reference",value:["知识检索节点ID","hits"]}]，code="hits.map(h => h.content).join(\'\\n\')"'
     ],
     template: javaScriptNode
   }

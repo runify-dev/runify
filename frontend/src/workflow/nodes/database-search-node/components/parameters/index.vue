@@ -23,7 +23,7 @@
             class="w-full"
             placeholder="请选择引用参数"
           />
-          <InputText v-else type="text" fluid />
+          <InputText v-else v-model="value.value" type="text" fluid />
           <Button
             icon="pi pi-trash"
             variant="text"
@@ -33,9 +33,13 @@
           />
         </div>
 
-        <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">{{
-          $field.error?.message
-        }}</Message>
+        <Message
+          v-if="$field?.invalid || props.errors?.[`parameters.${index}.value`]"
+          severity="error"
+          size="small"
+          variant="simple"
+          >{{ $field?.error?.message || props.errors?.[`parameters.${index}.value`] }}</Message
+        >
       </FormField>
     </Form>
 
@@ -51,6 +55,7 @@ import { computed } from 'vue'
 import Cascader from '@/components/cascader/index.vue'
 const props = defineProps<{
   parameters: Array<any>
+  errors?: Record<string, string>
 }>()
 
 const createParameterRef = ref<InstanceType<typeof CreateParameter>>()
