@@ -45,6 +45,9 @@ export default {
     get_node_detail: 'Чтение конфигурации узла',
     get_models: 'Список моделей',
     get_knowledge_bases: 'Список баз знаний',
+    get_database_pools: 'Список подключений к БД',
+    get_database_tables: 'Список таблиц БД',
+    get_database_columns: 'Структура колонок таблицы',
     validate_workflow: 'Проверка процесса',
     locate_node: 'Перейти к узлу',
     finish: 'Готово'

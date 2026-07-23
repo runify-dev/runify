@@ -36,6 +36,7 @@ import {
   fileUploadNode,
   knowledgeSearchNode,
   jsonResponseNode,
+  judgeNode,
   loopNode,
   terminalNode,
   variableAssignNode,
@@ -80,7 +81,7 @@ const groups = [
     value: '3',
     label: '控制流',
     icon: 'pi pi-directions',
-    nodes: [loopNode]
+    nodes: [judgeNode, loopNode]
   },
   {
     value: '4',

@@ -13,6 +13,7 @@ export default {
   open: 'Открыть',
   operation: 'Действия',
   processor: 'Процессор',
+  unifiedErrorResponse: 'Единый ответ об ошибке',
   folder: 'Папка',
   overview: 'Обзор',
   createProject: 'Создать проект',

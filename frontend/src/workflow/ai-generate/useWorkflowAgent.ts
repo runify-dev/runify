@@ -1,15 +1,9 @@
 import { ref, computed } from 'vue'
 import { t } from '@/locales'
 import { chatCompletionStream, type ToolCall } from './api'
-import {
-  toolExecutors,
-  buildActiveToolSchemas,
-  flushLoopRefresh,
-  buildWorkflowSnapshot,
-  hasCanvasContent,
-  type WorkflowAgentContext
-} from './tools'
-import { buildSystemPrompt } from './prompt'
+import { resolveToolExecutor, buildActiveToolSchemas } from './tools'
+import { flushLoopRefresh, buildWorkflowSnapshot, hasCanvasContent } from './canvas-ops'
+import type { WorkflowAgentContext } from './types'
 
 export type AgentStatus = 'idle' | 'running' | 'paused' | 'stopped' | 'done' | 'error'
 
@@ -119,7 +113,7 @@ export function useWorkflowAgent(ctx: WorkflowAgentContext, relayout: () => void
             ARGS_SUMMARY_LIMIT
           )
         } else {
-          const executor = toolExecutors[name]
+          const executor = resolveToolExecutor(name, ctx.profile)
           if (!executor) throw new Error(`未知工具: ${name}`)
           result = await executor.execute(args, ctx)
           // skipLayout：坐标已就位（如清空画布），不触发 dagre 重排
@@ -137,7 +131,7 @@ export function useWorkflowAgent(ctx: WorkflowAgentContext, relayout: () => void
         // get_workflow / get_node_detail 等大结果工具有更高的截断上限（executor.resultLimit）
         content: truncate(
           JSON.stringify(result ?? null),
-          toolExecutors[name]?.resultLimit ?? TOOL_RESULT_LIMIT
+          resolveToolExecutor(name, ctx.profile)?.resultLimit ?? TOOL_RESULT_LIMIT
         )
       })
       if (name === 'finish' && !result?.error) {
@@ -189,7 +183,7 @@ export function useWorkflowAgent(ctx: WorkflowAgentContext, relayout: () => void
         // 每轮由前端按画布状态决定传哪些工具（如 clear_workflow 仅画布非空时给出）
         resp = await chatCompletionStream(
           modelId,
-          { messages, tools: buildActiveToolSchemas(ctx.getLf()) },
+          { messages, tools: buildActiveToolSchemas(ctx.getLf(), ctx.profile) },
           abortController.signal,
           {
             onDelta: appendNarration,
@@ -247,7 +241,7 @@ export function useWorkflowAgent(ctx: WorkflowAgentContext, relayout: () => void
     // 画布保持原样：增量修改还是 clear_workflow 清空重建由 AI 自行决策
     modelId = model
     messages = [
-      { role: 'system', content: buildSystemPrompt() },
+      { role: 'system', content: ctx.profile.buildSystemPrompt() },
       { role: 'user', content: withCanvasSnapshot(requirement) }
     ]
     logs.value = []

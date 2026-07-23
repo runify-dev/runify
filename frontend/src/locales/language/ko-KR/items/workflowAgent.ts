@@ -44,6 +44,9 @@ export default {
     get_node_detail: '노드 설정 읽기',
     get_models: '모델 목록 조회',
     get_knowledge_bases: '지식 베이스 목록 조회',
+    get_database_pools: '데이터베이스 연결 목록 조회',
+    get_database_tables: '테이블 목록 조회',
+    get_database_columns: '컬럼 구조 조회',
     validate_workflow: '워크플로 검증',
     locate_node: '노드로 이동',
     finish: '완료'

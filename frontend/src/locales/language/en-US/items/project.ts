@@ -13,6 +13,7 @@ export default {
   open: 'Open',
   operation: 'Actions',
   processor: 'Processor',
+  unifiedErrorResponse: 'Unified Error Response',
   folder: 'Folder',
   overview: 'Overview',
   createProject: 'Create Project',

@@ -64,6 +64,31 @@ public class ProjectRoute implements IRoute {
 //                .handler(tokenBasicAuthHandler)
 //                .handler(iProjectHandler::edit);
 
+        apiRoute.get("/project/resources/:resourceId/error-response")
+                .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.PROJECT_READ)
+                                .addPermission(PermissionConstants.PROJECT_READ.getResourcePermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
+                .handler(iProjectHandler::getErrorResponse);
+
+        apiRoute.put("/project/resources/:resourceId/error-response")
+                .handler(BodyHandler.create())
+                .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.PROJECT_EDIT)
+                                .addPermission(PermissionConstants.PROJECT_EDIT.getResourcePermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
+                .handler(iProjectHandler::editErrorResponse);
+
         apiRoute.delete("/project/resources/:resourceId")
                 .handler(tokenBasicAuthHandler)
                 .handler(Authenticator.builder()

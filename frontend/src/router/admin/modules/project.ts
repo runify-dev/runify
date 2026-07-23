@@ -60,6 +60,12 @@ const projectRouter = {
               component: () => import('@/views/project/processor/table/index.vue')
             }
           ]
+        },
+        {
+          path: 'error-response',
+          name: 'projectErrorResponse',
+          meta: {title: '统一异常配置', activeMenu: 'project'},
+          component: () => import('@/views/project/error-response/index.vue')
         }
       ]
     }

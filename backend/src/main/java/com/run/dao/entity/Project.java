@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import com.run.dao.common.annotations.Column;
 import com.run.dao.common.annotations.Table;
 import com.run.dao.common.entity.BaseEntity;
+import io.vertx.core.json.JsonObject;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -65,6 +66,11 @@ public class Project implements BaseEntity<Project> {
      */
     @Column(name = "share")
     private Boolean share;
+    /**
+     * 统一异常配置(按错误类型留槽:{"validationError": {...ResponseNodeData}})
+     */
+    @Column(name = "error_response")
+    private JsonObject errorResponse;
     /**
      * 创建时间
      */

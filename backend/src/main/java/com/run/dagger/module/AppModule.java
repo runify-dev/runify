@@ -1,5 +1,6 @@
 package com.run.dagger.module;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -34,6 +35,9 @@ public class AppModule {
         ObjectMapper mapper = DatabindCodec.mapper();
         mapper.registerModule(new JavaTimeModule());
         mapper.setDateFormat(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"));
+        // 节点 nodeData 经 JsonObject.mapTo(...) 反序列化：容忍多余字段，
+        // 避免前端/AI 携带 pojo 未声明的字段（如 js 参数误带 reference）导致节点构造 NPE/崩溃
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         return vertx;
     }
 

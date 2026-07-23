@@ -44,6 +44,9 @@ export default {
     get_node_detail: '读取节点配置',
     get_models: '获取模型列表',
     get_knowledge_bases: '获取知识库列表',
+    get_database_pools: '获取数据库连接列表',
+    get_database_tables: '获取数据表列表',
+    get_database_columns: '获取表字段结构',
     validate_workflow: '校验工作流',
     locate_node: '定位节点',
     finish: '完成'

@@ -44,6 +44,9 @@ export default {
     get_node_detail: 'ノード設定を読み取り',
     get_models: 'モデル一覧を取得',
     get_knowledge_bases: 'ナレッジベース一覧を取得',
+    get_database_pools: 'データベース接続一覧を取得',
+    get_database_tables: 'テーブル一覧を取得',
+    get_database_columns: 'カラム構造を取得',
     validate_workflow: 'ワークフローを検証',
     locate_node: 'ノードへ移動',
     finish: '完了'
