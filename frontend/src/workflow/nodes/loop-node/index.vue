@@ -64,6 +64,8 @@ provide('onSubGraphChange', () => saveSubCanvasData())
 // 注入父画布容器（如果存在说明在子画布内，即嵌套循环）
 const parentCanvasRef = inject<ReturnType<typeof ref<HTMLElement | undefined>>>('subCanvasContainer', ref<HTMLElement | undefined>(undefined))
 const isNested = computed(() => !!parentCanvasRef.value)
+// 本实例的主画布容器（workflow/index.vue 提供）：多画布实例并存时不能 querySelector 全局找
+const mainCanvasRef = inject<ReturnType<typeof ref<HTMLElement | undefined>>>('mainCanvasContainer', ref<HTMLElement | undefined>(undefined))
 
 const containerRef = ref<InstanceType<typeof SimpleNodeContainer>>()
 const contentRef = ref()
@@ -543,8 +545,8 @@ function createFullscreenToolbar() {
 function movePanelToBody() {
   const el = panelRef.value
   if (!el) return
-  // 嵌套循环时移到外层 SubCanvas 容器，否则移到主画布容器
-  const target = parentCanvasRef.value || document.querySelector('#canvas-wrapper') || document.body
+  // 嵌套循环时移到外层 SubCanvas 容器，否则移到本实例的主画布容器
+  const target = parentCanvasRef.value || mainCanvasRef.value || document.body
   if (el.parentElement === target) return
   panelOriginalParent = el.parentElement
   target.appendChild(el)

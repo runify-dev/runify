@@ -1,6 +1,7 @@
 <template>
-  <div class="layout-content-height w-full relative overflow-hidden" id="canvas-wrapper">
-    <div style="width: 100%; height: 100%" id="run-workflow-container"></div>
+  <!-- 模板 ref 而非固定 DOM id：同页可挂多个画布实例（如项目级 AI 生成页） -->
+  <div ref="wrapperRef" class="layout-content-height w-full relative overflow-hidden">
+    <div ref="containerRef" style="width: 100%; height: 100%"></div>
     <CanvasToolbar
       class="workflow-toolbar"
       :zoom-percent="zoomPercent"
@@ -69,10 +70,14 @@ for (const path in validatorModules) {
 
 const workflowType = inject<string>('WorkflowType') || WorkflowType.APPLICATION
 
-// ── AI 生成工作流（应用画布 + 处理器画布） ──
+// ── AI 生成工作流（应用画布 + 处理器画布）；
+//    宿主页面自带 agent 时（如项目级 AI 生成页）注入 hideAiGenerate 隐藏内置面板 ──
 const aiGeneratePanelRef = ref<InstanceType<typeof AiGeneratePanel>>()
+const hideAiGenerate = inject<boolean>('hideAiGenerate', false)
 const showAiGenerate = computed(
-  () => workflowType === WorkflowType.APPLICATION || workflowType === WorkflowType.PROCESSOR
+  () =>
+    !hideAiGenerate &&
+    (workflowType === WorkflowType.APPLICATION || workflowType === WorkflowType.PROCESSOR)
 )
 
 // ── 校验失败时弹出错误提示（取首条错误信息，带上节点名） ──
@@ -156,8 +161,12 @@ function selectAndOpenNode(nodeId: string) {
 const TeleportContainer = getTeleport()
 const lf = ref()
 const flowId = ref('')
+const wrapperRef = ref<HTMLElement>()
+const containerRef = ref<HTMLElement>()
 provide('getMainLf', () => lf.value)
 provide('canvasType', 'main')
+// 主画布容器：loop-node 展开面板等需要挂载到本实例的容器（多实例下不能 querySelector 全局找）
+provide('mainCanvasContainer', wrapperRef)
 
 // ── 缩放 ──
 const zoomPercent = ref(100)
@@ -253,9 +262,10 @@ function onSetMode(mode: 'drag' | 'select') {
 // ── 全屏 ──
 const isFullscreen = ref(false)
 let toolbarOriginalParent: HTMLElement | null = null
+let movedToolbar: HTMLElement | null = null
 
 function toggleFullscreen() {
-  const el = document.querySelector('#canvas-wrapper') as HTMLElement
+  const el = wrapperRef.value
   if (!el) return
   isFullscreen.value = !isFullscreen.value
   if (isFullscreen.value) {
@@ -271,6 +281,7 @@ function toggleFullscreen() {
     const toolbar = el.querySelector('.canvas-toolbar') as HTMLElement
     if (toolbar) {
       toolbarOriginalParent = toolbar.parentElement
+      movedToolbar = toolbar
       toolbar.style.position = 'fixed'
       toolbar.style.zIndex = '1000'
       toolbar.style.bottom = '16px'
@@ -285,15 +296,15 @@ function toggleFullscreen() {
     el.style.width = ''
     el.style.height = ''
     el.style.zIndex = ''
-    // 工具栏移回原位
-    const toolbar = document.body.querySelector('.canvas-toolbar') as HTMLElement
-    if (toolbar && toolbarOriginalParent) {
-      toolbar.style.position = ''
-      toolbar.style.zIndex = ''
-      toolbar.style.bottom = ''
-      toolbar.style.right = ''
-      toolbarOriginalParent.appendChild(toolbar)
+    // 工具栏移回原位（用实例记录的元素，多画布下 body 里可能有别家的工具栏）
+    if (movedToolbar && toolbarOriginalParent) {
+      movedToolbar.style.position = ''
+      movedToolbar.style.zIndex = ''
+      movedToolbar.style.bottom = ''
+      movedToolbar.style.right = ''
+      toolbarOriginalParent.appendChild(movedToolbar)
       toolbarOriginalParent = null
+      movedToolbar = null
     }
   }
 }
@@ -323,7 +334,7 @@ let selStartX = 0
 let selStartY = 0
 
 function isOnCanvas(e: MouseEvent) {
-  const c = document.querySelector('#canvas-wrapper')
+  const c = wrapperRef.value
   return c && c.contains(e.target as Node)
 }
 
@@ -372,8 +383,8 @@ function onMouseUp(e: MouseEvent) {
   window.removeEventListener('mouseup', onMouseUp)
   if (selBox) { selBox.remove(); selBox = null }
 
-  if (!lf.value) return
-  const rect = document.querySelector('#run-workflow-container')!.getBoundingClientRect()
+  if (!lf.value || !containerRef.value) return
+  const rect = containerRef.value.getBoundingClientRect()
   const t = lf.value.getTransform()
 
   const sx = Math.min(selStartX, e.clientX)
@@ -450,9 +461,8 @@ const render = (data?: LogicFlow.GraphConfigData) => {
   lf.value.render(data ? data : {})
 }
 onMounted(() => {
-  const container = document.querySelector('#run-workflow-container')
-  if (container) {
-    init(container as HTMLElement)
+  if (containerRef.value) {
+    init(containerRef.value)
   }
   window.addEventListener('keydown', onKeyDown)
   window.addEventListener('keyup', onKeyUp)
@@ -469,7 +479,15 @@ onBeforeUnmount(() => {
 const getGraphData = () => {
   return lf.value.getGraphData()
 }
-defineExpose({ init, render, getGraphData, validateWorkflow })
+defineExpose({
+  init,
+  render,
+  getGraphData,
+  validateWorkflow,
+  // 程序化驱动 agent 的宿主（如项目级 AI 生成页）需要直接访问 lf 与自动布局
+  getLf: () => lf.value,
+  autoLayout: onAutoLayout
+})
 </script>
 <style lang="scss">
 .workflow-toolbar {

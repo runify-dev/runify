@@ -1,4 +1,6 @@
 export default {
+  expand: 'Expand',
+  collapse: 'Collapse',
   create: 'Create',
   createSuccess: 'Successful',
   copy: 'Copy',

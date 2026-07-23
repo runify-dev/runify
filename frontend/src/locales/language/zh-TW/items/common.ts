@@ -1,4 +1,6 @@
 export default {
+  expand: '展開',
+  collapse: '收起',
   create: '創建',
   createSuccess: '創建成功',
   copy: '複製',

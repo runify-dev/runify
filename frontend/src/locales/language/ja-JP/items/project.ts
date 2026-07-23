@@ -14,6 +14,7 @@ export default {
   operation: '操作',
   processor: 'プロセッサ',
   unifiedErrorResponse: '統一エラーレスポンス',
+  aiGenerate: 'AI プロジェクト生成',
   folder: 'フォルダ',
   overview: '概要',
   createProject: 'プロジェクトを作成',

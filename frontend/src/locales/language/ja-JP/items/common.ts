@@ -1,4 +1,6 @@
 export default {
+  expand: '展開',
+  collapse: '折りたたむ',
   create: '作成', createSuccess: '作成成功', copy: 'コピー', copySuccess: 'コピー成功', copyError: 'コピー失敗',
   save: '保存', saveSuccess: '保存成功', delete: '削除', deleteSuccess: '削除成功',
   setting: '設定', settingSuccess: '設定成功', submit: '送信', submitSuccess: '送信成功',

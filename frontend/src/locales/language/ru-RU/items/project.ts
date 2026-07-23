@@ -14,6 +14,7 @@ export default {
   operation: 'Действия',
   processor: 'Процессор',
   unifiedErrorResponse: 'Единый ответ об ошибке',
+  aiGenerate: 'ИИ-генерация проекта',
   folder: 'Папка',
   overview: 'Обзор',
   createProject: 'Создать проект',

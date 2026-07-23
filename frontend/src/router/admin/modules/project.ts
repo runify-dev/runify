@@ -66,6 +66,12 @@ const projectRouter = {
           name: 'projectErrorResponse',
           meta: {title: '统一异常配置', activeMenu: 'project'},
           component: () => import('@/views/project/error-response/index.vue')
+        },
+        {
+          path: 'ai-generate',
+          name: 'projectAiGenerate',
+          meta: {title: 'AI 生成项目', activeMenu: 'project'},
+          component: () => import('@/views/project/ai-generate/index.vue')
         }
       ]
     }

@@ -30,7 +30,9 @@ export default {
     resumed: 'Resuming…',
     stopped: 'Stopped. Canvas keeps current progress',
     retrying: 'Retrying…',
-    maxIterations: 'Iteration budget reached, auto paused. Click "Resume" to continue'
+    maxIterations: 'Iteration budget reached, auto paused. Click "Resume" to continue',
+    autoResumed: 'Iteration budget reached, auto resuming…',
+    budgetExhausted: 'Iteration budget exhausted, generation failed'
   },
   tool: {
     clear_workflow: 'Clear canvas',
@@ -50,6 +52,25 @@ export default {
     get_database_columns: 'List table columns',
     validate_workflow: 'Validate workflow',
     locate_node: 'Locate node',
+    list_processors: 'List processors',
+    create_processor: 'Create processor',
+    update_processor: 'Update processor',
+    generate_workflow: 'Generate workflow (sub-agent)',
+    deploy_processor: 'Deploy processor',
     finish: 'Finish'
+  },
+  project: {
+    entry: 'AI Generate Project',
+    title: 'AI Generate Project',
+    newSession: 'New session',
+    subtitle: 'Describe your needs; AI plans endpoints, creates processors and generates workflows in parallel',
+    requirementPlaceholder: 'Describe the project you want, e.g. a blog backend: CRUD APIs for posts plus a list page',
+    inputPlaceholder: 'Reply, or add more requirements…',
+    building: 'Building',
+    empty: 'Workflow canvases will appear here once generation starts',
+    queued: 'Queued',
+    succeeded: 'Done',
+    invalid: 'Validation failed',
+    failed: 'Failed'
   }
 }
