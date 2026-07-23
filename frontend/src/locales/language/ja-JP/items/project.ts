@@ -13,6 +13,7 @@ export default {
   open: '開く',
   operation: '操作',
   processor: 'プロセッサ',
+  unifiedErrorResponse: '統一エラーレスポンス',
   folder: 'フォルダ',
   overview: '概要',
   createProject: 'プロジェクトを作成',

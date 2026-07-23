@@ -146,9 +146,13 @@ const to = (routeName: string) => {
   router.push({name: routeName})
 }
 const isFlipped = ref<boolean>(
-  ['databaseCollectionPool', 'projectProcessor', 'processorTable', 'processorWorkflow'].includes(
-    route.name as string
-  )
+  [
+    'databaseCollectionPool',
+    'projectProcessor',
+    'processorTable',
+    'processorWorkflow',
+    'projectErrorResponse'
+  ].includes(route.name as string)
 )
 const items = computed(() => [
 
@@ -157,6 +161,12 @@ const items = computed(() => [
     label: t('project.processor'),
     icon: 'pi pi-fw pi-cog p-1',
     activeNames: ['projectProcessor', 'processorWorkflow', 'processorTable']
+  },
+  {
+    name: 'projectErrorResponse',
+    label: t('project.unifiedErrorResponse'),
+    icon: 'pi pi-fw pi-shield p-1',
+    activeNames: ['projectErrorResponse']
   }
 ])
 const expandedKeys = ref<TreeSelectionKeys>()

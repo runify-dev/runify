@@ -62,6 +62,18 @@ public class ProjectManage {
         return projectExecutor.updatePool(pool);
     }
 
+    /**
+     * 项目数据变更(如统一异常配置)后同步执行器缓存,使已部署接口即刻生效
+     */
+    public static Boolean updateProject(UUID projectId, Project project) {
+        ProjectExecutor projectExecutor = processorMap.get(projectId);
+        if (projectExecutor == null) {
+            return Boolean.FALSE;
+        }
+        projectExecutor.updateProject(project);
+        return Boolean.TRUE;
+    }
+
     public static ProcessorExecutor getProcessorExecutor(UUID projectId, UUID processorId) {
         ProjectExecutor projectExecutor = processorMap.get(projectId);
         if (projectExecutor == null) {
@@ -96,6 +108,10 @@ public class ProjectManage {
             Pool p = provider.createPool(pool, vertx);
             pools.put(pool.getId().toString(), p);
             return Boolean.TRUE;
+        }
+
+        public void updateProject(Project project) {
+            this.project = project;
         }
 
         public ProjectExecutor(UUID id, Project project) {

@@ -13,6 +13,7 @@ export default {
   open: '열기',
   operation: '작업',
   processor: '프로세서',
+  unifiedErrorResponse: '통합 오류 응답 설정',
   folder: '폴더',
   overview: '개요',
   createProject: '프로젝트 생성',

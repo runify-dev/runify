@@ -31,7 +31,9 @@ export const httpSchema = z
       .refine((p) => !/\s/.test(p), { error: '请求地址不能包含空格' }),
     contentType: z.enum(CONTENT_TYPES, { error: '请求类型不合法' }).optional(),
     parameters: z.array(parameterSchema).optional(),
-    requestBody: z.array(z.any()).optional()
+    requestBody: z.array(z.any()).optional(),
+    errorResponseSource: z.string().optional(),
+    errorResponse: z.any().optional()
   })
   .check((ctx) => {
     const meta = ctx.value
@@ -87,6 +89,56 @@ export const httpSchema = z
         }
         bodySeen.add(item.field)
       })
+    }
+
+    // 错误响应结构兜底（主校验在配置 Dialog 提交时；此处拦截绕过 UI 的脏数据,如 AI 生成）
+    // 仅自定义来源需要校验;global(默认)走项目统一配置,结构由统一配置页保证
+    const er: any = (meta as any).errorResponse
+    if ((meta as any).errorResponseSource === 'custom' && er) {
+      const erIssue = (message: string, subPath: Array<string | number>) => {
+        ctx.issues.push({ code: 'custom', input: er, message, path: ['errorResponse', ...subPath] })
+      }
+      if (!Number.isInteger(er.status) || er.status < 100 || er.status > 599) {
+        erIssue('错误响应状态码需在 100-599 之间', ['status'])
+      }
+      if (!['jsonFields', 'jsonObject', 'plainText'].includes(er.contentType)) {
+        erIssue('错误响应类型不合法', ['contentType'])
+      }
+      const erBlank = (v: any) => v === undefined || v === null || String(v).trim() === ''
+      ;(Array.isArray(er.headers) ? er.headers : []).forEach((h: any, i: number) => {
+        if (h?.location === 'reference') {
+          if (!h.reference?.length) erIssue(`错误响应头 ${h.field} 未选择引用变量`, ['headers', i])
+        } else if (erBlank(h?.value)) {
+          erIssue(`错误响应头 ${h?.field} 未填写值`, ['headers', i])
+        }
+      })
+      if (er.contentType === 'jsonFields') {
+        ;(Array.isArray(er.jsonFields) ? er.jsonFields : []).forEach((f: any, i: number) => {
+          if (f?.location === 'reference' && !f.reference?.length) {
+            erIssue(`错误响应字段 ${f.field} 未选择引用变量`, ['jsonFields', i])
+          }
+        })
+      } else if (er.contentType === 'jsonObject') {
+        const jo = er.jsonObject || {}
+        if (jo.location === 'reference') {
+          if (!jo.reference?.length) erIssue('错误响应未选择 JSON 引用变量', ['jsonObject'])
+        } else if (erBlank(jo.value)) {
+          erIssue('错误响应未填写 JSON 内容', ['jsonObject'])
+        } else {
+          try {
+            JSON.parse(jo.value)
+          } catch {
+            erIssue('错误响应 JSON 格式不合法', ['jsonObject'])
+          }
+        }
+      } else if (er.contentType === 'plainText') {
+        const pt = er.plainText || {}
+        if (pt.location === 'reference') {
+          if (!pt.reference?.length) erIssue('错误响应未选择文本引用变量', ['plainText'])
+        } else if (erBlank(pt.value)) {
+          erIssue('错误响应未填写文本内容', ['plainText'])
+        }
+      }
     }
   })
 

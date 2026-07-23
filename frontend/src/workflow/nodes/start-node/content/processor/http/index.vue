@@ -72,12 +72,24 @@
         }}</Message>
       </FormField>
     </Fieldset>
+
+    <FormField v-slot="$field: any" name="errorResponse" :initial-value="null" class="mt-2">
+      <FormField v-slot="$sourceField: any" name="errorResponseSource" initial-value="global">
+        <ErrorResponse
+          :value="$field.value"
+          :source="$sourceField.value"
+          @update:value="(v: any) => $field.onChange({ value: v })"
+          @update:source="(v: any) => $sourceField.onChange({ value: v })"
+        ></ErrorResponse>
+      </FormField>
+    </FormField>
   </Form>
 </template>
 <script setup lang="ts">
 import { onMounted, ref, inject, computed, nextTick } from 'vue'
 import Parameters from './parameter/index.vue'
 import RequestBody from './request-body/index.vue'
+import ErrorResponse from './error-response/index.vue'
 import processorAPI from '@/api/processor'
 import type { BaseNodeModel } from '@logicflow/core'
 import databaseConnectionPoolAPI from '@/api/database-connection-pool'

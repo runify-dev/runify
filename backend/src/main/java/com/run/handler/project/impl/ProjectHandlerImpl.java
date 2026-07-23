@@ -4,6 +4,7 @@ import com.run.auth.constants.PermissionConstants;
 import com.run.auth.dto.UserProfile;
 import com.run.common.cache.CacheStore;
 import com.run.common.exception.ApiException;
+import com.run.common.project.ProjectManage;
 import com.run.common.result.Result;
 import com.run.common.util.CommonUtils;
 import com.run.common.util.TreeUtil;
@@ -21,6 +22,7 @@ import com.run.handler.common.pojo.SimpleNodePojo;
 import com.run.handler.project.IProjectHandler;
 import com.run.handler.project.vo.CreateProjectVO;
 import io.vertx.core.Future;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 
 import javax.inject.Inject;
@@ -106,7 +108,7 @@ public class ProjectHandlerImpl extends ResourceHandlerImpl<Project, ProjectFold
 
     @Override
     protected Project newResource(UUID resourceId, UUID parentUuId, String name, RoutingContext context) {
-        return new Project(resourceId, parentUuId, name, "", "", "", false, false, LocalDateTime.now(), LocalDateTime.now());
+        return new Project(resourceId, parentUuId, name, "", "", "", false, false, null, LocalDateTime.now(), LocalDateTime.now());
     }
 
     @Override
@@ -120,7 +122,7 @@ public class ProjectHandlerImpl extends ResourceHandlerImpl<Project, ProjectFold
         CreateProjectVO createProjectVO = context.body().asPojo(CreateProjectVO.class);
         String name = createProjectVO.getName();
         UUID nodeId = UUID.randomUUID();
-        Project resource = new Project(nodeId, parentUuId, name, createProjectVO.getDesc(), createProjectVO.getIcon(), createProjectVO.getPath(), false, false, LocalDateTime.now(), LocalDateTime.now());
+        Project resource = new Project(nodeId, parentUuId, name, createProjectVO.getDesc(), createProjectVO.getIcon(), createProjectVO.getPath(), false, false, null, LocalDateTime.now(), LocalDateTime.now());
         Future<Boolean> validPath = resourceMapper.count(field(Project::getPath).eq(createProjectVO.getPath()), Map.of()).compose(c -> {
             if (c > 0) {
                 return Future.failedFuture(new ApiException(500, "项目路径已存在"));
@@ -143,5 +145,40 @@ public class ProjectHandlerImpl extends ResourceHandlerImpl<Project, ProjectFold
         UserProfile userProfile = context.user().get("user");
         PermissionConstants.Permission permission = PermissionConstants.PROJECT_READ.getPermission();
         return userProfile.getPermissions().containsKey(permission.toString());
+    }
+
+    @Override
+    public void getErrorResponse(RoutingContext context) {
+        String resourceId = context.pathParam("resourceId");
+        resourceMapper.getById(resourceId)
+                .compose(project -> {
+                    if (project == null) {
+                        return Future.<Project>failedFuture(new ApiException(500, "不存在的项目ID"));
+                    }
+                    return Future.succeededFuture(project);
+                })
+                .onSuccess(project -> context.end(Result.success(project.getErrorResponse()).toBuffer()))
+                .onFailure(context::fail);
+    }
+
+    @Override
+    public void editErrorResponse(RoutingContext context) {
+        String resourceId = context.pathParam("resourceId");
+        JsonObject errorResponse = context.body().asJsonObject();
+        resourceMapper.getById(resourceId)
+                .compose(project -> {
+                    if (project == null) {
+                        return Future.failedFuture(new ApiException(500, "不存在的项目ID"));
+                    }
+                    project.setErrorResponse(errorResponse);
+                    project.setUpdateTime(LocalDateTime.now());
+                    return resourceMapper.update(project).compose(ok -> {
+                        // 同步已部署执行器缓存,配置修改即刻生效
+                        ProjectManage.updateProject(project.getId(), project);
+                        return Future.succeededFuture(project.getErrorResponse());
+                    });
+                })
+                .onSuccess(ok -> context.end(Result.success(ok).toBuffer()))
+                .onFailure(context::fail);
     }
 }

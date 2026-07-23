@@ -13,6 +13,7 @@ export default {
   open: '打开',
   operation: '操作',
   processor: '处理器',
+  unifiedErrorResponse: '统一异常配置',
   folder: '文件夹',
   overview: '概览',
   createProject: '创建项目',

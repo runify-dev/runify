@@ -97,6 +97,8 @@ public class HttpProcessorExecutor extends ProcessorExecutor {
                 new HashMap<>() {{
                     put("pools", projectExecutor.getPools());
                     put("context", context);
+                    // 每次请求读最新项目引用,统一异常配置修改(ProjectManage.updateProject)即刻生效
+                    put("projectErrorResponse", projectExecutor.getProject().getErrorResponse());
                 }},
                 new HashMap<>(), (wm, node, chunk, aBoolean) -> {
             if (aBoolean) {

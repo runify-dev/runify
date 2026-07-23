@@ -13,6 +13,7 @@ export default {
   open: '開啟',
   operation: '操作',
   processor: '處理器',
+  unifiedErrorResponse: '統一異常配置',
   folder: '資料夾',
   overview: '概覽',
   createProject: '建立專案',
