@@ -29,7 +29,9 @@ export default {
     resumed: '继续生成…',
     stopped: '已停止，画布保留当前进度',
     retrying: '重试本轮…',
-    maxIterations: '已达到本轮次数上限，自动暂停；点击「继续」接着生成'
+    maxIterations: '已达到本轮次数上限，自动暂停；点击「继续」接着生成',
+    autoResumed: '已达轮次上限，自动续跑…',
+    budgetExhausted: '轮次预算耗尽，生成失败'
   },
   tool: {
     clear_workflow: '清空画布',
@@ -49,6 +51,25 @@ export default {
     get_database_columns: '获取表字段结构',
     validate_workflow: '校验工作流',
     locate_node: '定位节点',
+    list_processors: '查询处理器清单',
+    create_processor: '创建处理器',
+    update_processor: '更新处理器',
+    generate_workflow: '生成工作流（子代理）',
+    deploy_processor: '部署处理器',
     finish: '完成'
+  },
+  project: {
+    entry: 'AI 生成项目',
+    title: 'AI 生成项目',
+    newSession: '新建会话',
+    subtitle: '描述需求，AI 规划端点、创建处理器并并行生成工作流',
+    requirementPlaceholder: '描述你想要的项目，例如：生成一个博客系统后端——文章增删改查 API + 一个文章列表展示页面',
+    inputPlaceholder: '回复澄清，或继续补充需求…',
+    building: '正在搭建',
+    empty: '生成开始后，工作流画布会出现在这里',
+    queued: '排队中',
+    succeeded: '已完成',
+    invalid: '校验未通过',
+    failed: '生成失败'
   }
 }

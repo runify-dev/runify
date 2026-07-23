@@ -14,6 +14,7 @@ export default {
   operation: 'Actions',
   processor: 'Processor',
   unifiedErrorResponse: 'Unified Error Response',
+  aiGenerate: 'AI Generate Project',
   folder: 'Folder',
   overview: 'Overview',
   createProject: 'Create Project',

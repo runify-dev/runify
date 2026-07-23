@@ -1,4 +1,6 @@
 export default {
+  expand: 'Развернуть',
+  collapse: 'Свернуть',
   create: 'Создать',
   createSuccess: 'Успешно',
   copy: 'Копировать',

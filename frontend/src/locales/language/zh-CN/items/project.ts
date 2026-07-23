@@ -14,6 +14,7 @@ export default {
   operation: '操作',
   processor: '处理器',
   unifiedErrorResponse: '统一异常配置',
+  aiGenerate: 'AI 生成项目',
   folder: '文件夹',
   overview: '概览',
   createProject: '创建项目',

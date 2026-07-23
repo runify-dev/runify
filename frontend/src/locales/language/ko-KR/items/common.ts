@@ -1,4 +1,6 @@
 export default {
+  expand: '펼치기',
+  collapse: '접기',
   create: '생성',
   createSuccess: '성공',
   copy: '복사',

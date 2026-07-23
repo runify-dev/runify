@@ -29,7 +29,9 @@ export default {
     resumed: '再開中…',
     stopped: '停止しました。キャンバスは現状のまま保持されます',
     retrying: '再試行中…',
-    maxIterations: '反復回数の上限に達し自動的に一時停止しました。「再開」で続行できます'
+    maxIterations: '反復回数の上限に達し自動的に一時停止しました。「再開」で続行できます',
+    autoResumed: 'ラウンド上限に到達、自動的に続行します…',
+    budgetExhausted: 'ラウンド予算を使い切ったため生成に失敗しました'
   },
   tool: {
     clear_workflow: 'キャンバスをクリア',
@@ -49,6 +51,25 @@ export default {
     get_database_columns: 'カラム構造を取得',
     validate_workflow: 'ワークフローを検証',
     locate_node: 'ノードへ移動',
+    list_processors: 'プロセッサー一覧を取得',
+    create_processor: 'プロセッサーを作成',
+    update_processor: 'プロセッサーを更新',
+    generate_workflow: 'ワークフロー生成（サブエージェント）',
+    deploy_processor: 'プロセッサーをデプロイ',
     finish: '完了'
+  },
+  project: {
+    entry: 'AI プロジェクト生成',
+    title: 'AI プロジェクト生成',
+    newSession: '新規セッション',
+    subtitle: '要件を記述すると、AI がエンドポイントを設計し、プロセッサーを作成してワークフローを並行生成します',
+    requirementPlaceholder: '作りたいプロジェクトを記述してください。例：ブログシステムのバックエンド——記事の CRUD API と記事一覧ページ',
+    inputPlaceholder: '返信、または要件を追加…',
+    building: '構築中',
+    empty: '生成が始まるとワークフローキャンバスがここに表示されます',
+    queued: '待機中',
+    succeeded: '完了',
+    invalid: '検証未通過',
+    failed: '生成失敗'
   }
 }

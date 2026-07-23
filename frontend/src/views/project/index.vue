@@ -151,7 +151,8 @@ const isFlipped = ref<boolean>(
     'projectProcessor',
     'processorTable',
     'processorWorkflow',
-    'projectErrorResponse'
+    'projectErrorResponse',
+    'projectAiGenerate'
   ].includes(route.name as string)
 )
 const items = computed(() => [
@@ -167,6 +168,12 @@ const items = computed(() => [
     label: t('project.unifiedErrorResponse'),
     icon: 'pi pi-fw pi-shield p-1',
     activeNames: ['projectErrorResponse']
+  },
+  {
+    name: 'projectAiGenerate',
+    label: t('project.aiGenerate'),
+    icon: 'pi pi-fw pi-sparkles p-1',
+    activeNames: ['projectAiGenerate']
   }
 ])
 const expandedKeys = ref<TreeSelectionKeys>()

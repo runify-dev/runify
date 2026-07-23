@@ -29,7 +29,9 @@ export default {
     resumed: '繼續生成…',
     stopped: '已停止，畫布保留當前進度',
     retrying: '重試本輪…',
-    maxIterations: '已達到本輪次數上限，自動暫停；點擊「繼續」接著生成'
+    maxIterations: '已達到本輪次數上限，自動暫停；點擊「繼續」接著生成',
+    autoResumed: '已達輪次上限，自動續跑…',
+    budgetExhausted: '輪次預算耗盡，生成失敗'
   },
   tool: {
     clear_workflow: '清空畫布',
@@ -49,6 +51,25 @@ export default {
     get_database_columns: '獲取表字段結構',
     validate_workflow: '校驗工作流',
     locate_node: '定位節點',
+    list_processors: '查詢處理器清單',
+    create_processor: '建立處理器',
+    update_processor: '更新處理器',
+    generate_workflow: '生成工作流（子代理）',
+    deploy_processor: '部署處理器',
     finish: '完成'
+  },
+  project: {
+    entry: 'AI 生成專案',
+    title: 'AI 生成專案',
+    newSession: '新建會話',
+    subtitle: '描述需求，AI 規劃端點、建立處理器並平行生成工作流',
+    requirementPlaceholder: '描述你想要的專案，例如：生成一個部落格系統後端——文章增刪改查 API + 一個文章列表展示頁面',
+    inputPlaceholder: '回覆釐清，或繼續補充需求…',
+    building: '正在搭建',
+    empty: '生成開始後，工作流畫布會出現在這裡',
+    queued: '排隊中',
+    succeeded: '已完成',
+    invalid: '校驗未通過',
+    failed: '生成失敗'
   }
 }

@@ -29,7 +29,9 @@ export default {
     resumed: '재개 중…',
     stopped: '중지되었습니다. 캔버스는 현재 상태로 유지됩니다',
     retrying: '재시도 중…',
-    maxIterations: '반복 한도에 도달해 자동 일시 정지되었습니다. "계속"을 눌러 이어가세요'
+    maxIterations: '반복 한도에 도달해 자동 일시 정지되었습니다. "계속"을 눌러 이어가세요',
+    autoResumed: '라운드 한도 도달, 자동으로 계속 진행…',
+    budgetExhausted: '라운드 예산 소진, 생성 실패'
   },
   tool: {
     clear_workflow: '캔버스 초기화',
@@ -49,6 +51,25 @@ export default {
     get_database_columns: '컬럼 구조 조회',
     validate_workflow: '워크플로 검증',
     locate_node: '노드로 이동',
+    list_processors: '프로세서 목록 조회',
+    create_processor: '프로세서 생성',
+    update_processor: '프로세서 수정',
+    generate_workflow: '워크플로 생성(하위 에이전트)',
+    deploy_processor: '프로세서 배포',
     finish: '완료'
+  },
+  project: {
+    entry: 'AI 프로젝트 생성',
+    title: 'AI 프로젝트 생성',
+    newSession: '새 세션',
+    subtitle: '요구사항을 설명하면 AI가 엔드포인트를 설계하고 프로세서를 생성하며 워크플로를 병렬로 생성합니다',
+    requirementPlaceholder: '원하는 프로젝트를 설명하세요. 예: 블로그 시스템 백엔드 — 게시글 CRUD API와 목록 페이지',
+    inputPlaceholder: '답변하거나 요구사항을 추가하세요…',
+    building: '구축 중',
+    empty: '생성이 시작되면 워크플로 캔버스가 여기에 표시됩니다',
+    queued: '대기 중',
+    succeeded: '완료',
+    invalid: '검증 실패',
+    failed: '생성 실패'
   }
 }
