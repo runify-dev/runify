@@ -30,6 +30,11 @@ const RECIPES = `## 常见方案参考（规划时可借鉴，按需求组合变
   各工具节点（location="tool_call"，reference=[循环ID,"item"]）；如需把工具结果回喂模型多轮迭代，
   用外层 infinite 循环 + 循环变量 context + context-push 组合（参考各节点文档）。
 - 处理器没有对话会话：context-query-node / context-save-node 依赖会话标识，处理器场景不要使用。
+- 页面/大文本响应：response 用 contentType="plainText" 输出 HTML（正文在 plainText.value）。
+  若 requirement 给出部署前缀，页面 <head> 必须加 <base href="{前缀}/">，且页面内 fetch/资源用
+  相对路径（去掉开头的 "/"），否则请求漏掉前缀而 404。
+  **后续局部修改大文本时优先用 edit_node_text（查找-替换）而非 update_node 整体重写**——
+  先 get_node_detail 拿到当前文本，只发改动处的 {oldString,newString}，省 token、不易丢内容。
 - 最终必须有 response-node 把结果返回给 HTTP 调用方，否则接口无响应内容。`
 
 export function buildProcessorPrompt(): string {

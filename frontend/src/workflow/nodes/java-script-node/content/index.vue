@@ -66,6 +66,7 @@
     <Parameters
       ref="parametersRef"
       v-model:parameters="formData.parameters"
+      :errors="errors"
     />
   </div>
 </template>

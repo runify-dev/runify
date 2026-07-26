@@ -25,4 +25,11 @@ public interface IProcessorHandler {
      * @param context 上下文
      */
     void undeploy(RoutingContext context);
+
+    /**
+     * 删除处理器（先下线其端点，再删除实体）
+     *
+     * @param context 上下文
+     */
+    void delete(RoutingContext context);
 }

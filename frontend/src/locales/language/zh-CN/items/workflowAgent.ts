@@ -31,7 +31,8 @@ export default {
     retrying: '重试本轮…',
     maxIterations: '已达到本轮次数上限，自动暂停；点击「继续」接着生成',
     autoResumed: '已达轮次上限，自动续跑…',
-    budgetExhausted: '轮次预算耗尽，生成失败'
+    budgetExhausted: '轮次预算耗尽，生成失败',
+    awaiting: '等待你的回答…'
   },
   tool: {
     clear_workflow: '清空画布',
@@ -56,7 +57,13 @@ export default {
     update_processor: '更新处理器',
     generate_workflow: '生成工作流（子代理）',
     deploy_processor: '部署处理器',
-    finish: '完成'
+    undeploy_processor: '下线处理器',
+    execute_processor: '执行处理器',
+    delete_processor: '删除处理器',
+    finish: '完成',
+    ask_user: '请求澄清',
+    edit_node_text: '编辑文本',
+    update_blueprint: '更新项目规范'
   },
   project: {
     entry: 'AI 生成项目',
@@ -70,6 +77,8 @@ export default {
     queued: '排队中',
     succeeded: '已完成',
     invalid: '校验未通过',
-    failed: '生成失败'
+    failed: '生成失败',
+    answerPlaceholder: '输入你的回答…（Enter 发送）',
+    resumeFound: '发现未完成的会话'
   }
 }

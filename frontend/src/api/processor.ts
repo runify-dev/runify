@@ -50,4 +50,12 @@ const undeploy: (
     return post(`/project/${projectId}/processor/${processorId}/undeploy`, {}, {}, loading)
   }
 
-export default { createProcessor, pageProcessor, getProcessor, editProcessor, deploy, undeploy }
+const deleteProcessor: (
+  projectId: string,
+  processorId: string,
+  loading?: Ref<boolean>)
+  => Promise<Result<any>> = (projectId, processorId, loading) => {
+    return del(`/project/${projectId}/processor/${processorId}`, {}, {}, loading)
+  }
+
+export default { createProcessor, pageProcessor, getProcessor, editProcessor, deploy, undeploy, deleteProcessor }

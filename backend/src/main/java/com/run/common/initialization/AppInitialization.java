@@ -32,6 +32,7 @@ public class AppInitialization {
                              ModelRoute modelRoute,
                              ProjectRoute projectRoute,
                              ProcessorRoute processorRoute,
+                             ProjectAiRoute projectAiRoute,
                              RoleRoute roleRoute,
                              DatasourceRoute datasourceRoute,
                              SkillRoute skillRoute,
@@ -58,6 +59,7 @@ public class AppInitialization {
         projectRoute.init();
         datasourceRoute.init();
         processorRoute.init();
+        projectAiRoute.init();
         conversationRoute.init();
         roleRoute.init();
         integrationRoute.init();

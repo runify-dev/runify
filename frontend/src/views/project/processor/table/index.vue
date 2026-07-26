@@ -1,5 +1,6 @@
 <template>
   <div class="flex flex-col gap-4 p-4">
+    <ConfirmDialog />
     <!-- 顶部工具栏 -->
     <div class="flex items-center justify-between gap-4">
       <InputGroup class="max-w-sm">
@@ -117,9 +118,12 @@ import { type QueryProcessorVO } from '@/api/type/processor'
 import Expansion from './expansion/index.vue'
 import { useRouter, useRoute } from 'vue-router'
 import Paginator from 'primevue/paginator'
+import { useConfirm } from 'primevue/useconfirm'
+import bus from '@/bus'
 
 const router = useRouter()
 const route = useRoute()
+const confirm = useConfirm()
 const creareProcessorRef = ref<InstanceType<typeof CreareProcessor>>()
 const expandedRows = ref<any>()
 const treeCommonAPI: TreeCommonAPI = inject('treeCommonAPI') as TreeCommonAPI
@@ -151,7 +155,21 @@ const toSetting = (row: any) => {
 }
 
 const deleteProcessor = (processor: any) => {
-  // TODO: 实现删除逻辑
+  confirm.require({
+    message: t('common.deleteMessage', { name: processor.name }),
+    header: t('common.deleteConfirm'),
+    icon: 'pi pi-exclamation-triangle',
+    rejectProps: { label: t('common.cancel'), severity: 'secondary', variant: 'outlined' },
+    acceptProps: { label: t('common.delete'), severity: 'danger' },
+    accept: () => {
+      // 后端会先下线端点再删实体
+      processorAPI.deleteProcessor(projectId.value, processor.id).then(() => {
+        tableData.value = tableData.value.filter((p) => p.id !== processor.id)
+        total.value = Math.max(0, total.value - 1)
+        bus.emit('message:success', t('common.deleteSuccess'))
+      })
+    }
+  })
 }
 
 const openCreateProcessor = () => {

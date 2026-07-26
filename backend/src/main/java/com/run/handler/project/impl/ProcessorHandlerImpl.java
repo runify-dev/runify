@@ -160,4 +160,18 @@ public class ProcessorHandlerImpl implements IProcessorHandler {
                 }).onSuccess(processor -> context.end(Result.success(processor).toBuffer()))
                 .onFailure(context::fail);
     }
+
+    @Override
+    public void delete(RoutingContext context) {
+        String processorId = context.pathParam("processorId");
+        processorMapper.getById(processorId).compose(processor -> {
+                    if (processor == null) {
+                        return Future.failedFuture(new ApiException(500, "不存在的处理器ID"));
+                    }
+                    // 先下线端点（未部署时也安全），再删除实体
+                    ProjectManage.unDeploy(processor.getProjectId(), processor.getId());
+                    return processorMapper.deleteById(processorId).map(ok -> Boolean.TRUE);
+                }).onSuccess(ok -> context.end(Result.success(ok).toBuffer()))
+                .onFailure(context::fail);
+    }
 }

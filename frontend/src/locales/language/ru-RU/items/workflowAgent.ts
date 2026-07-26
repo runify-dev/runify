@@ -32,7 +32,8 @@ export default {
     retrying: 'Повтор…',
     maxIterations: 'Достигнут лимит итераций, автопауза. Нажмите «Продолжить»',
     autoResumed: 'Достигнут лимит итераций, автоматическое продолжение…',
-    budgetExhausted: 'Бюджет итераций исчерпан, генерация не удалась'
+    budgetExhausted: 'Бюджет итераций исчерпан, генерация не удалась',
+    awaiting: 'Ожидание вашего ответа…'
   },
   tool: {
     clear_workflow: 'Очистка холста',
@@ -57,7 +58,13 @@ export default {
     update_processor: 'Обновить процессор',
     generate_workflow: 'Генерация workflow (суб-агент)',
     deploy_processor: 'Развернуть процессор',
-    finish: 'Готово'
+    undeploy_processor: 'Снять процессор',
+    execute_processor: 'Выполнить процессор',
+    delete_processor: 'Удалить процессор',
+    finish: 'Готово',
+    ask_user: 'Запросить уточнение',
+    edit_node_text: 'Редактировать текст',
+    update_blueprint: 'Обновить регламент'
   },
   project: {
     entry: 'ИИ-генерация проекта',
@@ -71,6 +78,8 @@ export default {
     queued: 'В очереди',
     succeeded: 'Готово',
     invalid: 'Не прошло валидацию',
-    failed: 'Ошибка генерации'
+    failed: 'Ошибка генерации',
+    answerPlaceholder: 'Введите ваш ответ… (Enter для отправки)',
+    resumeFound: 'Найдена незавершённая сессия'
   }
 }
