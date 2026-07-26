@@ -6,6 +6,7 @@ import com.run.dao.common.convert.annotations.For;
 import io.vertx.core.json.JsonArray;
 import io.vertx.sqlclient.Row;
 import lombok.SneakyThrows;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * {@code @Author:张少虎}
@@ -24,6 +25,11 @@ public class JsonArrayConverter extends AbstractConverter<JsonArray, String> {
 
     @Override
     public JsonArray deserialize(Row row, String column) {
-        return JacksonUtils.fromJson(row.getString(column), JsonArray.class);
+        String value = row.getString(column);
+        if (StringUtils.isNotEmpty(value)) {
+            return JacksonUtils.fromJson(row.getString(column), JsonArray.class);
+        }
+        return null;
+
     }
 }

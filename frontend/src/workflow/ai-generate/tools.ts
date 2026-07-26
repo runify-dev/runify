@@ -28,6 +28,32 @@ import {
 // 引擎类型 WorkflowAgentContext / ToolExecution 见 ./types；画布操作辅助见 ./canvas-ops。
 // 本文件只负责通用工具的 executors 与 schemas 定义、下发与解析。
 
+/** 按点路径读取 nodeData 内的值（仅 a.b.c 形式，不含数组下标） */
+function getByPath(obj: any, path: string): any {
+  return path.split('.').reduce((cur, key) => (cur == null ? undefined : cur[key]), obj)
+}
+/** 按点路径写入（中间缺失的对象自动补齐） */
+function setByPath(obj: any, path: string, value: any): void {
+  const keys = path.split('.')
+  const last = keys.pop() as string
+  let cur = obj
+  for (const key of keys) {
+    if (cur[key] == null || typeof cur[key] !== 'object') cur[key] = {}
+    cur = cur[key]
+  }
+  cur[last] = value
+}
+/** 子串非重叠出现次数 */
+function countOccurrences(text: string, sub: string): number {
+  let count = 0
+  let idx = text.indexOf(sub)
+  while (idx !== -1) {
+    count++
+    idx = text.indexOf(sub, idx + sub.length)
+  }
+  return count
+}
+
 export const toolExecutors: Record<string, ToolExecution> = {
   get_node_schema: {
     mutating: false,
@@ -154,6 +180,59 @@ export const toolExecutors: Record<string, ToolExecution> = {
           : {}),
         ...(warnings.length ? { warnings } : {})
       }
+    }
+  },
+
+  edit_node_text: {
+    mutating: true,
+    execute: ({ nodeId, field, edits, parentLoopId }, ctx) => {
+      if (nodeId === START_NODE_ID || nodeId === LOOP_START_NODE_ID) {
+        throw new Error('开始节点不支持文本编辑')
+      }
+      if (!field || typeof field !== 'string') {
+        throw new Error('field 不能为空（指向要编辑的文本字段的点路径，如页面正文为 "plainText.value"）')
+      }
+      if (!Array.isArray(edits) || !edits.length) throw new Error('edits 不能为空')
+      const node = requireScopedNode(ctx, nodeId, parentLoopId)
+      // 在克隆上应用，全部替换成功才提交——任一 edit 失败则整批不生效（原子）
+      const nodeData = cloneDeep(node.properties.nodeData ?? {})
+      const current = getByPath(nodeData, field)
+      if (typeof current !== 'string') {
+        throw new Error(
+          `字段 ${field} 不是文本（先 get_node_detail 核对路径；当前为 ${current === undefined ? '不存在' : typeof current}）`
+        )
+      }
+      let text = current
+      edits.forEach((edit: any, i: number) => {
+        const oldString = edit?.oldString
+        const newString = edit?.newString ?? ''
+        if (typeof oldString !== 'string' || oldString === '') {
+          throw new Error(`edits[${i}].oldString 不能为空`)
+        }
+        if (typeof newString !== 'string') throw new Error(`edits[${i}].newString 必须是字符串`)
+        const count = countOccurrences(text, oldString)
+        if (count === 0) {
+          throw new Error(`edits[${i}] 未匹配到 oldString（需与当前文本逐字符一致，先 get_node_detail 核对）`)
+        }
+        if (count > 1 && !edit.replaceAll) {
+          throw new Error(
+            `edits[${i}].oldString 在文本中出现 ${count} 次，不唯一：请扩充上下文使其唯一，或设 replaceAll=true`
+          )
+        }
+        if (edit.replaceAll) {
+          text = text.split(oldString).join(newString)
+        } else {
+          // 索引替换避免 String.replace 对 $ 的特殊解释
+          const idx = text.indexOf(oldString)
+          text = text.slice(0, idx) + newString + text.slice(idx + oldString.length)
+        }
+      })
+      setByPath(nodeData, field, text)
+      node.properties.nodeData = nodeData
+      refreshNodeProperties(ctx.profile.catalog, node.type, node.properties)
+      if (parentLoopId) queueLoopRefresh(parentLoopId)
+      // 不回显全文（否则失去省 token 的意义），只回执行摘要
+      return { nodeId, field, applied: edits.length, length: text.length }
     }
   },
 
@@ -471,6 +550,44 @@ export const toolSchemas = [
           parentLoopId: parentLoopIdSchema
         },
         required: ['nodeId']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'edit_node_text',
+      description:
+        '对节点某个大文本字段做精确的查找-替换编辑（局部改动，不必整体重写），适合页面 HTML、脚本、长提示词等大字符串。' +
+        '先 get_node_detail 拿到当前文本，再提交若干 {oldString,newString} 替换。' +
+        'oldString 必须与当前文本逐字符一致且唯一（否则整批不生效并报错，需扩充上下文使其唯一或设 replaceAll）。' +
+        '相比 update_node 整体覆盖，改一处只需发送该处上下文，省 token、不易丢内容。',
+      parameters: {
+        type: 'object',
+        properties: {
+          nodeId: { type: 'string', description: '节点 id' },
+          field: {
+            type: 'string',
+            description:
+              '要编辑的文本字段在 nodeData 内的点路径，以 get_node_detail 返回的结构为准。' +
+              '如页面响应正文为 "plainText.value"、java-script 节点脚本为 "script"'
+          },
+          edits: {
+            type: 'array',
+            description: '一组查找-替换，按顺序应用；任一 oldString 未匹配或不唯一则整批不生效',
+            items: {
+              type: 'object',
+              properties: {
+                oldString: { type: 'string', description: '要被替换的原文（与当前文本逐字符一致）' },
+                newString: { type: 'string', description: '替换后的新文本' },
+                replaceAll: { type: 'boolean', description: '替换全部匹配（默认 false，仅替换唯一一处）' }
+              },
+              required: ['oldString', 'newString']
+            }
+          },
+          parentLoopId: parentLoopIdSchema
+        },
+        required: ['nodeId', 'field', 'edits']
       }
     }
   },

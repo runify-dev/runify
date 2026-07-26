@@ -32,7 +32,8 @@ export default {
     retrying: 'Retrying…',
     maxIterations: 'Iteration budget reached, auto paused. Click "Resume" to continue',
     autoResumed: 'Iteration budget reached, auto resuming…',
-    budgetExhausted: 'Iteration budget exhausted, generation failed'
+    budgetExhausted: 'Iteration budget exhausted, generation failed',
+    awaiting: 'Waiting for your reply…'
   },
   tool: {
     clear_workflow: 'Clear canvas',
@@ -57,7 +58,13 @@ export default {
     update_processor: 'Update processor',
     generate_workflow: 'Generate workflow (sub-agent)',
     deploy_processor: 'Deploy processor',
-    finish: 'Finish'
+    undeploy_processor: 'Undeploy processor',
+    execute_processor: 'Execute processor',
+    delete_processor: 'Delete processor',
+    finish: 'Finish',
+    ask_user: 'Ask for clarification',
+    edit_node_text: 'Edit text',
+    update_blueprint: 'Update conventions'
   },
   project: {
     entry: 'AI Generate Project',
@@ -71,6 +78,8 @@ export default {
     queued: 'Queued',
     succeeded: 'Done',
     invalid: 'Validation failed',
-    failed: 'Failed'
+    failed: 'Failed',
+    answerPlaceholder: 'Type your answer… (Enter to send)',
+    resumeFound: 'Found an unfinished session'
   }
 }

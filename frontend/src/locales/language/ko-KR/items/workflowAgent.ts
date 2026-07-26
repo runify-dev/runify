@@ -31,7 +31,8 @@ export default {
     retrying: '재시도 중…',
     maxIterations: '반복 한도에 도달해 자동 일시 정지되었습니다. "계속"을 눌러 이어가세요',
     autoResumed: '라운드 한도 도달, 자동으로 계속 진행…',
-    budgetExhausted: '라운드 예산 소진, 생성 실패'
+    budgetExhausted: '라운드 예산 소진, 생성 실패',
+    awaiting: '답변을 기다리는 중…'
   },
   tool: {
     clear_workflow: '캔버스 초기화',
@@ -56,7 +57,13 @@ export default {
     update_processor: '프로세서 수정',
     generate_workflow: '워크플로 생성(하위 에이전트)',
     deploy_processor: '프로세서 배포',
-    finish: '완료'
+    undeploy_processor: '프로세서 오프라인',
+    execute_processor: '프로세서 실행',
+    delete_processor: '프로세서 삭제',
+    finish: '완료',
+    ask_user: '설명 요청',
+    edit_node_text: '텍스트 편집',
+    update_blueprint: '프로젝트 규약 업데이트'
   },
   project: {
     entry: 'AI 프로젝트 생성',
@@ -70,6 +77,8 @@ export default {
     queued: '대기 중',
     succeeded: '완료',
     invalid: '검증 실패',
-    failed: '생성 실패'
+    failed: '생성 실패',
+    answerPlaceholder: '답변을 입력하세요…(Enter로 전송)',
+    resumeFound: '완료되지 않은 세션을 발견했습니다'
   }
 }

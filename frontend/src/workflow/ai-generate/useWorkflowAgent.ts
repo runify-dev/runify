@@ -3,7 +3,7 @@ import { resolveToolExecutor, buildActiveToolSchemas } from './tools'
 import { flushLoopRefresh, buildWorkflowSnapshot, hasCanvasContent } from './canvas-ops'
 import type { WorkflowAgentContext } from './types'
 
-export type { AgentStatus, LogItem, PlanItem } from './useAgentLoop'
+export type { AgentStatus, LogItem, PlanItem, PendingAsk } from './useAgentLoop'
 
 /**
  * 用户消息自动附带画布结构快照：修改场景不能依赖模型自觉调 get_workflow，

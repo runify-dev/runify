@@ -68,6 +68,10 @@ public class ProcessorRoute implements IRoute {
                 .handler(tokenBasicAuthHandler)
                 .handler(processorHandler::undeploy);
 
+        apiRoute.delete("/project/:projectId/processor/:processorId")
+                .handler(tokenBasicAuthHandler)
+                .handler(processorHandler::delete);
+
     }
 
     @Override

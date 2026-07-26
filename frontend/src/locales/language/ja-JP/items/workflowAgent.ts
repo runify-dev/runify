@@ -31,7 +31,8 @@ export default {
     retrying: '再試行中…',
     maxIterations: '反復回数の上限に達し自動的に一時停止しました。「再開」で続行できます',
     autoResumed: 'ラウンド上限に到達、自動的に続行します…',
-    budgetExhausted: 'ラウンド予算を使い切ったため生成に失敗しました'
+    budgetExhausted: 'ラウンド予算を使い切ったため生成に失敗しました',
+    awaiting: '回答をお待ちしています…'
   },
   tool: {
     clear_workflow: 'キャンバスをクリア',
@@ -56,7 +57,13 @@ export default {
     update_processor: 'プロセッサーを更新',
     generate_workflow: 'ワークフロー生成（サブエージェント）',
     deploy_processor: 'プロセッサーをデプロイ',
-    finish: '完了'
+    undeploy_processor: 'プロセッサーをオフライン化',
+    execute_processor: 'プロセッサーを実行',
+    delete_processor: 'プロセッサーを削除',
+    finish: '完了',
+    ask_user: '確認を依頼',
+    edit_node_text: 'テキスト編集',
+    update_blueprint: 'プロジェクト規約を更新'
   },
   project: {
     entry: 'AI プロジェクト生成',
@@ -70,6 +77,8 @@ export default {
     queued: '待機中',
     succeeded: '完了',
     invalid: '検証未通過',
-    failed: '生成失敗'
+    failed: '生成失敗',
+    answerPlaceholder: '回答を入力…（Enter で送信）',
+    resumeFound: '未完了のセッションが見つかりました'
   }
 }

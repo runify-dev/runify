@@ -31,7 +31,8 @@ export default {
     retrying: '重試本輪…',
     maxIterations: '已達到本輪次數上限，自動暫停；點擊「繼續」接著生成',
     autoResumed: '已達輪次上限，自動續跑…',
-    budgetExhausted: '輪次預算耗盡，生成失敗'
+    budgetExhausted: '輪次預算耗盡，生成失敗',
+    awaiting: '等待你的回答…'
   },
   tool: {
     clear_workflow: '清空畫布',
@@ -56,7 +57,13 @@ export default {
     update_processor: '更新處理器',
     generate_workflow: '生成工作流（子代理）',
     deploy_processor: '部署處理器',
-    finish: '完成'
+    undeploy_processor: '下線處理器',
+    execute_processor: '執行處理器',
+    delete_processor: '刪除處理器',
+    finish: '完成',
+    ask_user: '請求澄清',
+    edit_node_text: '編輯文本',
+    update_blueprint: '更新專案規範'
   },
   project: {
     entry: 'AI 生成專案',
@@ -70,6 +77,8 @@ export default {
     queued: '排隊中',
     succeeded: '已完成',
     invalid: '校驗未通過',
-    failed: '生成失敗'
+    failed: '生成失敗',
+    answerPlaceholder: '輸入你的回答…（Enter 發送）',
+    resumeFound: '發現未完成的會話'
   }
 }
