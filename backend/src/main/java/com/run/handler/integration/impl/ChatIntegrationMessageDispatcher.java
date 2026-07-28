@@ -10,6 +10,7 @@ import com.run.dao.entity.Integration;
 import com.run.dao.mapper.ApplicationMapper;
 import com.run.dao.mapper.ConversationMapper;
 import com.run.dao.mapper.ConversationMessageMapper;
+import com.run.handler.version.VersionService;
 import com.run.handler.integration.IIntegrationMessageDispatcher;
 import com.run.workflow.INode;
 import com.run.workflow.WorkFlowManage;
@@ -49,14 +50,17 @@ public class ChatIntegrationMessageDispatcher implements IIntegrationMessageDisp
     private final ApplicationMapper applicationMapper;
     private final ConversationMapper conversationMapper;
     private final ConversationMessageMapper conversationMessageMapper;
+    private final VersionService versionService;
 
     @Inject
     public ChatIntegrationMessageDispatcher(ApplicationMapper applicationMapper,
                                             ConversationMapper conversationMapper,
-                                            ConversationMessageMapper conversationMessageMapper) {
+                                            ConversationMessageMapper conversationMessageMapper,
+                                            VersionService versionService) {
         this.applicationMapper = applicationMapper;
         this.conversationMapper = conversationMapper;
         this.conversationMessageMapper = conversationMessageMapper;
+        this.versionService = versionService;
     }
 
     @Override
@@ -109,8 +113,9 @@ public class ChatIntegrationMessageDispatcher implements IIntegrationMessageDisp
 
             return conversationMessageMapper.save(userMessage)
                     .compose(ok -> loadHistory(conversationId))
-                    .compose(history -> applicationMapper.getById(applicationId.toString())
-                            .compose(app -> runWorkflow(app.getWorkflow(), conversationId, applicationId, workflowRunId, history, question, onDelta, onSegment)));
+                    // IM 属线上入口: 读「已发布版本」工作流
+                    .compose(history -> versionService.effectiveWorkflow(applicationId)
+                            .compose(workflow -> runWorkflow(workflow, conversationId, applicationId, workflowRunId, history, question, onDelta, onSegment)));
         });
     }
 

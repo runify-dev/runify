@@ -85,6 +85,43 @@ public class ApplicationRoute implements IRoute {
                         .build())
                 .handler(applicationHandler::edit);
 
+        apiRoute.post("/application/resources/:resourceId/publish")
+                .handler(BodyHandler.create())
+                .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.APPLICATION_EDIT)
+                                .addPermission(PermissionConstants.APPLICATION_EDIT.getResourcePermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
+                .handler(applicationHandler::publish);
+
+        apiRoute.get("/application/resources/:resourceId/versions")
+                .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.APPLICATION_READ)
+                                .addPermission(PermissionConstants.APPLICATION_READ.getFolderPermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
+                .handler(applicationHandler::listVersions);
+
+        apiRoute.get("/application/resources/:resourceId/versions/:versionId")
+                .handler(tokenBasicAuthHandler)
+                .handler(Authenticator.builder()
+                        .addPermission(AggregatePermission.builder()
+                                .addPermission(PermissionConstants.APPLICATION_READ)
+                                .addPermission(PermissionConstants.APPLICATION_READ.getFolderPermission())
+                                .compare(PermissionConstants.Compare.AND).build())
+                        .addRole(PermissionConstants.Role.ADMIN)
+                        .compare(PermissionConstants.Compare.OR)
+                        .build())
+                .handler(applicationHandler::getVersion);
+
         apiRoute.delete("/application/resources/:resourceId")
                 .handler(tokenBasicAuthHandler)
                 .handler(Authenticator.builder()
