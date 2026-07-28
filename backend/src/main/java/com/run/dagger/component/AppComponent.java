@@ -31,6 +31,14 @@ public interface AppComponent {
 
     SkillFileMapper skillFileMapper();
 
+    ToolMapper toolMapper();
+
+    ToolFolderMapper toolFolderMapper();
+
+    ToolRelationMapper toolRelationMapper();
+
+    ToolPermissionMapper toolPermissionMapper();
+
     DatasourceMapper dataSourceMapper();
 
     FileMapper fileMapper();

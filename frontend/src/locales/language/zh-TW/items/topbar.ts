@@ -13,6 +13,7 @@ export default {
     skill: '技能',
     datasource: '資料來源',
     project: '專案',
-    integration: '整合'
+    integration: '整合',
+    tool: '工具'
   }
 }

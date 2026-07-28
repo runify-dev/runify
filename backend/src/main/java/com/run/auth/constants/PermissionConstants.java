@@ -80,6 +80,14 @@ public enum PermissionConstants {
     INTEGRATION_FOLDER_DELETE(new Permission(Group.INTEGRATION, Group.FOLDER, Operate.DELETE, 5), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
     INTEGRATION_FOLDER_CREATE(new Permission(Group.INTEGRATION, Group.FOLDER, Operate.CREATE, 6), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
 
+    TOOL_READ(new Permission(Group.TOOL, Group.TOOL, Operate.READ, 0), List.of(ResourcePermissionGroup.VIEW, ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    TOOL_EDIT(new Permission(Group.TOOL, Group.TOOL, Operate.EDIT, 1), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    TOOL_DELETE(new Permission(Group.TOOL, Group.TOOL, Operate.DELETE, 2), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    TOOL_CREATE(new Permission(Group.TOOL, Group.TOOL, Operate.CREATE, 3), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    TOOL_FOLDER_EDIT(new Permission(Group.TOOL, Group.FOLDER, Operate.EDIT, 4), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    TOOL_FOLDER_DELETE(new Permission(Group.TOOL, Group.FOLDER, Operate.DELETE, 5), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+    TOOL_FOLDER_CREATE(new Permission(Group.TOOL, Group.FOLDER, Operate.CREATE, 6), List.of(ResourcePermissionGroup.MANAGE), List.of(Role.ADMIN, Role.USER)),
+
     /**
      * ---------------------------系统权限---------------------------------------------------------------------------
      */
@@ -111,6 +119,7 @@ public enum PermissionConstants {
         SKILL,
         KNOWLEDGE,
         INTEGRATION,
+        TOOL,
         USER_MANAGEMENT,
         ROLE_MANAGEMENT,
         /*--------下面是子菜单 -------------------- */

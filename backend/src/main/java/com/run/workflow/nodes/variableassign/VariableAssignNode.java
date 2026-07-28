@@ -32,7 +32,9 @@ public class VariableAssignNode extends INode<VariableAssignNode, VariableAssign
             WorkflowType.CHAT_WORKFLOW,
             WorkflowType.CHAT_WORKFLOW_LOOP,
             WorkflowType.PROCESSOR_HTTP,
-            WorkflowType.PROCESSOR_HTTP_LOOP
+            WorkflowType.PROCESSOR_HTTP_LOOP,
+            WorkflowType.TOOL,
+            WorkflowType.TOOL_LOOP
     );
 
     public VariableAssignNode(Node node, JsonObject params, List<String> upNodeIdList, String salt, INode<?, ?> upNode) {
@@ -67,7 +69,7 @@ public class VariableAssignNode extends INode<VariableAssignNode, VariableAssign
 
                     // 获取要赋的值
                     Object value = getValue(item, workFlowManage);
-                    if (List.of(WorkflowType.CHAT_WORKFLOW_LOOP, WorkflowType.PROCESSOR_HTTP_LOOP).contains(workFlowManage.getWorkFlow().getWorkflowType())) {
+                    if (List.of(WorkflowType.CHAT_WORKFLOW_LOOP, WorkflowType.PROCESSOR_HTTP_LOOP, WorkflowType.TOOL_LOOP).contains(workFlowManage.getWorkFlow().getWorkflowType())) {
                         LoopWorkFlowManage loopWorkFlowManage = (LoopWorkFlowManage) workFlowManage;
                         loopWorkFlowManage.writeLoopContext(variablePath.getFirst(), variableName, value);
                     } else {

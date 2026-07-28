@@ -22,5 +22,13 @@ public enum WorkflowType {
     /**
      * 处理器循环子工作流
      */
-    PROCESSOR_HTTP_LOOP
+    PROCESSOR_HTTP_LOOP,
+    /**
+     * 工具工作流
+     */
+    TOOL,
+    /**
+     * 工具循环子工作流
+     */
+    TOOL_LOOP
 }

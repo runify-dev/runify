@@ -1,12 +1,15 @@
 import type { ValidationResult } from '@/workflow/common/type'
 import { validate as validateApplication } from './application/validator'
 import { validate as validateProcessor } from './processor/validator'
+import { validate as validateTool } from './tool/validator'
 import { WorkflowType } from '@/workflow/common/data'
 
 const validatorMap: Record<string, (nodeData: Record<string, any> | undefined) => ValidationResult> = {
-  [WorkflowType.APPLICATION]: validateApplication, 
+  [WorkflowType.APPLICATION]: validateApplication,
    [WorkflowType.APPLICATION_LOOP]: validateApplication,
-  [WorkflowType.PROCESSOR]: validateProcessor
+  [WorkflowType.PROCESSOR]: validateProcessor,
+  [WorkflowType.TOOL]: validateTool,
+  [WorkflowType.TOOL_LOOP]: validateTool
 }
 
 export function validate(

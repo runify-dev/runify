@@ -96,6 +96,15 @@ const useProvide = (model: any) => {
           children: startNode?.properties?.globalFieldList || []
         })
       }
+      // 工具的「参数输出」命名空间：变量赋值写 output.<字段> 即工具返回值，与 global(暂存)隔离
+      if(startNode?.properties?.outputFieldList&&startNode?.properties?.outputFieldList.length>0){
+        result.push({
+          label: '参数输出',
+          disabled: true,
+          value: 'output',
+          children: startNode?.properties?.outputFieldList || []
+        })
+      }
 
     }
     const getParentModel= model.graphModel.getParentModel;

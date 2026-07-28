@@ -13,6 +13,7 @@ export default {
     skill: 'Навыки',
     datasource: 'Источники данных',
     project: 'Проекты',
-    integration: 'Интеграции'
+    integration: 'Интеграции',
+    tool: 'Инструменты'
   }
 }

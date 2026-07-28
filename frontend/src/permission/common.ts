@@ -12,7 +12,8 @@ export enum Group {
   DATASOURCE = "DATASOURCE",
   SKILL = "SKILL",
   KNOWLEDGE = "KNOWLEDGE",
-  INTEGRATION = "INTEGRATION"
+  INTEGRATION = "INTEGRATION",
+  TOOL = "TOOL"
 }
 
 export enum Operate {

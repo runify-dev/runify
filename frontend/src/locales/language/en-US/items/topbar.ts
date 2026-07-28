@@ -13,6 +13,7 @@ export default {
     skill: 'Skills',
     datasource: 'Datasources',
     project: 'Projects',
-    integration: 'Integrations'
+    integration: 'Integrations',
+    tool: 'Tools'
   }
 }

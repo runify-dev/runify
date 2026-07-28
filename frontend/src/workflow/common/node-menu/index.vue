@@ -11,7 +11,10 @@ const kw = {
   [WorkflowType.APPLICATION]: applicationMenu,
   [WorkflowType.PROCESSOR]: processorMenu,
   [WorkflowType.APPLICATION_LOOP]: applicationLoopMenu,
-  [WorkflowType.PROCESSOR_LOOP]: processorLoopMenu
+  [WorkflowType.PROCESSOR_LOOP]: processorLoopMenu,
+  // 工具工作流暂复用 processor 节点集
+  [WorkflowType.TOOL]: processorMenu,
+  [WorkflowType.TOOL_LOOP]: processorLoopMenu
 }
 defineProps<{
   workflowType: WorkflowType
