@@ -78,6 +78,11 @@ public class Application implements BaseEntity<Application> {
      */
     @Column(name = "allow_anonymous_access")
     private Boolean allowAnonymousAccess;
+    /**
+     * 应用类型：agent | search | workflow
+     */
+    @Column(name = "app_type")
+    private String appType;
 
     @Column(name = "create_time")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")

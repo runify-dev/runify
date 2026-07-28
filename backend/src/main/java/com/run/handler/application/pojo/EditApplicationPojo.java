@@ -23,4 +23,5 @@ public class EditApplicationPojo {
     private String icon;
     private Boolean allowAnonymousAccess;
     private JsonObject workflow;
+    private String appType;
 }

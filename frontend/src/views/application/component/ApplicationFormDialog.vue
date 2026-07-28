@@ -65,6 +65,26 @@
         />
       </div>
 
+      <!-- 应用类型（仅编辑模式显示） -->
+      <div v-if="isEdit" class="flex flex-col gap-1.5">
+        <label class="text-sm font-medium text-surface-700">{{ t('application.form.appType') }}</label>
+        <!-- 类型为空：让用户选择 -->
+        <Select
+          v-if="!originalAppType"
+          v-model="form.appType"
+          :options="appTypeOptions"
+          optionLabel="label"
+          optionValue="value"
+          :placeholder="t('application.form.selectAppType')"
+          class="w-full"
+        />
+        <!-- 类型已设置：只读显示 -->
+        <div v-else class="flex items-center gap-1.5 px-3 py-2 rounded-md bg-surface-100 dark:bg-surface-800 text-sm text-surface-600 dark:text-surface-400">
+          <i :class="appTypeIconMap[originalAppType] || 'pi pi-th-large'" class="text-xs"/>
+          {{ appTypeLabelMap[originalAppType] || t('application.appLabel') }}
+        </div>
+      </div>
+
       <!-- 是否匿名 -->
       <div class="flex items-center gap-3">
         <ToggleSwitch v-model="form.allowAnonymousAccess"/>
@@ -99,11 +119,32 @@ const editData = ref<any>(null)
 
 const isEdit = computed(() => !!editData.value)
 
+const originalAppType = ref<string | null>(null)
+
+const appTypeOptions = [
+  { label: t('application.createTypes.agent.label'), value: 'agent' },
+  { label: t('application.createTypes.knowledge.label'), value: 'search' },
+  { label: t('application.createTypes.custom.label'), value: 'workflow' }
+]
+
+const appTypeIconMap: Record<string, string> = {
+  'agent': 'pi pi-android',
+  'search': 'pi pi-book',
+  'workflow': 'pi pi-file'
+}
+
+const appTypeLabelMap: Record<string, string> = {
+  'agent': t('application.createTypes.agent.label'),
+  'search': t('application.createTypes.knowledge.label'),
+  'workflow': t('application.createTypes.custom.label')
+}
+
 const form = reactive({
   name: '',
   icon: '',
   desc: '',
-  allowAnonymousAccess: false
+  allowAnonymousAccess: false,
+  appType: '' as string
 })
 
 const resetForm = () => {
@@ -111,6 +152,8 @@ const resetForm = () => {
   form.icon = ''
   form.desc = ''
   form.allowAnonymousAccess = false
+  form.appType = ''
+  originalAppType.value = null
 }
 
 const triggerFileInput = () => {
@@ -138,7 +181,8 @@ const submit = () => {
     desc: form.desc,
     icon: form.icon,
     allowAnonymousAccess: form.allowAnonymousAccess,
-    workflow: isEdit.value?null:getWorkflowCall('customize')()
+    appType: isEdit.value ? (form.appType || undefined) : 'workflow',
+    workflow: isEdit.value ? null : getWorkflowCall('customize')()
   }
 
   if (isEdit.value) {
@@ -170,6 +214,8 @@ const openEdit = (data: any) => {
   form.icon = data.icon || ''
   form.desc = data.desc || ''
   form.allowAnonymousAccess = data.allowAnonymousAccess || false
+  form.appType = ''
+  originalAppType.value = data.appType || null
   visible.value = true
 }
 

@@ -153,6 +153,7 @@ const submit = () => {
     desc: form.desc,
     icon: form.icon,
     allowAnonymousAccess: form.allowAnonymousAccess,
+    appType: 'agent',
     workflow: getWorkflowCall('agent')(form.modelId)
   }
 

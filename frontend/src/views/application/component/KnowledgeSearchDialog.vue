@@ -173,6 +173,7 @@ const submit = () => {
     desc: form.desc,
     icon: form.icon,
     allowAnonymousAccess: form.allowAnonymousAccess,
+    appType: 'search',
     workflow: getWorkflowCall('search')(form.modelId, form.knowledgeIds)
   }
 

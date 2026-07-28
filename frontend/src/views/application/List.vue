@@ -83,11 +83,15 @@
             </p>
           </template>
           <template #footer>
-            <div class="flex items-center justify-between pt-2.5 border-t" style="border-color: var(--p-content-border-color);">
-              <span class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300">
-                {{ t('application.appLabel') }}
+            <div class="flex items-center justify-between gap-2 pt-2.5 border-t" style="border-color: var(--p-content-border-color);">
+              <span
+                class="text-[11px] font-medium px-1.5 py-0.5 rounded-full inline-flex items-center gap-0.5 shrink-0"
+                :class="getTypeBadgeClass(getAppType(item))"
+              >
+                <i :class="getTypeIcon(getAppType(item))" class="text-[9px]"/>
+                {{ getShortTypeLabel(getAppType(item)) }}
               </span>
-              <span class="flex items-center gap-1 text-[11px] text-surface-400">
+              <span class="flex items-center gap-1 text-[11px] text-surface-400 shrink-0 whitespace-nowrap">
                 <i class="pi pi-clock text-[10px]"/>
                 {{ item.updateTime }}
               </span>
@@ -229,6 +233,42 @@ const toggleMenu = (event: Event, item: Node) => {
   activeItem.value = item
   menuRef.value?.toggle(event)
 }
+
+// 从应用数据中获取类型（可能为 null/undefined）
+const getAppType = (item: Node): string | null => {
+  return (item as any).appType || null
+}
+
+// 获取应用类型的图标（与新建菜单保持一致）
+const getTypeIcon = (appType: string | null) => {
+  const iconMap: Record<string, string> = {
+    'agent': 'pi pi-android',
+    'search': 'pi pi-book',
+    'workflow': 'pi pi-file'
+  }
+  return iconMap[appType || ''] || 'pi pi-th-large'
+}
+
+// 获取应用类型的短标签（用于 footer 紧凑显示）
+const getShortTypeLabel = (appType: string | null) => {
+  const labelMap: Record<string, string> = {
+    'agent': t('application.shortTypes.agent'),
+    'search': t('application.shortTypes.search'),
+    'workflow': t('application.shortTypes.workflow')
+  }
+  return labelMap[appType || ''] || t('application.appLabel')
+}
+
+// 获取应用类型标签的样式类
+const getTypeBadgeClass = (appType: string | null) => {
+  const classMap: Record<string, string> = {
+    'agent': 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300',
+    'search': 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-300',
+    'workflow': 'bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300'
+  }
+  return classMap[appType || ''] || 'bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300'
+}
+
 
 const openCreateApplication = (type?: string) => {
   bus.emit('open:create:application:dialog', {id: folderId.value, type})

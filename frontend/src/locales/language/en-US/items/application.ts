@@ -28,6 +28,11 @@ export default {
     custom: { label: 'Custom Application', description: 'Freely arrange workflows for custom applications' },
     import: { label: 'Import Configuration', description: 'Import existing applications via JSON file' }
   },
+  shortTypes: {
+    agent: 'Agent',
+    search: 'Knowledge',
+    workflow: 'Custom'
+  },
   form: {
     selectModel: 'Select Model',
     selectModelPlaceholder: 'Please select a model',
@@ -43,7 +48,9 @@ export default {
     newHeader: 'New Application',
     knowledgeHeader: 'Create Knowledge Application',
     selectKnowledge: 'Select Knowledge Base',
-    selectKnowledgePlaceholder: 'Please select a knowledge base'
+    selectKnowledgePlaceholder: 'Please select a knowledge base',
+    appType: 'Application Type',
+    selectAppType: 'Please select application type'
   },
   overviewData: {
     title: 'Application Overview',

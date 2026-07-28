@@ -134,6 +134,9 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
             this.cacheStore.delete("c::" + ((User) context.user().get("user")).getId());
             application.setAllowAnonymousAccess(pojo.getAllowAnonymousAccess());
         }
+        if (pojo.getAppType() != null) {
+            application.setAppType(pojo.getAppType());
+        }
         if (!StringUtils.isBlank(pojo.getName())) {
             application.setName(pojo.getName());
             resourceMapper.getById(resourceId)
@@ -223,7 +226,7 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
     @Override
     protected Application newResource(UUID resourceId, UUID parentUuId, String name, RoutingContext context) {
         CreateApplicationVO createApplicationVO = context.body().asPojo(CreateApplicationVO.class);
-        return new Application(resourceId, parentUuId, createApplicationVO.getName(), createApplicationVO.getDesc(), createApplicationVO.getIcon(), createApplicationVO.getWorkflow(), new JsonObject(), false, false, createApplicationVO.getAllowAnonymousAccess(), LocalDateTime.now(), LocalDateTime.now());
+        return new Application(resourceId, parentUuId, createApplicationVO.getName(), createApplicationVO.getDesc(), createApplicationVO.getIcon(), createApplicationVO.getWorkflow(), new JsonObject(), false, false, createApplicationVO.getAllowAnonymousAccess(), createApplicationVO.getAppType(), LocalDateTime.now(), LocalDateTime.now());
     }
 
     @Override
@@ -335,7 +338,8 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
                     .put("desc", application.getDesc())
                     .put("icon", application.getIcon())
                     .put("workflow", application.getWorkflow())
-                    .put("setting", application.getSetting());
+                    .put("setting", application.getSetting())
+                    .put("appType", application.getAppType());
             String fileName = application.getName() + ".json";
             String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8).replace("+", "%20");
             context.response()
@@ -367,6 +371,7 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
                     importData.getJsonObject("workflow", new JsonObject()),
                     importData.getJsonObject("setting", new JsonObject()),
                     false, false, Boolean.TRUE,
+                    importData.getString("appType"),
                     LocalDateTime.now(), LocalDateTime.now());
             Tool.getNodeRelation(relationMapper, parentUuId, resourceId, this::newRelation, this::getAncestorId, this::getDepth)
                     .compose(relationMapper::batch_save)
