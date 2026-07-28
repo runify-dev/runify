@@ -48,6 +48,7 @@ import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import com.run.handler.version.VersionService;
 import io.vertx.ext.auth.User;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
@@ -85,6 +86,7 @@ public class ConversationHandlerImpl implements IConversationHandler {
     private final RolePermissionRelationMapper rolePermissionRelationMapper;
     private final RoleUserRelationMapper roleUserRelationMapper;
     private final RoleMapper roleMapper;
+    private final VersionService versionService;
     private final ConversationWorkflowExecutor executor;
 
     @Inject
@@ -98,8 +100,10 @@ public class ConversationHandlerImpl implements IConversationHandler {
             RolePermissionRelationMapper rolePermissionRelationMapper,
             RoleUserRelationMapper roleUserRelationMapper,
             RoleMapper roleMapper,
+            VersionService versionService,
             MessageQueue<String> messageQueue) {
         this.applicationMapper = applicationMapper;
+        this.versionService = versionService;
         this.conversationMapper = conversationMapper;
         this.conversationMessageMapper = conversationMessageMapper;
         this.messageQueue = messageQueue;
@@ -176,7 +180,8 @@ public class ConversationHandlerImpl implements IConversationHandler {
                 LocalDateTime.now(),
                 LocalDateTime.now());
 
-        Future<Application> applicationFuture = applicationMapper.getById(applicationId);
+        // 线上/用户对话读「已发布版本」(最新一条)的工作流,与管理端调试(读草稿)区分
+        Future<JsonObject> workflowFuture = versionService.effectiveWorkflow(UUID.fromString(applicationId));
 
         Future<List<ConversationMessage>> conversationMessageFuture = conversationMessageMapper.save(conversationMessage)
                 .compose(ok -> conversationMessageMapper
@@ -184,8 +189,8 @@ public class ConversationHandlerImpl implements IConversationHandler {
                                         .eq(conversationId))
                                 .orderBy(field(ConversationMessage::getCreateTime).desc())
                                 .limit(10).render()));
-        Future.all(applicationFuture, conversationMessageFuture)
-                .onSuccess(ok -> extracted(context, ((Application) ok.resultAt(0)).getWorkflow(),
+        Future.all(workflowFuture, conversationMessageFuture)
+                .onSuccess(ok -> extracted(context, ok.resultAt(0),
                         UUID.fromString(conversationId), UUID.fromString(applicationId),
                         UUID.fromString(conversationVO.getWorkflowRunId()), ok.resultAt(1), content))
                 .onFailure(context::fail);

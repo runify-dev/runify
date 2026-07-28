@@ -145,6 +145,32 @@ const delConversation: (
   )
 }
 
+// 发布：把当前画布工作流(草稿)快照为一个新版本,最新版本即线上生效版本
+const publish: (
+  applicationId: string,
+  data: { workflow: any; remark?: string },
+  loading?: Ref<boolean>
+) => Promise<Result<any>> = (applicationId, data, loading) => {
+  return post(`/application/resources/${applicationId}/publish`, data, undefined, loading)
+}
+
+// 发布历史列表(不含 snapshot)
+const listVersions: (
+  applicationId: string,
+  loading?: Ref<boolean>
+) => Promise<Result<any>> = (applicationId, loading) => {
+  return get(`/application/resources/${applicationId}/versions`, undefined, loading)
+}
+
+// 取单个版本(含 snapshot,用于回滚回填画布)
+const getVersion: (
+  applicationId: string,
+  versionId: string,
+  loading?: Ref<boolean>
+) => Promise<Result<any>> = (applicationId, versionId, loading) => {
+  return get(`/application/resources/${applicationId}/versions/${versionId}`, undefined, loading)
+}
+
 export default {
   edit,
   chat,
@@ -162,5 +188,8 @@ export default {
   getOverview,
   cancel,
   modifyName,
-  delConversation
+  delConversation,
+  publish,
+  listVersions,
+  getVersion
 }

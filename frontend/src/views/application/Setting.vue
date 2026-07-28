@@ -12,7 +12,46 @@
       >
         {{ t('application.debug') }}
       </button>
+      <button
+        @click="historyDrawerRef?.open(resourceId)"
+        class="px-2 py-0.5 text-sm text-gray-600 hover:bg-gray-200/30 rounded-full"
+      >
+        {{ t('application.publish.history') }}
+      </button>
+      <button
+        @click="publishFn"
+        class="px-2 py-0.5 text-sm text-primary-600 font-medium hover:bg-gray-200/30 rounded-full"
+      >
+        {{ t('application.publish.publish') }}
+      </button>
     </div>
+
+    <Dialog
+      v-model:visible="publishDialog"
+      :header="t('application.publish.title')"
+      :modal="true"
+      :style="{ width: '420px' }"
+    >
+      <div class="flex flex-col gap-3">
+        <p class="text-xs" style="color: var(--p-text-muted-color)">{{ t('application.publish.tip') }}</p>
+        <div class="flex flex-col gap-1">
+          <label class="text-sm font-semibold">{{ t('application.publish.remark') }}</label>
+          <Textarea
+            v-model="publishRemark"
+            rows="3"
+            auto-resize
+            fluid
+            :placeholder="t('application.publish.remarkPlaceholder')"
+          />
+        </div>
+      </div>
+      <template #footer>
+        <Button text @click="publishDialog = false">{{ t('common.cancel') }}</Button>
+        <Button :loading="publishing" @click="confirmPublish">{{ t('application.publish.confirm') }}</Button>
+      </template>
+    </Dialog>
+
+    <PublishHistoryDrawer ref="historyDrawerRef" @rollback="onRollback" />
 
     <DebugConversation
       v-if="debug"
@@ -32,6 +71,7 @@ import { useRoute } from 'vue-router'
 import bus from '@/bus'
 import { baseWorkflow, WorkflowType } from '@/workflow/common/data'
 import DebugConversation from './DebugConversation.vue'
+import PublishHistoryDrawer from './component/PublishHistoryDrawer.vue'
 import { t } from '@/locales'
 const debug = ref<boolean>(false)
 const route = useRoute()
@@ -69,6 +109,36 @@ const save = () => {
       bus.emit('message:success', t('application.saveSuccess'))
     })
   })
+}
+
+// ── 发布 ──
+const historyDrawerRef = ref<InstanceType<typeof PublishHistoryDrawer>>()
+const publishDialog = ref<boolean>(false)
+const publishRemark = ref<string>('')
+const publishing = ref<boolean>(false)
+
+const publishFn = () => {
+  workflowRef.value?.validateWorkflow().then((ok) => {
+    if (!ok.valid) return
+    publishRemark.value = ''
+    publishDialog.value = true
+  })
+}
+
+const confirmPublish = () => {
+  ApplicationAPI.publish(
+    resourceId.value,
+    { workflow: workflowRef.value?.getGraphData(), remark: publishRemark.value },
+    publishing
+  ).then(() => {
+    publishDialog.value = false
+    bus.emit('message:success', t('application.publish.success'))
+  })
+}
+
+// 回滚：把某版本 snapshot 的工作流回填画布(不落库),用户确认后再保存/发布
+const onRollback = (workflow: any) => {
+  workflowRef.value?.render(workflow && workflow.nodes ? workflow : baseWorkflow)
 }
 
 onMounted(() => {
