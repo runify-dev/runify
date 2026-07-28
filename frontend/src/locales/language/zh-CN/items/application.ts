@@ -28,6 +28,11 @@ export default {
     custom: { label: '自定义应用', description: '自由编排工作流，灵活定制专属应用' },
     import: { label: '导入配置', description: '通过 JSON 文件一键导入已有应用' }
   },
+  shortTypes: {
+    agent: '智能体',
+    search: '知识库',
+    workflow: '自定义'
+  },
   form: {
     selectModel: '选择模型',
     selectModelPlaceholder: '请选择模型',
@@ -43,7 +48,9 @@ export default {
     newHeader: '新建应用',
     knowledgeHeader: '创建知识库应用',
     selectKnowledge: '选择知识库',
-    selectKnowledgePlaceholder: '请选择知识库'
+    selectKnowledgePlaceholder: '请选择知识库',
+    appType: '应用类型',
+    selectAppType: '请选择应用类型'
   },
   overviewData: {
     title: '应用概览',

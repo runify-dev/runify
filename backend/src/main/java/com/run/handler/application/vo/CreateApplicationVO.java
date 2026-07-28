@@ -10,4 +10,5 @@ public class CreateApplicationVO {
     private String icon;
     private JsonObject workflow;
     private Boolean allowAnonymousAccess;
+    private String appType;
 }
