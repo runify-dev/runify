@@ -67,6 +67,7 @@ import { computed, onMounted, onBeforeUnmount, ref, reactive } from 'vue'
 import bus from '@/bus'
 import Tree, { type TreeSelectionKeys } from 'primevue/tree'
 import { toTree, toTreeNode, TreeManager } from '@/components/tree/index'
+import { useExpandSelectedAncestors } from '@/components/tree/useExpandSelectedAncestors'
 import { useRouter, useRoute } from 'vue-router'
 import { TreeCommonAPI } from '@/api/tree'
 import TreeEmpty from '@/components/tree-empty/index.vue'
@@ -172,10 +173,12 @@ const removeTreeNode = (node: TreeNode) => {
 
 const nodes = ref<Array<any>>([])
 const treeManage = ref()
+const expandSelectedAncestors = useExpandSelectedAncestors(treeManage, expandedKeys)
 const reloadTree = () => {
   treeCommonAPI.listTree(ROOT_FOLDER_ID).then((ok) => {
     nodes.value = toTree(ok.data)
     treeManage.value = new TreeManager(nodes.value)
+    expandSelectedAncestors()
   })
 }
 

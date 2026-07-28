@@ -130,6 +130,7 @@ import KnowledgeDocumentRenameDialog from './component/DocumentRenameDialog.vue'
 import {computed, onMounted, ref, onBeforeUnmount, provide, watch} from 'vue'
 import Tree, {type TreeSelectionKeys} from 'primevue/tree'
 import {toTree, toTreeNode} from '@/components/tree/index'
+import {useExpandSelectedAncestors} from '@/components/tree/useExpandSelectedAncestors'
 import {useRouter, useRoute} from 'vue-router'
 import {TreeManager} from '@/components/tree/index'
 import {TreeCommonAPI} from '@/api/tree'
@@ -159,6 +160,7 @@ const selectedKeys = computed(() => ({[(route.params.id as string)]: true}))
 const treeCommonAPI = new TreeCommonAPI('knowledge')
 const nodes = ref<Array<any>>([])
 const treeManage = ref<TreeManager>()
+const expandSelectedAncestors = useExpandSelectedAncestors(treeManage, expandedKeys)
 
 const nodeSelect = (treeNode?: TreeNode) => {
   if (!treeNode) {
@@ -480,6 +482,7 @@ onMounted(() => {
   treeCommonAPI.listTree(ROOT_FOLDER_ID).then(ok => {
     nodes.value = toTree(ok.data)
     treeManage.value = new TreeManager(nodes.value)
+    expandSelectedAncestors()
     // 刷新时如果在详情页或设置页，加载文档树
     if (route.name === 'knowledgeDocFolder' || route.name === 'knowledgeDocument' || route.name === 'knowledgeSetting') {
       const knowledgeId = route.params.id as string

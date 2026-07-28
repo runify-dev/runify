@@ -147,6 +147,30 @@ class TreeManager {
   }
 
   /**
+   * 获取指定节点的所有祖先 key（从直接父级到根），不含自身
+   */
+  getAncestorKeys(key: string): string[] {
+    const path: string[] = [];
+    this.collectAncestors(this.tree, key, path);
+    return path;
+  }
+
+  private collectAncestors(nodes: TreeNode[], key: string, path: string[]): boolean {
+    for (const node of nodes) {
+      if (node.key === key) {
+        return true;
+      }
+      if (node.children && node.children.length > 0) {
+        if (this.collectAncestors(node.children, key, path)) {
+          path.push(node.key as string);
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  /**
    * 删除节点 - 直接修改原树
    */
   remove(key: string): void {

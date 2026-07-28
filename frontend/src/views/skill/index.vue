@@ -126,6 +126,7 @@ import SkillFileRenameDialog from './component/FileRenameDialog.vue'
 import {computed, onMounted, ref, onBeforeUnmount, provide, watch} from 'vue'
 import Tree, {type TreeSelectionKeys} from 'primevue/tree'
 import {toTree, toTreeNode} from '@/components/tree/index'
+import {useExpandSelectedAncestors} from '@/components/tree/useExpandSelectedAncestors'
 import {useRouter, useRoute} from 'vue-router'
 import {TreeManager} from '@/components/tree/index'
 import {TreeCommonAPI} from '@/api/tree'
@@ -155,6 +156,7 @@ const selectedKeys = computed(() => ({[(route.params.id as string)]: true}))
 const treeCommonAPI = new TreeCommonAPI('skill')
 const nodes = ref<Array<any>>([])
 const treeManage = ref<TreeManager>()
+const expandSelectedAncestors = useExpandSelectedAncestors(treeManage, expandedKeys)
 
 const nodeSelect = (treeNode?: TreeNode) => {
   if (!treeNode) {
@@ -447,6 +449,7 @@ onMounted(() => {
   treeCommonAPI.listTree(ROOT_FOLDER_ID).then(ok => {
     nodes.value = toTree(ok.data)
     treeManage.value = new TreeManager(nodes.value)
+    expandSelectedAncestors()
     // 刷新时如果在详情页或设置页，加载文件树
     if (route.name === 'skillDetails' || route.name === 'skillSetting') {
       const skillId = route.params.id as string

@@ -125,6 +125,7 @@ import DropdownMenu from '@/components/dropdown-menu/index.vue'
 import {onMounted, ref, computed, onBeforeUnmount, provide} from 'vue'
 import Tree, {type TreeSelectionKeys} from 'primevue/tree'
 import {toTree, toTreeNode} from '@/components/tree/index'
+import {useExpandSelectedAncestors} from '@/components/tree/useExpandSelectedAncestors'
 import {useRouter, useRoute} from 'vue-router'
 import {TreeManager} from '@/components/tree/index'
 import {TreeCommonAPI} from '@/api/tree'
@@ -298,6 +299,7 @@ const removeTreeNode = (node: TreeNode) => {
 
 const nodes = ref<Array<any>>([])
 const treeManage = ref<TreeManager>()
+const expandSelectedAncestors = useExpandSelectedAncestors(treeManage, expandedKeys)
 onMounted(() => {
   bus.on('open:create:project:dialog', (id: string) => {
     const treeNode = treeManage.value?.findNodeByKey(id)
@@ -313,6 +315,7 @@ onMounted(() => {
   treeCommonAPI.listTree(ROOT_FOLDER_ID).then((ok) => {
     nodes.value = toTree(ok.data)
     treeManage.value = new TreeManager(nodes.value)
+    expandSelectedAncestors()
   })
 })
 onBeforeUnmount(() => {
