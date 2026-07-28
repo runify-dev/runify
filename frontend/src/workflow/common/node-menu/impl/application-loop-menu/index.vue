@@ -1,5 +1,5 @@
 <template>
-  <Accordion :value="['0', '1', '2', '3']" multiple>
+  <Accordion :value="['0', '1', '2', '3', '4']" multiple>
     <AccordionPanel v-for="group in groups" :key="group.value" :value="group.value">
       <AccordionHeader>
         <div class="flex items-center gap-2">

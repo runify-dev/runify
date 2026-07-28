@@ -13,6 +13,7 @@ export default {
     skill: 'スキル',
     datasource: 'データソース',
     project: 'プロジェクト',
-    integration: '連携'
+    integration: '連携',
+    tool: 'ツール'
   }
 }

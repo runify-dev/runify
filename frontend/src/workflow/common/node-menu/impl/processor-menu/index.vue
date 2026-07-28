@@ -1,5 +1,5 @@
 <template>
-  <Accordion :value="['0', '1', '2', '3']" multiple>
+  <Accordion :value="['0', '1', '2', '3', '4']" multiple>
     <AccordionPanel v-for="group in groups" :key="group.value" :value="group.value">
       <AccordionHeader>
         <div class="flex items-center gap-2">
@@ -32,6 +32,7 @@ import {
   databaseInsertNode,
   cacheQueryNode,
   cacheWriteNode,
+  currentUserNode,
   fileDownloadNode,
   fileUploadNode,
   knowledgeSearchNode,
@@ -87,7 +88,7 @@ const groups = [
     value: '4',
     label: '工具',
     icon: 'pi pi-wrench',
-    nodes: [javaScriptNode, extractNode, variableAssignNode, contextPushNode, contextQueryNode, contextSaveNode, approvalNode, jsonResponseNode, staticFileNode]
+    nodes: [javaScriptNode, extractNode, variableAssignNode, contextPushNode, contextQueryNode, contextSaveNode, currentUserNode, approvalNode, jsonResponseNode, staticFileNode]
   }
 ]
 

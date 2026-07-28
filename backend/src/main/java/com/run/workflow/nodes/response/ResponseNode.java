@@ -28,7 +28,7 @@ public class ResponseNode extends INode<ResponseNode, ResponseNodeData> {
     /**
      * 节点支持在什么工作流中运行
      */
-    public final static List<WorkflowType> supportWorkflow = List.of(WorkflowType.PROCESSOR_HTTP, WorkflowType.CHAT_WORKFLOW, WorkflowType.CHAT_WORKFLOW_LOOP, WorkflowType.PROCESSOR_HTTP_LOOP);
+    public final static List<WorkflowType> supportWorkflow = List.of(WorkflowType.PROCESSOR_HTTP, WorkflowType.CHAT_WORKFLOW, WorkflowType.CHAT_WORKFLOW_LOOP, WorkflowType.PROCESSOR_HTTP_LOOP, WorkflowType.TOOL, WorkflowType.TOOL_LOOP);
 
 
     public ResponseNode(Node node, JsonObject params, List<String> upNodeIdList, String salt, INode<?, ?> upNode) {
@@ -45,6 +45,7 @@ public class ResponseNode extends INode<ResponseNode, ResponseNodeData> {
         @SneakyThrows
         @Override
         public Supplier<List<Node>> apply(WorkFlowManage workFlowManage, ResponseNode node) {
+            // 响应渲染按 contentType 分发，chat/processor/tool 通用
             ResponseRenderer.render(workFlowManage, node, node.params);
             node.status = NodeStatus.SUCCESS;
             return () -> workFlowManage

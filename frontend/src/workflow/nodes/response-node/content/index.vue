@@ -6,6 +6,7 @@ import { ref, inject } from 'vue'
 import type { BaseNodeModel } from '@logicflow/core'
 import Application from './application/index.vue'
 import Processor from './processor/index.vue'
+import Tool from './tool/index.vue'
 import { validate as validateNodeData } from './validator'
 
 const getModel = inject('getModel') as () => BaseNodeModel
@@ -16,7 +17,10 @@ const props = defineProps<{
 }>()
 const kw: any = {
   APPLICATION: Application,
-  PROCESSOR: Processor
+  PROCESSOR: Processor,
+  // 工具"返回"：只做 outputSchema 字段 → 值 绑定（对应后端 JsonFieldsContent，无 HTTP 字段）
+  TOOL: Tool,
+  TOOL_LOOP: Tool
 }
 const contentRef = ref()
 const validate = () => {

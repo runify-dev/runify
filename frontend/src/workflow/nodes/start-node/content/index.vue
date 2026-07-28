@@ -6,6 +6,7 @@ import { ref, inject } from 'vue'
 import type { BaseNodeModel } from '@logicflow/core'
 import Processor from './processor/index.vue'
 import Chat from './chat/index.vue'
+import Tool from './tool/index.vue'
 import { validate as validateNodeData } from './validator'
 
 const getModel = inject('getModel') as () => BaseNodeModel
@@ -16,7 +17,8 @@ const props = defineProps<{
 }>()
 const kw: any = {
   PROCESSOR: Processor,
-  APPLICATION: Chat
+  APPLICATION: Chat,
+  TOOL: Tool
 }
 const contentRef = ref()
 const validate = () => {

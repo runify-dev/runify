@@ -152,6 +152,48 @@ export const cacheQueryNode = {
   }
 }
 
+export const currentUserNode = {
+  type: 'current-user-node',
+  text: '',
+  x: 0,
+  y: 0,
+  label: '当前用户',
+  properties: {
+    width: 200,
+    height: 50,
+    name: '当前用户',
+    isHovered: false,
+    field_list: [
+      { label: '是否已登录', value: 'authenticated' },
+      { label: '用户信息', value: 'user' }
+    ],
+    nodeData: {
+      sessionCacheId: '',
+      credentialLocation: 'header',
+      credentialField: '',
+      credentialPrefix: '',
+      keyPrefix: '',
+      userIdField: 'id',
+      roles: {
+        enabled: false,
+        source: 'inline',
+        field: 'roles',
+        cacheId: '',
+        keyPrefix: '',
+        valueField: ''
+      },
+      permissions: {
+        enabled: false,
+        source: 'inline',
+        field: 'permissions',
+        cacheId: '',
+        keyPrefix: '',
+        valueField: ''
+      }
+    }
+  }
+}
+
 export const cacheWriteNode = {
   type: 'cache-write-node',
   text: '',
@@ -538,6 +580,26 @@ export const runSkillNode = {
   }
 }
 
+export const runToolNode = {
+  type: 'run-tool-node',
+  text: '',
+  x: 0,
+  y: 0,
+  label: '调用工具',
+  properties: {
+    width: 200,
+    height: 50,
+    name: '调用工具',
+    isHovered: false,
+    field_list: [{ label: '执行结果', value: 'result' }],
+    nodeData: {
+      toolId: '',
+      inputs: [],
+      config: {}
+    }
+  }
+}
+
 export const downloadSkillsNode = {
   type: 'download-skills-node',
   text: '',
@@ -884,7 +946,9 @@ export enum WorkflowType {
   APPLICATION = 'APPLICATION',
   PROCESSOR = 'PROCESSOR',
   APPLICATION_LOOP = 'APPLICATION_LOOP',
-  PROCESSOR_LOOP = 'PROCESSOR_LOOP'
+  PROCESSOR_LOOP = 'PROCESSOR_LOOP',
+  TOOL = 'TOOL',
+  TOOL_LOOP = 'TOOL_LOOP'
 }
 
 export const iconMap = {

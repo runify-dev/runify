@@ -40,6 +40,7 @@ public class AppInitialization {
                              ConversationRoute conversationRoute,
                              IntegrationRoute integrationRoute,
                              IntegrationCallbackRoute integrationCallbackRoute,
+                             ToolRoute toolRoute,
                              WeixinPollerManager weixinPollerManager,
                              WecomStreamManager wecomStreamManager,
                              UIInitialization uiInitialization,
@@ -64,6 +65,7 @@ public class AppInitialization {
         roleRoute.init();
         integrationRoute.init();
         integrationCallbackRoute.init();
+        toolRoute.init();
         ProjectManage.setDatasourceMapper(datasourceMapper);
         // 依赖加解密的初始化(如微信 poller 需解密集成配置)必须等 RSA 密钥就绪后再执行
         initRsa(systemSettingMapper)
