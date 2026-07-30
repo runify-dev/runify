@@ -42,6 +42,7 @@ import { Codemirror } from 'vue-codemirror'
 import { t } from '@/locales'
 import { sql } from '@codemirror/lang-sql'
 import { oneDark } from '@codemirror/theme-one-dark'
+import { EditorView } from '@codemirror/view'
 const props = defineProps<{
   title: string
   modelValue: any
@@ -56,7 +57,8 @@ const data = computed({
     return props.modelValue
   }
 })
-const extensions = [sql(), oneDark]
+// 与 JS 编辑器一致:开启软换行,长 SQL/JSON 自动折行,不再横向溢出被裁切
+const extensions = [sql(), oneDark, EditorView.lineWrapping]
 
 const codemirrorStyle = {
   height: '210px!important',
