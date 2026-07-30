@@ -58,6 +58,19 @@ public class ProcessorRoute implements IRoute {
                 .handler(tokenBasicAuthHandler)
                 .handler(processorHandler::edit);
 
+        apiRoute.post("/project/:projectId/processor/:processorId/publish")
+                .handler(BodyHandler.create())
+                .handler(tokenBasicAuthHandler)
+                .handler(processorHandler::publish);
+
+        apiRoute.get("/project/:projectId/processor/:processorId/versions")
+                .handler(tokenBasicAuthHandler)
+                .handler(processorHandler::listVersions);
+
+        apiRoute.get("/project/:projectId/processor/:processorId/versions/:versionId")
+                .handler(tokenBasicAuthHandler)
+                .handler(processorHandler::getVersion);
+
         apiRoute.post("/project/:projectId/processor/:processorId/deploy")
                 .handler(BodyHandler.create())
                 .handler(tokenBasicAuthHandler)

@@ -1,4 +1,4 @@
-package com.run.handler.application.vo;
+package com.run.handler.version;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
@@ -13,13 +13,13 @@ import java.util.UUID;
  * {@code @Author:张少虎}
  * {@code @Date: 2026/7/28}
  * {@code @Version 1.0}
- * {@code @注释: 发布历史列表项(不含 snapshot,避免列表接口传输大对象)}
+ * {@code @注释: 发布历史列表项(不含 snapshot,避免列表接口传输大对象);application/processor/tool 通用}
  */
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Setter
-public class ApplicationVersionVO {
+public class VersionVO {
     private UUID id;
     private Integer version;
     private String remark;

@@ -10,11 +10,15 @@
         :name="value.location === 'reference' ? `${index}.reference` : `${index}.value`"
         :initial-value="value.location === 'reference' ? value.reference : value.value"
         :resolver="
-          value.required
+          isRequired(value.required)
             ? zodResolver(
                 value.location === 'reference'
-                  ? z.array(z.string()).min(1, { error: '请输入' + value.field })
-                  : z.string().min(1, { error: '请输入' + value.field })
+                  ? z
+                      .array(z.string(), { error: '请输入' + value.field })
+                      .min(1, { error: '请输入' + value.field })
+                  : z
+                      .string({ error: '请输入' + value.field })
+                      .min(1, { error: '请输入' + value.field })
               )
             : undefined
         "
@@ -65,6 +69,7 @@ import Cascader from '@/components/cascader/index.vue'
 import { zodResolver } from '@primevue/forms/resolvers/zod'
 import { z } from 'zod'
 import type { FormInstance } from '@primevue/forms'
+import { isRequired } from '@/workflow/common/validator-utils'
 import bus from '@/bus'
 const props = defineProps<{
   parameters: Array<any>

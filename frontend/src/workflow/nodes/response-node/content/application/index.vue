@@ -73,6 +73,7 @@ import JsonObject from '@/workflow/nodes/response-node/components/json-object/in
 import PlainText from '@/workflow/nodes/response-node/components/plain-text/index.vue'
 import { zodResolver } from '@primevue/forms/resolvers/zod'
 import { schema, validate as validateNodeData } from './validator'
+import { collectErrorMessages } from '@/workflow/common/validator-utils'
 const options = [
   { label: '字段配置', value: 'jsonFields' },
   { label: 'JSON对象', value: 'jsonObject' },
@@ -91,13 +92,16 @@ const validate = () => {
       handler.push(parametersRef.value.validate())
     }
     return Promise.all(handler).then((ok) => {
-      return ok.reduce(
+      const merged = ok.reduce(
         (x, y) => ({
           errors: { ...x?.errors, ...y?.errors },
           values: { ...x?.values, ...y?.values }
         }),
         { values: [], errors: [] }
       ) as any
+      // PrimeVue 会把无错字段也列进 errors(空数组/空对象),按是否有真实 message 归零,避免误判校验不过
+      if (collectErrorMessages(merged.errors).length === 0) merged.errors = {}
+      return merged
     })
   }
   const result = validateNodeData(model.properties.nodeData)

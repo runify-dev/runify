@@ -9,13 +9,17 @@ import com.run.common.result.Result;
 import com.run.common.util.CommonUtils;
 import com.run.dao.entity.Processor;
 import com.run.dao.entity.Project;
+import com.run.dao.entity.ResourceVersion;
+import com.run.dao.entity.User;
 import com.run.dao.mapper.ProcessorMapper;
 import com.run.dao.mapper.ProjectMapper;
 import com.run.handler.project.IProcessorHandler;
 import com.run.handler.project.dto.ProcessorDto;
 import com.run.handler.project.vo.CreateProcessorVO;
 import com.run.handler.project.vo.EditProcessorVO;
+import com.run.handler.project.vo.PublishProcessorVO;
 import com.run.handler.project.vo.QueryProcessorVO;
+import com.run.handler.version.VersionService;
 import com.run.sql.condition.Condition;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
@@ -39,11 +43,14 @@ import static com.run.sql.DSL.field;
 public class ProcessorHandlerImpl implements IProcessorHandler {
     private final ProcessorMapper processorMapper;
     private final ProjectMapper projectMapper;
+    private final VersionService versionService;
 
     @Inject
-    public ProcessorHandlerImpl(ProcessorMapper processorMapper, ProjectMapper projectMapper) {
+    public ProcessorHandlerImpl(ProcessorMapper processorMapper, ProjectMapper projectMapper,
+                                VersionService versionService) {
         this.processorMapper = processorMapper;
         this.projectMapper = projectMapper;
+        this.versionService = versionService;
     }
 
     @Override
@@ -132,12 +139,62 @@ public class ProcessorHandlerImpl implements IProcessorHandler {
     }
 
     @Override
+    public void publish(RoutingContext context) {
+        String processorId = context.pathParam("processorId");
+        PublishProcessorVO vo = context.body().asPojo(PublishProcessorVO.class);
+        UUID pid = UUID.fromString(processorId);
+        UUID userId = currentUserId(context);
+        processorMapper.getById(processorId).compose(processor -> {
+            if (processor == null) {
+                return Future.failedFuture(new ApiException(500, "不存在的处理器ID"));
+            }
+            JsonObject workflow = vo.getWorkflow() != null ? vo.getWorkflow() : new JsonObject();
+            // ① 同步草稿 ② 快照 workflow + meta(部署端点两者都要),追加一条新版本
+            processor.setWorkflow(workflow);
+            JsonObject snapshot = new JsonObject()
+                    .put("workflow", workflow)
+                    .put("meta", processor.getMeta() != null ? processor.getMeta() : new JsonObject());
+            return processorMapper.update(processor)
+                    .compose(ok -> versionService.publish(VersionService.PROCESSOR, pid, snapshot, vo.getRemark(), userId));
+        }).onSuccess(version -> context.end(Result.success(version).toBuffer()))
+                .onFailure(context::fail);
+    }
+
+    @Override
+    public void listVersions(RoutingContext context) {
+        UUID pid = UUID.fromString(context.pathParam("processorId"));
+        versionService.listVOs(VersionService.PROCESSOR, pid)
+                .onSuccess(vos -> context.end(Result.success(vos).toBuffer()))
+                .onFailure(context::fail);
+    }
+
+    @Override
+    public void getVersion(RoutingContext context) {
+        UUID versionId = UUID.fromString(context.pathParam("versionId"));
+        versionService.get(versionId)
+                .onSuccess(version -> context.end(Result.success(version).toBuffer()))
+                .onFailure(context::fail);
+    }
+
+    @Override
     public void deploy(RoutingContext context) {
         String processorId = context.pathParam("processorId");
         String projectId = context.pathParam("projectId");
-        Future.all(projectMapper.getById(projectId), processorMapper.getById(processorId)).compose((compositeFuture) -> {
+        // 部署跑「最新已发布版本」:用版本快照(workflow + meta)构建端点,而非草稿
+        Future.all(projectMapper.getById(projectId), processorMapper.getById(processorId),
+                        versionService.latest(VersionService.PROCESSOR, UUID.fromString(processorId)))
+                .compose((compositeFuture) -> {
                     Project project = compositeFuture.resultAt(0);
                     Processor processor = compositeFuture.resultAt(1);
+                    ResourceVersion version = compositeFuture.resultAt(2);
+                    if (version == null || version.getSnapshot() == null) {
+                        return Future.failedFuture(new ApiException(500, "处理器尚未发布，请先发布后再部署"));
+                    }
+                    JsonObject snapshot = version.getSnapshot();
+                    processor.setWorkflow(snapshot.getJsonObject("workflow"));
+                    if (snapshot.getJsonObject("meta") != null) {
+                        processor.setMeta(snapshot.getJsonObject("meta"));
+                    }
                     ProcessorExecutor processorExecutor = ProjectManage.generateProcessorExecutor(project, processor);
                     processorExecutor.deploy();
                     ProcessorDto processorDto = new ProcessorDto();
@@ -146,6 +203,12 @@ public class ProcessorHandlerImpl implements IProcessorHandler {
                     return Future.succeededFuture(processorDto);
                 }).onSuccess(processor -> context.end(Result.success(processor).toBuffer()))
                 .onFailure(context::fail);
+    }
+
+    /** 当前登录用户 id(用于记录发布人),取不到返回 null */
+    private UUID currentUserId(RoutingContext context) {
+        Object u = context.user() != null ? context.user().get("user") : null;
+        return u instanceof User user ? user.getId() : null;
     }
 
     @Override
