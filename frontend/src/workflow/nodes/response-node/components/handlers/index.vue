@@ -9,7 +9,9 @@
         :key="value.field"
         :name="`${index}.value`"
         :initial-value="value.value"
-        :resolver="zodResolver(z.string().min(1, { error: '请输入' + value.field }))"
+        :resolver="
+          zodResolver(z.string({ error: '请输入' + value.field }).min(1, { error: '请输入' + value.field }))
+        "
       >
         <label> {{ value.field }}</label>
         <div class="flex mt-2">

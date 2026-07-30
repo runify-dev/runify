@@ -1,14 +1,19 @@
 package com.run.handler.version;
 
 import com.run.dao.entity.ResourceVersion;
+import com.run.dao.entity.User;
 import com.run.dao.mapper.ResourceVersionMapper;
+import com.run.dao.mapper.UserMapper;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
 
 import javax.inject.Inject;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static com.run.sql.DSL.field;
 
@@ -26,10 +31,12 @@ public class VersionService {
     public static final String TOOL = "tool";
 
     private final ResourceVersionMapper mapper;
+    private final UserMapper userMapper;
 
     @Inject
-    public VersionService(ResourceVersionMapper mapper) {
+    public VersionService(ResourceVersionMapper mapper, UserMapper userMapper) {
         this.mapper = mapper;
+        this.userMapper = userMapper;
     }
 
     /**
@@ -66,6 +73,32 @@ public class VersionService {
                 .where(field(ResourceVersion::getResourceType).eq(resourceType)
                         .and(field(ResourceVersion::getResourceId).eq(resourceId.toString())))
                 .orderBy(field(ResourceVersion::getVersion).desc()).render());
+    }
+
+    /**
+     * 发布历史 VO(不含 snapshot),并用一条 in 查询批量补充发布人名称
+     * (存量 seed 或用户已删时 create_user 名称留空)
+     */
+    public Future<List<VersionVO>> listVOs(String resourceType, UUID resourceId) {
+        return list(resourceType, resourceId).compose(versions -> {
+            List<String> userIds = versions.stream()
+                    .map(ResourceVersion::getCreateUser)
+                    .filter(Objects::nonNull)
+                    .map(UUID::toString)
+                    .distinct()
+                    .toList();
+            Future<Map<UUID, String>> nameMapFuture = userIds.isEmpty()
+                    ? Future.succeededFuture(Map.of())
+                    : userMapper.list(field(User::getId).in(userIds)).map(users -> users.stream()
+                            .collect(Collectors.toMap(User::getId,
+                                    u -> u.getNickname() != null ? u.getNickname() : u.getUsername())));
+            return nameMapFuture.map(nameMap -> versions.stream()
+                    .map(v -> new VersionVO(v.getId(), v.getVersion(), v.getRemark(),
+                            v.getCreateUser(),
+                            v.getCreateUser() == null ? null : nameMap.get(v.getCreateUser()),
+                            v.getCreateTime()))
+                    .toList());
+        });
     }
 
     /**

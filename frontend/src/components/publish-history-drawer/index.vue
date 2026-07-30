@@ -71,40 +71,39 @@
 import { ref } from 'vue'
 import { t } from '@/locales'
 import bus from '@/bus'
-import applicationApi from '@/api/application'
+import type { Ref } from 'vue'
+
+// 取数逻辑由宿主注入,组件本身与资源类型(应用/处理器)解耦
+const props = defineProps<{
+  fetchList: (loading?: Ref<boolean>) => Promise<any>
+  fetchVersion: (versionId: string) => Promise<any>
+}>()
 
 const emit = defineEmits<{ rollback: [workflow: any] }>()
 
 const drawer = ref(false)
 const loading = ref(false)
 const rollbackingId = ref<string>('')
-const applicationId = ref<string>('')
 const versions = ref<Array<any>>([])
 
-const open = (id: string) => {
-  applicationId.value = id
+const open = () => {
   drawer.value = true
-  fetchVersions()
+  props.fetchList(loading).then((ok) => {
+    versions.value = ok.data || []
+  })
 }
 
 const close = () => {
   drawer.value = false
 }
 
-const fetchVersions = () => {
-  applicationApi.listVersions(applicationId.value, loading).then((ok) => {
-    versions.value = ok.data || []
-  })
-}
-
 // 回滚：拉取该版本 snapshot 的工作流,回填画布(不落库),由父组件渲染,用户再保存/发布
 const rollback = (item: any) => {
   rollbackingId.value = item.id
-  applicationApi
-    .getVersion(applicationId.value, item.id)
+  props
+    .fetchVersion(item.id)
     .then((ok) => {
-      const workflow = ok.data?.snapshot?.workflow
-      emit('rollback', workflow)
+      emit('rollback', ok.data?.snapshot?.workflow)
       drawer.value = false
       bus.emit('message:success', t('application.publish.rollbackLoaded'))
     })

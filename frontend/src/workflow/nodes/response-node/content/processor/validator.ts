@@ -1,32 +1,32 @@
 import { z } from 'zod'
 import type { ValidationResult } from '@/workflow/common/type'
-import { parseZodResult } from '@/workflow/common/validator-utils'
+import { parseZodResult, isRequired } from '@/workflow/common/validator-utils'
 
 const handlerItemSchema = z.object({
-  field: z.string(),
-  value: z.any(),
-  location: z.string(),
+  field: z.string().nullish(),
+  value: z.any().optional(),
+  location: z.string().nullish(),
   reference: z.any().optional(),
-  required: z.boolean().optional()
+  required: z.any().optional()
 })
 
 const parameterItemSchema = z.object({
-  field: z.string(),
-  value: z.any(),
-  location: z.string(),
+  field: z.string().nullish(),
+  value: z.any().optional(),
+  location: z.string().nullish(),
   reference: z.any().optional(),
-  required: z.boolean().optional()
+  required: z.any().optional()
 })
 
 const jsonObjectSchema = z.object({
-  location: z.string(),
-  value: z.string().optional(),
+  location: z.string().nullish(),
+  value: z.string().nullish(),
   reference: z.any().optional()
 })
 
 const plainTextSchema = z.object({
-  location: z.string(),
-  value: z.string().optional(),
+  location: z.string().nullish(),
+  value: z.string().nullish(),
   reference: z.any().optional()
 })
 
@@ -34,7 +34,7 @@ export const schema = z
   .object({
     status: z.number({ error: '请输入状态码' }),
     headers: z.array(handlerItemSchema).optional(),
-    contentType: z.string().optional(),
+    contentType: z.string().nullish(),
     jsonFields: z.array(parameterItemSchema).optional(),
     jsonObject: jsonObjectSchema.optional(),
     plainText: plainTextSchema.optional()
@@ -43,8 +43,13 @@ export const schema = z
     const contentType = ctx.value.contentType || 'jsonFields'
     if (contentType === 'jsonFields' && Array.isArray(ctx.value.jsonFields)) {
       ctx.value.jsonFields.forEach((p: any, i: number) => {
-        if (p.required && p.location === 'reference' && (!Array.isArray(p.reference) || p.reference.length === 0)) {
-          ctx.issues.push({ code: 'custom', input: p, message: `请输入${p.field}`, path: ['jsonFields', i] })
+        // 完全按「是否必填」设置校验:必填时,引用需选变量、自定义需填值;非必填留空放行
+        if (isRequired(p.required)) {
+          if (p.location === 'reference' && (!Array.isArray(p.reference) || p.reference.length === 0)) {
+            ctx.issues.push({ code: 'custom', input: p, message: `请输入${p.field}`, path: ['jsonFields', i] })
+          } else if (p.location !== 'reference' && (!p.value || String(p.value).trim() === '')) {
+            ctx.issues.push({ code: 'custom', input: p, message: `请输入${p.field}`, path: ['jsonFields', i] })
+          }
         }
       })
     }
@@ -62,7 +67,7 @@ export const schema = z
     }
     if (Array.isArray(ctx.value.headers)) {
       ctx.value.headers.forEach((h: any, i: number) => {
-        if (h.required) {
+        if (isRequired(h.required)) {
           if (h.location === 'reference' && (!Array.isArray(h.reference) || h.reference.length === 0)) {
             ctx.issues.push({ code: 'custom', input: h, message: `请输入${h.field}`, path: ['headers', i] })
           } else if (h.location !== 'reference' && (!h.value || String(h.value).trim() === '')) {

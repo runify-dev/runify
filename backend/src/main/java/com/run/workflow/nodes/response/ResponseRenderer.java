@@ -53,7 +53,10 @@ public class ResponseRenderer {
                 if (Strings.CS.equals(location, "reference")) {
                     params.put(parameter.getField(), workFlowManage.getContextVariable(parameter.getReference()));
                 } else {
-                    params.put(parameter.getField(), coerceLenient(parameter.getValue(), parameter.getType()));
+                    // customize 留空(非必填字段)输出 JSON null,而非空字符串
+                    Object value = parameter.getValue();
+                    boolean blank = value == null || (value instanceof String s && s.isEmpty());
+                    params.put(parameter.getField(), blank ? null : coerceLenient(value, parameter.getType()));
                 }
             }
             workFlowManage.write(node, new JsonFieldsContent(params.getMap(), node, workflowRunId, CommonUtils.uuid7().toString()));

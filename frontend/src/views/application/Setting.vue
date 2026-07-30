@@ -13,7 +13,7 @@
         {{ t('application.debug') }}
       </button>
       <button
-        @click="historyDrawerRef?.open(resourceId)"
+        @click="historyDrawerRef?.open()"
         class="px-2 py-0.5 text-sm text-gray-600 hover:bg-gray-200/30 rounded-full"
       >
         {{ t('application.publish.history') }}
@@ -51,7 +51,12 @@
       </template>
     </Dialog>
 
-    <PublishHistoryDrawer ref="historyDrawerRef" @rollback="onRollback" />
+    <PublishHistoryDrawer
+      ref="historyDrawerRef"
+      :fetch-list="fetchVersionList"
+      :fetch-version="fetchVersionDetail"
+      @rollback="onRollback"
+    />
 
     <DebugConversation
       v-if="debug"
@@ -71,7 +76,7 @@ import { useRoute } from 'vue-router'
 import bus from '@/bus'
 import { baseWorkflow, WorkflowType } from '@/workflow/common/data'
 import DebugConversation from './DebugConversation.vue'
-import PublishHistoryDrawer from './component/PublishHistoryDrawer.vue'
+import PublishHistoryDrawer from '@/components/publish-history-drawer/index.vue'
 import { t } from '@/locales'
 const debug = ref<boolean>(false)
 const route = useRoute()
@@ -135,6 +140,9 @@ const confirmPublish = () => {
     bus.emit('message:success', t('application.publish.success'))
   })
 }
+
+const fetchVersionList = (loading?: any) => ApplicationAPI.listVersions(resourceId.value, loading)
+const fetchVersionDetail = (versionId: string) => ApplicationAPI.getVersion(resourceId.value, versionId)
 
 // 回滚：把某版本 snapshot 的工作流回填画布(不落库),用户确认后再保存/发布
 const onRollback = (workflow: any) => {

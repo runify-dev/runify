@@ -30,8 +30,6 @@ import com.run.handler.application.dto.ConversationDTO;
 import com.run.handler.application.pojo.ConversationQuery;
 import com.run.handler.application.pojo.EditApplicationPojo;
 import com.run.handler.application.pojo.PublishApplicationPojo;
-import com.run.handler.application.vo.ApplicationVersionVO;
-import com.run.dao.entity.ResourceVersion;
 import com.run.handler.version.VersionService;
 import com.run.handler.application.vo.ConversationVO;
 import com.run.handler.application.vo.CreateApplicationVO;
@@ -72,7 +70,6 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static com.run.sql.DSL.field;
 import static com.run.sql.DSL.param;
@@ -94,7 +91,6 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
     private final com.run.dao.mapper.CtxSummaryMapper ctxSummaryMapper;
     private final com.run.dao.mapper.CtxFactMapper ctxFactMapper;
     private final VersionService versionService;
-    private final UserMapper userMapper;
 
     @Inject
     public ApplicationHandlerImpl(ApplicationMapper applicationMapper,
@@ -108,8 +104,7 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
                                   AppConfig appConfig,
                                   com.run.dao.mapper.CtxSummaryMapper ctxSummaryMapper,
                                   com.run.dao.mapper.CtxFactMapper ctxFactMapper,
-                                  VersionService versionService,
-                                  UserMapper userMapper) {
+                                  VersionService versionService) {
         super(applicationMapper, applicationFolderMapper, applicationRelationMapper, applicationPermissionMapper, cacheStore);
         this.applicationMapper = applicationMapper;
         this.conversationMapper = conversationMapper;
@@ -119,7 +114,6 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
         this.ctxSummaryMapper = ctxSummaryMapper;
         this.ctxFactMapper = ctxFactMapper;
         this.versionService = versionService;
-        this.userMapper = userMapper;
         executor = new ConversationWorkflowExecutor(messageQueue, conversationMessageMapper);
     }
 
@@ -188,8 +182,7 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
     @Override
     public void listVersions(RoutingContext context) {
         UUID appId = UUID.fromString(context.pathParam("resourceId"));
-        versionService.list(VersionService.APPLICATION, appId)
-                .compose(this::attachPublisherNames)
+        versionService.listVOs(VersionService.APPLICATION, appId)
                 .onSuccess(vos -> context.end(Result.success(vos).toBuffer()))
                 .onFailure(context::fail);
     }
@@ -200,27 +193,6 @@ public class ApplicationHandlerImpl extends ResourceHandlerImpl<Application, App
         versionService.get(versionId)
                 .onSuccess(version -> context.end(Result.success(version).toBuffer()))
                 .onFailure(context::fail);
-    }
-
-    /** 版本列表转 VO,并用一条 in 查询批量补充发布人名称(存量 seed 的 create_user 为空则留空) */
-    private Future<List<ApplicationVersionVO>> attachPublisherNames(List<ResourceVersion> versions) {
-        List<String> userIds = versions.stream()
-                .map(ResourceVersion::getCreateUser)
-                .filter(Objects::nonNull)
-                .map(UUID::toString)
-                .distinct()
-                .toList();
-        Future<Map<UUID, String>> nameMapFuture = userIds.isEmpty()
-                ? Future.succeededFuture(Map.of())
-                : userMapper.list(field(User::getId).in(userIds)).map(users -> users.stream()
-                        .collect(Collectors.toMap(User::getId,
-                                u -> u.getNickname() != null ? u.getNickname() : u.getUsername())));
-        return nameMapFuture.map(nameMap -> versions.stream()
-                .map(v -> new ApplicationVersionVO(v.getId(), v.getVersion(), v.getRemark(),
-                        v.getCreateUser(),
-                        v.getCreateUser() == null ? null : nameMap.get(v.getCreateUser()),
-                        v.getCreateTime()))
-                .toList());
     }
 
     @Override

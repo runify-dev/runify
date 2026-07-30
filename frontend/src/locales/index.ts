@@ -1,6 +1,20 @@
 import { useLocalStorage, usePreferredLanguages } from '@vueuse/core'
 import { computed } from 'vue'
 import { createI18n, useI18n } from 'vue-i18n'
+import { z } from 'zod'
+
+// zod 校验默认信息的国际化:让 zod 的内置报错(如"期望 string,实际接收 null")跟随应用语言
+const zodLocaleMap: Record<string, () => any> = {
+  'zh-CN': z.locales.zhCN,
+  'zh-TW': z.locales.zhTW,
+  'en-US': z.locales.en,
+  'ja-JP': z.locales.ja,
+  'ko-KR': z.locales.ko,
+  'ru-RU': z.locales.ru
+}
+export function applyZodLocale(lang: string) {
+  z.config((zodLocaleMap[lang] || z.locales.en)())
+}
 
 // 导入语言文件
 const langModules = import.meta.glob('./language/*/index.ts', { eager: true }) as Record<
@@ -53,9 +67,14 @@ const importMessages = computed(() => {
   return message
 })
 
+const initialLocale = useLocalStorage(localeConfigKey, getBrowserLang()).value || getBrowserLang()
+
+// 初始化 zod 语言,跟随当前应用语言
+applyZodLocale(initialLocale)
+
 export const i18n = createI18n({
   legacy: false,
-  locale: useLocalStorage(localeConfigKey, getBrowserLang()).value || getBrowserLang(),
+  locale: initialLocale,
   fallbackLocale: getBrowserLang(),
   messages: importMessages.value,
   globalInjection: true
@@ -87,6 +106,7 @@ export function useLocale() {
 
     locale.value = lang;
     useLocalStorage(localeConfigKey, 'en-US').value = lang;
+    applyZodLocale(lang);
   }
   const getComponentsLocale = computed(() => {
     return i18n.global.getLocaleMessage(locale.value).componentsLocale;
