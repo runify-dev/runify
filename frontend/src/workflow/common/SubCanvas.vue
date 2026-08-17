@@ -139,6 +139,10 @@ function init(container: HTMLElement) {
 
   lf.value.on('graph:rendered', () => {
     flowId.value = lf.value!.graphModel.flowId || ''
+    // 把子 lf 挂到宿主 loop-node 的 model 上，并向主画布广播「已渲染」，供 getLf 逐层等待
+    const owner = getModel?.()
+    if (owner) (owner as any).__subLf = lf.value
+    getMainLf?.()?.graphModel.eventCenter.emit('runify:subcanvas:rendered', { loopId: owner?.id, lf: lf.value })
   })
 
   lf.value.setTheme({
@@ -336,6 +340,9 @@ function onSpaceKeyUp(e: KeyboardEvent) {
 }
 
 onBeforeUnmount(() => {
+  // 折叠/卸载即销毁子 lf：清掉 model 上的引用，避免悬空
+  const owner = getModel?.()
+  if (owner) delete (owner as any).__subLf
   window.removeEventListener('mousedown', onSubCanvasMouseDown)
   window.removeEventListener('mousemove', onSubCanvasMouseMove)
   window.removeEventListener('mouseup', onSubCanvasMouseUp)
