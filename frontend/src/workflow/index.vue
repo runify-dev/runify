@@ -410,6 +410,18 @@ function onMouseUp(e: MouseEvent) {
 
 const getThemeVar = (name: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim()
 
+// 从 JSON 递归算出到目标 loop 的祖先链 [顶层loop, ..., loopId]，找不到返回 null
+const findLoopPath = (nodes: any[], loopId: string, trail: string[] = []): string[] | null => {
+  for (const n of nodes) {
+    if (n.type !== 'loop-node') continue
+    const here = [...trail, n.id]
+    if (n.id === loopId) return here
+    const deep = findLoopPath(n.properties?.nodeData?.children?.nodes ?? [], loopId, here)
+    if (deep) return deep
+  }
+  return null
+}
+
 const init = (container: HTMLElement) => {
   lf.value = new LogicFlow({
     container: container,
@@ -456,6 +468,40 @@ const init = (container: HTMLElement) => {
   })
   lf.value.batchRegister([...Object.keys(nodes).map((key) => nodes[key].default), RunEdge])
   lf.value.setDefaultEdgeType('run-edge')
+
+  // 通用：按 loop 节点 id 拿到它循环体的 lf；不传/'main' → 主画布 lf。
+  // 目标埋多深、祖先是否折叠都会自动逐层展开并等渲染完成后返回（异步）。
+  lf.value.graphModel.getLf = async (loopId?: string): Promise<any> => {
+    const main = lf.value
+    if (!loopId || loopId === 'main') return main
+    const path = findLoopPath(main.graphModel.nodes, loopId)
+    if (!path) throw new Error(`lf 不存在: ${loopId}`)
+
+    let parent = main
+    for (const id of path) {
+      let sub = (parent.graphModel.getNodeModelById(id) as any)?.__subLf
+      if (!sub) {
+        const p = parent
+        sub = await new Promise((resolve, reject) => {
+          const onReady = (e: any) => {
+            if (e.loopId !== id) return
+            main.graphModel.eventCenter.off('runify:subcanvas:rendered', onReady)
+            clearTimeout(timer)
+            resolve(e.lf)
+          }
+          const timer = setTimeout(() => {
+            main.graphModel.eventCenter.off('runify:subcanvas:rendered', onReady)
+            reject(new Error(`展开超时: ${id}`))
+          }, 3000)
+          main.graphModel.eventCenter.on('runify:subcanvas:rendered', onReady)
+          // 在“该 loop 所在那层的 lf”上触发展开（loop-node 按 id 匹配 onExpandBody）
+          p.graphModel.eventCenter.emit('runify:node:expand-body', id)
+        })
+      }
+      parent = sub
+    }
+    return parent
+  }
 }
 const render = (data?: LogicFlow.GraphConfigData) => {
   lf.value.render(data ? data : {})
