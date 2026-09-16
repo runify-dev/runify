@@ -3,39 +3,46 @@ package com.run.handler.knowledge.impl;
 import com.run.auth.constants.PermissionConstants;
 import com.run.auth.dto.UserProfile;
 import com.run.common.cache.CacheStore;
+import com.run.common.query.Query;
 import com.run.common.result.Result;
+import com.run.common.search.SearchClient;
+import com.run.common.search.SearchQuery;
 import com.run.common.util.CommonUtils;
-import com.run.dao.entity.Knowledge;
-import com.run.dao.entity.KnowledgeFolder;
-import com.run.dao.entity.KnowledgePermission;
-import com.run.dao.entity.KnowledgeRelation;
-import com.run.dao.mapper.KnowledgeFolderMapper;
-import com.run.dao.mapper.KnowledgeMapper;
-import com.run.dao.mapper.KnowledgePermissionMapper;
-import com.run.dao.mapper.KnowledgeRelationMapper;
+import com.run.dao.entity.*;
+import com.run.dao.mapper.*;
 import com.run.handler.common.impl.ResourceHandlerImpl;
 import com.run.handler.common.pojo.SimpleNodePojo;
 import com.run.handler.knowledge.IKnowledgeHandler;
 import com.run.handler.knowledge.pojo.EditKnowledge;
+import com.run.sql.DSL;
+import io.vertx.core.Future;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.inject.Inject;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public class KnowledgeHandlerImpl extends ResourceHandlerImpl<Knowledge, KnowledgeFolder, KnowledgePermission, KnowledgeRelation, KnowledgeMapper, KnowledgeFolderMapper, KnowledgePermissionMapper, KnowledgeRelationMapper> implements IKnowledgeHandler {
 
     private final KnowledgeMapper knowledgeMapper;
+    private final SearchClient searchClient;
+    private final DocumentMapper documentMapper;
 
     @Inject
     public KnowledgeHandlerImpl(KnowledgeMapper knowledgeMapper,
                                 KnowledgeFolderMapper knowledgeFolderMapper,
                                 KnowledgeRelationMapper knowledgeRelationMapper,
                                 KnowledgePermissionMapper knowledgePermissionMapper,
-                                CacheStore cacheStore) {
+                                CacheStore cacheStore,
+                                DocumentMapper documentMapper,
+                                SearchClient searchClient) {
         super(knowledgeMapper, knowledgeFolderMapper, knowledgeRelationMapper, knowledgePermissionMapper, cacheStore);
         this.knowledgeMapper = knowledgeMapper;
+        this.searchClient = searchClient;
+        this.documentMapper = documentMapper;
     }
 
     @Override
@@ -43,12 +50,12 @@ public class KnowledgeHandlerImpl extends ResourceHandlerImpl<Knowledge, Knowled
         String resourceId = context.pathParam("resourceId");
         EditKnowledge pojo = context.body().asPojo(EditKnowledge.class);
         knowledgeMapper.getById(resourceId).compose(knowledge -> {
-            if (StringUtils.isNotEmpty(pojo.getName())) knowledge.setName(pojo.getName());
-            if (StringUtils.isNotEmpty(pojo.getIcon())) knowledge.setIcon(pojo.getIcon());
-            if (pojo.getDesc() != null) knowledge.setDesc(pojo.getDesc());
-            knowledge.setUpdateTime(LocalDateTime.now());
-            return knowledgeMapper.update(knowledge);
-        }).compose(_ -> knowledgeMapper.getById(resourceId))
+                    if (StringUtils.isNotEmpty(pojo.getName())) knowledge.setName(pojo.getName());
+                    if (StringUtils.isNotEmpty(pojo.getIcon())) knowledge.setIcon(pojo.getIcon());
+                    if (pojo.getDesc() != null) knowledge.setDesc(pojo.getDesc());
+                    knowledge.setUpdateTime(LocalDateTime.now());
+                    return knowledgeMapper.update(knowledge);
+                }).compose(_ -> knowledgeMapper.getById(resourceId))
                 .onSuccess(knowledge -> context.end(Result.success(knowledge).toBuffer()))
                 .onFailure(context::fail);
     }
@@ -132,5 +139,19 @@ public class KnowledgeHandlerImpl extends ResourceHandlerImpl<Knowledge, Knowled
     @Override
     protected KnowledgePermission newPermission(UUID id, UUID userId, UUID target, String permission) {
         return new KnowledgePermission(id, userId, target, permission, LocalDateTime.now(), LocalDateTime.now());
+    }
+
+    @Override
+    public void delete(RoutingContext context) {
+        String resourceId = context.pathParam("resourceId");
+        delete(resourceId)
+                .compose(ok -> {
+                    return documentMapper.delete(DSL.field(Document::getKnowledgeId).eq(resourceId), Map.of());
+                })
+                .compose(ok -> {
+                    return Future.fromCompletionStage(searchClient.deleteByQuery(SearchQuery.builder("document").exactFilter("knowledgeId", resourceId).build()));
+                })
+                .onSuccess(rs -> context.end(Result.success(rs).toBuffer()))
+                .onFailure(Future::failedFuture);
     }
 }
