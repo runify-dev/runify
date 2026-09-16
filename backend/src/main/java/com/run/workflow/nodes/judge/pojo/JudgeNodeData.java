@@ -115,13 +115,21 @@ public class JudgeNodeData {
         private CompareValue compare;
 
         /**
-         * 右值
-         *
-         * 普通字符串：
-         * "你好"
-         *
-         * 变量引用：
-         * "${start-node.question}"
+         * 右值来源
+         * reference：引用上游输出（读 referenceValue）
+         * customize：字面值（读 value）
+         */
+        private String location;
+
+        /**
+         * 右值引用路径（location=reference 时用），与左值 variable 同构
+         * 例如：["start-node", "question"]
+         */
+        private List<String> referenceValue = new ArrayList<>();
+
+        /**
+         * 右值字面量（location=customize 时用）
+         * 例如："你好"
          */
         private String value;
 
@@ -140,6 +148,8 @@ public class JudgeNodeData {
             condition.setId(UUID.randomUUID().toString());
             condition.setVariable(new ArrayList<>());
             condition.setCompare(null);
+            condition.setLocation("customize");
+            condition.setReferenceValue(new ArrayList<>());
             condition.setValue("");
             return condition;
         }
@@ -165,22 +175,8 @@ public class JudgeNodeData {
             return String.join(".", variable);
         }
 
-        public boolean isValueReference() {
-            return value != null && value.matches("^\\$\\{.+}$");
-        }
-
-        public List<String> getValueReferencePath() {
-            if (!isValueReference()) {
-                return List.of();
-            }
-
-            String body = value.substring(2, value.length() - 1);
-
-            if (body.isBlank()) {
-                return List.of();
-            }
-
-            return List.of(body.split("\\."));
+        public boolean isReference() {
+            return "reference".equals(location);
         }
     }
 

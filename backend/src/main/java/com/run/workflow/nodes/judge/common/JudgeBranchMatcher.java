@@ -93,31 +93,28 @@ public class JudgeBranchMatcher {
 
         Object rightValue = null;
         if (condition.needRightValue()) {
-            rightValue = resolveRightValue(condition.getValue(), workFlowManage);
+            rightValue = resolveRightValue(condition, workFlowManage);
         }
 
         return compare(leftValue, condition.getCompare(), rightValue);
     }
 
     /**
-     * value 当前是 String：
-     *
-     * 普通值：
-     * "你好"
-     *
-     * 引用变量：
-     * "${start-node.question}"
+     * 右值：location=reference 时读 referenceValue（引用路径，与左值同构），否则读 value（字面量）。
      */
     private static Object resolveRightValue(
-            String value,
+            JudgeNodeData.JudgeCondition condition,
             WorkFlowManage workFlowManage
     ) {
-        if (isReferenceValue(value)) {
-            List<String> path = parseReferencePath(value);
+        if (condition.isReference()) {
+            List<String> path = condition.getReferenceValue();
+            if (path == null || path.isEmpty()) {
+                return null;
+            }
             return workFlowManage.getContextVariable(path);
         }
 
-        return value;
+        return condition.getValue();
     }
 
     private static boolean compare(
@@ -155,29 +152,6 @@ public class JudgeBranchMatcher {
             case REGEX -> regexMatch(leftValue, rightValue);
             case WILDCARD -> wildcardMatch(leftValue, rightValue);
         };
-    }
-
-    private static boolean isReferenceValue(String value) {
-        if (value == null) {
-            return false;
-        }
-
-        String text = value.trim();
-        return text.startsWith("${") && text.endsWith("}") && text.length() > 3;
-    }
-
-    private static List<String> parseReferencePath(String value) {
-        if (!isReferenceValue(value)) {
-            return List.of();
-        }
-
-        String body = value.trim().substring(2, value.trim().length() - 1).trim();
-
-        if (body.isEmpty()) {
-            return List.of();
-        }
-
-        return List.of(body.split("\\."));
     }
 
     private static boolean isNullValue(Object value) {
