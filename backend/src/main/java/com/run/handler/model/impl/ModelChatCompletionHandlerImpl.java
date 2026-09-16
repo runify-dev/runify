@@ -105,14 +105,14 @@ public class ModelChatCompletionHandlerImpl implements IModelChatCompletionHandl
                 .putHeader("Cache-Control", "no-cache");
 
         ChatCompletionAccumulator accumulator = new ChatCompletionAccumulator(List.of("reasoning_content", "reasoning"), toolNames);
-        // 每个 tool_call 只下发一次 start 事件，参数由服务端累积后随 completion 整体下发
-        Set<String> startedToolCalls = new HashSet<>();
         accumulator.onToolCallChunk(call -> {
-            if (call.getId() != null && startedToolCalls.add(call.getId())) {
+            String argsChunk = call.getFunctionArguments();
+            if (call.getId() != null && !argsChunk.isEmpty()) {
                 writeEvent(context, new JsonObject()
-                        .put("type", "tool_call_start")
+                        .put("type", "tool_call")
                         .put("id", call.getId())
-                        .put("name", call.getFunctionName()));
+                        .put("name", call.getFunctionName())
+                        .put("arguments", argsChunk));
             }
         });
 
