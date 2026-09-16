@@ -23,6 +23,7 @@ import com.run.dao.mapper.FileMapper;
 import com.run.handler.knowledge.IDocumentHandler;
 import com.run.handler.knowledge.pojo.DocumentTreeItem;
 import com.run.sql.DSL;
+import com.run.sql.Query;
 import io.vertx.core.Future;
 import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.RoutingContext;
@@ -483,7 +484,10 @@ public class DocumentHandlerImpl implements IDocumentHandler {
         documentMapper.getById(documentId)
                 .compose(doc -> {
                     if (doc != null) {
-                        return documentMapper.deleteById(documentId).map(true);
+
+                        return documentMapper.deleteById(documentId).compose(ok -> {
+                            return Future.fromCompletionStage(searchClient.deleteByQuery(SearchQuery.builder("document").exactFilter("documentId", documentId).build()));
+                        }).map(true);
                     }
                     return deleteFolderById(documentId);
                 })
