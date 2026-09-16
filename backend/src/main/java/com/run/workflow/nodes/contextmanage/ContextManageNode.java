@@ -243,11 +243,13 @@ public class ContextManageNode extends INode<ContextManageNode, ContextManageNod
          */
         private void writeMessagesOutput(WorkFlowManage workFlowManage, ContextManageNode node, Object messages) {
             List<String> output = node.params.getSourceVariable();
+            // 出参留空则回退为原地写回入参变量：单变量原地压缩（读 V → 压缩 → 写回 V）。
+            // 允许出参与入参同一变量，不再跳过——压缩按预算/水位触发、keepRecentItems 护最近条、
+            // 权威摘要另存，原地反复压缩收敛安全。
             if (output == null || output.size() < 2) {
-                return;
+                output = node.params.getSourceSeedVariable();
             }
-            if (output.equals(node.params.getSourceSeedVariable())) {
-                log.warn("context-manage 变化值与初始值指向同一变量，跳过写回以避免二次压缩：{}", output);
+            if (output == null || output.size() < 2) {
                 return;
             }
             writeVariable(workFlowManage, output, messages);
