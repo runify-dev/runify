@@ -77,20 +77,20 @@
 
                     <div v-if="needRightValue(condition.compare)" class="mt-1 flex gap-1">
                       <Select
-                        :modelValue="getValueMode(condition)"
-                        :options="valueModeOptions"
+                        :modelValue="condition.location || 'customize'"
+                        :options="locationOptions"
                         optionLabel="label"
                         optionValue="value"
                         size="small"
                         class="value-mode-select shrink-0"
-                        @update:modelValue="(mode) => onValueModeChange(condition, mode)"
+                        @update:modelValue="(mode) => onLocationChange(condition, mode)"
                       />
 
                       <InputText
-                        v-if="getValueMode(condition) === 'str'"
+                        v-if="(condition.location || 'customize') === 'customize'"
                         v-model="condition.value"
                         size="small"
-                        placeholder="输入或引用参数值"
+                        placeholder="输入参数值"
                         class="value-input min-w-0 flex-1"
                         :class="{ 'p-invalid': showError(condition, 'value') }"
                       />
@@ -99,8 +99,8 @@
                         v-else
                         :config="{ labelKey: 'label', valueKey: 'value' }"
                         :options="options"
-                        :model-value="parseVariableExpression(condition.value)"
-                        @update:model-value="(v) => onValueVariableChange(condition, v)"
+                        :model-value="condition.referenceValue"
+                        @update:model-value="(v) => (condition.referenceValue = v)"
                         optionLabel="label"
                         optionGroupChildren="children"
                         placeholder="请选择变量"
@@ -171,15 +171,13 @@ import {
   type CascaderOption,
   type FormErrors,
   type JudgeCondition,
-  type ValueMode,
+  type ValueLocation,
   compareOptions,
   createCondition,
   getConditionErrors,
   logicOptions,
   needRightValue,
-  parseVariableExpression,
-  valueModeOptions,
-  isVariableExpression
+  locationOptions
 } from '@/workflow/nodes/judge-node/type'
 import { validate as validateNodeData } from './validator'
 
@@ -195,27 +193,21 @@ const options = computed<CascaderOption[]>(() => {
 
 const conditions = ref<JudgeCondition[]>([])
 const logic = ref<BranchLogic>('and')
-const valueModeMap = ref<Record<string, ValueMode>>({})
 
 onMounted(() => {
   const nodeData = model.properties?.nodeData
   if (nodeData?.conditions?.length) {
     conditions.value = cloneDeep(nodeData.conditions)
+    conditions.value.forEach((condition) => {
+      if (!condition.location) condition.location = 'customize'
+      if (!Array.isArray(condition.referenceValue)) condition.referenceValue = []
+    })
     logic.value = nodeData.logic || 'and'
   } else {
     conditions.value = []
     logic.value = 'and'
   }
-  initValueModeMap()
 })
-
-function initValueModeMap() {
-  const map: Record<string, ValueMode> = {}
-  conditions.value.forEach((condition) => {
-    map[condition.id] = isVariableExpression(condition.value) ? 'var' : 'str'
-  })
-  valueModeMap.value = map
-}
 
 function addCondition() {
   conditions.value.push(createCondition())
@@ -232,27 +224,14 @@ function onVariableChange(condition: JudgeCondition, value: string[]) {
 function onCompareChange(condition: JudgeCondition) {
   if (!needRightValue(condition.compare)) {
     condition.value = ''
+    condition.referenceValue = []
   }
 }
 
-function onValueModeChange(condition: JudgeCondition, mode: ValueMode) {
-  valueModeMap.value[condition.id] = mode
+function onLocationChange(condition: JudgeCondition, location: ValueLocation) {
+  condition.location = location
   condition.value = ''
-}
-
-function onValueVariableChange(condition: JudgeCondition, value: string[]) {
-  if (!value.length) {
-    condition.value = ''
-    return
-  }
-  condition.value = `\${${value.join('.')}}`
-}
-
-function getValueMode(condition: JudgeCondition): ValueMode {
-  if (valueModeMap.value[condition.id]) {
-    return valueModeMap.value[condition.id]
-  }
-  return isVariableExpression(condition.value) ? 'var' : 'str'
+  condition.referenceValue = []
 }
 
 function showError(condition: JudgeCondition, field: 'variable' | 'compare' | 'value') {
@@ -300,6 +279,8 @@ function buildFormResult() {
         id: c.id,
         variable: [...c.variable],
         compare: c.compare,
+        location: c.location || 'customize',
+        referenceValue: [...(c.referenceValue || [])],
         value: c.value || ''
       })),
       logic: logic.value

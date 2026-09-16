@@ -4,7 +4,7 @@ export type BranchType = 'if' | 'elseif' | 'else'
 
 export type BranchLogic = 'and' | 'or'
 
-export type ValueMode = 'str' | 'var'
+export type ValueLocation = 'reference' | 'customize'
 
 export type CompareValue =
   | 'is_null'
@@ -33,6 +33,11 @@ export interface JudgeCondition {
   id: string
   variable: string[]
   compare?: CompareValue
+  /** 右值来源：reference 用 referenceValue（引用，同左值）；customize 用 value（字面量） */
+  location?: ValueLocation
+  /** 右值引用路径（location=reference 时用），如 [节点ID, 字段] */
+  referenceValue?: string[]
+  /** 右值字面量（location=customize 时用） */
   value?: string
 }
 
@@ -108,14 +113,50 @@ export const compareTextMap: Record<CompareValue, string> = compareOptions.reduc
   {} as Record<CompareValue, string>
 )
 
+/**
+ * 单个条件的 JSON Schema（每个字段独立描述），供 judge / loop-break / loop-continue 三个节点的
+ * AI 生成工具（add_branch / update_branch / update 的 conditions.items）共用，避免各写一份。
+ * compare 的 enum 直接取自 compareOptions（单一真源）。
+ */
+export const conditionItemSchema = {
+  type: 'object',
+  properties: {
+    variable: {
+      type: 'array',
+      items: { type: 'string' },
+      description: '左值：对上游输出的引用 [节点ID, 字段]（先用 get_node_field_options 取真实节点 id 与字段）'
+    },
+    compare: {
+      type: 'string',
+      enum: compareOptions.map((item) => item.value),
+      description: '比较符；is_null/is_not_null/is_true/is_not_true 无需右值'
+    },
+    location: {
+      type: 'string',
+      enum: ['customize', 'reference'],
+      description: '右值来源：customize 用字面量 value；reference 用引用 referenceValue（缺省 customize）'
+    },
+    referenceValue: {
+      type: 'array',
+      items: { type: 'string' },
+      description: 'location=reference 时的右值引用 [节点ID, 字段]（与左值同构，先用 get_node_field_options 取）'
+    },
+    value: {
+      type: 'string',
+      description: 'location=customize 时的右值字面量'
+    }
+  },
+  required: ['variable', 'compare']
+}
+
 export const logicOptions: Array<{ label: string; value: BranchLogic }> = [
   { label: '且', value: 'and' },
   { label: '或', value: 'or' }
 ]
 
-export const valueModeOptions: Array<{ label: string; value: ValueMode }> = [
-  { label: 'str', value: 'str' },
-  { label: 'var', value: 'var' }
+export const locationOptions: Array<{ label: string; value: ValueLocation }> = [
+  { label: '固定值', value: 'customize' },
+  { label: '引用', value: 'reference' }
 ]
 
 export const noRightValueCompares: CompareValue[] = [
@@ -130,6 +171,8 @@ export function createCondition(): JudgeCondition {
     id: randomId(),
     variable: [],
     compare: undefined,
+    location: 'customize',
+    referenceValue: [],
     value: ''
   }
 }
@@ -199,6 +242,8 @@ export function buildBranchesValue(branches: JudgeBranch[]): JudgeBranch[] {
         id: condition.id,
         variable: [...condition.variable],
         compare: condition.compare,
+        location: condition.location || 'customize',
+        referenceValue: [...(condition.referenceValue || [])],
         value: condition.value || ''
       }))
     }
@@ -235,10 +280,13 @@ export function isBlankVariable(value: unknown) {
 }
 
 export function getConditionErrors(condition: JudgeCondition): ConditionError {
+  const isReference = (condition.location || 'customize') === 'reference'
   return {
     variable: isBlankVariable(condition.variable),
     compare: isBlank(condition.compare),
-    value: needRightValue(condition.compare) && isBlank(condition.value)
+    value:
+      needRightValue(condition.compare) &&
+      (isReference ? isBlankVariable(condition.referenceValue) : isBlank(condition.value))
   }
 }
 
@@ -292,27 +340,6 @@ export function formatVariable(variable: unknown) {
     .map((item) => String(item || '').trim())
     .filter(Boolean)
     .join('.')
-}
-
-export function parseVariableExpression(value?: string): string[] {
-  if (!value) {
-    return []
-  }
-
-  const match = value.match(/^\$\{(.+)\}$/)
-
-  if (!match?.[1]) {
-    return []
-  }
-
-  return match[1]
-    .split('.')
-    .map((item) => item.trim())
-    .filter(Boolean)
-}
-
-export function isVariableExpression(value?: string) {
-  return parseVariableExpression(value).length > 0
 }
 
 export function findOptionByPath(

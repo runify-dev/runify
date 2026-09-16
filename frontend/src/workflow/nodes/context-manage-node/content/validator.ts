@@ -8,14 +8,8 @@ export function validate(nodeData: Record<string, any> | undefined): ValidationR
   if (!Array.isArray(data.sourceSeedVariable) || data.sourceSeedVariable.length === 0) {
     return { valid: false, errors: { sourceSeedVariable: '请选择待压缩的上下文（初始值为入参，必填）' } }
   }
-  // 出参不能和入参指向同一变量，否则下一轮会把压缩产物当输入二次压缩
-  if (
-    Array.isArray(data.sourceVariable) &&
-    data.sourceVariable.length > 0 &&
-    JSON.stringify(data.sourceVariable) === JSON.stringify(data.sourceSeedVariable)
-  ) {
-    return { valid: false, errors: { sourceVariable: '变化值（出参）不能与初始值（入参）相同' } }
-  }
+  // 允许出参与入参指向同一变量：单变量原地压缩（读 V → 压缩 → 写回 V）。
+  // 压缩按预算/水位触发、keepRecentItems 护最近条、权威摘要另存，原地反复压缩收敛安全。
 
   if (data.enableSummarizer && !String(data.summarizerModelId ?? '').trim()) {
     return { valid: false, errors: { summarizerModelId: '启用 LLM 摘要需要选择模型' } }

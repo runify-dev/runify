@@ -32,14 +32,14 @@
 import ReNameDialog from '@/workflow/common/rename-dialog/index.vue'
 import AddNodeDialog from '@/workflow/common/add-node-dialog/index.vue'
 import CanvasToolbar from '@/workflow/common/CanvasToolbar.vue'
-import AiGeneratePanel from '@/workflow/ai-generate/index.vue'
+import AiGeneratePanel from '@/workflow/ai-generate/panel/index.vue'
 import LogicFlow from '@logicflow/core'
 import '@logicflow/core/dist/index.css'
 import '@logicflow/extension/lib/style/index.css'
-import dagre from 'dagre'
+import { layoutCanvas } from '@/workflow/common/auto-layout'
 
 import RunEdge from './common/edge'
-import { onMounted, onBeforeUnmount, ref, computed, provide, inject, nextTick } from 'vue'
+import { onMounted, onBeforeUnmount, ref, computed, provide, inject } from 'vue'
 import type { ValidationResult } from './common/type'
 import { WorkflowType } from './common/data'
 import bus from '@/bus'
@@ -80,10 +80,31 @@ const showAiGenerate = computed(
     (workflowType === WorkflowType.APPLICATION || workflowType === WorkflowType.PROCESSOR)
 )
 
-// ── 校验失败时弹出错误提示（取首条错误信息，带上节点名） ──
+// ── 在整棵节点树里按 id 定位节点（含循环体子画布，逐层递归）──
+//    返回命中节点数据 + 其外层循环 id 链（[最外层…最内层]，空数组=就在主画布）。
+//    校验器把最深层失败子节点的 id 冒泡为 failedNodeId，但它可能深埋在循环体里，
+//    只查主画布顶层会漏 → 名称取不到、也钻不进去。
+function locateNode(
+  targetId: string
+): { node: any; loopIds: string[] } | null {
+  function walk(nodes: any[] | undefined, trail: string[]): { node: any; loopIds: string[] } | null {
+    for (const n of nodes ?? []) {
+      if (n.id === targetId) return { node: n, loopIds: trail }
+      const children = n.properties?.nodeData?.children?.nodes as any[] | undefined
+      if (children?.length) {
+        const found = walk(children, [...trail, n.id])
+        if (found) return found
+      }
+    }
+    return null
+  }
+  return walk(lf.value?.graphModel?.nodes, [])
+}
+
+// ── 校验失败时弹出错误提示（取首条错误信息，带上节点名，深埋循环体也能取到）──
 function emitValidationError(failedNodeId: string, errors?: Record<string, string>) {
-  const failedNode = lf.value?.graphModel?.nodes?.find((n: any) => n.id === failedNodeId)
-  const name = failedNode?.properties?.name
+  const located = locateNode(failedNodeId)
+  const name = located?.node?.properties?.name
   const keys = errors ? Object.keys(errors) : []
   const message = keys.length ? errors![keys[0]] : '节点配置校验未通过'
   bus.emit('message:error', name ? `「${name}」${message}` : message)
@@ -109,16 +130,13 @@ async function validateWorkflow(
         if (silent) {
           return { valid: false, nodeId: failedNodeId, errors: result.errors }
         }
-        const path = result.failedPath ?? []
-        // failedNodeId !== node.id 说明是子节点失败，需要展开父循环
-        if (failedNodeId !== node.id && path.length === 0) {
-          path.push(node.id)
-        }
         emitValidationError(failedNodeId, result.errors)
-        if (path.length) {
-          await expandAndOpen(path, failedNodeId)
+        // 按真实节点树定位失败节点：有外层循环链就逐层展开钻进去，否则直接开主画布节点
+        const loopIds = locateNode(failedNodeId)?.loopIds ?? []
+        if (loopIds.length) {
+          await expandAndOpen([...loopIds, failedNodeId])
         } else {
-          selectAndOpenNode(node.id)
+          selectAndOpenNode(failedNodeId)
         }
         return { valid: false, nodeId: failedNodeId, errors: result.errors }
       }
@@ -134,22 +152,17 @@ async function validateWorkflow(
   return { valid: true }
 }
 
-async function expandAndOpen(path: string[], failedNodeId: string) {
-  if (!lf.value) return
-  const graphNodes = lf.value.graphModel.nodes
-
-  // 逐层展开循环体，设置 _pendingOpenChild 指向下一层
-  for (let i = 0; i < path.length; i++) {
-    const loopNodeId = path[i]
-    const loopNode = graphNodes.find((n: any) => n.id === loopNodeId)
-    if (!loopNode) continue
-
-    // 最内层的 _pendingOpenChild 指向失败节点，其余指向下一层循环
-    loopNode.properties._pendingOpenChild = i === 0 ? failedNodeId : path[i - 1]
-    lf.value.graphModel.eventCenter.emit('runify:node:expand-body', loopNodeId)
-    await nextTick()
-    await new Promise((r) => setTimeout(r, 300))
-  }
+// 展开循环体并逐层钻取到失败节点。
+// descentPath = [最外层循环id, …, 最内层循环id, 失败节点id]，只有最外层循环在主画布上。
+// 把「进入后还要继续打开的 id 序列」挂到最外层循环的 _pendingOpenPath 上，
+// 由 loop-node 渲染完自身循环体后自我递归下钻（详见 loop-node/index.vue onExpandBody）。
+async function expandAndOpen(descentPath: string[]) {
+  if (!lf.value || descentPath.length < 2) return
+  const [outerLoopId, ...rest] = descentPath
+  const outerLoop = lf.value.graphModel.nodes.find((n: any) => n.id === outerLoopId)
+  if (!outerLoop) return
+  outerLoop.properties._pendingOpenPath = rest
+  lf.value.graphModel.eventCenter.emit('runify:node:expand-body', outerLoopId)
 }
 
 function selectAndOpenNode(nodeId: string) {
@@ -185,61 +198,7 @@ function onFitView() {
 }
 function onAutoLayout() {
   if (!lf.value) return
-
-  const { graphModel } = lf.value
-  const nodeMap = new Map<string, any>(graphModel.nodes.map((n: any) => [n.id, n]))
-
-  // 按源节点分组，对每个节点的出边分别按锚点 Y 坐标排序
-  const edgesBySource = new Map<string, any[]>()
-
-  graphModel.edges.forEach((edge: any) => {
-    if (!edgesBySource.has(edge.sourceNodeId)) {
-      edgesBySource.set(edge.sourceNodeId, [])
-    }
-    edgesBySource.get(edge.sourceNodeId)!.push(edge)
-  })
-
-  const sortedEdges: any[] = []
-  edgesBySource.forEach((edges, nodeId) => {
-    const sourceNode = nodeMap.get(nodeId)
-    if (sourceNode) {
-      edges.sort((a, b) => {
-        const anchorA = sourceNode.anchors.find((an: any) => an.id === a.sourceAnchorId)
-        const anchorB = sourceNode.anchors.find((an: any) => an.id === b.sourceAnchorId)
-        return (anchorA?.y ?? 0) - (anchorB?.y ?? 0)
-      })
-    }
-    sortedEdges.push(...edges)
-  })
-
-  // 使用 Dagre 布局
-  const g = new dagre.graphlib.Graph()
-  g.setGraph({ rankdir: 'LR', align: '', nodesep: 60, ranksep: 100 })
-  g.setDefaultEdgeLabel(() => ({}))
-
-  graphModel.nodes.forEach((node: any) => {
-    g.setNode(node.id, { width: node.width || 150, height: node.height || 50 })
-  })
-
-  sortedEdges.forEach((edge: any) => {
-    g.setEdge(edge.sourceNodeId, edge.targetNodeId)
-  })
-
-  dagre.layout(g)
-
-  // 更新节点坐标
-  graphModel.nodes.forEach((node: any) => {
-    const pos = g.node(node.id)
-    if (pos) {
-      node.x = pos.x
-      node.y = pos.y
-    }
-  })
-
-  // 刷新边的位置
-  graphModel.edges.forEach((edge: any) => edge.updatePathByAnchor?.())
-
-  lf.value.fitView(40, 40)
+  layoutCanvas(lf.value)
   zoomPercent.value = Math.round(lf.value.getTransform().SCALE_X * 100)
 }
 
