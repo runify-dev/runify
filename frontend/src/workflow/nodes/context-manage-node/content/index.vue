@@ -19,7 +19,7 @@
       <div class="mb-3">
         <label>变化值 · 出参（可选，压缩+拼接摘要/便签后的结果写回此变量）</label>
         <Cascader
-          placeholder="不选则只从 messages 输出口取用"
+          placeholder="留空即原地写回入参变量"
           :config="{ labelKey: 'label', valueKey: 'value' }"
           :options="fieldOptions"
           v-model="formData.sourceVariable"
@@ -31,7 +31,7 @@
           {{ errors.sourceVariable }}
         </Message>
       </div>
-      <p class="text-xs text-surface-400 dark:text-surface-500 mt-1">流向：初始值(入参) → 压缩并拼接摘要/便签 → 写入变化值(出参)。出参须与入参不同；ai-chat 直接引用变化值即可（也可用 messages 输出口）。</p>
+      <p class="text-xs text-surface-400 dark:text-surface-500 mt-1">流向：初始值(入参) → 压缩并拼接摘要/便签 → 写入变化值(出参)。推荐单变量原地压缩：出参留空或与入参同一变量，读 V→压缩→写回 V；ai-chat 直接引用该变量即可（也可用 messages 输出口）。</p>
     </Fieldset>
 
     <Fieldset legend="摘要">

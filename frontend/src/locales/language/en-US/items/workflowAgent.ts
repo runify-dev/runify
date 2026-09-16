@@ -36,8 +36,13 @@ export default {
     awaiting: 'Waiting for your reply…'
   },
   tool: {
+    configure_node: 'Configure node (sub-agent)',
+    update: 'Write config',
+    validate: 'Validate config',
+    build_loop_body: 'Build loop body (sub-agent)',
     clear_workflow: 'Clear canvas',
     plan: 'Update plan',
+    execute_step: 'Execute step',
     get_node_schema: 'Get node schema',
     add_node: 'Add node',
     update_node: 'Update node',
@@ -66,12 +71,20 @@ export default {
     edit_node_text: 'Edit text',
     update_blueprint: 'Update conventions'
   },
+  activity: {
+    input: 'Input',
+    output: 'Output',
+    params: 'Parameters',
+    empty: 'No steps yet'
+  },
   project: {
     entry: 'AI Generate Project',
     title: 'AI Generate Project',
     newSession: 'New session',
-    subtitle: 'Describe your needs; AI plans endpoints, creates processors and generates workflows in parallel',
-    requirementPlaceholder: 'Describe the project you want, e.g. a blog backend: CRUD APIs for posts plus a list page',
+    subtitle:
+      'Describe your needs; AI plans endpoints, creates processors and generates workflows in parallel',
+    requirementPlaceholder:
+      'Describe the project you want, e.g. a blog backend: CRUD APIs for posts plus a list page',
     inputPlaceholder: 'Reply, or add more requirements…',
     building: 'Building',
     empty: 'Workflow canvases will appear here once generation starts',

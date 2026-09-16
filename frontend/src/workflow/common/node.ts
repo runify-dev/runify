@@ -20,7 +20,7 @@ const getNodeName = (model: BaseNodeModel) => {
     }
   }
 }
-const useProvide = (model: any) => {
+export const useProvide = (model: any) => {
   const getNodeFieldOptions = (withSelf?: boolean) => {
     const getUpNode = (id: string, result: Array<any>) => {
       const upNodes = model.graphModel.getNodeIncomingNode(id)
@@ -141,7 +141,6 @@ const useProvide = (model: any) => {
     return result
   }
   const getTemplateVariables = () => {
-    console.log(getNodeFieldOptions())
     return getNodeFieldOptions();
   }
 

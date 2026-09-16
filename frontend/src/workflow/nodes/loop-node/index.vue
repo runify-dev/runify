@@ -370,18 +370,22 @@ function onExpandBody(nodeId: string) {
   if (nodeId !== model.id) return
 
   function afterRender() {
-    const pendingChild = model.properties._pendingOpenChild
-    if (!pendingChild) return
-    delete model.properties._pendingOpenChild
+    // _pendingOpenPath = 进入本循环体后还要继续打开的 id 序列：
+    // [下一层循环id, …, 失败节点id]。取出队首，若还有后续则它必是子循环，
+    // 把剩余序列交给它继续下钻；否则队首即最终目标节点，打开其设置。
+    const pendingPath = model.properties._pendingOpenPath as string[] | undefined
+    if (!pendingPath?.length) return
+    delete model.properties._pendingOpenPath
     const subLf = subCanvasRef.value?.lf
     if (!subLf) return
-    const childNode = subLf.graphModel.nodes.find((n: any) => n.id === pendingChild)
-    const isChildLoop = childNode?.type === 'loop-node'
-    if (isChildLoop) {
-      subLf.graphModel.eventCenter.emit('runify:node:expand-body', pendingChild)
+    const [head, ...rest] = pendingPath
+    const childNode = subLf.graphModel.nodes.find((n: any) => n.id === head)
+    if (rest.length && childNode?.type === 'loop-node') {
+      childNode.properties._pendingOpenPath = rest
+      subLf.graphModel.eventCenter.emit('runify:node:expand-body', head)
     } else {
       setTimeout(() => {
-        subLf.graphModel.eventCenter.emit('runify:node:open-settings', pendingChild)
+        subLf.graphModel.eventCenter.emit('runify:node:open-settings', head)
       }, 500)
     }
   }

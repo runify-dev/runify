@@ -25,72 +25,10 @@
 </template>
 <script setup lang="ts">
 import { iconComponent } from '@/workflow/icons'
-import {
-  aiChatNode,
-  javaScriptNode,
-  databaseSearchNode,
-  databaseInsertNode,
-  cacheQueryNode,
-  cacheWriteNode,
-  fileDownloadNode,
-  fileUploadNode,
-  knowledgeSearchNode,
-  jsonResponseNode,
-  judgeNode,
-  loopNode,
-  terminalNode,
-  loopContinueNode,
-  loopBreakNode,
-  variableAssignNode,
-  contextPushNode,
-  contextManageNode,
-  contextQueryNode,  contextSaveNode,
-  factExtractNode,
-  approvalNode,
-  applyPatchNode,
-  readFileNode,
-  globNode,
-  grepNode,
-  listSkillsNode,
-  downloadSkillsNode,
-  runSkillNode,
-  extractNode,
-  listDirNode,
-  createFileNode
-} from '@/workflow/common/data'
+import { WorkflowType } from '@/workflow/common/data'
+import { NODE_MENU_GROUPS } from '@/workflow/common/node-group'
 
-const groups = [
-  {
-    value: '0',
-    label: 'AI',
-    icon: 'pi pi-sparkles',
-    nodes: [aiChatNode, contextManageNode, factExtractNode]
-  },
-  {
-    value: '1',
-    label: 'AI 工具',
-    icon: 'pi pi-bolt',
-    nodes: [terminalNode, readFileNode, listDirNode, globNode, grepNode, applyPatchNode, fileDownloadNode, fileUploadNode, createFileNode, listSkillsNode, downloadSkillsNode, runSkillNode]
-  },
-  {
-    value: '2',
-    label: '数据',
-    icon: 'pi pi-database',
-    nodes: [databaseSearchNode, databaseInsertNode, cacheQueryNode, cacheWriteNode, knowledgeSearchNode]
-  },
-  {
-    value: '3',
-    label: '控制流',
-    icon: 'pi pi-directions',
-    nodes: [judgeNode, loopNode, loopContinueNode, loopBreakNode]
-  },
-  {
-    value: '4',
-    label: '工具',
-    icon: 'pi pi-wrench',
-    nodes: [javaScriptNode, extractNode, variableAssignNode, contextPushNode, contextQueryNode, contextSaveNode, approvalNode, jsonResponseNode]
-  }
-]
+const groups = NODE_MENU_GROUPS[WorkflowType.APPLICATION_LOOP]
 
 const emit = defineEmits(['selected'])
 </script>

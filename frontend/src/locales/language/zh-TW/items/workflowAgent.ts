@@ -35,8 +35,13 @@ export default {
     awaiting: '等待你的回答…'
   },
   tool: {
+    configure_node: '配置節點（子代理）',
+    update: '寫入配置',
+    validate: '校驗配置',
+    build_loop_body: '搭建循環體（子代理）',
     clear_workflow: '清空畫布',
     plan: '更新規劃',
+    execute_step: '執行步驟',
     get_node_schema: '查詢節點文檔',
     add_node: '添加節點',
     update_node: '更新節點',
@@ -65,12 +70,19 @@ export default {
     edit_node_text: '編輯文本',
     update_blueprint: '更新專案規範'
   },
+  activity: {
+    input: '輸入',
+    output: '輸出',
+    params: '參數',
+    empty: '暫無步驟'
+  },
   project: {
     entry: 'AI 生成專案',
     title: 'AI 生成專案',
     newSession: '新建會話',
     subtitle: '描述需求，AI 規劃端點、建立處理器並平行生成工作流',
-    requirementPlaceholder: '描述你想要的專案，例如：生成一個部落格系統後端——文章增刪改查 API + 一個文章列表展示頁面',
+    requirementPlaceholder:
+      '描述你想要的專案，例如：生成一個部落格系統後端——文章增刪改查 API + 一個文章列表展示頁面',
     inputPlaceholder: '回覆釐清，或繼續補充需求…',
     building: '正在搭建',
     empty: '生成開始後，工作流畫布會出現在這裡',

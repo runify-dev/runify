@@ -1,11 +1,9 @@
 import axios from 'axios'
 import processorAPI from '@/api/processor'
-import { toolSchemas } from '@/workflow/ai-generate/tools'
 import type { ToolCallMeta } from '@/workflow/ai-generate/useAgentLoop'
-import {
-  processorToolSchemas,
-  processorToolExecutors
-} from '@/workflow/ai-generate/profiles/processor-http/tools'
+import { PLAN_SCHEMA } from '@/workflow/ai-generate/loop-agent'
+import { toToolSchemas } from '@/workflow/ai-generate/common'
+import { PROCESSOR_DB_TOOLS } from '@/workflow/ai-generate/tools'
 import { projectAiApi } from './persistence-api'
 import type { SubAgentResult } from './workflow-subagent'
 
@@ -64,10 +62,11 @@ export interface ProjectToolExecution {
   execute(args: Record<string, any>, ctx: ProjectAgentContext, meta?: ToolCallMeta): Promise<any> | any
 }
 
-/** 复用处理器画布的数据库工具（执行器不读画布上下文，传空即可） */
+/** 复用处理器画布的数据库工具（apply 不读画布上下文，lf/node 传 null 即可） */
+const dbToolMap = new Map(PROCESSOR_DB_TOOLS.map((tool) => [tool.name, tool]))
 const reuseDbTool = (name: string): ProjectToolExecution => ({
-  resultLimit: processorToolExecutors[name].resultLimit,
-  execute: (args) => processorToolExecutors[name].execute(args, {} as any)
+  resultLimit: name === 'get_database_columns' ? 20000 : undefined,
+  execute: (args) => dbToolMap.get(name)!.apply(args, null, null)
 })
 
 export const projectToolExecutors: Record<string, ProjectToolExecution> = {
@@ -221,7 +220,7 @@ export const projectToolExecutors: Record<string, ProjectToolExecution> = {
 }
 
 /** plan 工具与画布 agent 完全同构，schema 直接复用 */
-const planSchema = toolSchemas.find((tool: any) => tool.function.name === 'plan')!
+const planSchema = PLAN_SCHEMA
 
 export const projectToolSchemas = [
   planSchema,
@@ -248,7 +247,7 @@ export const projectToolSchemas = [
       }
     }
   },
-  ...processorToolSchemas,
+  ...toToolSchemas(PROCESSOR_DB_TOOLS),
   {
     type: 'function',
     function: {

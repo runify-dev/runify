@@ -7,6 +7,8 @@ const conditionSchema = z.object({
   id: z.string(),
   variable: z.array(z.string()).min(1, { error: '变量值不可为空' }),
   compare: z.string({ error: '条件不可为空' }).min(1, { error: '条件不可为空' }),
+  location: z.enum(['reference', 'customize']).optional(),
+  referenceValue: z.array(z.string()).optional(),
   value: z.string().optional()
 })
 

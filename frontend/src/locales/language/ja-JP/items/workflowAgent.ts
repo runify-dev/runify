@@ -4,7 +4,8 @@ export default {
   modelLabel: 'モデル',
   modelPlaceholder: 'モデルを選択してください',
   requirementLabel: '要件',
-  requirementPlaceholder: '作りたいワークフローを記述してください。例：ナレッジベースを使った Q&A アプリ',
+  requirementPlaceholder:
+    '作りたいワークフローを記述してください。例：ナレッジベースを使った Q&A アプリ',
   doneToast: '生成が完了しました。確認して保存してください',
   followUpPlaceholder: '会話を続ける：調整したい点を入力…（Enter で送信）',
   status: {
@@ -35,8 +36,13 @@ export default {
     awaiting: '回答をお待ちしています…'
   },
   tool: {
+    configure_node: 'ノードを構成（サブエージェント）',
+    update: '設定を書き込み',
+    validate: '設定を検証',
+    build_loop_body: 'ループ本体を構築（サブエージェント）',
     clear_workflow: 'キャンバスをクリア',
     plan: '計画を更新',
+    execute_step: 'ステップを実行',
     get_node_schema: 'ノード仕様を取得',
     add_node: 'ノードを追加',
     update_node: 'ノードを更新',
@@ -65,12 +71,20 @@ export default {
     edit_node_text: 'テキスト編集',
     update_blueprint: 'プロジェクト規約を更新'
   },
+  activity: {
+    input: '入力',
+    output: '出力',
+    params: 'パラメータ',
+    empty: 'まだステップがありません'
+  },
   project: {
     entry: 'AI プロジェクト生成',
     title: 'AI プロジェクト生成',
     newSession: '新規セッション',
-    subtitle: '要件を記述すると、AI がエンドポイントを設計し、プロセッサーを作成してワークフローを並行生成します',
-    requirementPlaceholder: '作りたいプロジェクトを記述してください。例：ブログシステムのバックエンド——記事の CRUD API と記事一覧ページ',
+    subtitle:
+      '要件を記述すると、AI がエンドポイントを設計し、プロセッサーを作成してワークフローを並行生成します',
+    requirementPlaceholder:
+      '作りたいプロジェクトを記述してください。例：ブログシステムのバックエンド——記事の CRUD API と記事一覧ページ',
     inputPlaceholder: '返信、または要件を追加…',
     building: '構築中',
     empty: '生成が始まるとワークフローキャンバスがここに表示されます',

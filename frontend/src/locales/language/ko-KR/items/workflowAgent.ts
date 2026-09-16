@@ -35,8 +35,13 @@ export default {
     awaiting: '답변을 기다리는 중…'
   },
   tool: {
+    configure_node: '노드 구성(서브 에이전트)',
+    update: '설정 쓰기',
+    validate: '설정 검증',
+    build_loop_body: '루프 본문 구성(서브 에이전트)',
     clear_workflow: '캔버스 초기화',
     plan: '계획 업데이트',
+    execute_step: '단계 실행',
     get_node_schema: '노드 문서 조회',
     add_node: '노드 추가',
     update_node: '노드 수정',
@@ -65,12 +70,20 @@ export default {
     edit_node_text: '텍스트 편집',
     update_blueprint: '프로젝트 규약 업데이트'
   },
+  activity: {
+    input: '입력',
+    output: '출력',
+    params: '매개변수',
+    empty: '아직 단계가 없습니다'
+  },
   project: {
     entry: 'AI 프로젝트 생성',
     title: 'AI 프로젝트 생성',
     newSession: '새 세션',
-    subtitle: '요구사항을 설명하면 AI가 엔드포인트를 설계하고 프로세서를 생성하며 워크플로를 병렬로 생성합니다',
-    requirementPlaceholder: '원하는 프로젝트를 설명하세요. 예: 블로그 시스템 백엔드 — 게시글 CRUD API와 목록 페이지',
+    subtitle:
+      '요구사항을 설명하면 AI가 엔드포인트를 설계하고 프로세서를 생성하며 워크플로를 병렬로 생성합니다',
+    requirementPlaceholder:
+      '원하는 프로젝트를 설명하세요. 예: 블로그 시스템 백엔드 — 게시글 CRUD API와 목록 페이지',
     inputPlaceholder: '답변하거나 요구사항을 추가하세요…',
     building: '구축 중',
     empty: '생성이 시작되면 워크플로 캔버스가 여기에 표시됩니다',
